@@ -1,0 +1,29 @@
+{
+    "name": "@tatakai/api",
+    "version": "1.0.0",
+    "description": "The official TypeScript SDK for Tatakai API",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "type": "module",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+        "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
+        "lint": "eslint src"
+    },
+    "keywords": [
+        "anime",
+        "api",
+        "sdk",
+        "tatakai"
+    ],
+    "author": "Tatakai Team",
+    "license": "MIT",
+    "devDependencies": {
+        "tsup": "^8.3.6",
+        "typescript": "^5.7.3"
+    }
+}

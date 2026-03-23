@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tatakai API | The Ultimate Anime Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            900: '#050505',
+                            800: '#0a0a0a',
+                            700: '#121212',
+                            border: '#1f1f1f',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #333;
+        }
+
+        /* Grid Pattern */
+        .bg-grid {
+            background-size: 50px 50px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+    </style>
+</head>
+
+<body class="antialiased overflow-x-hidden selection:bg-brand-500/30 selection:text-brand-400 pb-20">
+
+    <!-- Background Effects -->
+    <div class="fixed inset-0 z-0 bg-grid pointer-events-none"></div>
+    <div
+        class="fixed top-0 left-1/4 w-96 h-96 bg-brand-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow">
+    </div>
+    <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[128px] pointer-events-none animate-pulse-slow"
+        style="animation-delay: 2s;"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-2 group">
+                <div
+                    class="w-12 h-18  rounded-lg flex items-center justify-center text-black font-bold transform group-hover:rotate-6 transition-transform">
+                    <img src="https://raw.githubusercontent.com/Snozxyx/Tatakai/refs/heads/main/public/tatakai-logo.png" alt="" srcset="">
+                </div>
+                <span class="font-bold text-lg ">Tatakai<span
+                        class="text-white/40 font-normal">API</span></span>
+            </a>
+
+            <div class="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
+                <a href="/docs/intro" class="hover:text-white transition-colors">Guide</a>
+                <a href="https://github.com/Snozxyx/TatakaiAPI"
+                    class="flex items-center gap-1 hover:text-white transition-colors">
+                    GitHub
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                </a>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <a href="/docs"
+                    class="hidden sm:flex items-center gap-2 bg-white text-black px-4 py-2 rounded-full text-sm font-bold hover:scale-105 transition-transform">
+                    <span>Documentation</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 pt-32">
+
+        <!-- Hero Section -->
+        <section class="max-w-7xl mx-auto px-6 text-center mb-24">
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-brand-400 font-mono mb-8 animate-float">
+                <span class="flex h-2 w-2 rounded-full bg-brand-400 animate-pulse"></span>
+                v2.0.4 is now available
+            </div>
+                    <span class="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs font-bold rounded-md border border-orange-500/30 select-none">Soon</span>
+
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+                The Anime Data <br>
+                <span
+                    class="bg-clip-text text-transparent bg-gradient-to-r from-white via-zinc-400 to-zinc-600">Infrastructure</span>
+            </h1>
+
+            <p class="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+                A unified, high-performance API gateway for Anime, Manga, and Light Novels.
+                Built for developers who demand sub-50ms latency.
+            </p>
+
+            <!-- Command Block -->
+            <div class="relative group inline-block mx-auto mb-12">
+                <div
+                    class="absolute -inset-1 bg-gradient-to-r from-brand-500 to-purple-600 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-500">
+                </div>
+                <a href="https://github.com/Snozxyx/TatakaiAPI" target="_blank"
+                    class="relative flex items-center gap-4 bg-zinc-900 border border-zinc-800 px-6 py-3 rounded-full hover:border-zinc-700 transition-all active:scale-95">
+                    <span class="font-mono text-zinc-200">Fork on GitHub</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                </a>
+                </button>
+            </div>
+            <!-- Deploy Buttons -->
+            <div class="flex flex-col md:flex-row items-center justify-center gap-6 mb-20 animate-fade-in-up"
+                style="animation-delay: 0.2s;">
+                <a href="https://vercel.com/new/clone?repository-url=https://github.com/TatakaAPI/tatakai-api"
+                    target="_blank"
+                    class="group relative inline-flex items-center gap-3 bg-black border border-zinc-800 px-6 py-3 rounded-xl hover:border-white transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                    <!-- Vercel Logo -->
+                    <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M24 22.525H0l12-21.05 12 21.05z" />
+                    </svg>
+                    <span class="font-bold text-white">Deploy to Vercel</span>
+                </a>
+
+                <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/TatakaAPI/tatakai-api"
+                    target="_blank"
+                    class="group relative inline-flex items-center gap-3 bg-[#f38020]/10 border border-[#f38020]/50 px-6 py-3 rounded-xl hover:bg-[#f38020]/20 transition-all hover:shadow-[0_0_20px_rgba(243,128,32,0.2)]">
+                    <!-- Cloudflare Logo -->
+                    <svg class="w-6 h-6 text-[#f38020]" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19.4 12c-.3-3.7-3.4-6.6-7.2-6.6-3 0-5.6 1.8-6.8 4.4-3.5.3-6.2 3.2-6.2 6.8 0 3.8 3.1 6.8 6.9 6.8h13.3c3.6 0 6.6-2.9 6.6-6.6 0-3.3-2.4-6-5.6-6.6z" />
+                    </svg>
+                    <span class="font-bold text-[#f38020]">Deploy to Workers</span>
+                </a>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto border-t border-white/5 pt-8">
+                <div>
+                    <div class="text-2xl font-bold text-white">99.9%</div>
+                    <div class="text-sm text-zinc-500">Uptime</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">50ms</div>
+                    <div class="text-sm text-zinc-500">Avg Latency</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">10+</div>
+                    <div class="text-sm text-zinc-500">Providers</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-white">12k+</div>
+                    <div class="text-sm text-zinc-500">Requests/min</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bento Grid Features -->
+        <section class="max-w-7xl mx-auto px-6 mb-32">
+            <h2 class="text-3xl font-bold text-center mb-12">Everything you need to build</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-auto md:h-[600px]">
+
+                <!-- Card 1: Performance (Large) -->
+                <div
+                    class="group col-span-1 md:col-span-2 md:row-span-2 relative overflow-hidden bg-dark-800 border border-dark-border rounded-3xl p-8 flex flex-col justify-between hover:border-brand-500/30 transition-colors">
+                    <div
+                        class="absolute top-0 right-0 w-64 h-64 bg-brand-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-brand-500/20 transition-all duration-500">
+                    </div>
+
+                    <div>
+                        <div
+                            class="w-12 h-12 bg-zinc-900 rounded-xl border border-zinc-800 flex items-center justify-center mb-6 text-brand-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Blazing Fast Edge Network</h3>
+                        <p class="text-zinc-400 leading-relaxed">Powered by Hono on the edge. Advanced Redis caching
+                            strategies ensure that 95% of repeated requests are served instantly.</p>
+                    </div>
+
+                    <!-- Decorative Graph -->
+                    <div class="mt-8 relative h-48 bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden">
+                        <div class="absolute inset-0 flex items-end justify-between px-4 pb-0 pt-8 gap-2">
+                            <div class="w-full bg-brand-500/20 h-[40%] rounded-t-sm animate-pulse"></div>
+                            <div class="w-full bg-brand-500/30 h-[70%] rounded-t-sm animate-pulse"
+                                style="animation-delay: 0.1s"></div>
+                            <div class="w-full bg-brand-500/40 h-[50%] rounded-t-sm animate-pulse"
+                                style="animation-delay: 0.2s"></div>
+                            <div class="w-full bg-brand-500/20 h-[30%] rounded-t-sm animate-pulse"
+                                style="animation-delay: 0.3s"></div>
+                            <div class="w-full bg-brand-500/60 h-[80%] rounded-t-sm animate-pulse"
+                                style="animation-delay: 0.4s"></div>
+                            <div class="w-full bg-brand-500/40 h-[60%] rounded-t-sm animate-pulse"
+                                style="animation-delay: 0.5s"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Unified Schema -->
+                <div
+                    class="group col-span-1 md:col-span-1 relative bg-dark-800 border border-dark-border rounded-3xl p-6 hover:border-zinc-600 transition-colors">
+                    <div
+                        class="w-10 h-10 bg-zinc-900 rounded-lg border border-zinc-800 flex items-center justify-center mb-4 text-purple-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="8" height="8" x="2" y="2" rx="2" />
+                            <path d="M14 2c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2" />
+                            <path d="M20 2c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2" />
+                            <path d="M10 22c-1.1 0-2-.9-2-2v-4c0-1.1.9-2 2-2" />
+                            <path d="M4 22c-1.1 0-2-.9-2-2v-4c0-1.1.9-2 2-2" />
+                            <rect width="8" height="8" x="14" y="14" rx="2" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Unified Schema</h3>
+                    <p class="text-sm text-zinc-400">One standard JSON structure for 10+ different providers. No more
+                        parsing chaos.</p>
+                </div>
+
+                <!-- Card 3: TypeScript -->
+                <div
+                    class="group col-span-1 md:col-span-1 relative bg-dark-800 border border-dark-border rounded-3xl p-6 hover:border-blue-500/30 transition-colors">
+                    <div
+                        class="w-10 h-10 bg-zinc-900 rounded-lg border border-zinc-800 flex items-center justify-center mb-4 text-blue-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m18 16 4-4-4-4" />
+                            <path d="m6 8-4 4 4 4" />
+                            <path d="m14.5 4-5 16" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">Type Safe</h3>
+                    <p class="text-sm text-zinc-400">Full TypeScript support out of the box. IntelliSense for every
+                        endpoint.</p>
+                </div>
+
+                <!-- Card 4: Regional (Wide) -->
+                <div
+                    class="group col-span-1 md:col-span-2 relative bg-dark-800 border border-dark-border rounded-3xl p-6 flex flex-row items-center justify-between hover:border-green-500/30 transition-colors">
+                    <div class="max-w-[60%]">
+                        <div
+                            class="w-10 h-10 bg-zinc-900 rounded-lg border border-zinc-800 flex items-center justify-center mb-4 text-green-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                                <path d="M2 12h20" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold mb-2">Regional Bypass</h3>
+                        <p class="text-sm text-zinc-400">Automatic proxy rotation to bypass geo-blocks seamlessly.</p>
+                    </div>
+                    <div class="hidden sm:block text-zinc-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.54 15H17a2 2 0 0 0-2 2v4.54" />
+                            <path
+                                d="M7 3.34V5a3 3 0 0 0 3 3v0a2 2 0 0 1 2 2v0a5 5 0 0 0 5 5v0a2 2 0 0 1 2 2v0a3 3 0 0 0 3 3v0" />
+                        </svg>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Live Code Section -->
+        <section class="max-w-7xl mx-auto px-6 mb-32">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6">Developer Experience <br> First</h2>
+                    <p class="text-zinc-400 text-lg mb-8">
+                        Integrate in seconds with our SDK or use standard REST endpoints.
+                        We handle the scraping, caching, and rate limiting so you can focus on building the UI.
+                    </p>
+
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start gap-3 text-zinc-300">
+                            <svg class="w-5 h-5 text-brand-400 mt-1" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>OpenAPI Specification (Swagger)</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-zinc-300">
+                            <svg class="w-5 h-5 text-brand-400 mt-1" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>99.9% Cache Hit Rate for Popular Titles</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-zinc-300">
+                            <svg class="w-5 h-5 text-brand-400 mt-1" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>No Rate Limits on Pro Plan</span>
+                        </li>
+                    </ul>
+
+                    <a href="/docs"
+                        class="inline-flex items-center gap-2 text-brand-400 font-semibold hover:text-brand-300 transition-colors">
+                        Read the full docs
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14" />
+                            <path d="m12 5 7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+
+                <!-- Mock IDE -->
+                <div class="relative rounded-xl overflow-hidden shadow-2xl bg-[#1e1e1e] border border-zinc-800">
+                    <!-- Window Controls -->
+                    <div class="flex items-center px-4 py-3 bg-[#252526] border-b border-black">
+                        <div class="flex gap-2 mr-4">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="text-xs text-zinc-500 font-sans">app.ts</div>
+                    </div>
+
+                    <!-- Code Content -->
+                    <div class="p-6 font-mono text-sm overflow-x-auto">
+                        <div class="text-zinc-400"><span class="text-purple-400">import</span> { TatakaClient } <span
+                                class="text-purple-400">from</span> <span class="text-green-400">'@Tatakai/api'</span>;
+                        </div>
+                        <br>
+                        <div class="text-zinc-400"><span class="text-purple-400">const</span> client=<span
+                                class="text-purple-400">new</span> <span class="text-yellow-300">TatakaClient</span>();
+                        </div>
+                        <br>
+                        <div class="text-zinc-400"><span class="text-zinc-500">// Search for One Piece</span></div>
+                        <div class="text-zinc-400"><span class="text-purple-400">const</span> results=<span
+                                class="text-purple-400">await</span> client.anime.<span
+                                class="text-blue-400">search</span>(<span class="text-green-400">"One Piece"</span>);
+                        </div>
+                        <br>
+                        <div class="text-zinc-400"><span class="text-zinc-500">// Get streaming links for episode
+                                1</span></div>
+                        <div class="text-zinc-400"><span class="text-purple-400">const</span> stream=<span
+                                class="text-purple-400">await</span> client.anime.<span
+                                class="text-blue-400">getEpisodes</span>(results[<span
+                                class="text-orange-400">0</span>].id);</div>
+                        <br>
+                        <div class="text-zinc-400">console.<span class="text-blue-400">log</span>(stream);</div>
+
+                        <!-- Inline Output Mock -->
+                        <div class="mt-6 pt-4 border-t border-zinc-700/50">
+                            <div class="text-xs text-zinc-500 mb-2">OUTPUT</div>
+                            <div class="text-green-400/90">
+                                {<br>
+                                &nbsp;&nbsp;"id": "one-piece",<br>
+                                &nbsp;&nbsp;"title": "One Piece",<br>
+                                &nbsp;&nbsp;"status": "Ongoing",<br>
+                                &nbsp;&nbsp;"totalEpisodes": 1089,<br>
+                                &nbsp;&nbsp;"sources": [...]<br>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Endpoints List -->
+        <section class="max-w-5xl mx-auto px-6 mb-32">
+            <h2 class="text-2xl font-bold mb-8 text-center">Popular Endpoints</h2>
+            <div class="grid gap-4">
+
+                <div
+                    class="group flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-dark-800 border border-dark-border rounded-lg hover:border-zinc-600 transition-all">
+                    <div class="flex items-center gap-4 mb-2 md:mb-0">
+                        <span
+                            class="px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20 font-mono">GET</span>
+                        <code class="text-zinc-300 font-mono text-sm">/api/v1/hianime/home</code>
+                    </div>
+                    <span class="text-sm text-zinc-500">Get homepage data from HiAnime</span>
+                </div>
+
+                <div
+                    class="group flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-dark-800 border border-dark-border rounded-lg hover:border-zinc-600 transition-all">
+                    <div class="flex items-center gap-4 mb-2 md:mb-0">
+                        <span
+                            class="px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20 font-mono">GET</span>
+                        <code class="text-zinc-300 font-mono text-sm">/api/v1/consumet/anime/{provider}</code>
+                    </div>
+                    <span class="text-sm text-zinc-500">Proxy Consumet providers seamlessly</span>
+                </div>
+
+                <div
+                    class="group flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-dark-800 border border-dark-border rounded-lg hover:border-zinc-600 transition-all">
+                    <div class="flex items-center gap-4 mb-2 md:mb-0">
+                        <span
+                            class="px-2.5 py-1 rounded-md bg-green-500/10 text-green-400 text-xs font-bold border border-green-500/20 font-mono">GET</span>
+                        <code class="text-zinc-300 font-mono text-sm">/api/v1/hindidubbed/search</code>
+                    </div>
+                    <span class="text-sm text-zinc-500">Search specific regional content</span>
+                </div>
+
+         
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        function copyInstall() {
+            const command = "npm install @Tatakai/api";
+            navigator.clipboard.writeText(command).then(() => {
+                const copyIcon = document.getElementById('copyIcon');
+                const checkIcon = document.getElementById('checkIcon');
+
+                copyIcon.classList.add('hidden');
+                checkIcon.classList.remove('hidden');
+
+                setTimeout(() => {
+                    copyIcon.classList.remove('hidden');
+                    checkIcon.classList.add('hidden');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+
+</html>
