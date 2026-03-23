@@ -1,10 +1,12 @@
 import { env, isDev } from "./env.js";
 import { pino, type LoggerOptions } from "pino";
 
+const isServerless = process.env.NETLIFY === "true" || process.env.VERCEL === "1";
+
 const loggerOptions: LoggerOptions = {
-    redact: isDev ? [] : ["hostname"],
-    level: isDev ? "debug" : "info",
-    transport: isDev
+    redact: (isDev && !isServerless) ? [] : ["hostname"],
+    level: (isDev && !isServerless) ? "debug" : "info",
+    transport: (isDev && !isServerless)
         ? {
             target: "pino-pretty",
             options: {
