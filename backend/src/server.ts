@@ -32,7 +32,7 @@ import { hindiApiRouter } from "./routes/hindiapi/index.js";
 import { anilistHindiRouter } from "./routes/anilisthindi/index.js";
 import { toonWorldRouter } from "./routes/toonworld/index.js";
 import { webhookRouter } from "./routes/webhooks/index.js";
-import pkgJson from "../package.json";
+const VERSION = "1.1.1";
 
 // API version
 const BASE_PATH = "/api/v1" as const;
