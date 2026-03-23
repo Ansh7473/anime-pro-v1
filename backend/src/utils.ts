@@ -42,18 +42,28 @@ export async function fetchWithRetry(url: string, options: any = {}, retries = 3
     const isRestricted = url.includes("desidubanime.me") || url.includes("animeya.me");
 
     // Scraper Providers (Chain of Responsibility)
-    const providers = [
-        {
-            name: "ScraperAPI",
-            key: env.SCRAPER_API_KEY,
-            getUrl: (u: string) => `https://api.scraperapi.com/?api_key=${env.SCRAPER_API_KEY}&url=${encodeURIComponent(u)}`,
-        },
-        {
+    const providers: any[] = [];
+
+    // 1. Add all ScraperAPI keys from comma-separated env var
+    if (env.SCRAPER_API_KEY) {
+        const keys = env.SCRAPER_API_KEY.split(",").map(k => k.trim()).filter(Boolean);
+        keys.forEach((key, index) => {
+            providers.push({
+                name: keys.length > 1 ? `ScraperAPI_${index + 1}` : "ScraperAPI",
+                key: key,
+                getUrl: (u: string) => `https://api.scraperapi.com/?api_key=${key}&url=${encodeURIComponent(u)}`,
+            });
+        });
+    }
+
+    // 2. Add ZenRows
+    if (env.ZENROWS_API_KEY) {
+        providers.push({
             name: "ZenRows",
             key: env.ZENROWS_API_KEY,
             getUrl: (u: string) => `https://api.zenrows.com/v1/?apikey=${env.ZENROWS_API_KEY}&url=${encodeURIComponent(u)}&autoparse=true`,
-        }
-    ].filter(p => Boolean(p.key));
+        });
+    }
 
     // Helper for a single fetch attempt
     const attemptFetch = async (targetUrl: string, providerName?: string) => {
