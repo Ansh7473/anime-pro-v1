@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://tatakai-api.vercel.app/api/$1"
+      "destination": "https://backend-rust-delta-85.vercel.app/api/$1"
     },
     {
       "source": "/(.*)",

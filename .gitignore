@@ -35,3 +35,6 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Local Netlify folder
+.netlify

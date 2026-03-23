@@ -66,6 +66,17 @@ function extractNextEpisodeEstimate(html: string, $: cheerio.CheerioAPI): Array<
     return estimates;
 }
 
+desidubRouter.get("/test", async (c) => {
+    try {
+        const response = await fetchWithRetry(`${BASE_URL}/wp-json/wp/v2/anime?per_page=1`, {
+            headers: { "User-Agent": USER_AGENT },
+        });
+        return c.json({ status: response.status, ok: response.ok });
+    } catch (e) {
+        return c.json({ error: String(e) }, 500);
+    }
+});
+
 desidubRouter.get("/home", async (c) => {
     const cacheConfig = c.get("CACHE_CONFIG");
 
@@ -149,36 +160,41 @@ desidubRouter.get("/home", async (c) => {
                     const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
                     const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-                    // Fetch Jikan sections sequentially to avoid 429
-                    const trendingRes = await fetchWithRetry("https://api.jikan.moe/v4/seasons/now?limit=10");
-                    await delay(1500);
-                    const topRes = await fetchWithRetry("https://api.jikan.moe/v4/top/anime?limit=10");
-                    await delay(1500);
-                    const recRes = await fetchWithRetry("https://api.jikan.moe/v4/recommendations/anime");
-                    await delay(1500);
-                    const airingRes = await fetchWithRetry("https://api.jikan.moe/v4/top/anime?filter=airing&limit=5");
-                    await delay(1500);
-                    const popularRes = await fetchWithRetry("https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=5");
-                    await delay(1500);
-                    const completedRes = await fetchWithRetry("https://api.jikan.moe/v4/top/anime?status=complete&type=tv&limit=5");
-                    await delay(1500);
-                    const schedRes = await fetchWithRetry(`https://api.jikan.moe/v4/schedules?filter=${today}`);
+                    // Sequential fetch of Jikan sections but with smaller delay and better grouping
+                    const jikanFetches = [
+                        { key: 'trending', url: "https://api.jikan.moe/v4/seasons/now?limit=10" },
+                        { key: 'top', url: "https://api.jikan.moe/v4/top/anime?limit=10" },
+                        { key: 'rec', url: "https://api.jikan.moe/v4/recommendations/anime" },
+                        { key: 'airing', url: "https://api.jikan.moe/v4/top/anime?filter=airing&limit=5" },
+                        { key: 'popular', url: "https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=5" },
+                        { key: 'completed', url: "https://api.jikan.moe/v4/top/anime?status=complete&type=tv&limit=5" },
+                        { key: 'sched', url: `https://api.jikan.moe/v4/schedules?filter=${today}` }
+                    ];
 
-                    // Fetch DesiDub in parallel
+                    const jikanResults: Record<string, any> = {};
+
+                    // Process Jikan in small batches to respect rate limits while saving time
+                    for (let i = 0; i < jikanFetches.length; i += 2) {
+                        const batch = jikanFetches.slice(i, i + 2);
+                        const results = await Promise.all(batch.map(async (item) => {
+                            try {
+                                const res = await fetchWithRetry(item.url);
+                                return { key: item.key, data: await res.json() };
+                            } catch (e) {
+                                log.warn(`Jikan fetch failed for ${item.key}: ${e}`);
+                                return { key: item.key, data: null };
+                            }
+                        }));
+                        
+                        results.forEach(r => jikanResults[r.key] = r.data);
+                        if (i + 2 < jikanFetches.length) await delay(1000); // 1s delay between batches
+                    }
+
+                    // Parallelize DesiDub WP-API fetches (DesiDub usually has no strict rate limit for REST)
                     const [latestRes, tvRes, movRes] = await Promise.all([
-                        fetchWithRetry(`${BASE_URL}/wp-json/wp/v2/anime?per_page=10&_embed`),
-                        fetchWithRetry(`${BASE_URL}/wp-json/wp/v2/anime?anime_type=10&per_page=10&_embed`),
-                        fetchWithRetry(`${BASE_URL}/wp-json/wp/v2/anime?anime_type=77&per_page=10&_embed`)
-                    ]);
-
-                    const [
-                        trendingJson, topJson, recJson, 
-                        airingJson, popularJson, completedJson, schedJson,
-                        latestJson, tvJson, movJson
-                    ] = await Promise.all([
-                        trendingRes.json(), topRes.json(), recRes.json(),
-                        airingRes.json(), popularRes.json(), completedRes.json(), schedRes.json(),
-                        latestRes.json(), tvRes.json(), movRes.json()
+                        fetchWithRetry(`${BASE_URL}/wp-json/wp/v2/anime?per_page=10&_embed`).then(r => r.json()).catch(() => []),
+                        fetchWithRetry(`${BASE_URL}/wp-json/wp/v2/anime?anime_type=10&per_page=10&_embed`).then(r => r.json()).catch(() => []),
+                        fetchWithRetry(`${BASE_URL}/wp-json/wp/v2/anime?anime_type=77&per_page=10&_embed`).then(r => r.json()).catch(() => [])
                     ]);
 
                     // Normalize Jikan Top List Item
@@ -193,14 +209,14 @@ desidubRouter.get("/home", async (c) => {
                         members: item.members || "0"
                     });
 
-                    if (trendingJson.data) trendingGlobal = trendingJson.data.map(normalizeJikanList);
-                    if (topJson.data) topAnime = topJson.data.map(normalizeJikanList);
-                    if (airingJson.data) topAiring = airingJson.data.map(normalizeJikanList);
-                    if (popularJson.data) mostPopular = popularJson.data.map(normalizeJikanList);
-                    if (completedJson.data) topCompleted = completedJson.data.map(normalizeJikanList);
+                    if (jikanResults.trending?.data) trendingGlobal = jikanResults.trending.data.map(normalizeJikanList);
+                    if (jikanResults.top?.data) topAnime = jikanResults.top.data.map(normalizeJikanList);
+                    if (jikanResults.airing?.data) topAiring = jikanResults.airing.data.map(normalizeJikanList);
+                    if (jikanResults.popular?.data) mostPopular = jikanResults.popular.data.map(normalizeJikanList);
+                    if (jikanResults.completed?.data) topCompleted = jikanResults.completed.data.map(normalizeJikanList);
 
-                    if (recJson.data) {
-                        recommendations = recJson.data.slice(0, 10).map((item: any) => ({
+                    if (jikanResults.rec?.data) {
+                        recommendations = jikanResults.rec.data.slice(0, 10).map((item: any) => ({
                             title: item.entry[0].title,
                             slug: item.entry[0].title.toLowerCase().replace(/ /g, "-").replace(/[^\w-]+/g, ""),
                             poster: item.entry[0].images?.webp?.large_image_url || item.entry[0].images?.jpg?.large_image_url,
@@ -209,23 +225,23 @@ desidubRouter.get("/home", async (c) => {
                     }
 
                     // DesiDub Categories
-                    const normalizeWP = (items: any[]) => items.map(item => ({
-                        title: item.title?.rendered || "Unknown",
+                    const normalizeWP = (items: any[]) => (Array.isArray(items) ? items : []).map(item => ({
+                        title: item.title?.rendered?.replace(/&#8217;/g, "'") || "Unknown",
                         slug: item.slug,
                         poster: item.jetpack_featured_media_url || item._embedded?.['wp:featuredmedia']?.[0]?.source_url || "",
                         type: "series"
                     }));
 
-                    if (Array.isArray(latestJson)) latest = normalizeWP(latestJson);
-                    if (Array.isArray(tvJson)) tvShows = normalizeWP(tvJson);
-                    if (Array.isArray(movJson)) movies = normalizeWP(movJson);
+                    latest = normalizeWP(latestRes);
+                    tvShows = normalizeWP(tvRes);
+                    movies = normalizeWP(movRes);
 
-                    if (schedJson.data) {
-                        todaySchedule = schedJson.data.slice(0, 10).map(normalizeJikanList);
+                    if (jikanResults.sched?.data) {
+                        todaySchedule = jikanResults.sched.data.slice(0, 10).map(normalizeJikanList);
                     }
 
                 } catch (e) {
-                    log.warn("Failed to fetch some home sections: " + (e instanceof Error ? e.message : String(e)));
+                    log.error("Serious error in home section fetch: " + (e instanceof Error ? e.message : String(e)));
                 }
 
                 return { 
@@ -251,7 +267,7 @@ desidubRouter.get("/home", async (c) => {
         // Cast error to safely read message
         const errorMessage = error instanceof Error ? error.message : String(error);
         log.error("DesiDubAnime Home Error: " + errorMessage);
-        return c.json({ provider: "Tatakai", status: 500, error: "Failed to fetch data" }, 500);
+        return c.json({ provider: "Tatakai", status: 500, error: "Failed to fetch data: " + errorMessage }, 500);
     }
 });
 
