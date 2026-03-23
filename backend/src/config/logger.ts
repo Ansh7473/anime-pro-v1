@@ -1,11 +1,16 @@
-import { env, isDev } from "./env.js";
+import { env, isDev, isProd } from "./env.js";
 import { pino, type LoggerOptions } from "pino";
 
-const isServerless = process.env.NETLIFY === "true" || process.env.VERCEL === "1";
+const isServerless = 
+    process.env.NETLIFY === "true" || 
+    process.env.VERCEL === "1" || 
+    process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined ||
+    process.env.FUNCTIONS_EMULATOR === "true";
 
 const loggerOptions: LoggerOptions = {
-    redact: (isDev && !isServerless) ? [] : ["hostname"],
-    level: (isDev && !isServerless) ? "debug" : "info",
+    redact: (isProd || isServerless) ? ["hostname"] : [],
+    level: (isProd || isServerless) ? "info" : "debug",
+    // Only use pino-pretty if we are strictly in a local dev environment and NOT serverless
     transport: (isDev && !isServerless)
         ? {
             target: "pino-pretty",
@@ -26,4 +31,13 @@ const loggerOptions: LoggerOptions = {
     },
 };
 
-export const log = pino(loggerOptions);
+let pinoLogger;
+try {
+    pinoLogger = pino(loggerOptions);
+} catch (e) {
+    // Fallback if transport fails
+    pinoLogger = pino({ level: "info" });
+    console.error("Logger initialization failed, falling back to basic pino", e);
+}
+
+export const log = pinoLogger;
