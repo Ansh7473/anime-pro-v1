@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import * as cheerio from "cheerio";
 import { cache } from "../../config/cache.js";
+import { fetchWithRetry } from "../../utils.js";
 import type { ServerContext } from "../../config/context.js";
 import { log } from "../../config/logger.js";
 
@@ -46,38 +47,6 @@ interface SearchResult {
     totalFound: number;
 }
 
-async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
-    let lastError: Error | null = null;
-
-    for (let i = 0; i <retries; i++) {
-        try {
-            const response = await fetch(url, {
-                headers: {
-                    "User-Agent": USER_AGENT,
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.5",
-                    "Referer": BASE_URL,
-                },
-                signal: AbortSignal.timeout(30000),
-            });
-
-            if (response.ok || (response.status >= 400 && response.status <500 && response.status !== 429)) {
-                return response;
-            }
-
-            lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        } catch (error) {
-            lastError = error as Error;
-            log.warn(`Fetch attempt ${i + 1} failed: ${lastError.message}`);
-        }
-
-        if (i <retries - 1) {
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 500));
-        }
-    }
-
-    throw lastError || new Error("Failed to fetch after retries");
-}
 
 async function searchAnime(title: string): Promise<SearchResult> {
     const searchUrl = `${BASE_URL}/?s=${encodeURIComponent(title)}`;

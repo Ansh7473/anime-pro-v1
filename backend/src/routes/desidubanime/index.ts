@@ -4,6 +4,7 @@ import { type ServerContext } from "../../config/context.js";
 import { log } from "../../config/logger.js";
 import { env } from "../../config/env.js";
 import { cache } from "../../config/cache.js";
+import { fetchWithRetry } from "../../utils.js";
 import * as cheerio from "cheerio";
 
 const desidubRouter = new Hono<ServerContext>();
@@ -11,23 +12,6 @@ const desidubRouter = new Hono<ServerContext>();
 const BASE_URL = "https://www.desidubanime.me";
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-async function fetchWithRetry(url: string, options: any = {}, retries = 3) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const res = await fetch(url, {
-                ...options,
-                signal: AbortSignal.timeout(30000),
-            });
-            if (res.ok) return res;
-            if (res.status === 404) throw new Error("Status 404"); // Don't retry 404s
-            throw new Error(`Status ${res.status}`);
-        } catch (e) {
-            if (i === retries - 1 || (e instanceof Error && e.message === "Status 404")) throw e;
-            await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
-        }
-    }
-    throw new Error("Failed after retries");
-}
 
 // Extract next episode estimation text
 function extractNextEpisodeEstimate(html: string, $: cheerio.CheerioAPI): Array<{ lang?: string; server?: string; label: string; iso?: string }> {

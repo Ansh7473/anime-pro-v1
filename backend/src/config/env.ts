@@ -65,7 +65,8 @@ export const env = cleanEnv(process.env, {
     DISCORD_WEBHOOK_USER_CREATED: str({ default: "", desc: "Discord webhook for new user notifications" }),
     DISCORD_WEBHOOK_ERROR_LOGS: str({ default: "", desc: "Discord webhook for error log notifications" }),
     DISCORD_WEBHOOK_COMMENT: str({ default: "", desc: "Discord webhook for comment notifications" }),
-    DISCORD_WEBHOOK_REVIEW_POPUP: str({ default: "", desc: "Discord webhook for review popup submissions" }),
+    // ScraperAPI
+    SCRAPER_API_KEY: str({ default: "", desc: "ScraperAPI key for bypassing blocks (optional)" }),
 });
 
 // Convenience flags

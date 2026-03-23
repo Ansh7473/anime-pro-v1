@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cache } from "../../config/cache.js";
+import { fetchWithRetry } from "../../utils.js";
 import type { ServerContext } from "../../config/context.js";
 
 const animeyaRouter = new Hono<ServerContext>();
@@ -111,29 +112,6 @@ function extractAnimeCard(node: any): any | null {
     }
 }
 
-async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 3): Promise<Response> {
-    let lastError: Error | null = null;
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await fetch(url, {
-                ...options,
-                signal: AbortSignal.timeout(30000),
-                headers: {
-                    ...options.headers,
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                }
-            });
-            if (response.ok) return response;
-            if (response.status === 404) throw new Error("Status 404");
-            lastError = new Error(`Status ${response.status}`);
-        } catch (error) {
-            if (error instanceof Error && error.message === "Status 404") throw error;
-            lastError = error as Error;
-        }
-        if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    throw lastError || new Error("Failed to fetch");
-}
 
 // Routes
 

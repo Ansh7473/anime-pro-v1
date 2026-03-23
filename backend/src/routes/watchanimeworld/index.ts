@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cache } from "../../config/cache.js";
+import { fetchWithRetry } from "../../utils.js";
 import type { ServerContext } from "../../config/context.js";
 import { log } from "../../config/logger.js";
 import { env } from "../../config/env.js";
@@ -116,40 +117,6 @@ export function parseEpisodeUrl(urlOrSlug: string): ParsedEpisodeUrl | null {
     }
 }
 
-
-async function fetchWithRetry(url: string, options: RequestInit = {}, retries = 3): Promise<Response> {
-    let lastError: Error | null = null;
-
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await fetch(url, {
-                ...options,
-                signal: AbortSignal.timeout(30000),
-            });
-
-            if (response.ok || response.status === 206 || response.status === 302) {
-                return response;
-            }
-
-            if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-                // If 404, throw explicitly to avoid retrying if resource really missing
-                if (response.status === 404) throw new Error("HTTP 404: Not Found");
-                return response;
-            }
-
-            lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        } catch (error) {
-            lastError = error as Error;
-            log.warn(`Fetch attempt ${i + 1} failed: ${lastError.message}`);
-        }
-
-        if (i < retries - 1) {
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 500));
-        }
-    }
-
-    throw lastError || new Error("Failed to fetch after retries");
-}
 
 
 // Direct HTML scraper for WatchAnimeWorld (fallback when Supabase unavailable)
