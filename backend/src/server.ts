@@ -601,7 +601,7 @@ app.get("/", (c) =>
         status: 200,
         provider: "Tatakai",
         message: "🎌 Welcome to Tatakai API!",
-        version: pkgJson.version,
+        version: VERSION,
         endpoints: {
             hianime: `${BASE_PATH}/hianime`,
             consumet: `${BASE_PATH}/consumet`,
