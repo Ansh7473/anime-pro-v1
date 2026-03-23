@@ -7,20 +7,11 @@ const isServerless =
     process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined ||
     process.env.FUNCTIONS_EMULATOR === "true";
 
+console.log(`[DEBUG] Logger Init - isDev: ${isDev}, isServerless: ${isServerless}, NODE_ENV: ${process.env.NODE_ENV}`);
+
 const loggerOptions: LoggerOptions = {
     redact: (isProd || isServerless) ? ["hostname"] : [],
     level: (isProd || isServerless) ? "info" : "debug",
-    // Only use pino-pretty if we are strictly in a local dev environment and NOT serverless
-    transport: (isDev && !isServerless)
-        ? {
-            target: "pino-pretty",
-            options: {
-                colorize: true,
-                translateTime: "SYS:standard",
-                ignore: "pid,hostname",
-            },
-        }
-        : undefined,
     formatters: {
         level(label) {
             return { level: label.toUpperCase() };
@@ -31,13 +22,24 @@ const loggerOptions: LoggerOptions = {
     },
 };
 
+// Only add transport if NOT serverless
+if (isDev && !isServerless) {
+    (loggerOptions as any).transport = {
+        target: "pino-pretty",
+        options: {
+            colorize: true,
+            translateTime: "SYS:standard",
+            ignore: "pid,hostname",
+        },
+    };
+}
+
 let pinoLogger;
 try {
     pinoLogger = pino(loggerOptions);
 } catch (e) {
-    // Fallback if transport fails
     pinoLogger = pino({ level: "info" });
-    console.error("Logger initialization failed, falling back to basic pino", e);
+    console.error("Logger initialization failed", e);
 }
 
 export const log = pinoLogger;
