@@ -150,12 +150,12 @@ desidubRouter.get("/home", async (c) => {
                 let tvShows: any[] = [];
                 let movies: any[] = [];
                 let todaySchedule: any[] = [];
-                
+
                 // New Top Lists
                 let topAiring: any[] = [];
                 let mostPopular: any[] = [];
                 let topCompleted: any[] = [];
-                
+
                 try {
                     const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
                     const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -185,7 +185,7 @@ desidubRouter.get("/home", async (c) => {
                                 return { key: item.key, data: null };
                             }
                         }));
-                        
+
                         results.forEach(r => jikanResults[r.key] = r.data);
                         if (i + 2 < jikanFetches.length) await delay(1000); // 1s delay between batches
                     }
@@ -244,7 +244,7 @@ desidubRouter.get("/home", async (c) => {
                     log.error("Serious error in home section fetch: " + (e instanceof Error ? e.message : String(e)));
                 }
 
-                return { 
+                return {
                     featured: enrichedFeatured,
                     trendingGlobal,
                     topAnime,
