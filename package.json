@@ -1,0 +1,14 @@
+{
+  "name": "anime-pro-monorepo",
+  "private": true,
+  "workspaces": [
+    "jikan-frontend",
+    "jikan-backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=jikan-frontend",
+    "dev:backend": "npm run dev --workspace=jikan-backend",
+    "build:frontend": "npm run build --workspace=jikan-frontend",
+    "build:backend": "npm run build --workspace=jikan-backend"
+  }
+}
