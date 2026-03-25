@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
+// Use any for Supabase types if members are missing from the package
+type User = any;
+type Session = any;
+type AuthError = any;
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
@@ -22,8 +25,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!supabase) {
+            setLoading(false);
+            return;
+        }
+
         // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(({ data: { session } }: any) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
@@ -32,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Listen for auth changes
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
@@ -42,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const signUp = async (email: string, password: string, username?: string) => {
+        if (!supabase) return { error: { message: 'Auth service unconfigured' } as any };
         const { error } = await supabase.auth.signUp({
             email,
             password,
@@ -68,6 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const signIn = async (email: string, password: string) => {
+        if (!supabase) return { error: { message: 'Auth service unconfigured' } as any };
         const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -76,6 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const signInWithGoogle = async () => {
+        if (!supabase) return { error: { message: 'Auth service unconfigured' } as any };
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -86,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const signInWithGitHub = async () => {
+        if (!supabase) return { error: { message: 'Auth service unconfigured' } as any };
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'github',
             options: {
@@ -96,6 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const signOut = async () => {
+        if (!supabase) return { error: { message: 'Auth service unconfigured' } as any };
         const { error } = await supabase.auth.signOut();
         return { error };
     };

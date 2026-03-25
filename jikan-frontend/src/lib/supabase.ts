@@ -2,10 +2,17 @@ import { createClient } from '@supabase/supabase-js';
 
 // Replace these with your Supabase project URL and anon key
 // Get these from: https://supabase.com/dashboard/project/_/settings/api
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Only create client if variables are provided and valid
+export const supabase = (supabaseUrl && supabaseAnonKey && supabaseUrl !== 'YOUR_SUPABASE_URL') 
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null as any;
+
+if (!supabase) {
+    console.warn('Supabase credentials missing. Auth and History persistent features will be disabled.');
+}
 
 // Database types
 export interface Database {
