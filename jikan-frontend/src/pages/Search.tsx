@@ -4,7 +4,6 @@ import AnimeCard from '../components/AnimeCard';
 import { animeAPI, normalize } from '../api/client';
 import { motion } from 'framer-motion';
 import { PageSkeleton } from '../components/Skeleton';
-import GenreFilter, { GenreChips } from '../components/GenreFilter';
 
 const Search = () => {
   const [searchParams] = useSearchParams();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Info, ChevronLeft, ChevronRight, Calendar, Clock, Tv, Film } from 'lucide-react';
+import { Play, Info, ChevronLeft, ChevronRight, Calendar, Clock, Tv } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScoreBadge, QualityBadge, StatusBadge } from './Badge';
 
@@ -12,7 +12,6 @@ interface HeroBannerProps {
 const HeroBanner: React.FC<HeroBannerProps> = ({ anime, animeList }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
 
   // Use provided list or create a single-item array
   const animeArray = animeList && animeList.length > 0 ? animeList : (anime ? [anime] : []);
@@ -29,19 +28,6 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ anime, animeList }) => {
     return () => clearInterval(interval);
   }, [animeArray.length, isPaused]);
 
-  // Preload images for smooth transitions
-  useEffect(() => {
-    animeArray.forEach((anime: any, index: number) => {
-      const img = new Image();
-      const imageUrl = anime.poster || anime.image || '';
-      if (imageUrl) {
-        img.onload = () => {
-          setLoadedImages(prev => new Set(prev).add(index));
-        };
-        img.src = imageUrl;
-      }
-    });
-  }, [animeArray]);
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + animeArray.length) % animeArray.length);
@@ -69,7 +55,6 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ anime, animeList }) => {
   const titleEnglish = currentAnime.title_english || '';
   const score = currentAnime.rating || currentAnime.score || 0;
   const episodes = currentAnime.episodes || 0;
-  const type = currentAnime.type || 'TV';
   const genres = currentAnime.genres || [];
 
   return (

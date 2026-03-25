@@ -13,8 +13,6 @@ const Home = () => {
   const [spotlight, setSpotlight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [seasonalAnime, setSeasonalAnime] = useState<any[]>([]);
-  const [upcomingAnime, setUpcomingAnime] = useState<any[]>([]);
   const [continueWatching, setContinueWatching] = useState<any[]>([]);
 
   // Load continue watching from localStorage
@@ -73,9 +71,6 @@ const Home = () => {
           // Process seasonal and upcoming anime
           const seasonalData = seasonalRes.data?.data || [];
           const upcomingData = upcomingRes.data?.data || [];
-
-          setSeasonalAnime(seasonalData.map(normalizeItem));
-          setUpcomingAnime(upcomingData.map(normalizeItem));
 
           setTopLists({
             airing: (data.topAiring || []).map(normalizeItem),
