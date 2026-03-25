@@ -92,3 +92,4 @@ serve({
     console.log(`📚 API available at http://localhost:${info.port}/api/v1/jikan`);
     console.log(`🏥 Health check at http://localhost:${info.port}/health`);
 });
+export default app;
