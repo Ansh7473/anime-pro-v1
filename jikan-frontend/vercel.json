@@ -6,7 +6,7 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "https://jikan-backend.vercel.app/api/$1"
+            "destination": "https://YOUR_BACKEND_PROJECT_NAME.vercel.app/api/$1"
         },
         {
             "source": "/(.*)",
