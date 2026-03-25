@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Star, Calendar, Clock, Tv, Film, Heart, Share2, Info } from 'lucide-react';
+import { X, Play, Calendar, Clock, Tv, Film, Heart, Share2, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ScoreBadge, StatusBadge, QualityBadge } from './Badge';
-import { EpisodeProgress } from './ProgressBar';
 
 interface QuickViewModalProps {
     anime: any;
@@ -34,7 +33,6 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ anime, isOpen, onClose 
     const studios = anime.studios?.map((s: any) => s.name) || [];
     const year = anime.year || anime.aired?.string?.split('-')[0] || '?';
     const duration = anime.duration || '? min';
-    const source = anime.source || 'Unknown';
     const members = anime.members || 0;
     const popularity = anime.popularity || 0;
 

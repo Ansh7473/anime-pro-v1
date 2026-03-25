@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Play, Subtitles, Star, Calendar, Clock, TrendingUp, Heart, Share2, Info } from 'lucide-react';
 import Hls from 'hls.js';
-import { animeAPI, normalize } from '../api/client';
+import { animeAPI } from '../api/client';
 import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../hooks/useFavorites';
 
 const HlsPlayer = ({ src }: { src: string }) => {
@@ -41,7 +40,6 @@ const Player = () => {
   const { animeId, ep } = useParams<{ animeId: string; ep: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
 
   const [allEpisodes, setAllEpisodes] = useState<any[]>([]);
@@ -55,7 +53,6 @@ const Player = () => {
   const [loadingStream, setLoadingStream] = useState(false);
   const [error, setError] = useState('');
   const [animeInfo, setAnimeInfo] = useState<any>(null);
-  const [relatedAnime, setRelatedAnime] = useState<any[]>([]);
 
   // Step 1: Load episode list and info
   useEffect(() => {
@@ -588,98 +585,6 @@ const Player = () => {
               </div>
             )}
 
-            {/* Related Anime */}
-            {relatedAnime.length > 0 && (
-              <div>
-                <h3 style={{
-                  fontSize: '1.4rem',
-                  fontWeight: 800,
-                  margin: '0 0 1.5rem 0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <TrendingUp size={24} style={{ color: 'var(--net-red)' }} />
-                  Related Anime
-                </h3>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                  gap: '1rem'
-                }}>
-                  {relatedAnime.map((anime: any) => (
-                    <Link
-                      key={anime.mal_id}
-                      to={`/anime/${anime.mal_id}`}
-                      style={{
-                        textDecoration: 'none',
-                        color: 'inherit'
-                      }}
-                    >
-                      <div style={{
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        background: 'rgba(20,20,20,0.8)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        transition: 'all 0.3s'
-                      }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-8px)';
-                          e.currentTarget.style.boxShadow = '0 15px 40px rgba(0,0,0,0.5)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                      >
-                        <div style={{ aspectRatio: '2/3', overflow: 'hidden' }}>
-                          <img
-                            src={anime.images?.jpg?.image_url || anime.poster}
-                            alt={anime.title}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              transition: 'transform 0.3s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                          />
-                        </div>
-                        <div style={{ padding: '12px' }}>
-                          <h4 style={{
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
-                            margin: 0,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: '1.4'
-                          }}>
-                            {anime.title}
-                          </h4>
-                          {anime.score && (
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              marginTop: '8px',
-                              color: '#fbbf24',
-                              fontSize: '0.8rem',
-                              fontWeight: 600
-                            }}>
-                              <Star size={12} fill="currentColor" />
-                              {anime.score}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column - Episode List */}
