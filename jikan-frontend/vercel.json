@@ -6,7 +6,7 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "https://anime-pro-sage.vercel.app//api/$1"
+            "destination": "https://anime-pro-jikan-backend.vercel.app/api/$1"
         },
         {
             "source": "/(.*)",
