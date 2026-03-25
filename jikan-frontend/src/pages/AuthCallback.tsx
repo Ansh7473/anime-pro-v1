@@ -7,7 +7,7 @@ export default function AuthCallback() {
 
     useEffect(() => {
         // Handle the OAuth callback
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabase.auth.onAuthStateChange((event: any, session: any) => {
             if (event === 'SIGNED_IN' || session) {
                 // User successfully signed in, redirect to home
                 navigate('/', { replace: true });
@@ -15,7 +15,7 @@ export default function AuthCallback() {
         });
 
         // Check for existing session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(({ data: { session } }: any) => {
             if (session) {
                 navigate('/', { replace: true });
             } else {

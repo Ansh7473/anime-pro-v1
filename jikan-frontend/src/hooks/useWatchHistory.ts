@@ -58,7 +58,7 @@ export const useWatchHistory = () => {
                     table: 'watch_history',
                     filter: `user_id=eq.${user.id}`,
                 },
-                (payload) => {
+                (payload: any) => {
                     if (payload.eventType === 'INSERT') {
                         setWatchHistory((prev) => [payload.new as WatchHistoryItem, ...prev]);
                     } else if (payload.eventType === 'UPDATE') {

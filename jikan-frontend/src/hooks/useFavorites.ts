@@ -53,7 +53,7 @@ export const useFavorites = () => {
                     table: 'favorites',
                     filter: `user_id=eq.${user.id}`,
                 },
-                (payload) => {
+                (payload: any) => {
                     if (payload.eventType === 'INSERT') {
                         setFavorites((prev) => [payload.new as Favorite, ...prev]);
                     } else if (payload.eventType === 'DELETE') {
