@@ -38,6 +38,7 @@ function saveToStorage(items: WatchHistoryItem[]) {
         // Keep only latest MAX_LOCAL_ITEMS
         const trimmed = items.slice(0, MAX_LOCAL_ITEMS);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+        window.dispatchEvent(new Event('history_updated'));
     } catch { /* silent */ }
 }
 
@@ -83,6 +84,12 @@ export const useWatchHistory = () => {
             setLoading(false);
         };
         init();
+
+        const handleUpdate = () => {
+            setWatchHistory(loadFromStorage());
+        };
+        window.addEventListener('history_updated', handleUpdate);
+        return () => window.removeEventListener('history_updated', handleUpdate);
     }, [user]);
 
     const addToWatchHistory = useCallback(async (

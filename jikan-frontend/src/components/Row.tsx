@@ -101,7 +101,7 @@ const Row: React.FC<RowProps> = ({ title, items, isLargeRow }) => {
               transition={{ delay: idx * 0.05 }}
               style={{ flexShrink: 0, width: isLargeRow ? 'clamp(140px, 14vw, 180px)' : 'clamp(115px, 12vw, 155px)' }}
             >
-              <AnimeCard anime={item} isLargeRow={isLargeRow} />
+              <AnimeCard anime={item} />
             </motion.div>
           ))}
         </div>

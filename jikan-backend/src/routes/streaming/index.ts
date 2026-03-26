@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { getAnilistId, getAnimelokSources, getAnimelokMetadata, searchAnimelok } from '../../lib/providers/animelok.js';
 import { getDesiDubSources, searchDesiDub } from '../../lib/providers/desidub.js';
-import { searchAnimeHindiDubbed, getAnimeHindiDubbedInfo, getAnimeHindiDubbedSources } from '../../lib/providers/animehindidubbed.js';
 import { searchAnimeHindiDubbedWP, getAnimeHindiDubbedAllSourcesWP } from '../../lib/providers/animehindidubbed-wp.js';
 
 const streamingRouter = new Hono();

@@ -30,6 +30,7 @@ function loadFromStorage(): Favorite[] {
 function saveToStorage(favs: Favorite[]) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(favs));
+        window.dispatchEvent(new Event('favorites_updated'));
     } catch { /* silent fail */ }
 }
 
@@ -81,6 +82,12 @@ export const useFavorites = () => {
             setLoading(false);
         };
         init();
+
+        const handleUpdate = () => {
+            setFavorites(loadFromStorage());
+        };
+        window.addEventListener('favorites_updated', handleUpdate);
+        return () => window.removeEventListener('favorites_updated', handleUpdate);
     }, [user]);
 
     const addFavorite = useCallback(async (anime: any): Promise<{ error?: any }> => {
