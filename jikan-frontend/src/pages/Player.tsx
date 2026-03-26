@@ -5,6 +5,7 @@ import Hls from 'hls.js';
 import { animeAPI, normalize } from '../api/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFavorites } from '../hooks/useFavorites';
+import { useWatchHistory } from '../hooks/useWatchHistory';
 
 const HlsPlayer = ({ src }: { src: string }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -14,7 +15,16 @@ const HlsPlayer = ({ src }: { src: string }) => {
     if (!video || !src) return;
 
     if (Hls.isSupported()) {
-      const hls = new Hls({ maxBufferLength: 60, enableWorker: true });
+      const hls = new Hls({ 
+        maxBufferLength: 60, 
+        enableWorker: true,
+        xhrSetup: (xhr, url) => {
+          // Bypass CORS restrictions for m3u8 playlists and ts segments
+          if (url.includes('.m3u8') || url.includes('.ts')) {
+             xhr.open('GET', `https://corsproxy.io/?url=${encodeURIComponent(url)}`, true);
+          }
+        }
+      });
       hls.loadSource(src);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => { }); });
@@ -41,6 +51,7 @@ const Player = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
+  const { addToWatchHistory } = useWatchHistory();
 
   // ── Responsive breakpoint ──────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
@@ -225,7 +236,21 @@ const Player = () => {
       })
       .finally(() => setLoadingStream(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodeId, animeId, ep]); // NOTE: `category` intentionally omitted — server switching is handled locally via handleSourceChange
+  }, [episodeId, animeId, ep]); // NOTE: `category` intentionally omitted
+
+  // Log to watch history when stream starts
+  useEffect(() => {
+    if (animeInfo && ep && streamUrl) {
+      const currentEp = allEpisodes.find(e => String(e.number) === String(ep));
+      addToWatchHistory(
+        animeInfo,
+        Number(ep),
+        currentEp?.title || null,
+        0,
+        0
+      ).catch(() => {});
+    }
+  }, [animeInfo, ep, streamUrl, allEpisodes, addToWatchHistory]);
 
   const handleSourceChange = (srvName: string, cat: Category) => {
     const source = allSources.find(s => s.name === srvName && s.category?.toLowerCase() === cat.toLowerCase());

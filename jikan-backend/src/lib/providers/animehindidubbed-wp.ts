@@ -206,7 +206,9 @@ export async function getAnimeHindiDubbedSourcesWP(
         }
 
         // Convert to source format
-        const sources: AnimeHindiDubbedSource[] = matchingEpisodes.map(ep => {
+        const sources: AnimeHindiDubbedSource[] = matchingEpisodes
+            .filter(ep => !ep.url.includes('listeamed.net'))
+            .map(ep => {
             // Determine server from URL
             let server = 'unknown';
             if (ep.url.includes('bysewihe.com')) server = 'bysewihe';
@@ -281,6 +283,8 @@ export async function getAnimeHindiDubbedAllSourcesWP(
             console.log('[AnimeHindiDubbed-WP] Server', server, 'found', matchingEpisodes.length, 'matching episodes');
 
             for (const ep of matchingEpisodes) {
+                if (ep.url.includes('listeamed.net')) continue;
+
                 // Determine language based on server
                 let language = 'hindi';
                 let quality = '720p';

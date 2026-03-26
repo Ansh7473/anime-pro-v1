@@ -109,7 +109,7 @@ export async function getAnimeHindiDubbedInfo(id: string): Promise<{ id: any; ti
 
                 if (endIndex === -1) {
                     console.log('[AnimeHindiDubbed] Could not find complete object');
-                    return [];
+                    return null;
                 }
 
                 const rawJson = scriptContent.substring(startIndex, endIndex);
@@ -238,7 +238,7 @@ export async function getAnimeHindiDubbedSources(id: string, episodeName: string
             }
         }
 
-        if (!episode) return [];
+        if (!episode || episode.url.includes('listeamed.net')) return [];
 
         // Add source based on server type
         const isEmbed = episode.server !== 'bysewihe';
@@ -269,6 +269,7 @@ export async function getAnimeHindiDubbedAllSources(id: string) {
         const sources: any[] = [];
 
         for (const episode of info.episodes) {
+            if (episode.url.includes('listeamed.net')) continue;
             const isEmbed = episode.server !== 'bysewihe';
 
             sources.push({

@@ -1,8 +1,10 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const BASE_URL = '/api/v1/jikan';
-const STREAMING_BASE_URL = '/api/v1/streaming';
+const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+
+const BASE_URL = `${BACKEND_URL}/api/v1/jikan`;
+const STREAMING_BASE_URL = `${BACKEND_URL}/api/v1/streaming`;
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -14,12 +16,12 @@ export const streamingClient = axios.create({
   timeout: 30000,
 });
 
-export const animelokClient = axios.create({ baseURL: '/api/v1/animelok', timeout: 30000 });
-export const desidubClient = axios.create({ baseURL: '/api/v1/desidubanime', timeout: 30000 });
-export const animehindiClient = axios.create({ baseURL: '/api/v1/animehindidubbed', timeout: 30000 });
+export const animelokClient = axios.create({ baseURL: `${BACKEND_URL}/api/v1/animelok`, timeout: 30000 });
+export const desidubClient = axios.create({ baseURL: `${BACKEND_URL}/api/v1/desidubanime`, timeout: 30000 });
+export const animehindiClient = axios.create({ baseURL: `${BACKEND_URL}/api/v1/animehindidubbed`, timeout: 30000 });
 
 // Consumet HiAnime API — proxied through Vite dev server to avoid CORS
-export const hianimeClient = axios.create({ baseURL: '/consumet/anime/hianime', timeout: 15000 });
+export const hianimeClient = axios.create({ baseURL: `${BACKEND_URL}/consumet/anime/hianime`, timeout: 15000 });
 
 // Global request queue to prevent ANY parallel requests
 let requestQueue: Promise<any> = Promise.resolve();
@@ -262,8 +264,39 @@ export const animehindiAPI = {
 };
 
 export const hianimeAPI = {
-  getSpotlight: () => hianimeClient.get('/spotlight'),
-  getTopAiring: (page: number = 1) => hianimeClient.get('/top-airing', { params: { page } }),
+  getSpotlight: async () => {
+    const res = await apiClient.request<any>({ method: 'get', url: '/seasons/upcoming?limit=10' });
+    const animeList = res.data?.data || [];
+    return {
+      data: {
+        spotlightAnimes: animeList.map((a: any, i: number) => ({
+          id: a.mal_id?.toString() || '',
+          title: a.title_english || a.title || 'Unknown Title',
+          image: a.images?.jpg?.large_image_url || '',
+          description: a.synopsis || '',
+          rank: i + 1,
+          rating: a.score || 0
+        }))
+      }
+    };
+  },
+  getTopAiring: async (page: number = 1) => {
+    const res = await apiClient.request<any>({ method: 'get', url: `/top/anime?filter=airing&page=${page}&limit=20` });
+    const animeList = res.data?.data || [];
+    return {
+      data: {
+        currentPage: page,
+        hasNextPage: res.data?.pagination?.has_next_page || false,
+        results: animeList.map((a: any) => ({
+          id: a.mal_id?.toString() || '',
+          title: a.title_english || a.title || 'Unknown Title',
+          image: a.images?.jpg?.large_image_url || '',
+          description: a.synopsis || '',
+          rating: a.score || 0
+        }))
+      }
+    };
+  },
 };
 
 // Normalize Consumet/HiAnime anime to our standard shape
