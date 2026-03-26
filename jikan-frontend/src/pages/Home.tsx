@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import HeroBanner from '../components/HeroBanner';
 import Row from '../components/Row';
-import { animeAPI, normalize } from '../api/client';
+import { animeAPI, normalize, hianimeAPI, normalizeHianime } from '../api/client';
 import { motion } from 'framer-motion';
 import TopLists from '../components/TopLists';
 import { HeroBannerSkeleton, RowSkeleton } from '../components/Skeleton';
@@ -32,78 +32,82 @@ const Home = () => {
     const fetchHomeData = async () => {
       try {
         console.log('Fetching home data...');
-        // Fetch home data and seasonal/upcoming data in parallel
-        const [homeRes, seasonalRes, upcomingRes] = await Promise.all([
+
+        // Fetch Jikan and HiAnime data simultaneously
+        const [homeRes, seasonalRes, upcomingRes, spotlightRes, topAiringRes] = await Promise.allSettled([
           animeAPI.getHome(),
           animeAPI.getCurrentSeasonalAnime(),
-          animeAPI.getUpcomingSeasonalAnime()
+          animeAPI.getUpcomingSeasonalAnime(),
+          hianimeAPI.getSpotlight(),
+          hianimeAPI.getTopAiring(1),
         ]);
 
-        console.log('Home response:', homeRes);
-        console.log('Seasonal response:', seasonalRes);
-        console.log('Upcoming response:', upcomingRes);
+        const data: any = homeRes.status === 'fulfilled' ? (homeRes.value.data?.data || {}) : {};
+        const featured: any[] = data.featured || [];
 
-        const data = homeRes.data?.data || {};
-        console.log('Extracted data:', data);
-        const featured = data.featured || [];
-        console.log('Featured anime:', featured);
-
-        if (featured.length === 0) {
-          const searchRes = await animeAPI.search('Popular');
-          const results = searchRes.data?.data || [];
-          if (results.length > 0) {
-            const normalized = results.map(normalize);
-            setSections([{ title: 'Popular Hindi Dubbed', items: normalized }]);
-            setSpotlight(normalized[0]);
-          } else {
-            setError('No common anime found. Check TatakaiAPI connection.');
-          }
-        } else {
-          const normalizeItem = (item: any) => normalize(item);
-          const trendingGlobal = (data.trendingGlobal || []).map(normalizeItem);
-          const topAnime = (data.topAnime || []).map(normalizeItem);
-          const recommendations = (data.recommendations || []).map(normalizeItem);
-          const latest = (data.latest || []).map(normalizeItem);
-          const tvShows = (data.tvShows || []).map(normalizeItem);
-          const movies = (data.movies || []).map(normalizeItem);
-          const todaySchedule = (data.todaySchedule || []).map(normalizeItem);
-
-          // Process seasonal and upcoming anime
-          const seasonalData = seasonalRes.data?.data || [];
-          const upcomingData = upcomingRes.data?.data || [];
-
-          setTopLists({
-            airing: (data.topAiring || []).map(normalizeItem),
-            popular: (data.mostPopular || []).map(normalizeItem),
-            completed: (data.topCompleted || []).map(normalizeItem)
-          });
-
-          const built: any[] = [];
-
-          // 1-5 Row order
-          if (trendingGlobal.length > 0) built.push({ title: 'Trending Worldwide (Jikan)', items: trendingGlobal });
-          if (latest.length > 0) built.push({ title: 'Latest Episodes', items: latest });
-          if (tvShows.length > 0) built.push({ title: 'TV Shows', items: tvShows });
-          if (movies.length > 0) built.push({ title: 'Movies', items: movies });
-          if (todaySchedule.length > 0) built.push({ title: "Today's Release Schedule", items: todaySchedule });
-
-          // Add seasonal anime section
-          if (seasonalData.length > 0) built.push({ title: 'Current Season Anime', items: seasonalData.map(normalizeItem) });
-
-          // Add upcoming anime section
-          if (upcomingData.length > 0) built.push({ title: 'Upcoming Anime', items: upcomingData.map(normalizeItem) });
-
-          // 6-8 Row order (adjusted)
-          if (featured.length > 0) built.push({ title: 'Trending Hindi Dubbed', items: featured.map(normalizeItem).slice(0, 5) });
-          if (topAnime.length > 0) built.push({ title: 'Top Rated Global (Jikan)', items: topAnime });
-          if (recommendations.length > 0) built.push({ title: 'Recommended for You (Jikan)', items: recommendations });
-
-          setSections(built);
-          setSpotlight(featured[0] ? normalize(featured[0]) : (latest[0] ? normalize(latest[0]) : null));
+        // Process HiAnime spotlight
+        let hianimeSpotlight: any[] = [];
+        if (spotlightRes.status === 'fulfilled') {
+          hianimeSpotlight = (spotlightRes.value.data?.spotlightAnimes || []).map(normalizeHianime);
         }
+
+        // Process HiAnime top airing
+        let hianimeTopAiring: any[] = [];
+        if (topAiringRes.status === 'fulfilled') {
+          hianimeTopAiring = (topAiringRes.value.data?.results || []).map(normalizeHianime);
+        }
+
+        const normalizeItem = (item: any) => normalize(item);
+
+        const trendingGlobal = (data.trendingGlobal || []).map(normalizeItem);
+        const topAnime = (data.topAnime || []).map(normalizeItem);
+        const recommendations = (data.recommendations || []).map(normalizeItem);
+        const latest = (data.latest || []).map(normalizeItem);
+        const tvShows = (data.tvShows || []).map(normalizeItem);
+        const movies = (data.movies || []).map(normalizeItem);
+        const todaySchedule = (data.todaySchedule || []).map(normalizeItem);
+
+        // Process seasonal and upcoming anime
+        const seasonalData = seasonalRes.status === 'fulfilled'
+          ? (seasonalRes.value.data?.data || [])
+          : [];
+        const upcomingData = upcomingRes.status === 'fulfilled'
+          ? (upcomingRes.value.data?.data || [])
+          : [];
+
+        setTopLists({
+          airing: (data.topAiring || []).map(normalizeItem),
+          popular: (data.mostPopular || []).map(normalizeItem),
+          completed: (data.topCompleted || []).map(normalizeItem)
+        });
+
+        const built: any[] = [];
+
+        // Prioritize HiAnime spotlight at the top
+        if (hianimeSpotlight.length > 0) built.push({ title: '🔥 Spotlight Anime', items: hianimeSpotlight });
+        if (hianimeTopAiring.length > 0) built.push({ title: '📡 Top Airing Now', items: hianimeTopAiring });
+
+        if (trendingGlobal.length > 0) built.push({ title: 'Trending Worldwide', items: trendingGlobal });
+        if (latest.length > 0) built.push({ title: 'Latest Episodes', items: latest });
+        if (tvShows.length > 0) built.push({ title: 'TV Shows', items: tvShows });
+        if (movies.length > 0) built.push({ title: 'Movies', items: movies });
+        if (todaySchedule.length > 0) built.push({ title: "Today's Release Schedule", items: todaySchedule });
+
+        if (seasonalData.length > 0) built.push({ title: 'Current Season Anime', items: seasonalData.map(normalizeItem) });
+        if (upcomingData.length > 0) built.push({ title: 'Upcoming Anime', items: upcomingData.map(normalizeItem) });
+
+        if (featured.length > 0) built.push({ title: 'Trending Hindi Dubbed', items: featured.map(normalizeItem).slice(0, 5) });
+        if (topAnime.length > 0) built.push({ title: 'Top Rated Global', items: topAnime });
+        if (recommendations.length > 0) built.push({ title: 'Recommended for You', items: recommendations });
+
+        setSections(built);
+
+        // Use HiAnime spotlight for hero banner if available
+        const heroAnime = hianimeSpotlight[0] || (featured[0] ? normalize(featured[0]) : null) || (latest[0] ? normalize(latest[0]) : null);
+        setSpotlight(heroAnime);
+
       } catch (err: any) {
         console.error('Failed to fetch home data', err);
-        console.error('Error details:', err.message, err.response?.data);
         setError(`Could not load home page: ${err.message || 'Unknown error'}`);
       } finally {
         setLoading(false);
@@ -179,7 +183,7 @@ const Home = () => {
                   </motion.div>
                 ))}
 
-                {/* Render Top Lists (Column style) at the bottom (below Recommended) */}
+                {/* Render Top Lists (Column style) at the bottom */}
                 {topLists && (topLists.airing.length > 0 || topLists.popular.length > 0 || topLists.completed.length > 0) && (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

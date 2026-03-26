@@ -95,11 +95,11 @@ const Row: React.FC<RowProps> = ({ title, items, isLargeRow }) => {
         >
           {items.map((item, idx) => (
             <motion.div
-              key={item.id || idx}
+              key={`${item.id}-${idx}`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              style={{ flexShrink: 0 }}
+              style={{ flexShrink: 0, width: isLargeRow ? 'clamp(140px, 14vw, 180px)' : 'clamp(115px, 12vw, 155px)' }}
             >
               <AnimeCard anime={item} isLargeRow={isLargeRow} />
             </motion.div>

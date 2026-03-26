@@ -9,6 +9,12 @@ export default defineConfig({
             '/api': {
                 target: 'http://localhost:3001',
                 changeOrigin: true,
+            },
+            '/consumet': {
+                target: 'https://api.consumet.org',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/consumet/, ''),
+                secure: false,
             }
         }
     }

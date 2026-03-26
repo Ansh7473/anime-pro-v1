@@ -9,9 +9,12 @@
 
 .main-content {
   flex: 1;
+  padding-top: clamp(56px, 8vh, 70px);
   padding-bottom: clamp(30px, 5vh, 50px);
   width: 100%;
+  overflow-x: hidden;
 }
+
 
 /* Responsive video player container */
 .video-container {

@@ -18,6 +18,9 @@ export const animelokClient = axios.create({ baseURL: '/api/v1/animelok', timeou
 export const desidubClient = axios.create({ baseURL: '/api/v1/desidubanime', timeout: 30000 });
 export const animehindiClient = axios.create({ baseURL: '/api/v1/animehindidubbed', timeout: 30000 });
 
+// Consumet HiAnime API — proxied through Vite dev server to avoid CORS
+export const hianimeClient = axios.create({ baseURL: '/consumet/anime/hianime', timeout: 15000 });
+
 // Global request queue to prevent ANY parallel requests
 let requestQueue: Promise<any> = Promise.resolve();
 const MIN_REQUEST_INTERVAL = 500;
@@ -257,5 +260,30 @@ export const animehindiAPI = {
   getInfo: (id: string) => animehindiClient.get(`/info/${id}`),
   getWatch: (id: string) => animehindiClient.get(`/watch/${id}`)
 };
+
+export const hianimeAPI = {
+  getSpotlight: () => hianimeClient.get('/spotlight'),
+  getTopAiring: (page: number = 1) => hianimeClient.get('/top-airing', { params: { page } }),
+};
+
+// Normalize Consumet/HiAnime anime to our standard shape
+export const normalizeHianime = (anime: any) => ({
+  id: anime.id || '',
+  title: anime.title || 'Unknown Title',
+  poster: anime.image || '',
+  image: anime.image || '',
+  description: anime.description || '',
+  rank: anime.rank || 0,
+  rating: anime.rating ?? 0,
+  episodes: 0,
+  genres: [],
+  synopsis: anime.description || '',
+  type: 'TV',
+  status: 'Currently Airing',
+  source: 'HiAnime',
+  isHianime: true,
+  subOrDub: anime.subOrDub || 'sub',
+  releaseDate: anime.releaseDate || '',
+});
 
 export { jikanAPI as default };

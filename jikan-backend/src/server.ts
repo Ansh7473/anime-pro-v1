@@ -7,6 +7,7 @@ import streamingRouter from './routes/streaming/index.js';
 import animelokRouter from './routes/animelok.js';
 import desidubanimeRouter from './routes/desidubanime.js';
 import animehindidubbedRouter from './routes/animehindidubbed.js';
+import animehindidubbedWPRouter from './routes/animehindidubbed-wp.js';
 
 const app = new Hono();
 
@@ -55,6 +56,7 @@ app.route('/api/v1/streaming', streamingRouter);
 app.route('/api/v1/animelok', animelokRouter);
 app.route('/api/v1/desidubanime', desidubanimeRouter);
 app.route('/api/v1/animehindidubbed', animehindidubbedRouter);
+app.route('/api/v1/animehindidubbed-wp', animehindidubbedWPRouter);
 
 // 404 handler
 app.notFound((c) => {

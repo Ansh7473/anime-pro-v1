@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { getAnilistId, getAnimelokSources, getAnimelokMetadata, searchAnimelok } from '../../lib/providers/animelok.js';
 import { getDesiDubSources, searchDesiDub } from '../../lib/providers/desidub.js';
+import { searchAnimeHindiDubbed, getAnimeHindiDubbedInfo, getAnimeHindiDubbedSources } from '../../lib/providers/animehindidubbed.js';
+import { searchAnimeHindiDubbedWP, getAnimeHindiDubbedAllSourcesWP } from '../../lib/providers/animehindidubbed-wp.js';
 
 const streamingRouter = new Hono();
 
@@ -54,16 +56,21 @@ streamingRouter.get('/sources', async (c) => {
         const aniId = await getAnilistId(malId);
         const idCandidates = [malId];
         if (aniId && aniId !== malId) idCandidates.unshift(aniId);
-        
+
         let foundLok = false;
         const baseSlug = mainTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        
+
         // Try deterministic ID slugs
         for (const id of idCandidates) {
             const candidateSlug = `${baseSlug}-${id}`;
             const results = await getAnimelokSources(candidateSlug, ep);
             if (results.sources && results.sources.length > 0) {
-                aggregatedSources.push(...results.sources);
+                // Add provider info to each source
+                const sourcesWithProvider = results.sources.map((s: any) => ({
+                    ...s,
+                    provider: 'Animelok'
+                }));
+                aggregatedSources.push(...sourcesWithProvider);
                 if (results.subtitles) aggregatedSubtitles.push(...results.subtitles);
                 providersUsed.push('Animelok');
                 foundLok = true;
@@ -74,7 +81,7 @@ streamingRouter.get('/sources', async (c) => {
         // Try Search Fallback if ID fails
         if (!foundLok) {
             const lokResults = await searchAnimelok(mainTitle);
-            const lokMatch = lokResults.find((r: any) => 
+            const lokMatch = lokResults.find((r: any) =>
                 titles.some(t => {
                     const rt = (r.title || r.slug || "").toLowerCase();
                     const tt = t.toLowerCase();
@@ -85,7 +92,12 @@ streamingRouter.get('/sources', async (c) => {
                 const slug = lokMatch.slug || lokMatch.id;
                 const results = await getAnimelokSources(slug, ep);
                 if (results.sources && results.sources.length > 0) {
-                    aggregatedSources.push(...results.sources);
+                    // Add provider info to each source
+                    const sourcesWithProvider = results.sources.map((s: any) => ({
+                        ...s,
+                        provider: 'Animelok (Search)'
+                    }));
+                    aggregatedSources.push(...sourcesWithProvider);
                     if (results.subtitles) aggregatedSubtitles.push(...results.subtitles);
                     providersUsed.push('Animelok (Search)');
                 }
@@ -93,26 +105,63 @@ streamingRouter.get('/sources', async (c) => {
         }
 
         // 2. Fetch from DesiDubAnime (.me)
+        console.log('[Streaming] Searching DesiDubAnime for:', titles);
         for (const title of titles) {
             const desiResults = await searchDesiDub(title);
+            console.log('[Streaming] DesiDubAnime search results for', title, ':', desiResults.length, 'results');
             if (desiResults.length > 0) {
                 // Find closest match or exact
                 const match = desiResults.find(r => r.title.toLowerCase().includes(title.toLowerCase())) || desiResults[0];
+                console.log('[Streaming] DesiDubAnime matched:', match.title, 'slug:', match.slug);
                 const epSlug = `${match.slug}-episode-${ep}`;
+                console.log('[Streaming] DesiDubAnime fetching episode slug:', epSlug);
                 const results = await getDesiDubSources(epSlug);
+                console.log('[Streaming] DesiDubbed sources found:', results.length);
                 if (results.length > 0) {
-                    aggregatedSources.push(...results);
+                    // Add provider info to each source
+                    const sourcesWithProvider = results.map(s => ({
+                        ...s,
+                        provider: 'DesiDubAnime'
+                    }));
+                    aggregatedSources.push(...sourcesWithProvider);
                     providersUsed.push('DesiDubAnime');
                     break; // Stop searching once we find a good series match
                 }
             }
         }
 
+        // 3. Fetch from AnimeHindiDubbed.in (WordPress API)
+        console.log('[Streaming] Searching AnimeHindiDubbed-WP for:', titles);
+        for (const title of titles) {
+            const ahdResults = await searchAnimeHindiDubbedWP(title);
+            console.log('[Streaming] AnimeHindiDubbed-WP search results for', title, ':', ahdResults.length, 'results');
+            if (ahdResults.length > 0) {
+                // Find closest match or exact
+                const match = ahdResults.find(r => r.title.rendered.toLowerCase().includes(title.toLowerCase())) || ahdResults[0];
+                console.log('[Streaming] AnimeHindiDubbed-WP matched:', match.title.rendered, 'id:', match.id);
+
+                // Get all sources for this episode from all servers
+                const sources = await getAnimeHindiDubbedAllSourcesWP(match.id, ep);
+                console.log('[Streaming] AnimeHindiDubbed-WP sources found:', sources.length);
+
+                if (sources.length > 0) {
+                    // Add provider info to each source
+                    const sourcesWithProvider = sources.map(s => ({
+                        ...s,
+                        provider: 'AnimeHindiDubbed-WP'
+                    }));
+                    aggregatedSources.push(...sourcesWithProvider);
+                    providersUsed.push('AnimeHindiDubbed-WP');
+                    break; // Stop searching once we find a good series match
+                }
+            }
+        }
+
         if (aggregatedSources.length > 0) {
-            return c.json({ 
-                provider: providersUsed.join(', '), 
-                status: 200, 
-                data: { sources: aggregatedSources, subtitles: aggregatedSubtitles } 
+            return c.json({
+                provider: providersUsed.join(', '),
+                status: 200,
+                data: { sources: aggregatedSources, subtitles: aggregatedSubtitles }
             });
         }
     } catch (e: any) { console.error('[Streaming Router] Error:', e.message); }
@@ -133,7 +182,7 @@ streamingRouter.get('/episode-metadata', async (c) => {
         if (aniId && aniId !== malId) idCandidates.unshift(aniId);
 
         const baseSlug = titles[0].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        
+
         for (const id of idCandidates) {
             const candidateSlug = `${baseSlug}-${id}`;
             const episodes = await getAnimelokMetadata(candidateSlug);

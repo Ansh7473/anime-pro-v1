@@ -728,3 +728,51 @@ input:focus-visible {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ========== MOBILE RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: 56px;
+  }
+
+  /* Ensure rows don't overflow horizontally */
+  .row-container {
+    width: 100% !important;
+    overflow: hidden;
+  }
+
+  /* Make anime cards slightly bigger on mobile for readability */
+  .anime-card-container {
+    min-width: 100px;
+  }
+
+  /* Fix TopLists on mobile */
+  .top-lists-container {
+    grid-template-columns: 1fr !important;
+    padding: 1.5rem 1rem !important;
+    margin: 1.5rem 0.5rem !important;
+  }
+
+  .top-list-column {
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Hero banner mobile */
+  .hero-banner-content h1 {
+    font-size: clamp(1.4rem, 7vw, 2rem) !important;
+  }
+
+  /* Favorites and History mobile */
+  .favorites-header, .history-header {
+    flex-direction: column !important;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding-top: 56px;
+  }
+}

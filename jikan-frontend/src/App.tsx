@@ -13,7 +13,6 @@ import Schedule from './pages/Schedule';
 import AuthCallback from './pages/AuthCallback';
 import Favorites from './components/Favorites';
 import WatchHistory from './components/WatchHistory';
-import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
 function App() {
@@ -31,8 +30,9 @@ function App() {
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/search" element={<Search />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
-              <Route path="/history" element={<ProtectedRoute><WatchHistory /></ProtectedRoute>} />
+              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/history" element={<WatchHistory />} />
+
               <Route path="/anime/:id" element={<AnimeDetails />} />
               <Route path="/watch/:animeId/:ep" element={<Player />} />
             </Routes>

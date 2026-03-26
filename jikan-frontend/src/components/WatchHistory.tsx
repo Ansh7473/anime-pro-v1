@@ -60,7 +60,7 @@ const WatchHistory = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                style={{ backgroundColor: 'var(--net-bg)', minHeight: '100vh', padding: '100px 4% 4rem' }}
+                style={{ backgroundColor: 'var(--net-bg)', minHeight: '100vh', padding: '2rem 4% 4rem' }}
             >
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
                     <div className="spinner" />
@@ -75,7 +75,7 @@ const WatchHistory = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            style={{ backgroundColor: 'var(--net-bg)', minHeight: '100vh', padding: '100px 4% 4rem' }}
+            style={{ backgroundColor: 'var(--net-bg)', minHeight: '100vh', padding: '2rem 4% 4rem' }}
         >
             {/* Header */}
             <header style={{ marginBottom: '2.5rem' }}>
