@@ -402,7 +402,8 @@
           );
 
           if (isRestricted && !url.includes("/streaming/proxy")) {
-            const proxyBase = "http://localhost:3001/api/v1/streaming/proxy";
+            const proxyBase =
+              "https://anime-pro-v1-backend-go.vercel.app/api/v1/streaming/proxy";
             const referer = url.includes("desidub")
               ? "https://www.desidubanime.me/"
               : url.includes("animehindidubbed")
