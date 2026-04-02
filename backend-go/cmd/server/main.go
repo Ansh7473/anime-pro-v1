@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Ansh7473/anime-pro/backend-go/internal/config"
-	"github.com/Ansh7473/anime-pro/backend-go/internal/database"
-	"github.com/Ansh7473/anime-pro/backend-go/internal/routes"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/config"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/routes"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
