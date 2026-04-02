@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"sync"
 
@@ -17,12 +18,17 @@ var (
 )
 
 func initApp() {
-	// Initialize standard Gin setup
+	log.Println("🛠️ Initializing Vercel Serverless Backend...")
+
 	gin.SetMode(gin.ReleaseMode)
 	app = gin.New()
+	
+	// Add core middleware
 	app.Use(gin.Recovery())
+	app.Use(gin.Logger())
 
 	// Database initialization
+	log.Println("🔌 Connecting to database...")
 	database.InitDB()
 
 	// JWT Config
@@ -47,15 +53,27 @@ func initApp() {
 			"status":   "healthy",
 			"service":  "backend-go-vercel",
 			"database": dbStatus,
+			"version":  "1.2.0",
 		})
 	})
 
 	// Routes
 	routes.SetupRoutes(app)
+	log.Println("✅ Vercel Backend Ready")
 }
 
 // Handler is the entry point for Vercel
 func Handler(w http.ResponseWriter, r *http.Request) {
+	// Ensure app is initialized only once
 	once.Do(initApp)
+
+	// Additional safety recovery for the top-level handler
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("🔥 CRITICAL PANIC in Handler: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+	}()
+
 	app.ServeHTTP(w, r)
 }

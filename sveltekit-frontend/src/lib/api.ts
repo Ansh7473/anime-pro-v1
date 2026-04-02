@@ -1,4 +1,4 @@
-const BACKEND_URL = 'http://localhost:3001'; // Default Go Backend Port
+const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app'; // Deployed Go Backend
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
 const JIKAN_URL = `${BACKEND_URL}/api/v1/jikan`;
@@ -319,42 +319,42 @@ export const api = {
 			body: JSON.stringify(data)
 		}),
 
-    // 10. Social & Community
-    toggleReaction: (token: string, data: { animeId: string; episode: number; type: string; profileId?: number }) =>
-        fetchJSON(`${USER_URL}/reactions`, {
-            method: 'POST',
-            headers: authHeaders(token),
-            body: JSON.stringify(data)
-        }),
+	// 10. Social & Community
+	toggleReaction: (token: string, data: { animeId: string; episode: number; type: string; profileId?: number }) =>
+		fetchJSON(`${USER_URL}/reactions`, {
+			method: 'POST',
+			headers: authHeaders(token),
+			body: JSON.stringify(data)
+		}),
 
-    getReactions: (animeId: string, episode: number, token?: string, profileId?: number) =>
-        fetchJSON(`${USER_URL}/reactions/${animeId}/${episode}${profileId ? `?profileId=${profileId}` : ''}`, {
-            headers: token ? authHeaders(token) : {}
-        }),
+	getReactions: (animeId: string, episode: number, token?: string, profileId?: number) =>
+		fetchJSON(`${USER_URL}/reactions/${animeId}/${episode}${profileId ? `?profileId=${profileId}` : ''}`, {
+			headers: token ? authHeaders(token) : {}
+		}),
 
-    postComment: (token: string, data: { animeId: string; episode: number; content: string; parentId?: number; profileId?: number }) =>
-        fetchJSON(`${USER_URL}/comments`, {
-            method: 'POST',
-            headers: authHeaders(token),
-            body: JSON.stringify(data)
-        }),
+	postComment: (token: string, data: { animeId: string; episode: number; content: string; parentId?: number; profileId?: number }) =>
+		fetchJSON(`${USER_URL}/comments`, {
+			method: 'POST',
+			headers: authHeaders(token),
+			body: JSON.stringify(data)
+		}),
 
-    getComments: (animeId: string, episode: number) =>
-        fetchJSON(`${USER_URL}/comments/${animeId}/${episode}`),
+	getComments: (animeId: string, episode: number) =>
+		fetchJSON(`${USER_URL}/comments/${animeId}/${episode}`),
 
-    deleteComment: (token: string, commentId: number) =>
-        fetchJSON(`${USER_URL}/comments/${commentId}`, {
-            method: 'DELETE',
-            headers: authHeaders(token)
-        })
+	deleteComment: (token: string, commentId: number) =>
+		fetchJSON(`${USER_URL}/comments/${commentId}`, {
+			method: 'DELETE',
+			headers: authHeaders(token)
+		})
 };
 
 export function getProxiedUrl(url: string, referer = ''): string {
-    // Disable automatic proxy wrapping for stream URLs as requested. 
-    // The player will handle specific segment proxying via HLS.js xhrSetup if necessary.
-    return url;
+	// Disable automatic proxy wrapping for stream URLs as requested. 
+	// The player will handle specific segment proxying via HLS.js xhrSetup if necessary.
+	return url;
 }
 
 export function getProxiedImage(url: string, fallback = ''): string {
-    return getProxiedUrl(url) || fallback;
+	return getProxiedUrl(url) || fallback;
 }
