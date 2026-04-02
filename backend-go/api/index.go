@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/config"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/routes"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/config"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/database"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/routes"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +18,7 @@ var (
 )
 
 func initApp() {
-	log.Println("🛠️ Initializing Vercel Serverless Backend...")
+	log.Println("🛠️ Initializing Modular Vercel Backend...")
 
 	gin.SetMode(gin.ReleaseMode)
 	app = gin.New()
@@ -28,7 +28,6 @@ func initApp() {
 	app.Use(gin.Logger())
 
 	// Database initialization
-	log.Println("🔌 Connecting to database...")
 	database.InitDB()
 
 	// JWT Config
@@ -59,11 +58,6 @@ func initApp() {
 		AllowCredentials: true,
 	}))
 
-	// Favicon - handle 404/403 noise
-	app.GET("/favicon.ico", func(c *gin.Context) {
-		c.Status(204)
-	})
-
 	// Health check
 	app.GET("/health", func(c *gin.Context) {
 		dbStatus := "disconnected"
@@ -74,27 +68,18 @@ func initApp() {
 			"status":   "healthy",
 			"service":  "backend-go-vercel",
 			"database": dbStatus,
-			"version":  "1.2.1",
+			"version":  "1.2.3",
 		})
 	})
 
 	// Routes
 	routes.SetupRoutes(app)
-	log.Println("✅ Vercel Backend Ready")
+	log.Println("✅ Modular Backend Ready")
 }
 
 // Handler is the entry point for Vercel
 func Handler(w http.ResponseWriter, r *http.Request) {
 	// Ensure app is initialized only once
 	once.Do(initApp)
-
-	// Additional safety recovery for the top-level handler
-	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("🔥 CRITICAL PANIC in Handler: %v", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-	}()
-
 	app.ServeHTTP(w, r)
 }

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Ansh7473/anime-pro/backend-go/internal/config"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/config"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )

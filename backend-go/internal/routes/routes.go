@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"github.com/Ansh7473/anime-pro/backend-go/internal/handlers"
-	"github.com/Ansh7473/anime-pro/backend-go/internal/middleware"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/handlers"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/middleware"
 	"github.com/gin-gonic/gin"
 )
 

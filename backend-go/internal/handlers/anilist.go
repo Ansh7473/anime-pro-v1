@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Ansh7473/anime-pro/backend-go/internal/utils"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 

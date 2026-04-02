@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ansh7473/anime-pro/backend-go/internal/providers"
-	"github.com/Ansh7473/anime-pro/backend-go/internal/utils"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/providers"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 )
