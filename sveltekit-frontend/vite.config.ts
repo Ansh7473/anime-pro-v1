@@ -3,21 +3,24 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
-	build: {
-		chunkSizeWarningLimit: 1000,
-		rollupOptions: {
-			output: {
-				manualChunks: (id) => {
-					if (id.includes('node_modules')) {
-						if (id.includes('hls.js')) return 'hls';
-						if (id.includes('lucide-svelte')) return 'icons';
-						return 'vendor';
-					}
-				}
-			}
-		}
-	},
 	server: {
 		port: 5174,
+		proxy: {
+			'/api': {
+				target: 'http://localhost:3001',
+				changeOrigin: true,
+			},
+			'/animelok-api': {
+				target: 'https://animelok.xyz',
+				changeOrigin: true,
+				secure: true,
+				rewrite: (path) => path.replace(/^\/animelok-api/, '/api/anime'),
+				headers: {
+					'Origin': 'https://animelok.xyz',
+					'Referer': 'https://animelok.xyz/',
+					'Accept': 'application/json, text/plain, */*',
+				},
+			}
+		}
 	}
 });
