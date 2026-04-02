@@ -38,6 +38,32 @@ body {
   overflow-x: hidden;
   line-height: 1.5;
   -webkit-tap-highlight-color: transparent;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overscroll-behavior: none;
+}
+
+/* Smooth Touch Feedback */
+.btn-primary:active,
+.btn-secondary:active,
+.nav-btn:active,
+.ep-card:active,
+.anime-card:active {
+  transform: scale(0.96);
+  opacity: 0.8;
+  transition: transform 0.1s ease;
+}
+
+/* Native-like Scroll Snapping */
+.row-container {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.anime-card {
+  scroll-snap-align: start;
 }
 
 a {
@@ -435,6 +461,7 @@ img {
 .truncate-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
