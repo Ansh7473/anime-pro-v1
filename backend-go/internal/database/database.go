@@ -21,13 +21,15 @@ func InitDB() {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("❌ Failed to connect to database: %v", err)
+		log.Println("❌ Failed to connect to database:", err)
+		return
 	}
 
 	// Automigrate models
 	err = db.AutoMigrate(&models.User{}, &models.Profile{}, &models.WatchHistory{}, &models.Watchlist{}, &models.Favorite{}, &models.Reaction{}, &models.Comment{})
 	if err != nil {
-		log.Fatalf("❌ Failed to automigrate models: %v", err)
+		log.Println("❌ Failed to automigrate models:", err)
+		return
 	}
 
 	DB = db

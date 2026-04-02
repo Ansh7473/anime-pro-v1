@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/Ansh7473/anime-pro/backend-go/internal/config"
@@ -12,7 +13,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main() {
+var app *gin.Engine
+
+func init() {
 	// Load .env file if it exists (ignore error if not found in production)
 	err := godotenv.Load()
 	if err != nil {
@@ -20,18 +23,22 @@ func main() {
 	}
 
 	// Initialize JWT secret AFTER loading .env
-	// This ensures the secret is read from the environment, not an empty string
 	_ = config.GetJWTSecret()
 
 	// Initialize Database
 	database.InitDB()
 
-	app := gin.Default()
+	// Set Gin to release mode for production
+	gin.SetMode(gin.ReleaseMode)
+
+	app = gin.New()
+
+	// Recovery middleware
+	app.Use(gin.Recovery())
 
 	// Configure CORS to match working example (Allows Credentials for session/auth)
-	// Configure CORS to match working example (Allows Credentials for session/auth)
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:4001", "http://localhost:5173", "http://localhost:5174", "http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:4001", "http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "https://anime-pro-v1-frontend.vercel.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-Cache-Status"},
@@ -69,8 +76,15 @@ func main() {
 
 	// Initialize routes
 	routes.SetupRoutes(app)
+}
 
-	// Start server
+// Handler is the main entry point for Vercel serverless functions
+func Handler(w http.ResponseWriter, r *http.Request) {
+	app.ServeHTTP(w, r)
+}
+
+// For local development
+func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"

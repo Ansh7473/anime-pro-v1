@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.go"
+    }
+  ],
+  "env": {
+    "PORT": "3001",
+    "NODE_ENV": "production"
+  }
+}
