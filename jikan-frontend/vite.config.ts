@@ -1,21 +1,23 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
 
-// https://vite.dev/config/
 export default defineConfig({
-    plugins: [react()],
-    server: {
-        proxy: {
-            '/api': {
-                target: 'http://localhost:3001',
-                changeOrigin: true,
-            },
-            '/consumet': {
-                target: 'https://api.consumet.org',
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/consumet/, ''),
-                secure: false,
-            }
-        }
-    }
-})
+	plugins: [sveltekit()],
+	build: {
+		chunkSizeWarningLimit: 1000,
+		rollupOptions: {
+			output: {
+				manualChunks: (id) => {
+					if (id.includes('node_modules')) {
+						if (id.includes('hls.js')) return 'hls';
+						if (id.includes('lucide-svelte')) return 'icons';
+						return 'vendor';
+					}
+				}
+			}
+		}
+	},
+	server: {
+		port: 5174,
+	}
+});
