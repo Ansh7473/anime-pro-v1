@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/utils"
 )
 
 const ANIMELOK_BASE = "https://animelok.xyz"

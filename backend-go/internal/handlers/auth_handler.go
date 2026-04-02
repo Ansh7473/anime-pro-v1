@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/config"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/config"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/database"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"

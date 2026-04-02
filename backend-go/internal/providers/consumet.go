@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/utils"
 )
 
 const ConsumetBase = "https://consumet-api.vercel.app"

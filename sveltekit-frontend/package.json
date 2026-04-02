@@ -2,49 +2,20 @@
 	"name": "sveltekit-frontend",
 	"private": true,
 	"version": "0.0.1",
-	"description": "Premium Anime Streaming Application",
-	"author": "AnimePro Team",
-	"main": "electron/main.cjs",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build && node fix-paths.js",
+		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"electron:dev": "npm run build && electron electron/main.cjs",
-		"electron:build": "npm run build && electron-builder",
-		"android:sync": "npm run build && npx cap sync android",
-		"android:open": "npx cap open android",
-		"android:build": "npm run build && npx cap sync android && cd android && .\\gradlew.bat assembleDebug"
-	},
-	"build": {
-		"appId": "com.animepro.app",
-		"productName": "AnimePro",
-		"files": [
-			"build/**/*",
-			"electron",
-			"package.json"
-		],
-		"directories": {
-			"output": "dist"
-		},
-		"win": {
-			"target": "nsis"
-		}
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"devDependencies": {
-		"@capacitor/android": "^8.3.0",
-		"@capacitor/cli": "^8.3.0",
-		"@capacitor/core": "^8.3.0",
 		"@sveltejs/adapter-auto": "^7.0.0",
-		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/adapter-vercel": "^6.3.3",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
-		"electron": "^41.1.1",
-		"electron-builder": "^26.8.1",
 		"svelte": "^5.54.0",
 		"svelte-check": "^4.4.2",
 		"typescript": "^5.9.3",

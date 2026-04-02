@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/Ansh7473/anime-pro/backend-go/internal/utils"
 )
 
 
