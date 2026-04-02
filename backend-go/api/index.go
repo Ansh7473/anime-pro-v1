@@ -37,16 +37,24 @@ func initApp() {
 	// CORS Setup
 	app.Use(cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
-			// Allow localhost, the production domains, and all vercel preview domains
-			return origin == "http://localhost:4001" || 
-				   origin == "http://localhost:5173" || 
-				   origin == "http://localhost:5174" || 
-				   origin == "http://localhost:3000" || 
-				   origin == "https://anime-pro-v1-frontend.vercel.app" || 
-				   (len(origin) > 10 && origin[len(origin)-10:] == ".vercel.app")
+			// Allow known frontend domains
+			if origin == "https://anime-pro-v1-frontend.vercel.app" || 
+			   origin == "http://localhost:5173" || 
+			   origin == "http://localhost:4001" {
+				return true
+			}
+			// Allow Capacitor/Android/iOS native origins
+			if origin == "http://localhost" || origin == "capacitor://localhost" {
+				return true
+			}
+			// Allow Vercel preview domains
+			if len(origin) > 10 && origin[len(origin)-10:] == ".vercel.app" {
+				return true
+			}
+			return false
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With", "Access-Control-Allow-Origin"},
 		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-Cache-Status"},
 		AllowCredentials: true,
 	}))
