@@ -36,12 +36,25 @@ func initApp() {
 
 	// CORS Setup
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:4001", "http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "https://anime-pro-v1-frontend.vercel.app"},
+		AllowOriginFunc: func(origin string) bool {
+			// Allow localhost, the production domains, and all vercel preview domains
+			return origin == "http://localhost:4001" || 
+				   origin == "http://localhost:5173" || 
+				   origin == "http://localhost:5174" || 
+				   origin == "http://localhost:3000" || 
+				   origin == "https://anime-pro-v1-frontend.vercel.app" || 
+				   (len(origin) > 10 && origin[len(origin)-10:] == ".vercel.app")
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-Cache-Status"},
 		AllowCredentials: true,
 	}))
+
+	// Favicon - handle 404/403 noise
+	app.GET("/favicon.ico", func(c *gin.Context) {
+		c.Status(204)
+	})
 
 	// Health check
 	app.GET("/health", func(c *gin.Context) {
@@ -53,7 +66,7 @@ func initApp() {
 			"status":   "healthy",
 			"service":  "backend-go-vercel",
 			"database": dbStatus,
-			"version":  "1.2.0",
+			"version":  "1.2.1",
 		})
 	})
 

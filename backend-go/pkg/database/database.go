@@ -25,11 +25,17 @@ func InitDB() {
 		return
 	}
 
-	// Automigrate models
-	err = db.AutoMigrate(&models.User{}, &models.Profile{}, &models.WatchHistory{}, &models.Watchlist{}, &models.Favorite{}, &models.Reaction{}, &models.Comment{})
-	if err != nil {
-		log.Println("❌ Failed to automigrate models:", err)
-		return
+	// Automigrate models only if explicitly requested
+	if os.Getenv("DB_AUTO_MIGRATE") == "true" {
+		log.Println("🔄 Running database auto-migration...")
+		err = db.AutoMigrate(&models.User{}, &models.Profile{}, &models.WatchHistory{}, &models.Watchlist{}, &models.Favorite{}, &models.Reaction{}, &models.Comment{})
+		if err != nil {
+			log.Println("❌ Failed to automigrate models:", err)
+			return
+		}
+		log.Println("✅ Database migration completed")
+	} else {
+		log.Println("⏭️ Skipping auto-migration (set DB_AUTO_MIGRATE=true to enable)")
 	}
 
 	DB = db
