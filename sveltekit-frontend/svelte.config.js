@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-vercel';
+import adapter from '@sveltejs/adapter-static';
 import { relative, sep } from 'node:path';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -14,10 +14,13 @@ const config = {
 		}
 	},
 	kit: {
-		// Use Vercel adapter for production-ready deployment
+		// Use static adapter for Capacitor/Electron compatibility
 		adapter: adapter({
-			runtime: 'nodejs20.x',
-		})
+			fallback: 'index.html' // Required for SPAs
+		}),
+		paths: {
+			relative: true
+		}
 	}
 };
 
