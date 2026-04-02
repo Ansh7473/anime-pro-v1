@@ -1,13 +1,20 @@
 <script lang="ts">
-  import { auth } from '$lib/stores/auth';
-  import { onMount, onDestroy } from 'svelte';
-  import { Send, MessageSquare, Users, X, ChevronRight, ChevronLeft } from 'lucide-svelte';
+  import { auth } from "$lib/stores/auth";
+  import { onMount, onDestroy } from "svelte";
+  import {
+    Send,
+    MessageSquare,
+    Users,
+    X,
+    ChevronRight,
+    ChevronLeft,
+  } from "lucide-svelte";
 
   let { animeId, episode } = $props<{ animeId: string; episode: number }>();
 
   let socket: WebSocket | null = null;
   let messages = $state<any[]>([]);
-  let newMessage = $state('');
+  let newMessage = $state("");
   let isOpen = $state(true);
   let connected = $state(false);
   let chatEndRef: HTMLDivElement | null = $state(null);
@@ -22,14 +29,14 @@
   });
 
   function connect() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//localhost:3001/api/v1/user/ws?animeId=${animeId}&episode=${episode}&token=${$auth.token}`;
-    
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//anime-pro-v1-backend-go.vercel.app/api/v1/user/ws?animeId=${animeId}&episode=${episode}&token=${$auth.token}`;
+
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       connected = true;
-      console.log('Connected to chat');
+      console.log("Connected to chat");
     };
 
     socket.onmessage = (event) => {
@@ -40,7 +47,7 @@
 
     socket.onclose = () => {
       connected = false;
-      console.log('Disconnected from chat');
+      console.log("Disconnected from chat");
       // Tentative reconnect logic
       setTimeout(() => connect(), 3000);
     };
@@ -50,33 +57,43 @@
     if (!socket || !newMessage.trim() || !connected) return;
 
     const msg = {
-      type: 'chat',
+      type: "chat",
       userId: $auth.user?.id || 0,
-      userName: $auth.currentProfile?.name || 'Anonymous',
-      avatar: $auth.currentProfile?.avatar || '',
+      userName: $auth.currentProfile?.name || "Anonymous",
+      avatar: $auth.currentProfile?.avatar || "",
       content: newMessage.trim(),
-      roomId: `${animeId}-${episode}`
+      roomId: `${animeId}-${episode}`,
     };
 
     socket.send(JSON.stringify(msg));
-    newMessage = '';
+    newMessage = "";
   }
 
   function scrollToBottom() {
     if (chatEndRef) {
-      setTimeout(() => chatEndRef.scrollIntoView({ behavior: 'smooth' }), 50);
+      setTimeout(() => chatEndRef.scrollIntoView({ behavior: "smooth" }), 50);
     }
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === "Enter") sendMessage();
   }
 </script>
 
 <div class="chat-sidebar" class:closed={!isOpen}>
-  <button class="toggle-btn" onclick={() => isOpen = !isOpen} aria-label={isOpen ? 'Close Chat' : 'Open Chat'}>
-    {#if isOpen} <ChevronRight size={20} /> {:else} <ChevronLeft size={20} /> {/if}
-    {#if !isOpen} <div class="badge">Chat</div> {/if}
+  <button
+    class="toggle-btn"
+    onclick={() => (isOpen = !isOpen)}
+    aria-label={isOpen ? "Close Chat" : "Open Chat"}
+  >
+    {#if isOpen}
+      <ChevronRight size={20} />
+    {:else}
+      <ChevronLeft size={20} />
+    {/if}
+    {#if !isOpen}
+      <div class="badge">Chat</div>
+    {/if}
   </button>
 
   {#if isOpen}
@@ -87,7 +104,7 @@
       </div>
       <div class="status" class:online={connected}>
         <div class="dot"></div>
-        {connected ? 'Live' : 'Connecting...'}
+        {connected ? "Live" : "Connecting..."}
       </div>
     </div>
 
@@ -98,11 +115,15 @@
           <p>Be the first to say something!</p>
         </div>
       {/if}
-      
+
       {#each messages as msg}
         <div class="message-item" class:own={msg.userId === $auth.user?.id}>
           {#if msg.userId !== $auth.user?.id}
-            <img src={msg.avatar || '/default-avatar.png'} alt={msg.userName} class="chat-avatar" />
+            <img
+              src={msg.avatar || "/default-avatar.png"}
+              alt={msg.userName}
+              class="chat-avatar"
+            />
           {/if}
           <div class="message-content">
             <span class="user-name">{msg.userName}</span>
@@ -117,14 +138,18 @@
       {#if !$auth.token}
         <div class="login-prompt">Login to Chat</div>
       {:else}
-        <input 
-          type="text" 
-          placeholder="Say something..." 
-          bind:value={newMessage} 
+        <input
+          type="text"
+          placeholder="Say something..."
+          bind:value={newMessage}
           onkeydown={handleKeydown}
           disabled={!connected}
         />
-        <button class="send-btn" onclick={sendMessage} disabled={!newMessage.trim() || !connected}>
+        <button
+          class="send-btn"
+          onclick={sendMessage}
+          disabled={!newMessage.trim() || !connected}
+        >
           <Send size={18} />
         </button>
       {/if}
@@ -188,11 +213,30 @@
     align-items: center;
   }
 
-  .chat-header .title { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; color: white; }
-  
-  .status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--net-text-muted); }
-  .status.online { color: #00ff7f; }
-  .status .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chat-header .title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--net-text-muted);
+  }
+  .status.online {
+    color: #00ff7f;
+  }
+  .status .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
 
   .messages-list {
     flex: 1;
@@ -203,14 +247,36 @@
     gap: 1.25rem;
   }
 
-  .message-item { display: flex; gap: 0.75rem; max-width: 90%; }
-  .message-item.own { align-self: flex-end; flex-direction: row-reverse; }
+  .message-item {
+    display: flex;
+    gap: 0.75rem;
+    max-width: 90%;
+  }
+  .message-item.own {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
 
-  .chat-avatar { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; }
+  .chat-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
 
-  .message-content { display: flex; flex-direction: column; gap: 0.25rem; }
-  .user-name { font-size: 0.75rem; font-weight: 700; color: var(--net-text-muted); }
-  .message-item.own .user-name { text-align: right; }
+  .message-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .user-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--net-text-muted);
+  }
+  .message-item.own .user-name {
+    text-align: right;
+  }
 
   .text {
     background: rgba(255, 255, 255, 0.05);
@@ -226,8 +292,14 @@
   }
 
   .empty-state {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 100%; color: var(--net-text-muted); gap: 1rem; text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--net-text-muted);
+    gap: 1rem;
+    text-align: center;
     opacity: 0.5;
   }
 
@@ -239,25 +311,46 @@
   }
 
   .chat-input-area input {
-    flex: 1; border: none; background: rgba(255, 255, 255, 0.05);
-    font-size: 0.9rem; outline: none;
+    flex: 1;
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+    outline: none;
   }
   .chat-input-area input:focus {
     border: 1px solid var(--net-red);
   }
 
   .send-btn {
-    width: 44px; height: 44px; border-radius: 12px;
-    background: var(--net-red); border: none; color: white;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: 0.2s;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--net-red);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
   }
-  .send-btn:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.1); }
-  .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .send-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+  .send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   .login-prompt {
-    flex: 1; text-align: center; padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05); border-radius: 12px;
-    font-size: 0.85rem; font-weight: 700; color: var(--net-text-muted);
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--net-text-muted);
   }
 </style>
