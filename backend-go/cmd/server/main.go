@@ -38,7 +38,16 @@ func init() {
 
 	// Configure CORS to match working example (Allows Credentials for session/auth)
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:4001", "http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "https://anime-pro-v1-frontend.vercel.app"},
+		AllowOrigins: []string{
+			"http://localhost:4001",
+			"http://localhost:5173",
+			"http://localhost:5174",
+			"http://localhost:3000",
+			"https://anime-pro-v1-frontend.vercel.app",
+			"capacitor-electron://localhost",
+			"capacitor://localhost",
+			"http://localhost",
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-Cache-Status"},
