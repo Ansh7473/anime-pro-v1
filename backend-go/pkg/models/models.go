@@ -14,6 +14,7 @@ type User struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	Role      string         `gorm:"default:'user'" json:"role"` // user, admin
 	Profiles  []Profile      `gorm:"foreignKey:UserID" json:"profiles"`
 }
 
@@ -92,4 +93,15 @@ type Comment struct {
 	// Associations
 	User    User      `gorm:"foreignKey:UserID" json:"user"`
 	Replies []Comment `gorm:"foreignKey:ParentID" json:"replies"`
+}
+
+// Release model for App Updates
+type Release struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Version     string    `gorm:"not null" json:"version"`
+	Platform    string    `gorm:"not nullindex" json:"platform"` // windows, android
+	DownloadURL string    `gorm:"not null" json:"download_url"`
+	Changelog   string    `json:"changelog"`
+	IsLatest    bool      `gorm:"default:true" json:"is_latest"`
+	CreatedAt   time.Time `json:"createdAt"`
 }

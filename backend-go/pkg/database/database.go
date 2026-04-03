@@ -28,7 +28,7 @@ func InitDB() {
 	// Automigrate models only if explicitly requested
 	if os.Getenv("DB_AUTO_MIGRATE") == "true" {
 		log.Println("🔄 Running database auto-migration...")
-		err = db.AutoMigrate(&models.User{}, &models.Profile{}, &models.WatchHistory{}, &models.Watchlist{}, &models.Favorite{}, &models.Reaction{}, &models.Comment{})
+		err = db.AutoMigrate(&models.User{}, &models.Profile{}, &models.WatchHistory{}, &models.Watchlist{}, &models.Favorite{}, &models.Reaction{}, &models.Comment{}, &models.Release{})
 		if err != nil {
 			log.Println("❌ Failed to automigrate models:", err)
 			return

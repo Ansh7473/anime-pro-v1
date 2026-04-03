@@ -131,4 +131,11 @@ func SetupRoutes(r *gin.Engine) {
 		// 11. WebSocket (Live Chat)
 		user.GET("/ws", handlers.MainHub.ServeWS)
 	}
+
+	// 7. App Release (Windows/Android updates)
+	releases := v1.Group("/releases")
+	{
+		releases.GET("/latest", handlers.GetLatestReleases)
+		releases.POST("/", middleware.AuthMiddleware(), handlers.AddRelease)
+	}
 }
