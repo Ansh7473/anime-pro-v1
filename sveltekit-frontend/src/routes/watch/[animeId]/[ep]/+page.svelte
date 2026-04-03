@@ -13,6 +13,7 @@
     Monitor,
     SkipForward,
     Keyboard,
+    RotateCw,
   } from "lucide-svelte";
   import Hls from "hls.js";
   import ReactionsBar from "$lib/components/ReactionsBar.svelte";
@@ -123,6 +124,35 @@
 
   // Keyboard shortcuts tooltip
   let showShortcuts = $state(false);
+
+  let isRotated = $state(false);
+
+  async function toggleRotation() {
+    try {
+      if (!isRotated) {
+        // Attempt native orientation lock if available
+        // @ts-ignore
+        if (screen.orientation && screen.orientation.lock) {
+          try {
+            // @ts-ignore
+            await screen.orientation.lock("landscape");
+            // If it succeeds natively, we still track it but might not need css fallback
+            // but we'll apply it anyway, or rely on native fullscreen
+          } catch(e) { console.warn("Native lock failed:", e); }
+        }
+        isRotated = true; // Apply CSS fallback
+      } else {
+        // @ts-ignore
+        if (screen.orientation && screen.orientation.unlock) {
+          // @ts-ignore
+          try { screen.orientation.unlock(); } catch(e) {}
+        }
+        isRotated = false;
+      }
+    } catch (e) {
+      isRotated = !isRotated;
+    }
+  }
 
   function startCountdown() {
     if (!autoNext || ep >= episodes.length) return;
@@ -496,7 +526,7 @@
       <!-- Video Player Section -->
       <div class="player-section" class:theater={theaterMode}>
         <div class="player-container container" class:theater={theaterMode}>
-          <div class="video-wrapper glass" class:theater={theaterMode}>
+          <div class="video-wrapper glass" class:theater={theaterMode} class:css-rotated={isRotated}>
             {#if sourceLoading}
               <div class="overlay">
                 <div class="spinner"></div>
@@ -581,6 +611,14 @@
               {/if}
 
               <div class="player-controls-overlay">
+                <button
+                  class="control-btn hide-desktop"
+                  class:active={isRotated}
+                  title="Rotate Screen"
+                  onclick={toggleRotation}
+                >
+                  <RotateCw size={18} />
+                </button>
                 <button
                   class="control-btn"
                   title="Theater Mode (T)"
@@ -801,6 +839,35 @@
     min-height: 100vh;
     padding-bottom: 4rem;
     overflow-x: hidden;
+  }
+
+  /* Fallback CSS Rotation for Mobile WebView */
+  :global(.video-wrapper.css-rotated) {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 100vh !important;
+    height: 100vw !important;
+    transform: translate(-50%, -50%) rotate(90deg) !important;
+    transform-origin: center center !important;
+    z-index: 9999 !important;
+    background: black !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  :global(.video-wrapper.css-rotated video), 
+  :global(.video-wrapper.css-rotated iframe) {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    border-radius: 0 !important;
+  }
+
+  :global(.css-rotated .player-controls-overlay) {
+     z-index: 10000 !important;
   }
 
   .watch-layout {

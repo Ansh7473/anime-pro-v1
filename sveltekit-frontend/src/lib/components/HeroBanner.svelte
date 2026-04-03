@@ -8,6 +8,11 @@
   let paused = $state(false);
   let interval: ReturnType<typeof setInterval> | null = null;
 
+  // Touch swipe support
+  let touchStartX = $state(0);
+  let touchEndX = $state(0);
+  let isSwiping = $state(false);
+
   const heroes = $derived(
     items.filter((a: any) => a.image || a.poster).slice(0, 8),
   );
@@ -32,6 +37,37 @@
     if (interval) clearInterval(interval);
   }
 
+  // Touch handlers for swipe
+  function handleTouchStart(e: TouchEvent) {
+    touchStartX = e.changedTouches[0].screenX;
+    isSwiping = true;
+    paused = true;
+  }
+
+  function handleTouchMove(e: TouchEvent) {
+    if (!isSwiping) return;
+    touchEndX = e.changedTouches[0].screenX;
+  }
+
+  function handleTouchEnd() {
+    if (!isSwiping) return;
+    isSwiping = false;
+    paused = false;
+
+    const diff = touchStartX - touchEndX;
+    const threshold = 50; // minimum px to count as swipe
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        next(); // swipe left = next
+      } else {
+        prev(); // swipe right = prev
+      }
+      // Reset autoplay timer after swipe
+      startAutoplay();
+    }
+  }
+
   onMount(startAutoplay);
   onDestroy(stopAutoplay);
 
@@ -50,6 +86,9 @@
     aria-label="Featured anime carousel"
     onmouseenter={() => (paused = true)}
     onmouseleave={() => (paused = false)}
+    ontouchstart={handleTouchStart}
+    ontouchmove={handleTouchMove}
+    ontouchend={handleTouchEnd}
   >
     <!-- Background slides -->
     {#each heroes as slide, i}
@@ -73,7 +112,7 @@
       <h1 class="hero-title">{title}</h1>
       {#if genres.length > 0}
         <div class="hero-genres">
-          {#each genres.slice(0, 4) as genre}
+          {#each genres.slice(0, 3) as genre}
             <span class="genre-tag">{genre}</span>
           {/each}
           {#if score > 0}
@@ -94,13 +133,13 @@
       </div>
     </div>
 
-    <!-- Navigation arrows -->
+    <!-- Navigation arrows (desktop only) -->
     <button class="hero-arrow left" onclick={prev} aria-label="Previous"
       >‹</button
     >
     <button class="hero-arrow right" onclick={next} aria-label="Next">›</button>
 
-    <!-- Dot indicators -->
+    <!-- Dot indicators — positioned above content area to avoid collision -->
     <div class="hero-dots">
       {#each heroes as _, i}
         <button
@@ -115,6 +154,11 @@
         </button>
       {/each}
     </div>
+
+    <!-- Mobile swipe hint -->
+    <div class="swipe-hint">
+      <span>← Swipe →</span>
+    </div>
   </section>
 {/if}
 
@@ -127,6 +171,9 @@
     overflow: hidden;
     display: flex;
     align-items: flex-end;
+    touch-action: pan-y; /* allow vertical scroll, capture horizontal swipe */
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .hero-bg {
@@ -164,6 +211,7 @@
     z-index: 3;
     padding: 3rem 3rem;
     max-width: 700px;
+    padding-bottom: 4rem; /* extra space so dots don't overlap buttons */
   }
 
   .hero-badge {
@@ -278,10 +326,10 @@
     right: 1rem;
   }
 
-  /* Dot Indicators */
+  /* Dot Indicators — moved higher to avoid collisions */
   .hero-dots {
     position: absolute;
-    bottom: 2rem;
+    bottom: 1.2rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: 5;
@@ -299,6 +347,8 @@
     position: relative;
     border: none;
     padding: 0;
+    min-height: auto;
+    min-width: auto;
   }
   .dot:hover {
     background: rgba(255, 255, 255, 0.5);
@@ -326,88 +376,124 @@
     }
   }
 
+  /* Swipe hint — shows briefly on mobile */
+  .swipe-hint {
+    display: none;
+  }
+
   @media (max-width: 768px) {
     .hero {
-      height: 65vh;
-      min-height: 400px;
+      height: 60vh;
+      min-height: 380px;
     }
     .hero-content {
-      padding: 2rem 1.5rem;
+      padding: 1.5rem 1.25rem;
+      padding-bottom: 3.5rem;
     }
     .hero-arrow {
       display: none;
     }
     .hero-title {
-      font-size: clamp(1.5rem, 6vw, 2.5rem);
+      font-size: clamp(1.4rem, 6vw, 2.2rem);
     }
     .hero-desc {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       max-width: 100%;
+      margin-bottom: 1rem;
+      /* Limit lines on mobile to prevent overflow into dots */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .hero-genres {
-      gap: 0.4rem;
+      gap: 0.35rem;
+      margin-bottom: 0.5rem;
     }
     .genre-tag {
-      font-size: 0.7rem;
-      padding: 0.2rem 0.5rem;
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
     }
     .hero-actions {
       gap: 0.5rem;
     }
     .btn-primary,
     .btn-secondary {
-      padding: 0.5rem 1.2rem;
-      font-size: 0.9rem;
+      padding: 0.45rem 1rem;
+      font-size: 0.85rem;
     }
     .hero-dots {
-      bottom: 1.5rem;
-    }
-    .dot {
-      width: 24px;
-      height: 3px;
-    }
-    .dot.active {
-      width: 36px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .hero {
-      height: 60vh;
-      min-height: 350px;
-    }
-    .hero-content {
-      padding: 1.5rem 1rem;
-    }
-    .hero-badge {
-      font-size: 0.7rem;
-      padding: 0.25rem 0.6rem;
-    }
-    .hero-title {
-      font-size: clamp(1.3rem, 8vw, 2rem);
-    }
-    .hero-desc {
-      font-size: 0.8rem;
-      margin-bottom: 1rem;
-    }
-    .hero-actions {
-      flex-direction: column;
-      width: 100%;
-    }
-    .btn-primary,
-    .btn-secondary {
-      width: 100%;
-      justify-content: center;
-    }
-    .hero-dots {
-      bottom: 1rem;
+      bottom: 0.8rem;
     }
     .dot {
       width: 20px;
       height: 3px;
     }
     .dot.active {
-      width: 30px;
+      width: 32px;
+    }
+
+    .swipe-hint {
+      display: block;
+      position: absolute;
+      bottom: 2rem;
+      right: 1rem;
+      z-index: 5;
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.3);
+      animation: fadeHint 4s ease forwards;
+    }
+    @keyframes fadeHint {
+      0% { opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; display: none; }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero {
+      height: 55vh;
+      min-height: 320px;
+    }
+    .hero-content {
+      padding: 1.25rem 0.85rem;
+      padding-bottom: 3rem;
+    }
+    .hero-badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .hero-title {
+      font-size: clamp(1.2rem, 7vw, 1.8rem);
+      margin-bottom: 0.4rem;
+    }
+    .hero-desc {
+      font-size: 0.75rem;
+      -webkit-line-clamp: 2;
+      margin-bottom: 0.8rem;
+    }
+    .hero-actions {
+      flex-direction: row;
+      width: 100%;
+    }
+    .btn-primary,
+    .btn-secondary {
+      flex: 1;
+      justify-content: center;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+    }
+    .hero-dots {
+      bottom: 0.6rem;
+    }
+    .dot {
+      width: 16px;
+      height: 2.5px;
+    }
+    .dot.active {
+      width: 26px;
     }
   }
 </style>
