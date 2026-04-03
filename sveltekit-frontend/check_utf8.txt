@@ -1,0 +1,285 @@
+﻿
+> sveltekit-frontend@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend
+Getting Svelte diagnostics...
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\AnimeCard.svelte[39m:104:5
+[33mWarn[39m: Also define the standard property 'line-clamp' for compatibility (css)
+[36m    display: -webkit-box;
+    [35m-webkit-line-clamp[36m: 2;
+    -webkit-box-orient: vertical;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\ContinueCard.svelte[39m:105:27
+[33mWarn[39m: Also define the standard property 'line-clamp' for compatibility (css)
+[36m    color: var(--net-text-muted); padding: 0 2px;
+    display: -webkit-box; [35m-webkit-line-clamp[36m: 1;
+    -webkit-box-orient: vertical; overflow: hidden;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\HeroBanner.svelte[39m:405:7
+[33mWarn[39m: Also define the standard property 'line-clamp' for compatibility (css)
+[36m      display: -webkit-box;
+      [35m-webkit-line-clamp[36m: 2;
+      -webkit-box-orient: vertical;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\HeroBanner.svelte[39m:474:7
+[33mWarn[39m: Also define the standard property 'line-clamp' for compatibility (css)
+[36m      font-size: 0.75rem;
+      [35m-webkit-line-clamp[36m: 2;
+      margin-bottom: 0.8rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\LiveChat.svelte[39m:74:24
+[31mError[39m: 'chatEndRef' is possibly 'null'. (ts)
+[36m    if (chatEndRef) {
+      setTimeout(() => [35mchatEndRef[36m.scrollIntoView({ behavior: "smooth" }), 50);
+    }[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\Navbar.svelte[39m:537:3
+[33mWarn[39m: Unused CSS selector ".auth-buttons"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+  [35m.auth-buttons[36m {
+    display: flex;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\Navbar.svelte[39m:542:3
+[33mWarn[39m: Unused CSS selector ".nav-btn-link"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  }
+  [35m.nav-btn-link[36m {
+    padding: 0.5rem 1rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\Navbar.svelte[39m:554:3
+[33mWarn[39m: Unused CSS selector ".nav-btn-link:not(.accent):hover"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  }
+  [35m.nav-btn-link:not(.accent):hover[36m {
+    background: rgba(255, 255, 255, 0.1);[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\Navbar.svelte[39m:557:3
+[33mWarn[39m: Unused CSS selector ".nav-btn-link.accent"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  }
+  [35m.nav-btn-link.accent[36m {
+    background: var(--net-red);[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\Navbar.svelte[39m:560:3
+[33mWarn[39m: Unused CSS selector ".nav-btn-link.accent:hover"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  }
+  [35m.nav-btn-link.accent:hover[36m {
+    background: #ff1e2b;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\lib\components\Row.svelte[39m:9:7
+[33mWarn[39m: `scrollContainer` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update (svelte)
+[36m  } = $props<{ title: string; items: any[]; href?: string }>();
+  let [35mscrollContainer: HTMLDivElement[36m;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\auth\login\+page.svelte[39m:103:9
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m        background: linear-gradient(to right, #6366f1, #a855f7);
+        [35m-webkit-background-clip[36m: text;
+        -webkit-text-fill-color: transparent;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\auth\register\+page.svelte[39m:121:9
+[33mWarn[39m: Also define the standard property 'background-clip' for compatibility (css)
+[36m        background: linear-gradient(to right, #6366f1, #a855f7);
+        [35m-webkit-background-clip[36m: text;
+        -webkit-text-fill-color: transparent;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\explore\[category]\+page.svelte[39m:7:20
+[33mWarn[39m: This reference only captures the initial value of `data`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+[36m  let { data } = $props();
+  const category = [35mdata[36m.category;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\favorites\+page.svelte[39m:199:5
+[33mWarn[39m: Unused CSS selector ".error-state h2"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m
+    [35m.error-state h2[36m,
+    .empty-state h2 {[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\favorites\+page.svelte[39m:257:9
+[33mWarn[39m: Unused CSS selector ".error-state h2"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m        }
+        [35m.error-state h2[36m,
+        .empty-state h2 {[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\favorites\+page.svelte[39m:297:9
+[33mWarn[39m: Unused CSS selector ".error-state h2"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m        }
+        [35m.error-state h2[36m,
+        .empty-state h2 {[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:817:3
+[33mWarn[39m: Unused CSS selector ".icon-accent"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m  }
+  [35m.icon-accent[36m {
+    color: var(--net-red);[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1174:5
+[33mWarn[39m: Unused CSS selector ".profile-header"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-header[36m {
+      padding: 1.5rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1177:5
+[33mWarn[39m: Unused CSS selector ".profile-info"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-info[36m {
+      gap: 1rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1187:5
+[33mWarn[39m: Unused CSS selector ".profile-email"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-email[36m {
+      font-size: 0.85rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1193:5
+[33mWarn[39m: Unused CSS selector ".section-title"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.section-title[36m {
+      font-size: 1.1rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1199:5
+[33mWarn[39m: Unused CSS selector ".setting-card"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-card[36m {
+      padding: 1rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1202:5
+[33mWarn[39m: Unused CSS selector ".setting-label"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-label[36m {
+      font-size: 0.9rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1205:5
+[33mWarn[39m: Unused CSS selector ".setting-value"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-value[36m {
+      font-size: 0.85rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1251:5
+[33mWarn[39m: Unused CSS selector ".profile-header"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-header[36m {
+      padding: 1.25rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1254:5
+[33mWarn[39m: Unused CSS selector ".profile-info"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-info[36m {
+      gap: 0.85rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1264:5
+[33mWarn[39m: Unused CSS selector ".profile-email"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-email[36m {
+      font-size: 0.8rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1270:5
+[33mWarn[39m: Unused CSS selector ".section-title"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.section-title[36m {
+      font-size: 1rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1276:5
+[33mWarn[39m: Unused CSS selector ".setting-card"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-card[36m {
+      padding: 0.85rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1279:5
+[33mWarn[39m: Unused CSS selector ".setting-label"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-label[36m {
+      font-size: 0.85rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1282:5
+[33mWarn[39m: Unused CSS selector ".setting-value"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-value[36m {
+      font-size: 0.8rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1337:5
+[33mWarn[39m: Unused CSS selector ".profile-header"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-header[36m {
+      padding: 1rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1347:5
+[33mWarn[39m: Unused CSS selector ".profile-email"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.profile-email[36m {
+      font-size: 0.75rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1350:5
+[33mWarn[39m: Unused CSS selector ".section-title"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.section-title[36m {
+      font-size: 0.95rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1353:5
+[33mWarn[39m: Unused CSS selector ".setting-card"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-card[36m {
+      padding: 0.75rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1356:5
+[33mWarn[39m: Unused CSS selector ".setting-label"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-label[36m {
+      font-size: 0.8rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1359:5
+[33mWarn[39m: Unused CSS selector ".setting-value"
+https://svelte.dev/e/css_unused_selector (svelte)
+[36m    }
+    [35m.setting-value[36m {
+      font-size: 0.75rem;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\profile\+page.svelte[39m:1110:5
+[33mWarn[39m: Also define the standard property 'line-clamp' for compatibility (css)
+[36m    display: -webkit-box;
+    [35m-webkit-line-clamp[36m: 2;
+    -webkit-box-orient: vertical;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\schedule\+page.svelte[39m:337:5
+[33mWarn[39m: Unknown property: 'flexdirection' (css)
+[36m    display: flex;
+    [35mflexdirection[36m: column;
+    justify-content: center;[39m
+
+d:\CURSOR\javascript.html\python\real world projects\ANIME -PRO\sveltekit-frontend\[32msrc\routes\schedule\+page.svelte[39m:349:5
+[33mWarn[39m: Also define the standard property 'line-clamp' for compatibility (css)
+[36m    display: -webkit-box;
+    [35m-webkit-line-clamp[36m: 2;
+    -webkit-box-orient: vertical;[39m
+
+====================================
+[31msvelte-check found 1 error and 40 warnings in 12 files
+[39m

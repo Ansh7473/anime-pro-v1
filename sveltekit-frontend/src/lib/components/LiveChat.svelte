@@ -70,8 +70,9 @@
   }
 
   function scrollToBottom() {
-    if (chatEndRef) {
-      setTimeout(() => chatEndRef.scrollIntoView({ behavior: "smooth" }), 50);
+    const el = chatEndRef;
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 50);
     }
   }
 

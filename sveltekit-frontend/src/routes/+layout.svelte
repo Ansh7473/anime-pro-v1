@@ -3,17 +3,53 @@
   import Navbar from "$lib/components/Navbar.svelte";
   import Footer from "$lib/components/Footer.svelte";
   import { page } from "$app/state";
+  import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
+  import { Download, X } from "lucide-svelte";
 
   let { children } = $props();
 
   // Check if we can go back (not on home page)
   let canGoBack = $derived(page.url.pathname !== "/");
 
+  // Update check logic
+  let showUpdatePopup = $state(false);
+  let latestVersion = $state("");
+  const CURRENT_VERSION = "1.0.0"; // Increment this for new builds
+  const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app';
+
+  onMount(async () => {
+    // Check for updates on Native Platforms
+    const userAgent = window.navigator.userAgent;
+    const isElectron = userAgent.includes("Electron");
+    // @ts-ignore
+    const isCapacitor = window.Capacitor?.isNativePlatform?.();
+
+    if (isElectron || isCapacitor) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/v1/releases/latest`);
+        const releases = await res.json();
+        const platform = isElectron ? "windows" : "android";
+        const latest = releases.find((r: any) => r.platform === platform);
+
+        if (latest && latest.version !== CURRENT_VERSION) {
+          latestVersion = latest.version;
+          showUpdatePopup = true;
+        }
+      } catch (e) {
+        console.error("Update check failed:", e);
+      }
+    }
+  });
+
   function handleBack() {
-    if (window.history.length > 1) {
+    // A length of 1 means the user landed directly on the page, or history was wiped.
+    // A length of 2 is typically the minimum safe stack inside standard Capacitor wrappers/SPAs.
+    if (window.history.length > 2) {
       window.history.back();
     } else {
-      window.location.href = "/";
+      goto("/");
     }
   }
 </script>
@@ -32,6 +68,26 @@
     {@render children()}
   </main>
   <Footer />
+
+  {#if showUpdatePopup}
+    <div class="fixed bottom-6 right-6 z-[9999] w-80 bg-[#1a1a1f] border border-white/10 rounded-2xl p-5 shadow-2xl overflow-hidden" transition:fly={{ x: 100, duration: 200 }}>
+      <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+      <div class="flex justify-between items-start mb-3">
+        <div class="flex items-center gap-2 text-blue-400 font-bold">
+          <Download size={18} /> Update Available
+        </div>
+        <button onclick={() => showUpdatePopup = false} class="text-gray-500 hover:text-white transition-colors">
+          <X size={18} />
+        </button>
+      </div>
+      <p class="text-sm text-gray-400 mb-4 font-medium">
+        Version <span class="text-white">v{latestVersion}</span> is now ready. Download the new update for the latest features and fixes.
+      </p>
+      <a href="/download" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all">
+        Get Update
+      </a>
+    </div>
+  {/if}
 </div>
 
 <style>
