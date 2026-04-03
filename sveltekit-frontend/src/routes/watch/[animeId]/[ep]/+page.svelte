@@ -130,18 +130,23 @@
   async function toggleRotation() {
     try {
       if (!isRotated) {
+        let player = document.querySelector(".video-wrapper") || document.documentElement;
+        if (!document.fullscreenElement && player.requestFullscreen) {
+          try { await player.requestFullscreen(); } catch(e) {}
+        }
         // Attempt native orientation lock if available
         // @ts-ignore
         if (screen.orientation && screen.orientation.lock) {
           try {
             // @ts-ignore
             await screen.orientation.lock("landscape");
-            // If it succeeds natively, we still track it but might not need css fallback
-            // but we'll apply it anyway, or rely on native fullscreen
           } catch(e) { console.warn("Native lock failed:", e); }
         }
-        isRotated = true; // Apply CSS fallback
+        isRotated = true; // State tracking but without aggressive CSS transforms
       } else {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          try { await document.exitFullscreen(); } catch(e) {}
+        }
         // @ts-ignore
         if (screen.orientation && screen.orientation.unlock) {
           // @ts-ignore
@@ -150,6 +155,7 @@
         isRotated = false;
       }
     } catch (e) {
+      console.warn("Screen rotation error", e);
       isRotated = !isRotated;
     }
   }
@@ -526,7 +532,7 @@
       <!-- Video Player Section -->
       <div class="player-section" class:theater={theaterMode}>
         <div class="player-container container" class:theater={theaterMode}>
-          <div class="video-wrapper glass" class:theater={theaterMode} class:css-rotated={isRotated}>
+          <div class="video-wrapper glass" class:theater={theaterMode}>
             {#if sourceLoading}
               <div class="overlay">
                 <div class="spinner"></div>
@@ -542,12 +548,20 @@
               </div>
             {:else if selectedSource}
               {#if selectedSource.isEmbed || selectedSource.url.includes("embed") || selectedSource.type === "iframe"}
-                <iframe
-                  src={selectedSource.url}
-                  allowfullscreen
-                  title="Video Player"
-                  class="video-frame"
-                ></iframe>
+                <div class="iframe-container" style="width: 100%; height: 100%; position: relative;">
+                  <iframe
+                    src={selectedSource.url}
+                    allowfullscreen
+                    title="Video Player"
+                    class="video-frame"
+                  ></iframe>
+                  <!-- Fallback explicit retry warning under iframe in case it gets Refused -->
+                  <div class="iframe-fallback" role="presentation" style="position: absolute; top: 10px; right: 10px; z-index: 50; opacity: 0.85; transition: opacity 0.2s;" onmouseenter={(e) => e.currentTarget.style.opacity = '1'} onmouseleave={(e) => e.currentTarget.style.opacity = '0.85'}>
+                    <button class="btn-secondary" style="font-size: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);" onclick={(e)=>{e.preventDefault(); document.querySelector('.grouped-sources')?.scrollIntoView({behavior:'smooth'});}}>
+                      <AlertCircle size={14} /> Video not loading? Try another server
+                    </button>
+                  </div>
+                </div>
               {:else}
                 <video
                   bind:this={videoElement}

@@ -1,4 +1,5 @@
-import adapter from '@sveltejs/adapter-vercel';
+import adapterVercel from '@sveltejs/adapter-vercel';
+import adapterStatic from '@sveltejs/adapter-static';
 import { relative, sep } from 'node:path';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -14,10 +15,31 @@ const config = {
 		}
 	},
 	kit: {
-		// Use Vercel adapter for production-ready deployment
-		adapter: adapter({
-			runtime: 'nodejs20.x',
-		})
+		// Ensure relative paths for platform builds (Capacitor/Electron)
+		// This converts absolute links like "/_app/..." to "./_app/..."
+		paths: {
+			relative: (process.env.APP_PLATFORM === 'desktop' || process.env.APP_PLATFORM === 'mobile')
+		},
+		// Use Vercel adapter for web, Static for mobile/desktop
+		adapter: (() => {
+			console.log('--- Svelte Config ---');
+			console.log('APP_PLATFORM:', process.env.APP_PLATFORM);
+			// Desktop and Mobile (Android) both need the static adapter
+			if (process.env.APP_PLATFORM === 'desktop' || process.env.APP_PLATFORM === 'mobile') {
+				console.log('Choosing Static Adapter for Platform Build');
+				return adapterStatic({
+					fallback: 'index.html',
+					pages: 'build',
+					assets: 'build',
+					precompress: false,
+					strict: false
+				});
+			}
+			console.log('Choosing Vercel Adapter');
+			return adapterVercel({
+				runtime: 'nodejs20.x'
+			});
+		})()
 	}
 };
 

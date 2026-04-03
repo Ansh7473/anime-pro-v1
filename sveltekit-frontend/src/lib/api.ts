@@ -1,4 +1,5 @@
 const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app'; // Deployed Go Backend
+// const BACKEND_URL = 'http://localhost:3001'; // Local Go Backend
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
 const JIKAN_URL = `${BACKEND_URL}/api/v1/jikan`;
