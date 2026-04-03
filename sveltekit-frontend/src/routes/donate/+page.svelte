@@ -1,4 +1,4 @@
-<script lang=\"ts\">
+<script lang="ts">
 	import { Heart, Server, Database, Shield, Zap, QrCode, Copy } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 

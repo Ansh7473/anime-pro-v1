@@ -1,5 +1,6 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
+  import { Monitor, Heart } from 'lucide-svelte';
   import { auth, logoutUser } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -112,6 +113,14 @@
       <button class="nav-icon-btn" onclick={handleRandom} title="Random Anime"
         >🎲</button
       >
+
+      <a href="/download" class="nav-icon-btn" title="Download Apps">
+        <Monitor size={20} />
+      </a>
+
+      <a href="/donate" class="nav-icon-btn text-pink-500" title="Donate">
+        <Heart size={20} fill="currentColor" />
+      </a>
 
       <div class="search-container" bind:this={searchContainer}>
         {#if searchOpen}
