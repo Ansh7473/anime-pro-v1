@@ -18,16 +18,32 @@
   class:small={size === "small"}
   class:large={size === "large"}
 >
-  <div class="card-img-wrap">
+<div class="card-img-wrap">
     <img src={poster} alt={title} loading="lazy" />
     <div class="card-overlay">
       <div class="card-play">▶</div>
     </div>
-    {#if score > 0}
-      <span class="card-score">⭐ {score.toFixed(1)}</span>
-    {/if}
+    
+    <!-- Tactical Metadata Overlays -->
+    <div class="tactical-meta-top">
+      {#if score > 0}
+        <span class="card-score">
+          <span class="score-label">RATING</span>
+          {score.toFixed(1)}
+        </span>
+      {/if}
+    </div>
+
+    <div class="tactical-meta-bottom">
+      <div class="status-indicator">
+        <div class="bit"></div>
+        <span>SYNC_OK</span>
+      </div>
+    </div>
   </div>
-  <p class="card-title">{title}</p>
+  <div class="card-footer">
+    <p class="card-title">{title}</p>
+  </div>
 </a>
 
 <style>
@@ -35,40 +51,53 @@
     display: block;
     flex-shrink: 0;
     width: 160px;
-    transition: transform 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-  }
-  .card:hover {
-    transform: scale(1.08);
-    z-index: 2;
-  }
-  .card.small {
-    width: 130px;
-  }
-  .card.large {
-    width: 200px;
-  }
-  .card-img-wrap {
     position: relative;
     border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 6px;
+  }
+  .card:hover {
+    transform: translateY(-8px) scale(1.02);
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(173, 199, 255, 0.3);
+    box-shadow: 
+      0 10px 30px -10px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(173, 199, 255, 0.1);
+  }
+  .card.small { width: 130px; }
+  .card.large { width: 220px; }
+
+  .card-img-wrap {
+    position: relative;
+    border-radius: calc(var(--radius-lg) - 2px);
     overflow: hidden;
     aspect-ratio: 2 / 3;
-    background: var(--net-card-bg);
+    background: #000;
   }
   .card-img-wrap img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  .card:hover img {
+    transform: scale(1.1);
+  }
+
   .card-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     transition: opacity 0.3s;
+    z-index: 2;
   }
   .card:hover .card-overlay {
     opacity: 1;
@@ -77,85 +106,104 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: rgba(229, 9, 20, 0.9);
+    background: var(--tactical-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
-    color: white;
+    color: #000;
+    box-shadow: 0 0 20px var(--tactical-primary);
+  }
+
+  /* Tactical Overlays */
+  .tactical-meta-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 8px;
+    display: flex;
+    justify-content: flex-end;
+    z-index: 3;
   }
   .card-score {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #fbbf24;
-    font-size: 0.7rem;
-    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    color: var(--tactical-primary);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    padding: 4px 8px;
     border-radius: 4px;
-    font-weight: 600;
+    border: 1px solid rgba(173, 199, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1;
+  }
+  .score-label {
+    font-size: 0.5rem;
+    opacity: 0.6;
+    margin-bottom: 2px;
+  }
+
+  .tactical-meta-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    z-index: 3;
+    opacity: 0.8;
+  }
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.05em;
+  }
+  .status-indicator .bit {
+    width: 4px;
+    height: 4px;
+    background: #4ADE80;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #4ADE80;
+  }
+
+  .card-footer {
+    padding: 10px 4px 6px;
   }
   .card-title {
-    margin-top: 0.5rem;
     font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--net-text-muted);
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-height: 1.3;
+    transition: color 0.3s;
   }
   .card:hover .card-title {
-    color: white;
+    color: var(--tactical-primary);
   }
 
   @media (max-width: 768px) {
-    .card {
-      width: 120px;
-    }
-    .card.small {
-      width: 100px;
-    }
-    .card.large {
-      width: 150px;
-    }
-    .card-title {
-      font-size: 0.8rem;
-    }
-    .card-play {
-      width: 36px;
-      height: 36px;
-      font-size: 1rem;
-    }
-    .card-score {
-      font-size: 0.65rem;
-      padding: 1px 4px;
-    }
+    .card { width: 140px; padding: 4px; }
+    .card.small { width: 110px; }
+    .card.large { width: 180px; }
+    .card-title { font-size: 0.8rem; }
+    .card-play { width: 36px; height: 36px; font-size: 1rem; }
   }
 
   @media (max-width: 480px) {
-    .card {
-      width: 100px;
-    }
-    .card.small {
-      width: 85px;
-    }
-    .card.large {
-      width: 120px;
-    }
-    .card-title {
-      font-size: 0.75rem;
-    }
-    .card-play {
-      width: 32px;
-      height: 32px;
-      font-size: 0.9rem;
-    }
-    .card-score {
-      font-size: 0.6rem;
-      padding: 1px 3px;
-      top: 4px;
-      right: 4px;
-    }
+    .card { width: 110px; }
+    .card.small { width: 95px; }
+    .card.large { width: 140px; }
+    .card-title { font-size: 0.75rem; }
   }
 </style>

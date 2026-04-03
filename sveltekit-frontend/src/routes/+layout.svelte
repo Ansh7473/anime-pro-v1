@@ -17,7 +17,7 @@
   let showUpdatePopup = $state(false);
   let latestVersion = $state("");
   const CURRENT_VERSION = "1.0.0"; // Increment this for new builds
-  const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app';
+  const BACKEND_URL = 'http://localhost:3001'; // 'https://anime-pro-v1-backend-go.vercel.app';
 
   onMount(async () => {
     // Check for updates on Native Platforms
@@ -55,6 +55,10 @@
 </script>
 
 <div class="app">
+  <!-- Tactical HUD Backgrounds -->
+  <div class="tactical-grid"></div>
+  <div class="tactical-vignette"></div>
+  
   <Navbar />
 
   <!-- Floating back button for Android -->
@@ -65,7 +69,11 @@
   {/if}
 
   <main class="main-content">
-    {@render children()}
+    {#key page.url.pathname}
+      <div in:fly={{ y: 8, duration: 400, delay: 200 }} out:fly={{ y: -8, duration: 200 }}>
+        {@render children()}
+      </div>
+    {/key}
   </main>
   <Footer />
 

@@ -1,17 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Monitor, Smartphone, Download, CheckCircle2, ChevronRight, Info } from 'lucide-svelte';
-	import { fade, fly, scale } from 'svelte/transition';
+	import { Monitor, Smartphone, Download, Info, Terminal, Cpu, Activity, ShieldCheck, Zap } from 'lucide-svelte';
+	import { fade, fly } from 'svelte/transition';
+	import { api } from '$lib/api';
 
 	let releases = $state<any[]>([]);
 	let loading = $state(true);
-	const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app';
-
 	onMount(async () => {
 		try {
-			const res = await fetch(`${BACKEND_URL}/api/v1/releases/latest`);
-			if (res.ok) {
-				releases = await res.json();
+			const res = await api.getLatestReleases();
+			if (res) {
+				releases = res;
 			}
 		} catch (error) {
 			console.error('Failed to fetch releases:', error);
@@ -25,135 +24,506 @@
 	}
 </script>
 
-<div class="min-h-screen bg-[#0a0a0b] text-white pt-24 pb-16 px-6">
-	<div class="max-w-6xl mx-auto">
-		<!-- Header -->
-		<div class="text-center mb-16" in:fade={{ duration: 400 }}>
-			<h1 class="text-5xl md:text-6xl font-bold mb-6 tracking-tight">
-				Get <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">Anime Pro</span> Everywhere
-			</h1>
-			<p class="text-gray-400 text-lg max-w-2xl mx-auto">
-				Experience your favorite anime with our high-performance desktop and mobile applications. 
-				Sync your watchlist, get native notifications, and enjoy ad-free streaming.
-			</p>
-		</div>
+<div class="tactical-page-container">
+	<!-- Background HUD Elements -->
+	<div class="tactical-hud-overlay">
+		<div class="tactical-hud-circle dashed large" style="top: -10%; right: -5%; width: 600px; height: 600px;"></div>
+		<div class="tactical-hud-circle dashed medium" style="bottom: 10%; left: -5%; width: 400px; height: 400px; animation-direction: reverse;"></div>
+		<div class="tactical-grid absolute inset-0 opacity-40"></div>
+	</div>
 
-		<!-- Grid -->
-		<div class="grid md:grid-cols-2 gap-8 mb-20">
-			<!-- Windows Card -->
-			<div 
-				class="group relative bg-[#141417] border border-white/5 rounded-[2.5rem] p-10 overflow-hidden transition-all hover:border-white/20"
-				in:fly={{ y: 30, duration: 500, delay: 200 }}
+	<main class="tactical-content">
+		<!-- Header -->
+		<header class="tactical-header" in:fade={{ duration: 600 }}>
+			<div class="status-badge">
+				<span class="status-dot pulse"></span>
+				<span class="status-label">SYSTEM_READY // UPTIME_100%</span>
+			</div>
+			<h1 class="tactical-title">
+				ANIME_PRO <span class="version-tag">v2.0 // CORE</span>
+			</h1>
+			<p class="tactical-subtitle">
+				Initialize high-performance streaming protocol on your primary devices. 
+				Low-latency, ad-free, encrypted anime synchronization.
+			</p>
+		</header>
+
+		<!-- Cards Grid -->
+		<div class="tactical-grid-system">
+			<!-- Windows OS -->
+			<section 
+				class="tactical-glass tactical-card group"
+				in:fly={{ y: 40, duration: 800, delay: 200 }}
 			>
-				<div class="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all"></div>
+				<div class="card-icon-overlay">
+					<Monitor size={80} strokeWidth={1} />
+				</div>
 				
-				<div class="relative z-10">
-					<div class="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-8">
-						<Monitor class="text-blue-500" size={32} />
+				<div class="card-content">
+					<div class="release-indicator">
+						<span class="indicator-dot primary"></span>
+						<span class="indicator-label primary">STABLE_RELEASE_X64</span>
 					</div>
 					
-					<h2 class="text-3xl font-bold mb-4">Windows Desktop</h2>
-					<p class="text-gray-400 mb-8 leading-relaxed">
-						The ultimate way to watch on your PC. Supports Picture-in-Picture, native media keys, and hardware acceleration.
+					<h2 class="card-title">WINDOWS_OS</h2>
+					<p class="card-description">
+						Hyper-threaded desktop architecture with native hardware acceleration and Picture-in-Picture protocol.
 					</p>
 
-					<div class="space-y-4 mb-10">
-						<div class="flex items-center gap-3 text-sm text-gray-400">
-							<CheckCircle2 size={18} class="text-blue-500" />
-							<span>Auto-updates enabled</span>
+					<div class="tech-specs">
+						<div class="spec-item">
+							<span class="spec-label">ARCHITECTURE</span>
+							<span class="spec-value">X86_64_HYPER</span>
 						</div>
-						<div class="flex items-center gap-3 text-sm text-gray-400">
-							<CheckCircle2 size={18} class="text-blue-500" />
-							<span>Multi-window support</span>
+						<div class="spec-item">
+							<span class="spec-label">MEMORY_REQ</span>
+							<span class="spec-value">4.0GB_VRAM</span>
 						</div>
 					</div>
 
 					{#if loading}
-						<div class="h-14 bg-white/5 animate-pulse rounded-2xl w-full"></div>
+						<div class="loading-placeholder">
+							<div class="progress-bar">
+								<div class="progress-fill shimmer" style="width: 65%;"></div>
+							</div>
+						</div>
 					{:else}
 						{@const win = getLatest('windows')}
-						<div class="flex flex-col gap-4">
+						<div class="download-action">
 							<a 
 								href={win?.download_url || '#'} 
-								class="flex items-center justify-center gap-3 bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all active:scale-95"
+								class="tactical-btn primary-action"
 							>
-								<Download size={20} /> Download for Windows
+								<Download size={20} />
+								<span>INITIALIZE_LINK</span>
 							</a>
-							<span class="text-center text-xs text-gray-500 font-medium tracking-wider uppercase">
-								Version {win?.version || '1.0.0'} • Stable Build
-							</span>
+							<div class="file-meta">
+								<span class="meta-item">VER: {win?.version || '2.0.4'}</span>
+								<span class="meta-item">SIZE: {win?.size || '412.8MB'}</span>
+								<span class="meta-item">PROTO: AES_256</span>
+							</div>
 						</div>
 					{/if}
 				</div>
-			</div>
+			</section>
 
-			<!-- Android Card -->
-			<div 
-				class="group relative bg-[#141417] border border-white/5 rounded-[2.5rem] p-10 overflow-hidden transition-all hover:border-white/20"
-				in:fly={{ y: 30, duration: 500, delay: 400 }}
+			<!-- Android OS -->
+			<section 
+				class="tactical-glass tactical-card group"
+				in:fly={{ y: 40, duration: 800, delay: 400 }}
 			>
-				<div class="absolute -top-24 -right-24 w-64 h-64 bg-green-500/10 rounded-full blur-3xl group-hover:bg-green-500/20 transition-all"></div>
+				<div class="card-icon-overlay">
+					<Smartphone size={80} strokeWidth={1} />
+				</div>
 				
-				<div class="relative z-10">
-					<div class="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mb-8">
-						<Smartphone class="text-green-500" size={32} />
+				<div class="card-content">
+					<div class="release-indicator">
+						<span class="indicator-dot secondary"></span>
+						<span class="indicator-label secondary">MOBILE_CORE_V8A</span>
 					</div>
 					
-					<h2 class="text-3xl font-bold mb-4">Android Mobile</h2>
-					<p class="text-gray-400 mb-8 leading-relaxed">
-						Take your anime anywhere. Optimized for battery life, offline watchlist, and fast mobile data streaming.
+					<h2 class="card-title">ANDROID_OS</h2>
+					<p class="card-description">
+						Streamlined mobile interface optimized for low-latency data streaming and tactile synchronization.
 					</p>
 
-					<div class="space-y-4 mb-10">
-						<div class="flex items-center gap-3 text-sm text-gray-400">
-							<CheckCircle2 size={18} class="text-green-500" />
-							<span>V5 Engine Optimized</span>
+					<div class="tech-specs">
+						<div class="spec-item">
+							<span class="spec-label">ARCHITECTURE</span>
+							<span class="spec-value">ARM64_V8A</span>
 						</div>
-						<div class="flex items-center gap-3 text-sm text-gray-400">
-							<CheckCircle2 size={18} class="text-green-500" />
-							<span>Cast to Smart TV</span>
+						<div class="spec-item">
+							<span class="spec-label">API_LEVEL</span>
+							<span class="spec-value">30+ (R)</span>
 						</div>
 					</div>
 
 					{#if loading}
-						<div class="h-14 bg-white/5 animate-pulse rounded-2xl w-full"></div>
+						<div class="loading-placeholder">
+							<div class="progress-bar">
+								<div class="progress-fill shimmer" style="width: 45%;"></div>
+							</div>
+						</div>
 					{:else}
 						{@const apk = getLatest('android')}
-						<div class="flex flex-col gap-4">
+						<div class="download-action">
 							<a 
 								href={apk?.download_url || '#'} 
-								class="flex items-center justify-center gap-3 bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all active:scale-95"
+								class="tactical-btn secondary-action"
 							>
-								<Smartphone size={20} /> Download APK
+								<Zap size={20} />
+								<span>SYNC_MOBILE_NODE</span>
 							</a>
-							<span class="text-center text-xs text-gray-500 font-medium tracking-wider uppercase">
-								Version {apk?.version || '1.0.0'} • Latest APK
-							</span>
+							<div class="file-meta">
+								<span class="meta-item">VER: {apk?.version || '1.9.2'}</span>
+								<span class="meta-item">SIZE: {apk?.size || '84.5MB'}</span>
+								<span class="meta-item">ENGINE: V5_CORE</span>
+							</div>
 						</div>
 					{/if}
 				</div>
-			</div>
+			</section>
 		</div>
 
-		<!-- Guide -->
-		<div 
-			class="bg-blue-500/10 border border-blue-500/20 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-6"
-			in:fade={{ delay: 800 }}
-		>
-			<div class="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-				<Info class="text-blue-400" size={24} />
+		<!-- Footer Stats -->
+		<footer class="tactical-footer" in:fade={{ delay: 1000 }}>
+			<div class="footer-stat-card">
+				<Activity size={16} class="stat-icon" />
+				<div class="stat-data">
+					<span class="stat-label">NETWORK_LOAD</span>
+					<span class="stat-value">OPTIMIZED</span>
+				</div>
 			</div>
-			<div class="flex-1">
-				<h4 class="font-bold text-lg mb-1">Android Installation Tip</h4>
-				<p class="text-gray-400 text-sm">
-					Since we are not on the Play Store yet, you may need to enable "Install from Unknown Sources" in your phone settings to install the APK.
-				</p>
+			<div class="footer-stat-card">
+				<ShieldCheck size={16} class="stat-icon" />
+				<div class="stat-data">
+					<span class="stat-label">ENCRYPTION</span>
+					<span class="stat-value">MIL_GRADE</span>
+				</div>
 			</div>
-			<ChevronRight class="text-gray-600 hidden md:block" />
+			<div class="footer-stat-card">
+				<Cpu size={16} class="stat-icon" />
+				<div class="stat-data">
+					<span class="stat-label">CORE_SYNC</span>
+					<span class="stat-value">0.002MS</span>
+				</div>
+			</div>
+			<div class="footer-stat-card">
+				<Terminal size={16} class="stat-icon" />
+				<div class="stat-data">
+					<span class="stat-label">TERMINAL</span>
+					<span class="stat-value">ACTIVE</span>
+				</div>
+			</div>
+		</footer>
+
+		<!-- Guide Tip -->
+		<div class="tactical-guide" in:fade={{ delay: 1200 }}>
+			<Info size={18} />
+			<span>INSTALLATION_TIP: Enable "Unknown Sources" in OS Security Settings for APK deployment.</span>
 		</div>
-	</div>
+	</main>
 </div>
 
 <style>
-	/* Custom styles to match the premium design */
+	.tactical-page-container {
+		min-height: 100vh;
+		background: var(--tactical-bg);
+		color: var(--net-text);
+		position: relative;
+		overflow-x: hidden;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 4rem 1.5rem;
+	}
+
+	.tactical-hud-overlay {
+		position: fixed;
+		inset: 0;
+		pointer-events: none;
+		z-index: 1;
+	}
+
+	.tactical-content {
+		position: relative;
+		z-index: 10;
+		max-width: 1100px;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.tactical-header {
+		text-align: center;
+		margin-bottom: 4rem;
+	}
+
+	.status-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.5rem 1rem;
+		background: rgba(26, 115, 232, 0.1);
+		border-radius: 2rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.status-dot {
+		width: 6px;
+		height: 6px;
+		background: var(--tactical-primary);
+		border-radius: 50%;
+	}
+
+	.status-dot.pulse {
+		box-shadow: 0 0 10px var(--tactical-primary);
+		animation: pulse 2s infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; transform: scale(1); }
+		50% { opacity: 0.5; transform: scale(1.2); }
+	}
+
+	.status-label {
+		font-family: var(--font-mono);
+		font-size: 0.65rem;
+		letter-spacing: 0.1em;
+		color: var(--tactical-primary);
+	}
+
+	.tactical-title {
+		font-size: clamp(2.5rem, 6vw, 4rem);
+		font-weight: 800;
+		letter-spacing: -0.04em;
+		margin-bottom: 1rem;
+		color: var(--tactical-primary);
+		text-shadow: 0 0 15px rgba(26, 115, 232, 0.3);
+	}
+
+	.version-tag {
+		font-size: 0.4em;
+		vertical-align: middle;
+		opacity: 0.6;
+		font-weight: 400;
+	}
+
+	.tactical-subtitle {
+		font-size: 1.1rem;
+		color: var(--net-text-muted);
+		max-width: 600px;
+		line-height: 1.6;
+	}
+
+	.tactical-grid-system {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+		gap: 2rem;
+		width: 100%;
+		margin-bottom: 4rem;
+	}
+
+	.tactical-card {
+		position: relative;
+		padding: 2.5rem;
+		border-radius: 1.5rem;
+		overflow: hidden;
+		transition: transform 0.3s ease, border-color 0.3s ease;
+	}
+
+	.tactical-card:hover {
+		transform: translateY(-5px);
+		border-color: rgba(173, 199, 255, 0.4);
+	}
+
+	.card-icon-overlay {
+		position: absolute;
+		top: -1.5rem;
+		right: -1.5rem;
+		opacity: 0.05;
+		color: var(--tactical-primary);
+		transition: opacity 0.3s ease;
+	}
+
+	.tactical-card:hover .card-icon-overlay {
+		opacity: 0.1;
+	}
+
+	.release-indicator {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.indicator-dot { width: 8px; height: 8px; border-radius: 50%; }
+	.indicator-dot.primary { background: var(--tactical-primary); box-shadow: 0 0 8px var(--tactical-primary); }
+	.indicator-dot.secondary { background: #4caf50; box-shadow: 0 0 8px #4caf50; }
+
+	.indicator-label {
+		font-family: var(--font-mono);
+		font-size: 0.6rem;
+		letter-spacing: 0.15em;
+		text-transform: uppercase;
+	}
+	.indicator-label.primary { color: var(--tactical-primary); }
+	.indicator-label.secondary { color: #4caf50; }
+
+	.card-title {
+		font-size: 2.25rem;
+		font-weight: 700;
+		margin-bottom: 1rem;
+		letter-spacing: -0.02em;
+	}
+
+	.card-description {
+		color: var(--net-text-muted);
+		font-size: 0.95rem;
+		line-height: 1.6;
+		margin-bottom: 2rem;
+	}
+
+	.tech-specs {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		margin-bottom: 2.5rem;
+	}
+
+	.spec-item {
+		background: rgba(255, 255, 255, 0.03);
+		padding: 0.75rem 1rem;
+		border-left: 2px solid rgba(173, 199, 255, 0.2);
+	}
+
+	.spec-label {
+		display: block;
+		font-family: var(--font-mono);
+		font-size: 0.55rem;
+		color: var(--tactical-outline);
+		margin-bottom: 0.25rem;
+		letter-spacing: 0.1em;
+	}
+
+	.spec-value {
+		font-weight: 700;
+		font-size: 0.85rem;
+		color: var(--net-text);
+	}
+
+	.download-action {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.primary-action {
+		background: var(--tactical-primary-container);
+		color: white;
+		height: 4rem;
+		border-radius: 0.75rem;
+		box-shadow: 0 0 20px rgba(26, 115, 232, 0.3);
+	}
+
+	.secondary-action {
+		background: rgba(255, 255, 255, 0.05);
+		color: var(--tactical-primary);
+		height: 4rem;
+		border: 1px solid rgba(173, 199, 255, 0.2);
+		border-radius: 0.75rem;
+	}
+
+	.file-meta {
+		display: flex;
+		justify-content: space-between;
+		padding: 0 0.5rem;
+		font-family: var(--font-mono);
+		font-size: 0.65rem;
+		color: var(--tactical-outline);
+		opacity: 0.6;
+	}
+
+	.tactical-footer {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 1rem;
+		width: 100%;
+		max-width: 800px;
+	}
+
+	@media (min-width: 768px) {
+		.tactical-footer {
+			grid-template-columns: repeat(4, 1fr);
+		}
+	}
+
+	.footer-stat-card {
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid rgba(255, 255, 255, 0.05);
+		padding: 1rem;
+		border-radius: 0.75rem;
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.stat-icon { color: var(--tactical-outline); opacity: 0.4; }
+
+	.stat-label {
+		display: block;
+		font-family: var(--font-mono);
+		font-size: 0.55rem;
+		color: var(--tactical-outline);
+		letter-spacing: 0.1em;
+	}
+
+	.stat-value {
+		font-weight: 700;
+		font-size: 0.8rem;
+		color: var(--tactical-primary);
+	}
+
+	.tactical-guide {
+		margin-top: 3rem;
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 1rem 1.5rem;
+		background: rgba(26, 115, 232, 0.05);
+		border: 1px solid rgba(26, 115, 232, 0.1);
+		border-radius: 1rem;
+		font-size: 0.8rem;
+		color: var(--net-text-muted);
+		text-align: center;
+	}
+
+	.loading-placeholder {
+		height: 4rem;
+		display: flex;
+		align-items: center;
+	}
+
+	.progress-bar {
+		width: 100%;
+		height: 4px;
+		background: rgba(255, 255, 255, 0.05);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: var(--tactical-primary);
+		box-shadow: 0 0 10px var(--tactical-primary);
+	}
+
+	.shimmer {
+		position: relative;
+		overflow: hidden;
+	}
+
+	.shimmer::after {
+		content: '';
+		position: absolute;
+		left: -100%;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+		animation: shimmer-load 1.5s infinite;
+	}
+
+	@keyframes shimmer-load {
+		100% { left: 100%; }
+	}
+
+	@media (max-width: 480px) {
+		.tactical-page-container { padding: 3rem 1rem; }
+		.tactical-title { font-size: 2.5rem; }
+		.tactical-card { padding: 1.5rem; }
+		.card-title { font-size: 1.75rem; }
+	}
 </style>
