@@ -473,3 +473,90 @@ func AnilistSearch(c *gin.Context) {
 }
 
 
+
+func AnilistSchedule(c *gin.Context) {
+	startStr := c.Query("start")
+	endStr := c.Query("end")
+
+	start, _ := strconv.Atoi(startStr)
+	end, _ := strconv.Atoi(endStr)
+
+	if start == 0 || end == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Start and End timestamps are required"})
+		return
+	}
+
+	query := `
+		query ($start: Int, $end: Int) {
+			Page(page: 1, perPage: 50) {
+				airingSchedules(airingAt_greater: $start, airingAt_lesser: $end) {
+					id
+					episode
+					airingAt
+					media {
+						id
+						idMal
+						title { romaji english native }
+						coverImage { extraLarge large }
+						description
+						format
+						status
+						episodes
+						averageScore
+						seasonYear
+						season
+						genres
+						popularity
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"start": start,
+		"end":   end,
+	}
+
+	data, err := utils.FetchAnilist(query, variables)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch schedule from AniList", "message": err.Error()})
+		return
+	}
+
+	rawPage, ok := data["Page"].(map[string]interface{})
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		return
+	}
+
+	schedules, ok := rawPage["airingSchedules"].([]interface{})
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		return
+	}
+
+	transformed := make([]map[string]interface{}, 0)
+	for _, s := range schedules {
+		sched, ok := s.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		media, ok := sched["media"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Transform the media object using the existing helper
+		item := transformMedia(media)
+		
+		// Add schedule-specific fields
+		item["episode"] = sched["episode"]
+		item["airingAt"] = sched["airingAt"]
+
+		transformed = append(transformed, item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": transformed})
+}

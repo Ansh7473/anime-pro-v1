@@ -1,62 +1,84 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
-// AddRelease - Admin only method to register a new app release
+// GitHubRepo point to the repository for releases
+const GitHubRepo = "Ansh7473/anime-pro"
+
+// AddRelease - Admin only method (Legacy/Disabled)
 func AddRelease(c *gin.Context) {
-	// 1. Get current user from context (populated by AuthMiddleware)
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	// 2. Check if user is Admin
-	var user models.User
-	if err := database.DB.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
-		return
-	}
-
-	if user.Role != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	// 3. Parse Request
-	var input models.Release
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// 4. If this is the latest, mark others as not latest for the same platform
-	if input.IsLatest {
-		database.DB.Model(&models.Release{}).Where("platform = ?", input.Platform).Update("is_latest", false)
-	}
-
-	// 5. Save Release
-	if err := database.DB.Create(&input).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create release"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, input)
+	c.JSON(http.StatusNotImplemented, gin.H{"message": "Manual releases are disabled. Use GitHub Releases instead."})
 }
 
-// GetLatestReleases - Public method to get latest version for each platform
+// GetLatestReleases - Fetches latest version and direct download links from GitHub API
 func GetLatestReleases(c *gin.Context) {
-	var releases []models.Release
-	if err := database.DB.Where("is_latest = ?", true).Find(&releases).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch releases"})
+	// Query GitHub Public API for latest release
+	url := "https://api.github.com/repos/" + GitHubRepo + "/releases/latest"
+	
+	resp, err := utils.HttpClient.R().Get(url)
+	if err != nil || resp.IsError() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Failed to fetch releases from GitHub API"})
 		return
 	}
 
-	c.JSON(http.StatusOK, releases)
+	var ghRelease struct {
+		TagName string `json:"tag_name"`
+		Name    string `json:"name"`
+		Assets  []struct {
+			Name               string `json:"name"`
+			Size               int64  `json:"size"`
+			BrowserDownloadURL string `json:"browser_download_url" `
+			UpdatedAt          string `json:"updated_at"`
+		} `json:"assets"`
+	}
+
+	if err := json.Unmarshal(resp.Body(), &ghRelease); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse metadata from GitHub"})
+		return
+	}
+
+	// Transform GitHub assets into our platform-specific format
+	type ReleaseResponse struct {
+		Platform    string `json:"platform"`
+		Version     string `json:"version"`
+		DownloadURL string `json:"download_url"`
+		Size        string `json:"size"`
+		UpdatedAt   string `json:"updated_at"`
+	}
+
+	results := make([]ReleaseResponse, 0)
+
+	for _, asset := range ghRelease.Assets {
+		platform := ""
+		lowerName := strings.ToLower(asset.Name)
+		
+		if strings.HasSuffix(lowerName, ".exe") {
+			platform = "windows"
+		} else if strings.HasSuffix(lowerName, ".apk") {
+			platform = "android"
+		}
+
+		if platform != "" {
+			// Convert size to human readable MB
+			sizeMB := fmt.Sprintf("%.1fMB", float64(asset.Size)/(1024*1024))
+			
+			results = append(results, ReleaseResponse{
+				Platform:    platform,
+				Version:     ghRelease.TagName,
+				DownloadURL: asset.BrowserDownloadURL,
+				Size:        sizeMB,
+				UpdatedAt:   asset.UpdatedAt,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, results)
 }

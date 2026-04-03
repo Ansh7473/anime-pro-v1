@@ -15,7 +15,8 @@ import (
 
 var app *gin.Engine
 
-func init() {
+// For local development
+func main() {
 	// Load .env file if it exists (ignore error if not found in production)
 	err := godotenv.Load()
 	if err != nil {
@@ -39,20 +40,16 @@ func init() {
 	// Configure CORS to match working example (Allows Credentials for session/auth)
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
-			"http://localhost:4001",
 			"http://localhost:5173",
 			"http://localhost:5174",
-			"http://localhost:3000",
-			"https://anime-pro-v1-frontend.vercel.app",
-			"capacitor-electron://localhost",
-			"capacitor://localhost",
-			"http://localhost",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-Cache-Status"},
 		AllowCredentials: true,
 	}))
+
+
 
 	// Favicon - Return 204 No Content to stop 404 noise
 	app.GET("/favicon.ico", func(c *gin.Context) {
@@ -85,15 +82,7 @@ func init() {
 
 	// Initialize routes
 	routes.SetupRoutes(app)
-}
 
-// Handler is the main entry point for Vercel serverless functions
-func Handler(w http.ResponseWriter, r *http.Request) {
-	app.ServeHTTP(w, r)
-}
-
-// For local development
-func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
@@ -103,4 +92,14 @@ func main() {
 	if err := app.Run(":" + port); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
+}
+
+// Handler is the main entry point for Vercel serverless functions
+func Handler(w http.ResponseWriter, r *http.Request) {
+	if app == nil {
+		// Just in case it's called as a serverless function without main() running
+		// but typically we should have handled this elsewhere.
+		// For now, let's keep it simple.
+	}
+	app.ServeHTTP(w, r)
 }

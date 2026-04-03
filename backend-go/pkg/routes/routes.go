@@ -42,6 +42,7 @@ func SetupRoutes(r *gin.Engine) {
 		anilist.GET("/search", handlers.AnilistSearch)
 		anilist.GET("/characters/:id", handlers.AnilistCharacters)
 		anilist.GET("/recommendations/:id", handlers.AnilistRecommendations)
+		anilist.GET("/schedule", handlers.AnilistSchedule)
 	}
 
 	// 3. Streaming API Routes Group
