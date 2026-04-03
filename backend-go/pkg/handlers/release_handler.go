@@ -11,7 +11,7 @@ import (
 )
 
 // GitHubRepo point to the repository for releases
-const GitHubRepo = "Ansh7473/anime-pro"
+const GitHubRepo = "Ansh7473/anime-pro-v1"
 
 // AddRelease - Admin only method (Legacy/Disabled)
 func AddRelease(c *gin.Context) {
