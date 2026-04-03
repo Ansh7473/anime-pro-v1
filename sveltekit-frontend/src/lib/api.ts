@@ -1,5 +1,4 @@
-const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app'; // Deployed Go Backend
-// const BACKEND_URL = 'http://localhost:3001'; // Local Go Backend
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
 const JIKAN_URL = `${BACKEND_URL}/api/v1/jikan`;
@@ -95,14 +94,19 @@ export const api = {
 		return res;
 	},
 
-	getTopAnime: async (format = 'TV', page = 1, limit = 20) => {
+	getTopAnime: async (format = 'TV', page = 1, limit = 20, sort = 'POPULARITY_DESC') => {
 		const params = new URLSearchParams({
 			format: format.toUpperCase(),
 			page: page.toString(),
 			limit: limit.toString(),
-			sort: 'POPULARITY_DESC'
+			sort: sort
 		});
 		return fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+	},
+
+	getAnilistSchedule: async (start: number, end: number) => {
+		const res = await fetchJSON(`${BASE_URL}/schedule?start=${start}&end=${end}`);
+		return res?.data || res;
 	},
 
 	getCurrentSeasonal: async (page = 1, limit = 20) => {
@@ -189,8 +193,8 @@ export const api = {
 		return fetchJSON(`${BASE_URL}/search?${params.toString()}`);
 	},
 
-	getSchedule: async (date?: string) => {
-		const url = date ? `${JIKAN_URL}/schedules?filter=${date}` : `${JIKAN_URL}/schedules`;
+	getSchedule: async (day?: string) => {
+		const url = day ? `${JIKAN_URL}/schedule?filter=${day}` : `${JIKAN_URL}/schedule`;
 		const res = await fetchJSON(url);
 		return res;
 	},
@@ -347,7 +351,9 @@ export const api = {
 		fetchJSON(`${USER_URL}/comments/${commentId}`, {
 			method: 'DELETE',
 			headers: authHeaders(token)
-		})
+		}),
+
+	getLatestReleases: () => fetchJSON(`${BACKEND_URL}/api/v1/releases/latest`)
 };
 
 export function getProxiedUrl(url: string, referer = ''): string {

@@ -1,43 +1,51 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import { onMount } from "svelte";
-  import { Calendar, Clock, Play } from "lucide-svelte";
+  import { Calendar, Clock, Play, Activity, Radio, Target, ShieldAlert, Cpu } from "lucide-svelte";
+  import { fade, fly, slide } from "svelte/transition";
 
   const toDateStr = (d: Date) => d.toISOString().split("T")[0];
 
   const buildDateOptions = () => {
     const opts = [];
+    const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       opts.push({
         date: toDateStr(d),
+        day: weekdays[d.getDay()],
         label:
           i === 0
-            ? "Today"
+            ? "TODAY"
             : i === 1
-              ? "Tomorrow"
-              : d.toLocaleDateString("en-US", { weekday: "short" }),
-        sub: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+              ? "NEXT_OP"
+              : d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+        sub: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase(),
+        code: `OPS_00${i + 1}`
       });
     }
     return opts;
   };
 
   const dateOptions = buildDateOptions();
-  let selectedDate = $state(dateOptions[0].date);
+  let selectedNode = $state(dateOptions[0]);
+  let selectedDate = $derived(selectedNode.date);
   let scheduledAnimes: any[] = $state([]);
   let loading = $state(false);
 
   async function fetchSchedule() {
     loading = true;
     try {
-      const res = await api.getAiringSchedule(1, 40); // AniList based airing schedule
-      // For more accurate daily schedule, we'd need a specific AniList query with date range
-      // but let's use the AiringSchedule for now as a base.
-      scheduledAnimes = res.data || [];
+      // Calculate Unix timestamps for the start and end of the selected day
+      const dayDate = new Date(selectedNode.date + "T00:00:00");
+      const start = Math.floor(dayDate.getTime() / 1000);
+      const end = start + 86399; // 24 hours later (minus 1 second)
+
+      const res = await api.getAnilistSchedule(start, end);
+      scheduledAnimes = res || [];
     } catch (err) {
-      console.error("Failed to fetch schedule", err);
+      console.error("Failed to fetch AniList schedule", err);
       scheduledAnimes = [];
     } finally {
       loading = false;
@@ -48,577 +56,661 @@
 
   $effect(() => {
     if (selectedDate) {
-      // In a real app, we'd filter or fetch specifically for this date
-      // AniList requires a specific GraphQL query with airingAt_greater/less
       fetchSchedule();
     }
   });
 
-  function formatTime(time: string) {
-    if (!time) return "TBA";
-    const [h, m] = time.split(":");
-    const hr = parseInt(h);
-    const ampm = hr >= 12 ? "PM" : "AM";
-    return `${hr % 12 || 12}:${m} ${ampm}`;
+  function formatTime(airingAt: number) {
+    if (!airingAt) return "??:??";
+    return new Date(airingAt * 1000).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
   }
 </script>
 
 <svelte:head>
-  <title>Release Schedule — AnimePro</title>
+  <title>Timeline Protocol — AnimePro</title>
 </svelte:head>
 
 <div class="schedule-page">
-  <!-- Hero Header -->
-  <div class="hero-header">
-    <div class="hero-bg"></div>
-    <div class="hero-content container">
-      <div class="title-row">
-        <div class="icon-box">
-          <Calendar size={22} color="white" />
-        </div>
-        <div>
-          <p class="brand">ANIME PRO</p>
-          <h1 class="main-title">Release Schedule</h1>
-        </div>
-        <div class="live-badge">
-          <Clock size={13} color="#14b8a6" />
-          <span>AIRING NOW</span>
-        </div>
-      </div>
-      <p class="subtitle">Track when your favorite anime air this week</p>
-
-      <!-- Date Selector -->
-      <div class="date-selector">
-        {#each dateOptions as opt, i}
-          <button
-            class="date-btn"
-            class:active={selectedDate === opt.date}
-            onclick={() => (selectedDate = opt.date)}
-          >
-            <span class="date-label">{opt.label}</span>
-            <span class="date-sub">{opt.sub}</span>
-          </button>
-        {/each}
-      </div>
-    </div>
-  </div>
-
-  <!-- Content -->
-  <div class="content container">
-    <div class="divider"></div>
-
-    {#if loading}
-      <div class="center">
-        <div class="spinner"></div>
-      </div>
-    {:else if scheduledAnimes.length === 0}
-      <div class="empty">
-        <Calendar size={48} />
-        <p>No anime scheduled for this day.</p>
-        <p class="tip">Try a different day</p>
-      </div>
-    {:else}
-      <div class="grid">
-        {#each scheduledAnimes as anime (anime.id)}
-          <a href="/anime/{anime.id}" class="schedule-card">
-            <div class="card-edge"></div>
-            <div class="poster-box">
-              <img src={anime.poster} alt={anime.title} loading="lazy" />
-            </div>
-            <div class="card-info">
-              <h3 class="anime-title">{anime.title}</h3>
-              <div class="meta-row">
-                {#if anime.nextAiringEpisode}
-                  <div class="time-tag">
-                    <Clock size={11} color="#14b8a6" />
-                    <span
-                      >{new Date(
-                        anime.nextAiringEpisode.airingAt * 1000,
-                      ).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}</span
-                    >
-                  </div>
-                {/if}
-                <div class="ep-tag">
-                  <Play size={10} fill="white" color="white" />
-                  <span>{anime.episodes || "?"} eps</span>
-                </div>
-                {#if anime.score > 0}
-                  <span class="score-tag">★ {anime.score.toFixed(1)}</span>
-                {/if}
+  <!-- Tactical HUD Header -->
+  <header class="tactical-header">
+    <div class="container">
+      <div class="header-main" in:fly={{ y: -20, duration: 800 }}>
+        <div class="status-box">
+          <div class="scanline"></div>
+          <div class="status-top">
+            <div class="pulse-indicator"></div>
+            <span class="status-text">MISSION_TIMELINE_ACTIVE</span>
+            <span class="system-id">ID: PRO-SC01</span>
+          </div>
+          <div class="status-content">
+            <h1 class="tactical-title">TIMELINE PROTOCOL</h1>
+            <div class="telemetry-grid">
+              <div class="tel-item">
+                <span class="tel-label">SECTOR</span>
+                <span class="tel-val">RELEASE_CALENDAR</span>
+              </div>
+              <div class="tel-item">
+                <span class="tel-label">STATE</span>
+                <span class="tel-val text-primary">REAL_TIME_SYNC</span>
+              </div>
+              <div class="tel-item hide-mobile">
+                <span class="tel-label">UPLINK</span>
+                <span class="tel-val">ENCRYPTED</span>
               </div>
             </div>
-          </a>
+          </div>
+        </div>
+
+        <div class="action-badges hide-tablet">
+          <div class="badge-item">
+            <Radio size={14} class="text-primary" />
+            <span>LIVE_FEED</span>
+          </div>
+          <div class="badge-item">
+            <Activity size={14} class="text-secondary" />
+            <span>SYNC_OK</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline Selector -->
+      <div class="timeline-protocol" in:fly={{ y: 20, duration: 800, delay: 200 }}>
+        <div class="timeline-track">
+          <div class="track-line"></div>
+          {#each dateOptions as opt, i}
+            <button
+              class="timeline-node"
+              class:active={selectedDate === opt.date}
+              onclick={() => (selectedNode = opt)}
+            >
+              <div class="node-dot"></div>
+              <div class="node-content">
+                <span class="node-id">{opt.code}</span>
+                <span class="node-day">{opt.label}</span>
+                <span class="node-date">{opt.sub}</span>
+              </div>
+            </button>
+          {/each}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content Grid -->
+  <main class="container content-area">
+    {#if loading}
+      <div class="loading-state" out:fade>
+        <div class="tactical-spinner">
+          <Cpu size={40} class="spinning text-primary" />
+          <p class="mono">DECRYPTING_DATA...</p>
+        </div>
+      </div>
+    {:else if scheduledAnimes.length === 0}
+      <div class="empty-state" in:fade>
+        <ShieldAlert size={48} class="text-muted" />
+        <h2 class="mono">NO_DATA_DETECTED</h2>
+        <p class="mono-sub">Zero deployments scheduled for this timestamp.</p>
+      </div>
+    {:else}
+      <div class="deployment-grid">
+        {#each scheduledAnimes as anime, i (anime.id)}
+          <div 
+            class="deployment-wrapper"
+            in:fly={{ x: -20, duration: 500, delay: i * 50 }}
+          >
+            <a href="/anime/{anime.id}" class="deployment-module">
+              <div class="module-scanline"></div>
+              <div class="module-header">
+                <div class="module-id">#{anime.id.toString().slice(-4)}</div>
+                {#if anime.nextAiringEpisode}
+                  <div class="module-timer">
+                    <Clock size={12} />
+                    <span>{formatTime(anime.nextAiringEpisode.airingAt)}</span>
+                  </div>
+                {/if}
+              </div>
+
+              <div class="module-body">
+                <div class="poster-frame">
+                  <img src={anime.poster} alt={anime.title} loading="lazy" />
+                  <div class="poster-overlay"></div>
+                  <div class="poster-tags">
+                    {#if anime.nextAiringEpisode}
+                      <span class="tag ep-tag">EP_{anime.nextAiringEpisode.episode}</span>
+                    {/if}
+                  </div>
+                </div>
+
+                <div class="module-info">
+                  <h3 class="module-title">{anime.title}</h3>
+                  <div class="module-meta">
+                    <div class="meta-item">
+                      <Target size={12} class="text-primary" />
+                      <span>{anime.format || 'TV'}</span>
+                    </div>
+                    {#if anime.score > 0}
+                      <div class="meta-item">
+                        <Activity size={12} class="text-secondary" />
+                        <span>{anime.score.toFixed(1)}_RTG</span>
+                      </div>
+                    {/if}
+                  </div>
+                  <div class="module-status">
+                    <div class="status-bar">
+                      <div class="status-fill" style="width: 85%"></div>
+                    </div>
+                    <span class="status-label">READY_FOR_UPLINK</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="module-footer">
+                <span class="footer-text">ACCESS_MANIFEST</span>
+                <Play size={12} fill="currentColor" />
+              </div>
+            </a>
+          </div>
         {/each}
       </div>
     {/if}
-  </div>
+  </main>
 </div>
 
 <style>
   .schedule-page {
-    background: #050505;
     min-height: 100vh;
-    color: white;
+    padding-top: 100px;
+    padding-bottom: 80px;
   }
-  .hero-header {
+
+  /* --- Tactical Header --- */
+  .tactical-header {
+    margin-bottom: 3rem;
+  }
+
+  .header-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    gap: 2rem;
+  }
+
+  .status-box {
     position: relative;
+    flex: 1;
+    background: var(--tactical-glass);
+    border: 1px solid var(--tactical-border);
+    padding: 1.5rem;
+    border-radius: 4px;
     overflow: hidden;
-    padding: 100px 0 3rem;
-    background: linear-gradient(
-      180deg,
-      rgba(20, 184, 166, 0.1) 0%,
-      transparent 100%
-    );
   }
-  .hero-bg {
+
+  .scanline {
     position: absolute;
-    inset: 0;
-    background-image: radial-gradient(
-      circle at 60% 30%,
-      rgba(20, 184, 166, 0.07) 0%,
-      transparent 55%
-    );
-    pointer-events: none;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--tactical-primary), transparent);
+    opacity: 0.3;
+    animation: scan 3s linear infinite;
   }
-  .title-row {
+
+  @keyframes scan {
+    0% { top: 0; }
+    100% { top: 100%; }
+  }
+
+  .status-top {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 0.5rem;
+    gap: 8px;
+    margin-bottom: 12px;
   }
-  .icon-box {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #14b8a6, #06b6d4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(20, 184, 166, 0.4);
+
+  .pulse-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tactical-primary);
+    box-shadow: 0 0 10px var(--tactical-primary);
+    animation: pulse 2s infinite;
   }
-  .brand {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: rgba(20, 184, 166, 0.8);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin: 0;
+
+  @keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
   }
-  .main-title {
-    font-size: clamp(1.5rem, 4vw, 2.4rem);
-    font-weight: 900;
-    margin: 0;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
+
+  .status-text {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1rem;
+    color: var(--tactical-primary);
   }
-  .live-badge {
+
+  .system-id {
     margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    opacity: 0.4;
+  }
+
+  .tactical-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem 0;
+    color: #fff;
+  }
+
+  .telemetry-grid {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .tel-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tel-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+  }
+
+  .tel-val {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .action-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .badge-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 50px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    background: rgba(20, 184, 166, 0.1);
-    border: 1px solid rgba(20, 184, 166, 0.25);
-    color: #14b8a6;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
   }
-  .subtitle {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.95rem;
-    margin: 0.5rem 0 2rem;
-    padding-left: 62px;
+
+  /* --- Timeline Protocol --- */
+  .timeline-protocol {
+    position: relative;
+    padding: 1rem 0;
   }
-  .date-selector {
+
+  .timeline-track {
     display: flex;
-    gap: 10px;
+    justify-content: space-between;
+    position: relative;
+    padding-top: 1.5rem;
     overflow-x: auto;
-    padding-left: 62px;
     scrollbar-width: none;
+    gap: 1rem;
   }
-  .date-selector::-webkit-scrollbar {
-    display: none;
+
+  .timeline-track::-webkit-scrollbar { display: none; }
+
+  .track-line {
+    position: absolute;
+    top: calc(1.5rem + 5px);
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: 0;
   }
-  .date-btn {
-    padding: 10px 18px;
-    border-radius: 14px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
+
+  .timeline-node {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
-    color: white;
-    transition: all 0.2s;
-    min-width: 72px;
+    gap: 15px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    min-width: 100px;
+    z-index: 1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .date-btn.active {
-    border-color: rgba(20, 184, 166, 0.6);
-    background: linear-gradient(135deg, #14b8a6, #06b6d4);
-    box-shadow: 0 4px 16px rgba(20, 184, 166, 0.3);
+
+  .node-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #111;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s;
+    position: relative;
   }
-  .date-label {
-    font-size: 0.82rem;
+
+  .node-dot::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    transition: all 0.3s;
   }
-  .date-sub {
-    font-size: 0.7rem;
-    opacity: 0.7;
-    font-weight: 600;
+
+  .timeline-node:hover .node-dot {
+    border-color: var(--tactical-primary);
+    box-shadow: 0 0 10px var(--tactical-primary);
   }
-  .content {
-    padding-bottom: 5rem;
+
+  .timeline-node.active .node-dot {
+    background: var(--tactical-primary);
+    border-color: var(--tactical-primary);
+    box-shadow: 0 0 15px var(--tactical-primary);
   }
-  .divider {
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      rgba(20, 184, 166, 0.4),
-      rgba(255, 255, 255, 0.05),
-      transparent
-    );
-    margin-bottom: 2.5rem;
+
+  .timeline-node.active .node-dot::after {
+    border-color: var(--tactical-primary);
+    opacity: 0.5;
+    animation: ripple 1.5s infinite;
   }
-  .grid {
+
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+
+  .node-content {
+    text-align: center;
+    background: var(--tactical-glass);
+    border: 1px solid var(--tactical-border);
+    padding: 10px;
+    border-radius: 4px;
+    width: 100%;
+    transition: all 0.3s;
+  }
+
+  .timeline-node.active .node-content {
+    border-color: var(--tactical-primary);
+    background: rgba(20, 184, 166, 0.05);
+  }
+
+  .node-id {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--tactical-primary);
+    margin-bottom: 2px;
+  }
+
+  .node-day {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .node-date {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  /* --- Deployment Grid --- */
+  .deployment-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
   }
-  .schedule-card {
+
+  .deployment-module {
+    display: block;
+    position: relative;
+    background: var(--tactical-glass);
+    border: 1px solid var(--tactical-border);
+    border-radius: 4px;
+    padding: 12px;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+
+  .deployment-module:hover {
+    border-color: var(--tactical-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  }
+
+  .module-scanline {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 50%, rgba(20, 184, 166, 0.02) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+  }
+
+  .module-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .module-timer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tactical-primary);
+  }
+
+  .module-body {
     display: flex;
     gap: 16px;
-    padding: 16px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-    transition: 0.3s;
-    position: relative;
-    overflow: hidden;
+    margin-bottom: 12px;
   }
-  .schedule-card:hover {
-    transform: translateY(-4px);
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-  .card-edge {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: linear-gradient(#14b8a6, #06b6d4);
-    border-radius: 3px 0 0 3px;
-  }
-  .poster-box {
-    width: 72px;
-    height: 100px;
-    border-radius: 10px;
-    overflow: hidden;
+
+  .poster-frame {
+    width: 90px;
+    height: 125px;
     flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    position: relative;
+    border-radius: 2px;
+    overflow: hidden;
+    background: #111;
   }
-  .poster-box img {
+
+  .poster-frame img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.5s;
   }
-  .card-info {
+
+  .deployment-module:hover .poster-frame img {
+    transform: scale(1.1);
+  }
+
+  .poster-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.8));
+  }
+
+  .poster-tags {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    background: var(--tactical-primary);
+    color: #000;
+    border-radius: 2px;
+  }
+
+  .module-info {
     flex: 1;
-    display: flex;
-    flexdirection: column;
-    justify-content: center;
-    gap: 8px;
     min-width: 0;
   }
-  .anime-title {
-    font-size: 0.95rem;
+
+  .module-title {
+    font-size: 1.05rem;
     font-weight: 700;
-    color: white;
-    margin: 0;
+    line-height: 1.3;
+    margin: 0 0 10px 0;
+    white-space: nowrap;
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
   }
-  .meta-row {
+
+  .module-meta {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
   }
-  .time-tag {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 50px;
-    background: rgba(20, 184, 166, 0.15);
-    border: 1px solid rgba(20, 184, 166, 0.25);
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #14b8a6;
-  }
-  .ep-tag {
+
+  .meta-item {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 50px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    font-size: 0.75rem;
-    font-weight: 600;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
     color: rgba(255, 255, 255, 0.6);
   }
-  .score-tag {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #fbbf24;
-  }
-  .center {
+
+  .module-status {
     display: flex;
-    justify-content: center;
-    padding: 5rem 0;
+    flex-direction: column;
+    gap: 6px;
   }
-  .empty {
-    text-align: center;
-    padding: 5rem;
+
+  .status-bar {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .status-fill {
+    height: 100%;
+    background: var(--tactical-primary);
+    opacity: 0.6;
+  }
+
+  .status-label {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
     color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.05em;
   }
-  .tip {
-    font-size: 0.85rem;
-    margin-top: 0.5rem;
-    opacity: 0.5;
+
+  .module-footer {
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+  }
+
+  .deployment-module:hover .module-footer {
+    color: var(--tactical-primary);
+  }
+
+  /* --- States --- */
+  .loading-state, .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 0;
+    gap: 1.5rem;
+  }
+
+  .tactical-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .spinning {
+    animation: rotate 2s linear infinite;
+  }
+
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .mono { font-family: var(--font-mono); letter-spacing: 0.1em; }
+  .mono-sub { font-family: var(--font-mono); font-size: 0.8rem; opacity: 0.5; }
+
+  /* --- Responsive --- */
+  @media (max-width: 1024px) {
+    .deployment-grid {
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    }
   }
 
   @media (max-width: 768px) {
-    .hero-header {
-      padding: 80px 0 2.5rem;
+    .schedule-page {
+      padding-top: 80px;
     }
-    .title-row {
-      gap: 12px;
+    
+    .tactical-title {
+      font-size: 1.6rem;
     }
-    .icon-box {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
+
+    .telemetry-grid {
+      gap: 1rem;
     }
-    .brand {
-      font-size: 0.7rem;
-    }
-    .main-title {
-      font-size: 1.8rem;
-    }
-    .live-badge {
-      padding: 5px 10px;
-      font-size: 0.7rem;
-    }
-    .subtitle {
-      font-size: 0.9rem;
-      margin: 0.5rem 0 1.5rem;
-      padding-left: 0;
-    }
-    .date-selector {
-      gap: 8px;
-      padding-left: 0;
-    }
-    .date-btn {
-      padding: 8px 14px;
-      min-width: 65px;
-    }
-    .date-label {
-      font-size: 0.78rem;
-    }
-    .date-sub {
-      font-size: 0.65rem;
-    }
-    .content {
-      padding-bottom: 4rem;
-    }
-    .divider {
-      margin-bottom: 2rem;
-    }
-    .grid {
+
+    .deployment-grid {
       grid-template-columns: 1fr;
-      gap: 0.9rem;
     }
-    .schedule-card {
-      gap: 14px;
-      padding: 14px;
+
+    .deployment-module {
+      max-width: none;
     }
-    .poster-box {
-      width: 68px;
-      height: 94px;
-    }
-    .anime-title {
-      font-size: 0.9rem;
-    }
-    .time-tag {
-      padding: 2px 8px;
-      font-size: 0.75rem;
-    }
-    .ep-tag {
-      padding: 2px 8px;
-      font-size: 0.72rem;
-    }
-    .score-tag {
-      font-size: 0.72rem;
-    }
-    .center {
-      padding: 4rem 0;
-    }
-    .empty {
-      padding: 4rem;
+
+    .timeline-node {
+      min-width: 80px;
     }
   }
 
-  @media (max-width: 480px) {
-    .hero-header {
-      padding: 60px 0 2rem;
-    }
-    .title-row {
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .icon-box {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-    }
-    .brand {
-      font-size: 0.65rem;
-    }
-    .main-title {
-      font-size: 1.5rem;
-    }
-    .live-badge {
-      margin-left: 0;
-      padding: 4px 8px;
-      font-size: 0.65rem;
-    }
-    .subtitle {
-      font-size: 0.85rem;
-      margin: 0.4rem 0 1.25rem;
-    }
-    .date-selector {
-      gap: 6px;
-    }
-    .date-btn {
-      padding: 7px 12px;
-      min-width: 60px;
-    }
-    .date-label {
-      font-size: 0.75rem;
-    }
-    .date-sub {
-      font-size: 0.62rem;
-    }
-    .content {
-      padding-bottom: 3rem;
-    }
-    .divider {
-      margin-bottom: 1.5rem;
-    }
-    .grid {
-      gap: 0.8rem;
-    }
-    .schedule-card {
-      gap: 12px;
-      padding: 12px;
-      border-radius: 14px;
-    }
-    .poster-box {
-      width: 64px;
-      height: 88px;
-      border-radius: 8px;
-    }
-    .anime-title {
-      font-size: 0.85rem;
-    }
-    .meta-row {
-      gap: 6px;
-    }
-    .time-tag {
-      padding: 2px 7px;
-      font-size: 0.72rem;
-    }
-    .ep-tag {
-      padding: 2px 7px;
-      font-size: 0.7rem;
-    }
-    .score-tag {
-      font-size: 0.7rem;
-    }
-    .center {
-      padding: 3rem 0;
-    }
-    .empty {
-      padding: 3rem;
-    }
-    .tip {
-      font-size: 0.8rem;
-    }
+  .hide-mobile {
+    @media (max-width: 480px) { display: none; }
   }
 
-  @media (max-width: 360px) {
-    .hero-header {
-      padding: 50px 0 1.5rem;
-    }
-    .title-row {
-      gap: 8px;
-    }
-    .icon-box {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-    }
-    .main-title {
-      font-size: 1.3rem;
-    }
-    .subtitle {
-      font-size: 0.8rem;
-      margin: 0.3rem 0 1rem;
-    }
-    .date-selector {
-      gap: 5px;
-    }
-    .date-btn {
-      padding: 6px 10px;
-      min-width: 55px;
-    }
-    .date-label {
-      font-size: 0.72rem;
-    }
-    .date-sub {
-      font-size: 0.6rem;
-    }
-    .schedule-card {
-      gap: 10px;
-      padding: 10px;
-    }
-    .poster-box {
-      width: 60px;
-      height: 82px;
-    }
-    .anime-title {
-      font-size: 0.8rem;
-    }
-    .time-tag {
-      padding: 2px 6px;
-      font-size: 0.7rem;
-    }
-    .ep-tag {
-      padding: 2px 6px;
-      font-size: 0.68rem;
-    }
+  .hide-tablet {
+    @media (max-width: 1024px) { display: none; }
   }
 </style>
+e>

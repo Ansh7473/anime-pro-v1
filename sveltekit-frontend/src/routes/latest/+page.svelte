@@ -2,6 +2,7 @@
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
   import { onMount } from "svelte";
+  import { fade, fly } from "svelte/transition";
   import { Clock, Zap, ChevronLeft, ChevronRight } from "lucide-svelte";
 
   const TABS = [
@@ -57,80 +58,78 @@
 </svelte:head>
 
 <div class="latest-page">
-  <!-- Hero Header -->
-  <div class="hero-header">
-    <div class="hero-bg"></div>
-    <div class="hero-content container">
-      <div class="title-row">
-        <div class="icon-box">
-          <Clock size={22} color="white" />
-        </div>
-        <div>
-          <p class="brand">ANIME PRO</p>
-          <h1 class="main-title">Latest Episodes</h1>
-        </div>
-        <div class="live-badge">
-          <Zap size={13} color="#e50914" fill="#e50914" />
-          <span>LIVE</span>
-        </div>
-      </div>
-      <p class="subtitle">Freshest episodes updated daily</p>
+  <!-- Tactical Header -->
+  <div class="tactical-header">
+    <div class="header-main-content container">
 
-      <!-- Tabs -->
-      <div class="tabs">
-        {#each TABS as t}
-          <button
-            class="tab-btn"
-            class:active={tab === t.id}
-            onclick={() => changeTab(t.id)}
-          >
-            <span class="tab-icon">{t.icon}</span>
-            {t.label}
-          </button>
-        {/each}
+      <div class="title-section">
+        <div class="hex-icon">
+          <Clock size={24} />
+          <div class="hex-border"></div>
+        </div>
+        <h1 class="tactical-title">LATEST_EPISODES</h1>
+        <p class="tactical-sub">STREAMING_LIVE_NOW // UPDATED_REAL_TIME</p>
+      </div>
+
+      <!-- Tactical Tabs -->
+      <div class="tactical-tabs">
+        <div class="tabs-container">
+          {#each TABS as t}
+            <button
+              class="t-tab"
+              class:active={tab === t.id}
+              onclick={() => changeTab(t.id)}
+            >
+              <span class="t-tab-label">{t.label}</span>
+              {#if tab === t.id}
+                <div class="t-tab-indicator" in:fly={{ y: 2, duration: 200 }}></div>
+              {/if}
+            </button>
+          {/each}
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Content -->
-  <div class="content container">
-    <div class="divider"></div>
-
+  <!-- Content Section -->
+  <div class="content-section container">
     {#if loading && animes.length === 0}
-      <div class="center">
-        <div class="spinner"></div>
+      <div class="loading-state">
+        <div class="tactical-loader">
+          <div class="loader-circle"></div>
+          <span class="loader-text">SYNCING_DATABASE...</span>
+        </div>
       </div>
     {:else if animes.length > 0}
-      <div class="grid">
+      <div class="anime-grid">
         {#each animes as anime (anime.id)}
-          <div class="card-wrap">
+          <div class="card-entry" in:fly={{ y: 10, duration: 400 }}>
             <AnimeCard {anime} />
           </div>
         {/each}
       </div>
 
-      <!-- Pagination -->
-      <div class="pagination">
-        <button class="nav-btn" disabled={page === 1} onclick={() => page--}>
-          <ChevronLeft size={18} /> Prev
+      <!-- Tactical Pagination -->
+      <div class="tactical-pagination">
+        <button class="p-btn" disabled={page === 1} onclick={() => page--}>
+          <ChevronLeft size={18} />
+          <span>PREV_PAGE</span>
         </button>
 
-        <div class="page-indicator">
-          Page {page}
+        <div class="p-info">
+          <span class="p-label">SECTOR</span>
+          <span class="p-value">{page.toString().padStart(2, '0')}</span>
         </div>
 
-        <button
-          class="nav-btn next"
-          disabled={!hasNextPage}
-          onclick={() => page++}
-        >
-          Next <ChevronRight size={18} />
+        <button class="p-btn next" disabled={!hasNextPage} onclick={() => page++}>
+          <span>NEXT_PAGE</span>
+          <ChevronRight size={18} />
         </button>
       </div>
     {:else if !loading}
-      <div class="empty">
-        <Clock size={48} />
-        <p>No episodes found.</p>
+      <div class="empty-state">
+        <div class="empty-icon"><Clock size={40} /></div>
+        <p class="empty-msg">NO_RECORDS_FOUND_IN_CACHE</p>
       </div>
     {/if}
   </div>
@@ -138,361 +137,233 @@
 
 <style>
   .latest-page {
-    background: #050505;
-    min-height: 100vh;
-    color: white;
-  }
-  .hero-header {
     position: relative;
-    overflow: hidden;
-    padding: 100px 0 3rem;
-    background: linear-gradient(
-      180deg,
-      rgba(229, 9, 20, 0.12) 0%,
-      transparent 100%
-    );
-  }
-  .hero-bg {
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(
-        circle at 20% 50%,
-        rgba(229, 9, 20, 0.06) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 20%,
-        rgba(229, 9, 20, 0.04) 0%,
-        transparent 50%
-      );
-    pointer-events: none;
-  }
-  .title-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 0.5rem;
-  }
-  .icon-box {
-    width: 46px;
-    height: 46px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #e50914, #ff4444);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4);
-  }
-  .brand {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: rgba(229, 9, 20, 0.8);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin: 0;
-  }
-  .main-title {
-    font-size: clamp(1.5rem, 4vw, 2.4rem);
-    font-weight: 900;
-    margin: 0;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-  }
-  .live-badge {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
-    border-radius: 50px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    color: #e50914;
-  }
-  .subtitle {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.95rem;
-    margin: 0.5rem 0 2rem;
-    padding-left: 62px;
-  }
-  .tabs {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    padding-left: 62px;
-  }
-  .tab-btn {
-    padding: 10px 22px;
-    border-radius: 50px;
-    font-size: 0.88rem;
-    font-weight: 700;
-    cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    color: white;
-    transition: all 0.2s;
-  }
-  .tab-btn.active {
-    border-color: rgba(229, 9, 20, 0.6);
-    background: linear-gradient(135deg, #e50914, #ff4444);
-    box-shadow: 0 4px 20px rgba(229, 9, 20, 0.35);
-  }
-  .tab-icon {
-    margin-right: 4px;
-  }
-  .content {
+    z-index: 1;
+    min-height: 100vh;
     padding-bottom: 5rem;
   }
-  .divider {
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      rgba(229, 9, 20, 0.4),
-      rgba(255, 255, 255, 0.05),
-      transparent
-    );
-    margin-bottom: 2.5rem;
+
+  .tactical-header {
+    padding: 120px 0 60px;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(to bottom, rgba(229, 9, 20, 0.05), transparent);
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1.5rem;
-  }
-  .pagination {
+
+  .status-board {
     display: flex;
     justify-content: center;
-    align-items: center;
-    gap: 16px;
-    margin-top: 4rem;
+    gap: 30px;
+    margin-bottom: 40px;
   }
-  .nav-btn {
-    padding: 12px 24px;
-    border-radius: 50px;
+  .status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: var(--font-mono);
+  }
+  .status-item .label {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.1em;
+  }
+  .status-item .value {
+    font-size: 0.75rem;
+    color: var(--net-red);
     font-weight: 700;
-    font-size: 0.9rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    cursor: pointer;
+  }
+  .status-divider {
+    width: 1px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .title-section {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+  .hex-icon {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 20px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: 0.2s;
+    justify-content: center;
+    color: var(--net-red);
   }
-  .nav-btn:disabled {
+  .hex-border {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--net-red);
+    border-radius: 12px;
+    transform: rotate(45deg);
     opacity: 0.3;
-    cursor: default;
   }
-  .nav-btn.next:not(:disabled) {
-    background: linear-gradient(135deg, #e50914, #ff4444);
-    border-color: rgba(229, 9, 20, 0.5);
-    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.3);
+  .tactical-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    font-family: var(--font-mono);
+    margin: 0;
+    background: linear-gradient(to bottom, #fff, rgba(255,255,255,0.7));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  .page-indicator {
-    padding: 10px 24px;
-    border-radius: 50px;
-    background: rgba(229, 9, 20, 0.12);
-    border: 1px solid rgba(229, 9, 20, 0.25);
-    font-weight: 800;
-    font-size: 0.95rem;
-    color: #e50914;
+  .tactical-sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.2em;
+    margin-top: 10px;
   }
-  .center {
+
+  .tactical-tabs {
     display: flex;
     justify-content: center;
-    padding: 5rem 0;
+    margin-top: 40px;
   }
-  .empty {
+  .tabs-container {
+    display: flex;
+    gap: 8px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+  }
+  .t-tab {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    transition: all 0.3s;
+    position: relative;
+  }
+  .t-tab.active {
+    color: #fff;
+    background: rgba(229, 9, 20, 0.15);
+  }
+  .t-tab-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: var(--net-red);
+    box-shadow: 0 0 10px var(--net-red);
+  }
+
+  .anime-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 30px;
+    margin-top: 60px;
+  }
+
+  .tactical-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    margin-top: 80px;
+  }
+  .p-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    transition: all 0.3s;
+  }
+  .p-btn:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .p-btn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+  }
+  .p-btn.next {
+    background: rgba(229, 9, 20, 0.1);
+    border-color: rgba(229, 9, 20, 0.2);
+    color: var(--net-red);
+  }
+  .p-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: var(--font-mono);
+  }
+  .p-label { font-size: 0.55rem; color: rgba(255,255,255,0.4); }
+  .p-value { font-size: 1.1rem; font-weight: 800; color: #fff; }
+
+  .loading-state {
+    display: flex;
+    justify-content: center;
+    padding: 100px 0;
+  }
+  .tactical-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .loader-circle {
+    width: 40px;
+    height: 40px;
+    border: 2px solid rgba(229, 9, 20, 0.2);
+    border-top-color: var(--net-red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  .loader-text {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--net-red);
+    letter-spacing: 0.1em;
+  }
+
+  .empty-state {
     text-align: center;
-    padding: 5rem;
-    color: rgba(255, 255, 255, 0.3);
+    padding: 100px 0;
+    opacity: 0.5;
   }
-  .empty p {
-    font-size: 1.1rem;
-    margin-top: 1rem;
+  .empty-msg {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    margin-top: 15px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   @media (max-width: 768px) {
-    .hero-header {
-      padding: 80px 0 2.5rem;
+    .tactical-header { padding: 80px 0 40px; }
+    .tactical-title { font-size: 1.8rem; }
+    .anime-grid {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 20px;
     }
-    .title-row {
-      gap: 12px;
-    }
-    .icon-box {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-    }
-    .brand {
-      font-size: 0.7rem;
-    }
-    .main-title {
-      font-size: 1.8rem;
-    }
-    .live-badge {
-      padding: 5px 10px;
-      font-size: 0.7rem;
-    }
-    .subtitle {
-      font-size: 0.9rem;
-      margin: 0.5rem 0 1.5rem;
-      padding-left: 0;
-    }
-    .tabs {
-      gap: 8px;
-      padding-left: 0;
-    }
-    .tab-btn {
-      padding: 8px 18px;
-      font-size: 0.85rem;
-    }
-    .content {
-      padding-bottom: 4rem;
-    }
-    .divider {
-      margin-bottom: 2rem;
-    }
-    .grid {
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 1rem;
-    }
-    .pagination {
-      gap: 12px;
-      margin-top: 3rem;
-    }
-    .nav-btn {
-      padding: 10px 20px;
-      font-size: 0.85rem;
-    }
-    .page-indicator {
-      padding: 8px 20px;
-      font-size: 0.9rem;
-    }
-    .center {
-      padding: 4rem 0;
-    }
-    .empty {
-      padding: 4rem;
-    }
+    .status-board { gap: 15px; margin-bottom: 30px; }
+    .t-tab { padding: 8px 16px; font-size: 0.7rem; }
   }
 
   @media (max-width: 480px) {
-    .hero-header {
-      padding: 60px 0 2rem;
+    .anime-grid {
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 15px;
     }
-    .title-row {
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .icon-box {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-    }
-    .brand {
-      font-size: 0.65rem;
-    }
-    .main-title {
-      font-size: 1.5rem;
-    }
-    .live-badge {
-      margin-left: 0;
-      padding: 4px 8px;
-      font-size: 0.65rem;
-    }
-    .subtitle {
-      font-size: 0.85rem;
-      margin: 0.4rem 0 1.25rem;
-    }
-    .tabs {
-      gap: 6px;
-    }
-    .tab-btn {
-      padding: 7px 14px;
-      font-size: 0.8rem;
-    }
-    .tab-icon {
-      margin-right: 3px;
-    }
-    .content {
-      padding-bottom: 3rem;
-    }
-    .divider {
-      margin-bottom: 1.5rem;
-    }
-    .grid {
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 0.85rem;
-    }
-    .pagination {
-      gap: 10px;
-      margin-top: 2.5rem;
-      flex-wrap: wrap;
-    }
-    .nav-btn {
-      padding: 8px 16px;
-      font-size: 0.8rem;
-    }
-    .page-indicator {
-      padding: 6px 16px;
-      font-size: 0.85rem;
-    }
-    .center {
-      padding: 3rem 0;
-    }
-    .empty {
-      padding: 3rem;
-    }
-    .empty p {
-      font-size: 1rem;
-    }
-  }
-
-  @media (max-width: 360px) {
-    .hero-header {
-      padding: 50px 0 1.5rem;
-    }
-    .title-row {
-      gap: 8px;
-    }
-    .icon-box {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-    }
-    .main-title {
-      font-size: 1.3rem;
-    }
-    .subtitle {
-      font-size: 0.8rem;
-      margin: 0.3rem 0 1rem;
-    }
-    .tabs {
-      gap: 5px;
-    }
-    .tab-btn {
-      padding: 6px 12px;
-      font-size: 0.75rem;
-    }
-    .grid {
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-      gap: 0.7rem;
-    }
-    .pagination {
-      gap: 8px;
-      margin-top: 2rem;
-    }
-    .nav-btn {
-      padding: 7px 14px;
-      font-size: 0.75rem;
-    }
-    .page-indicator {
-      padding: 5px 14px;
-      font-size: 0.8rem;
-    }
+    .tactical-pagination { gap: 15px; flex-wrap: wrap; }
+    .p-btn { padding: 10px 18px; font-size: 0.7rem; }
   }
 </style>
