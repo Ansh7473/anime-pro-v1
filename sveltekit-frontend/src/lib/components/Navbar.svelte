@@ -209,9 +209,23 @@
           </div>
         </div>
       {:else}
-        <div class="auth-buttons hide-mobile">
-          <a href="/auth/login" class="nav-btn-link">Login</a>
-          <a href="/auth/register" class="nav-btn-link accent">Sign Up</a>
+        <!-- Give unauthenticated users a guest profile dropdown instead of raw buttons on home screen -->
+        <div class="user-profile hide-mobile">
+          <button class="profile-trigger" title="Guest">
+            <img
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest&backgroundColor=b6e3f4"
+              alt="Guest"
+            />
+          </button>
+          <div class="profile-dropdown glass">
+            <div class="user-info">
+              <span class="user-name">Guest User</span>
+              <span class="user-email">Not logged in</span>
+            </div>
+            <hr />
+            <a href="/auth/login" class="dropdown-item">Login</a>
+            <a href="/auth/register" class="dropdown-item accent">Sign Up</a>
+          </div>
         </div>
       {/if}
     </div>

@@ -1,12 +1,12 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.animepro.app',
-  appName: 'AnimePro',
-  webDir: 'build',
+  appId: 'com.rusty.app',
+  appName: 'Rusty',
+  webDir: 'dist',
   server: {
-    androidScheme: 'capacitor',
-    hostname: 'localhost'
+    url: 'https://anime-pro-v1-frontend.vercel.app/',
+    cleartext: true
   }
 };
 
