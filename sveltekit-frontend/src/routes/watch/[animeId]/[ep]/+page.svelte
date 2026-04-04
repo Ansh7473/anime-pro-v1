@@ -554,6 +554,9 @@
                     allowfullscreen
                     title="Video Player"
                     class="video-frame"
+                    allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation allow-presentation allow-modals"
+                    referrerpolicy="no-referrer"
                   ></iframe>
                   <!-- Fallback explicit retry warning under iframe in case it gets Refused -->
                   <div class="iframe-fallback" role="presentation" style="position: absolute; top: 10px; right: 10px; z-index: 50; opacity: 0.85; transition: opacity 0.2s;" onmouseenter={(e) => e.currentTarget.style.opacity = '1'} onmouseleave={(e) => e.currentTarget.style.opacity = '0.85'}>
