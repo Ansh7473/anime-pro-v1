@@ -338,10 +338,18 @@
     try {
       const [animeRes, metaRes] = await Promise.all([
         api.getAnime(animeId),
-        api.getEpisodeMetadata(animeId),
+        api.getEpisodeMetadata(animeId, 1, 2000), // Increase to load all episodes
       ]);
       anime = animeRes;
       episodes = metaRes?.data?.episodes || [];
+
+      // Auto-select pagination page that contains the current episode
+      if (ep > 0 && episodes.length > 0) {
+        const pageIdx = Math.floor((ep - 1) / EPISODES_PER_PAGE);
+        if (pageIdx >= 0 && pageIdx < totalPages) {
+          currentEpPage = pageIdx;
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -350,6 +358,16 @@
 
     loadSources();
     checkResumeProgress();
+  });
+
+  // Watch for 'ep' changes locally to keep pagination synced (next/prev ep buttons)
+  $effect(() => {
+    if (ep > 0 && episodes.length > 0) {
+      const targetPage = Math.floor((ep - 1) / EPISODES_PER_PAGE);
+      if (currentEpPage !== targetPage && targetPage < totalPages) {
+        currentEpPage = targetPage;
+      }
+    }
   });
 
   onDestroy(() => {
