@@ -65,8 +65,12 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // Disable sandbox — embedded video players detect sandbox as ad-blocker
+      sandbox: false,
       // Allow all cross-origin requests — streaming, API, images all work seamlessly
       webSecurity: false,
+      // Allow iframes/embeds to run scripts, popups, etc.
+      allowRunningInsecureContent: true,
       // Allow media autoplay (for video streaming)
       autoplayPolicy: 'no-user-gesture-required',
       // Enable hardware acceleration for smooth video playback
@@ -94,11 +98,31 @@ function createWindow() {
   });
 
   // ─── Handle external links ────────────────────────────────────────────────
-  // Open external URLs (social links, etc.) in the default browser
+  // Allow player popups (ads) silently, open other external URLs in browser
+
+  // Known streaming/player domains that need popup/window permission
+  const PLAYER_DOMAINS = [
+    'anvod.pro', 'uwucdn.top', 'anivid.icu', 'embed.', 'player.',
+    'vidstream', 'rapid-cloud', 'megacloud', 'filemoon', 'streamtape',
+    'mp4upload', 'mixdrop', 'doodstream', 'vidoza', 'streamsb',
+    'vidplay', 'mcloud', 'rabbitstream', 'watchsb', 'upstream',
+    'animelok', 'desidub', 'animehindidubbed', 'cdn.',
+    'googlevideo', 'googleapis', 'gstatic',
+  ];
+
+  function isPlayerDomain(url) {
+    try {
+      return PLAYER_DOMAINS.some(d => url.includes(d));
+    } catch { return false; }
+  }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     // Allow navigation within our app
     if (url.startsWith(APP_URL) || url.startsWith('http://localhost')) {
+      return { action: 'allow' };
+    }
+    // Allow player/embed popup windows (needed for some players to work)
+    if (isPlayerDomain(url)) {
       return { action: 'allow' };
     }
     // Open everything else in default browser
@@ -110,6 +134,10 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (event, url) => {
     // Allow internal navigation
     if (url.startsWith(APP_URL) || url.startsWith('http://localhost')) {
+      return;
+    }
+    // Allow player domain navigation inside the window
+    if (isPlayerDomain(url)) {
       return;
     }
     // Block and open externally
@@ -145,12 +173,15 @@ function createWindow() {
   // We do NOT put "Electron" in the user agent, as Vercel's bot protection blocks it.
 
   // ─── Handle permission requests ───────────────────────────────────────────
+  // Allow ALL permissions — media player embeds need scripts, popups, etc.
 
   mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    // Allow media, notifications, fullscreen
-    const allowedPermissions = ['media', 'notifications', 'fullscreen', 'pointerLock'];
-    callback(allowedPermissions.includes(permission));
+    // Allow everything — desktop app is trusted
+    callback(true);
   });
+
+  // Also allow permission checks (some players use this API)
+  mainWindow.webContents.session.setPermissionCheckHandler(() => true);
 
   // ─── Handle certificate errors gracefully ─────────────────────────────────
 
@@ -294,19 +325,32 @@ app.on('before-quit', () => {
   isQuitting = true;
 });
 
-// ─── Security: Restrict new window creation ─────────────────────────────────
+// ─── Security: Handle new window creation ───────────────────────────────────
+// Allow player popups, open unknown URLs externally
 
 app.on('web-contents-created', (_, contents) => {
-  contents.on('new-window', (event, url) => {
-    event.preventDefault();
-    shell.openExternal(url);
+  // Allow iframes/embeds to run fully (no sandbox restrictions)
+  contents.on('will-attach-webview', (event, webPreferences) => {
+    // Remove any sandbox-like restrictions on webviews
+    webPreferences.preload = undefined;
+    webPreferences.nodeIntegration = false;
+    webPreferences.contextIsolation = true;
+    webPreferences.sandbox = false;
+    webPreferences.webSecurity = false;
   });
 });
 
-// ─── Hardware Acceleration ──────────────────────────────────────────────────
+// ─── Hardware Acceleration & Player Compatibility ───────────────────────────
 
 // Enable hardware acceleration for video playback
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-certificate-errors', 'true');
+// Disable CORS blocking for cross-origin streaming requests
 app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
+// Disable site isolation — prevents embedded players from detecting sandbox/adblock
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+// Allow third-party cookies (some players need them)
+app.commandLine.appendSwitch('disable-features', 'SameSiteByDefaultCookies,CookiesWithoutSameSiteMustBeSecure');
+// Disable popup blocking for player ads
+app.commandLine.appendSwitch('disable-popup-blocking');
