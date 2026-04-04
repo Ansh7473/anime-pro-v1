@@ -17,7 +17,7 @@
   let showUpdatePopup = $state(false);
   let latestVersion = $state("");
   const CURRENT_VERSION = "1.0.0"; // Increment this for new builds
-  const BACKEND_URL = 'http://localhost:3001'; // 'https://anime-pro-v1-backend-go.vercel.app';
+  const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app'; // 'http://localhost:3001';
 
   onMount(async () => {
     // Check for updates on Native Platforms
