@@ -132,6 +132,12 @@
       || (window.innerWidth <= 768);
   }
 
+  // Check if native Android orientation bridge is available (Capacitor app)
+  function hasNativeRotation(): boolean {
+    // @ts-ignore
+    return typeof window !== 'undefined' && window.AndroidRotation;
+  }
+
   async function toggleRotation() {
     try {
       if (!isRotated) {
@@ -139,18 +145,25 @@
         const isMobile = isMobileDevice();
 
         if (isMobile) {
-          // MOBILE: Enter fullscreen first (required for orientation lock)
+          // Enter fullscreen first
           if (!document.fullscreenElement && player.requestFullscreen) {
             try { await player.requestFullscreen(); } catch(e) {}
           }
-          // Wait a tick for fullscreen to take effect, then lock landscape
-          await new Promise(r => setTimeout(r, 300));
-          // @ts-ignore
-          if (screen.orientation && screen.orientation.lock) {
-            try {
-              // @ts-ignore
-              await screen.orientation.lock("landscape");
-            } catch(e) { console.warn("Orientation lock failed:", e); }
+
+          // Use native Android bridge if available (Capacitor app)
+          if (hasNativeRotation()) {
+            // @ts-ignore
+            window.AndroidRotation.lockLandscape();
+          } else {
+            // Fallback: try web orientation API (works in mobile Chrome)
+            await new Promise(r => setTimeout(r, 300));
+            // @ts-ignore
+            if (screen.orientation && screen.orientation.lock) {
+              try {
+                // @ts-ignore
+                await screen.orientation.lock("landscape");
+              } catch(e) { console.warn("Orientation lock failed:", e); }
+            }
           }
         } else {
           // DESKTOP: Just enter fullscreen (works as rotate/expand)
@@ -160,11 +173,16 @@
         }
         isRotated = true;
       } else {
-        // EXIT: Unlock orientation first, then exit fullscreen
-        // @ts-ignore
-        if (screen.orientation && screen.orientation.unlock) {
+        // EXIT: Unlock orientation, then exit fullscreen
+        if (hasNativeRotation()) {
           // @ts-ignore
-          try { screen.orientation.unlock(); } catch(e) {}
+          window.AndroidRotation.unlock();
+        } else {
+          // @ts-ignore
+          if (screen.orientation && screen.orientation.unlock) {
+            // @ts-ignore
+            try { screen.orientation.unlock(); } catch(e) {}
+          }
         }
         if (document.fullscreenElement && document.exitFullscreen) {
           try { await document.exitFullscreen(); } catch(e) {}
