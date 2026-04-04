@@ -1,0 +1,18 @@
+{
+  "name": "animepro-android",
+  "version": "2.0.4",
+  "description": "AnimePro - Premium Anime Streaming Android App",
+  "author": "AnimePro Team",
+  "license": "MIT",
+  "scripts": {
+    "build": "npx cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}
