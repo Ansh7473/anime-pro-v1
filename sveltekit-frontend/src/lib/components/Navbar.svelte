@@ -1,6 +1,6 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
-  import { Monitor, Heart } from 'lucide-svelte';
+  import { Download, Heart } from 'lucide-svelte';
   import { auth, logoutUser } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -115,7 +115,7 @@
       >
 
       <a href="/download" class="nav-icon-btn" title="Download Apps">
-        <Monitor size={20} />
+        <Download size={20} />
       </a>
 
       <a href="/donate" class="nav-icon-btn text-pink-500" title="Donate">
