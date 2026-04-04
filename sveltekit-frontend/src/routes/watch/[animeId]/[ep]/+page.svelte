@@ -2,7 +2,7 @@
   import { api, getProxiedImage, getProxiedUrl } from "$lib/api";
   import { auth } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import {
     Play,
     ChevronLeft,
@@ -364,9 +364,11 @@
   $effect(() => {
     if (ep > 0 && episodes.length > 0) {
       const targetPage = Math.floor((ep - 1) / EPISODES_PER_PAGE);
-      if (currentEpPage !== targetPage && targetPage < totalPages) {
-        currentEpPage = targetPage;
-      }
+      untrack(() => {
+        if (currentEpPage !== targetPage && targetPage < totalPages) {
+          currentEpPage = targetPage;
+        }
+      });
     }
   });
 
