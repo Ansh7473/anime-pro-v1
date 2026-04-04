@@ -1,9 +1,11 @@
 package com.animepro.app;
 
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebChromeClient;
@@ -47,6 +49,10 @@ public class MainActivity extends BridgeActivity {
             String defaultUA = settings.getUserAgentString();
             settings.setUserAgentString(defaultUA.replace("; wv", ""));
 
+            // Expose native orientation control to JavaScript
+            // Web code can call: window.AndroidRotation.lockLandscape() / unlock()
+            webView.addJavascriptInterface(new OrientationBridge(), "AndroidRotation");
+
             // Enable fullscreen video playback
             webView.setWebChromeClient(new WebChromeClient() {
                 @Override
@@ -57,6 +63,9 @@ public class MainActivity extends BridgeActivity {
                     }
                     customView = view;
                     customViewCallback = callback;
+
+                    // Force landscape for video fullscreen
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
                     // Create fullscreen container
                     fullscreenContainer = new FrameLayout(MainActivity.this);
@@ -98,12 +107,39 @@ public class MainActivity extends BridgeActivity {
                         customViewCallback = null;
                     }
 
+                    // Restore orientation to auto
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+
                     // Restore system UI
                     getWindow().getDecorView().setSystemUiVisibility(
                             View.SYSTEM_UI_FLAG_VISIBLE);
                 }
             });
         });
+    }
+
+    // JavaScript interface for native orientation control from web code
+    private class OrientationBridge {
+        @JavascriptInterface
+        public void lockLandscape() {
+            runOnUiThread(() ->
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE)
+            );
+        }
+
+        @JavascriptInterface
+        public void lockPortrait() {
+            runOnUiThread(() ->
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+            );
+        }
+
+        @JavascriptInterface
+        public void unlock() {
+            runOnUiThread(() ->
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
+            );
+        }
     }
 
     @Override
