@@ -128,20 +128,21 @@ func fetchWithChromeTLS(targetURL string) (*http.Response, error) {
 	reqPath := parsedURL.RequestURI()
 	httpReq := fmt.Sprintf("GET %s HTTP/1.1\r\n", reqPath)
 	httpReq += fmt.Sprintf("Host: %s\r\n", host)
-	httpReq += "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36\r\n"
+	httpReq += "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36\r\n"
 	httpReq += "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\r\n"
 	httpReq += "Accept-Language: en-US,en;q=0.9\r\n"
 	httpReq += "Accept-Encoding: identity\r\n"
-	httpReq += "Sec-Ch-Ua: \"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"\r\n"
+	httpReq += "Sec-Ch-Ua: \"Chromium\";v=\"125\", \"Not.A/Brand\";v=\"24\"\r\n"
 	httpReq += "Sec-Ch-Ua-Mobile: ?0\r\n"
 	httpReq += "Sec-Ch-Ua-Platform: \"Windows\"\r\n"
 	httpReq += "Sec-Fetch-Dest: document\r\n"
 	httpReq += "Sec-Fetch-Mode: navigate\r\n"
-	httpReq += "Sec-Fetch-Site: none\r\n"
+	httpReq += "Sec-Fetch-Site: same-origin\r\n"
 	httpReq += "Sec-Fetch-User: ?1\r\n"
 	httpReq += "Upgrade-Insecure-Requests: 1\r\n"
+	httpReq += fmt.Sprintf("Referer: https://%s/\r\n", host)
+	httpReq += "Priority: u=0, i\r\n"
 	httpReq += "Connection: keep-alive\r\n"
-	httpReq += "Cache-Control: max-age=0\r\n"
 	httpReq += "\r\n"
 
 	_, err = tlsConn.Write([]byte(httpReq))
@@ -186,14 +187,20 @@ func GetNineAnimeSources(slug string, ep int) map[string]interface{} {
 				log.Printf("[9anime] Error creating fallback request: %v", reqErr)
 				continue
 			}
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-			req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+			req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
 			req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 			req.Header.Set("Accept-Encoding", "identity")
+			req.Header.Set("Sec-Ch-Ua", `"Chromium";v="125", "Not.A/Brand";v="24"`)
+			req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+			req.Header.Set("Sec-Ch-Ua-Platform", `"Windows"`)
 			req.Header.Set("Sec-Fetch-Dest", "document")
 			req.Header.Set("Sec-Fetch-Mode", "navigate")
-			req.Header.Set("Sec-Fetch-Site", "none")
+			req.Header.Set("Sec-Fetch-Site", "same-origin")
+			req.Header.Set("Sec-Fetch-User", "?1")
 			req.Header.Set("Upgrade-Insecure-Requests", "1")
+			req.Header.Set("Referer", "https://9anime.org.lv/")
+			req.Header.Set("Priority", "u=0, i")
 
 			resp, err = client.Do(req)
 			if err != nil {
