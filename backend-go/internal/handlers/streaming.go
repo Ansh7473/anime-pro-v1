@@ -82,18 +82,27 @@ func StreamingNineAnime(c *gin.Context) {
 		ep = 1
 	}
 
+	log.Printf("[9anime Handler] Request: animeId=%s ep=%d", animeId, ep)
+
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
+		log.Printf("[9anime Handler] FAILED: Could not resolve titles for animeId=%s err=%v", animeId, err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "9anime"})
 		return
 	}
 
+	log.Printf("[9anime Handler] Resolved %d titles for animeId=%s: %v", len(titles), animeId, titles)
+
 	// Try all potential titles as slugs to find 9anime match
+	triedSlugs := make([]string, 0)
 	for _, title := range titles {
 		baseSlug := providers.ToKebab(title)
-		
+		triedSlugs = append(triedSlugs, baseSlug)
+		log.Printf("[9anime Handler] Trying title='%s' slug='%s' ep=%d", title, baseSlug, ep)
+
 		res := providers.GetNineAnimeSources(baseSlug, ep)
 		if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
+			log.Printf("[9anime Handler] SUCCESS: Found %d sources for slug='%s'", len(src), baseSlug)
 			c.JSON(http.StatusOK, gin.H{
 				"provider": "9anime",
 				"status":   200,
@@ -103,7 +112,13 @@ func StreamingNineAnime(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"provider": "9anime", "status": 404, "message": "No sources found"})
+	log.Printf("[9anime Handler] FAILED: No sources found for animeId=%s after trying slugs: %v", animeId, triedSlugs)
+	c.JSON(http.StatusNotFound, gin.H{
+		"provider":   "9anime",
+		"status":     404,
+		"message":    "No sources found",
+		"debug_info": fmt.Sprintf("Tried slugs: %v for titles: %v", triedSlugs, titles),
+	})
 }
 
 // StreamingAnimelokSlug returns potential slug candidates for client-side fetching
