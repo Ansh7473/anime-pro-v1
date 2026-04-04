@@ -1,0 +1,56 @@
+{
+  "name": "animepro-desktop",
+  "version": "2.0.4",
+  "description": "AnimePro - Premium Anime Streaming Desktop App",
+  "main": "main.js",
+  "author": "AnimePro Team",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "set ELECTRON_ENV=development && electron .",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable",
+    "build:all": "electron-builder --win nsis portable"
+  },
+  "build": {
+    "appId": "com.animepro.desktop",
+    "productName": "AnimePro",
+    "copyright": "Copyright © 2026 AnimePro",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**/*",
+      "!node_modules/**/*",
+      "node_modules/electron-is-dev/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "artifactName": "AnimePro-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AnimePro"
+    },
+    "portable": {
+      "artifactName": "AnimePro-Portable-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^35.1.2",
+    "electron-builder": "^26.0.12"
+  }
+}
