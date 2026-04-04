@@ -434,13 +434,16 @@
 	}
 
 	.logo-row img {
-		height: 18px;
-		filter: brightness(0) invert(1);
-		transition: opacity 0.3s ease;
+		height: 22px;
+		opacity: 0.8;
+		transition: all 0.3s ease;
+		filter: grayscale(1) contrast(1.2); /* Subtle tactical look */
 	}
 
 	.logo-row img:hover {
 		opacity: 1;
+		filter: none; /* Show full colors on hover */
+		transform: scale(1.05);
 	}
 
 	.placeholder-content {
