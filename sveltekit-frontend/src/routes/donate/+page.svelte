@@ -44,7 +44,7 @@
 				<!-- Profile Header -->
 				<div class="profile-header">
 					<div class="avatar-ring">
-						<img src="https://i.pinimg.com/736x/8e/3c/6e/8e3c6e9e4f2b1c4e7d3e2e2e2e2e2e2e.jpg" alt="Profile" class="avatar-img" />
+						<img src="/profile_avatar.png" alt="Profile" class="avatar-img" />
 					</div>
 					<div class="profile-name">
 						<span>Ansh Soni</span>
@@ -97,10 +97,10 @@
 					<div class="app-logos">
 						<span>SCAN WITH ANY UPI APP</span>
 						<div class="logo-row">
-							<img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/paytm-icon.png" alt="Paytm" />
-							<img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/phonepe-logo-icon.png" alt="PhonePe" />
-							<img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/google-pay-icon.png" alt="GPay" />
-							<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0tN5Y9a7YvE1L1z9Z2V6-wG6M_dGg5S1n-w&s" alt="BHIM" />
+							<img src="/paytm_logo.png" alt="Paytm" />
+							<img src="/phonepe_logo.png" alt="PhonePe" />
+							<img src="/googlepay_logo.png" alt="GPay" />
+							<img src="/bhim_logo.png" alt="BHIM" />
 						</div>
 					</div>
 				</div>
