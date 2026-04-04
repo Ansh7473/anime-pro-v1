@@ -1,15 +1,22 @@
 package com.animepro.app;
 
+import android.app.DownloadManager;
 import android.content.pm.ActivityInfo;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.CookieManager;
+import android.webkit.DownloadListener;
 import android.webkit.JavascriptInterface;
+import android.webkit.URLUtil;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebChromeClient;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import com.getcapacitor.BridgeActivity;
 
@@ -50,8 +57,36 @@ public class MainActivity extends BridgeActivity {
             settings.setUserAgentString(defaultUA.replace("; wv", ""));
 
             // Expose native orientation control to JavaScript
-            // Web code can call: window.AndroidRotation.lockLandscape() / unlock()
             webView.addJavascriptInterface(new OrientationBridge(), "AndroidRotation");
+
+            // Handle file downloads from WebView
+            webView.setDownloadListener(new DownloadListener() {
+                @Override
+                public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+                    try {
+                        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                        
+                        // Get cookies for the URL to handle authenticated downloads
+                        String cookies = CookieManager.getInstance().getCookie(url);
+                        request.addRequestHeader("Cookie", cookies);
+                        request.addRequestHeader("User-Agent", userAgent);
+                        
+                        request.setDescription("Downloading file...");
+                        request.setTitle(URLUtil.guessFileName(url, contentDisposition, mimetype));
+                        request.allowScanningByMediaScanner();
+                        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(url, contentDisposition, mimetype));
+                        
+                        DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                        if (dm != null) {
+                            dm.enqueue(request);
+                            Toast.makeText(getApplicationContext(), "Download starting...", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        Toast.makeText(getApplicationContext(), "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
 
             // Enable fullscreen video playback
             webView.setWebChromeClient(new WebChromeClient() {
