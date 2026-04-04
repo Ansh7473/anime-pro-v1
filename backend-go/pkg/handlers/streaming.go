@@ -126,7 +126,25 @@ func StreamingEpisodeMetadata(c *gin.Context) {
 	var episodes []utils.EpisodeMetadata
 	var providerName string
 
-	// 3. Jikan Fallback (Best for descriptions and titles) - Fetch all pages
+	// 1. Try Animelok first (FAST & handles pagination better)
+	log.Printf("[Metadata Handler] Trying Animelok metadata for %s", animeId)
+	alokEps := providers.GetAnimelokMetadataByMalId(malId, titles)
+	if len(alokEps) > 0 {
+		providerName = "Animelok"
+		for _, ae := range alokEps {
+			num, _ := ae["number"].(float64)
+			episodes = append(episodes, utils.EpisodeMetadata{
+				Number:      int(num),
+				Title:       utils.ToString(ae["title"]),
+				Image:       utils.ToString(ae["image"]),
+				Description: utils.ToString(ae["description"]),
+				IsFiller:    ae["isFiller"].(bool),
+			})
+		}
+		log.Printf("[Metadata Handler] Fetched %d episodes from %s", len(episodes), providerName)
+	}
+
+	// 3. Jikan Fallback (Best for descriptions and titles) - Fetch all pages if needed
 	if len(episodes) == 0 {
 		log.Printf("[Metadata Handler] No episodes from providers, trying Jikan fallback for %s", animeId)
 
@@ -136,25 +154,27 @@ func StreamingEpisodeMetadata(c *gin.Context) {
 
 		for {
 			jikanUrl := fmt.Sprintf("https://api.jikan.moe/v4/anime/%s/episodes?page=%d&limit=%d", animeId, page, limit)
-			jresp, jerr := utils.FetchWithRetries(jikanUrl, 2, 500)
+			// Jikan has a strict rate limit (3 requests per second)
+			if page > 1 {
+				time.Sleep(500 * time.Millisecond) // Faster than 1s to avoid Vercel 10s timeout
+			}
+			
+			jresp, jerr := utils.FetchWithRetries(jikanUrl, 3, 1000)
 			if jerr != nil || jresp.StatusCode() != http.StatusOK {
 				if page == 1 {
 					log.Printf("[Metadata Handler] Failed to fetch from Jikan API: %v", jerr)
 				}
+				log.Printf("[Metadata Handler] Stopped fetching Jikan episodes at page %d due to: %v", page, jerr)
 				break
 			}
 
 			var jdata map[string]interface{}
 			if err := json.Unmarshal(jresp.Body(), &jdata); err != nil {
-				if page == 1 {
-					log.Printf("[Metadata Handler] Failed to parse Jikan API response: %v", err)
-				}
 				break
 			}
 
 			jeps, ok := jdata["data"].([]interface{})
 			if !ok || len(jeps) == 0 {
-				// No more episodes
 				break
 			}
 
@@ -184,7 +204,7 @@ func StreamingEpisodeMetadata(c *gin.Context) {
 			page++
 		}
 
-		log.Printf("[Metadata Handler] Fetched %d episodes from Jikan for %s", len(episodes), animeId)
+		log.Printf("[Metadata Handler] Total episodes fetched from Jikan: %d", len(episodes))
 	}
 
 	// 4. AniList Enrichment (Official high-res thumbnails and titles)
