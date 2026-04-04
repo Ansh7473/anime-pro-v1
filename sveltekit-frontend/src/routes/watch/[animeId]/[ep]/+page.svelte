@@ -369,86 +369,95 @@
       hls = null;
     }
 
-    try {
-      const results = await Promise.allSettled([
-        api.getAnimelokSources(animeId, ep),
-        api.getDesiDubSources(animeId, ep),
-        api.getAHDSources(animeId, ep),
-      ]);
+    const providerConfigs = [
+      { name: "Animelok", fetcher: api.getAnimelokSources },
+      { name: "DesiDub", fetcher: api.getDesiDubSources },
+      { name: "AnimeHindiDubbed", fetcher: api.getAHDSources },
+    ];
 
-      let allSources: any[] = [];
+    let autoStarted = false;
+    let providersFinished = 0;
 
-      results.forEach((res, index) => {
-        if (res.status === "fulfilled" && res.value?.data?.sources) {
-          const providerSources = res.value.data.sources;
-          const providerNames = ["Animelok", "DesiDub", "AnimeHindiDubbed-WP"];
-          providerSources.forEach((s: any) => {
-            if (!s.provider) s.provider = providerNames[index];
-          });
-          allSources = [...allSources, ...providerSources];
-        }
-      });
+    // Handle each provider independently
+    providerConfigs.forEach(async (config) => {
+      try {
+        const res = await config.fetcher(animeId, ep);
+        if (res?.data?.sources) {
+          const providerSources = res.data.sources.map((s: any) => ({
+            ...s,
+            provider: s.provider || config.name,
+          }));
 
-      if (allSources.length > 0) {
-        sources = allSources;
+          // Add to global sources list reactively
+          sources = [...sources, ...providerSources];
 
-        // Pick best source based on user preference
-        const preferredLang = (
-          $auth.currentProfile?.language || "multi"
-        ).toLowerCase();
-        let bestSource = allSources[0];
+          // Auto-select logic if we haven't started anything yet
+          if (!autoStarted && providerSources.length > 0) {
+            const preferredLang = (
+              $auth.currentProfile?.language || "multi"
+            ).toLowerCase();
 
-        if (preferredLang === "hindi") {
-          bestSource =
-            allSources.find(
-              (s) =>
-                (s.language || "").toLowerCase().includes("hindi") ||
-                (s.category || "").toLowerCase() === "hindi",
-            ) || allSources[0];
-        } else if (preferredLang === "english" || preferredLang === "dub") {
-          bestSource =
-            allSources.find(
-              (s) =>
-                (s.language || "").toLowerCase().includes("english") ||
-                (s.type || "").toLowerCase() === "dub",
-            ) || allSources[0];
-        } else if (preferredLang === "sub") {
-          bestSource =
-            allSources.find(
-              (s) =>
-                (s.type || "").toLowerCase() === "sub" ||
-                !(s.type || "").toLowerCase().includes("dub"),
-            ) || allSources[0];
-        }
+            let bestMatch = null;
+            if (preferredLang === "hindi") {
+              bestMatch = providerSources.find(
+                (s: any) =>
+                  (s.language || "").toLowerCase().includes("hindi") ||
+                  (s.category || "").toLowerCase() === "hindi",
+              );
+            } else if (preferredLang === "english" || preferredLang === "dub") {
+              bestMatch = providerSources.find(
+                (s: any) =>
+                  (s.language || "").toLowerCase().includes("english") ||
+                  (s.type || "").toLowerCase() === "dub",
+              );
+            }
 
-        selectedSource = bestSource;
+            // Start player with the best match from this batch, or just the first available source
+            // if it's the first provider to return and we have no match.
+            const candidate = bestMatch || providerSources[0];
+            if (candidate && !autoStarted) {
+              selectedSource = candidate;
+              autoStarted = true;
 
-        // Local variable 'isEmbed' to match reactive state
-        const isEmbed =
-          selectedSource.isEmbed ||
-          selectedSource.type === "iframe" ||
-          selectedSource.url.includes("embed") ||
-          !selectedSource.url.includes(".m3u8");
+              const isEmbed =
+                selectedSource.isEmbed ||
+                selectedSource.type === "iframe" ||
+                selectedSource.url.includes("embed") ||
+                !selectedSource.url.includes(".m3u8");
 
-        if (!isEmbed) {
-          // Pass the RAW URL, initPlayer will handle internal proxying for segments
-          initPlayer(selectedSource.url);
-        } else {
-          if (videoElement) {
-            videoElement.pause();
-            videoElement.src = "";
+              if (!isEmbed) {
+                initPlayer(selectedSource.url);
+              } else {
+                if (videoElement) {
+                  videoElement.pause();
+                  videoElement.src = "";
+                }
+              }
+            }
           }
         }
-      } else {
-        error = "No sources found for this episode on any provider.";
+      } catch (err) {
+        console.warn(`Provider ${config.name} failed:`, err);
+      } finally {
+        providersFinished++;
+        if (providersFinished === providerConfigs.length) {
+          sourceLoading = false;
+          if (sources.length === 0) {
+            error = "No sources found for this episode on any provider.";
+          }
+        }
       }
-    } catch (e: any) {
-      error = "Failed to load sources. Try another episode.";
-      console.error(e);
-    } finally {
-      sourceLoading = false;
-    }
+    });
+
+    // Fallback: If after 8 seconds we have nothing, stop loading
+    setTimeout(() => {
+      if (sourceLoading && sources.length === 0 && providersFinished < providerConfigs.length) {
+        // We don't force stop, but we set a flag or log
+        console.log("Still waiting for some slow providers...");
+      }
+    }, 8000);
   }
+
 
   function initPlayer(url: string) {
     if (!videoElement) return;
