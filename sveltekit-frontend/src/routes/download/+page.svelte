@@ -95,7 +95,7 @@
 								class="tactical-btn primary-action"
 							>
 								<Download size={20} />
-								<span>INITIALIZE_LINK</span>
+								<span>DOWNLOAD FOR WINDOWS</span>
 							</a>
 							<div class="file-meta">
 								<span class="meta-item">VER: {win?.version || '2.0.4'}</span>
@@ -152,7 +152,7 @@
 								class="tactical-btn secondary-action"
 							>
 								<Zap size={20} />
-								<span>SYNC_MOBILE_NODE</span>
+								<span>DOWNLOAD FOR ANDROID</span>
 							</a>
 							<div class="file-meta">
 								<span class="meta-item">VER: {apk?.version || '1.9.2'}</span>
