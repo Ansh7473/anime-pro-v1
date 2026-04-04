@@ -127,30 +127,47 @@
 
   let isRotated = $state(false);
 
+  function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+      || (window.innerWidth <= 768);
+  }
+
   async function toggleRotation() {
     try {
       if (!isRotated) {
-        let player = document.querySelector(".video-wrapper") || document.documentElement;
-        if (!document.fullscreenElement && player.requestFullscreen) {
-          try { await player.requestFullscreen(); } catch(e) {}
+        const player = document.querySelector(".video-wrapper") || document.documentElement;
+        const isMobile = isMobileDevice();
+
+        if (isMobile) {
+          // MOBILE: Enter fullscreen first (required for orientation lock)
+          if (!document.fullscreenElement && player.requestFullscreen) {
+            try { await player.requestFullscreen(); } catch(e) {}
+          }
+          // Wait a tick for fullscreen to take effect, then lock landscape
+          await new Promise(r => setTimeout(r, 300));
+          // @ts-ignore
+          if (screen.orientation && screen.orientation.lock) {
+            try {
+              // @ts-ignore
+              await screen.orientation.lock("landscape");
+            } catch(e) { console.warn("Orientation lock failed:", e); }
+          }
+        } else {
+          // DESKTOP: Just enter fullscreen (works as rotate/expand)
+          if (!document.fullscreenElement && player.requestFullscreen) {
+            try { await player.requestFullscreen(); } catch(e) {}
+          }
         }
-        // Attempt native orientation lock if available
-        // @ts-ignore
-        if (screen.orientation && screen.orientation.lock) {
-          try {
-            // @ts-ignore
-            await screen.orientation.lock("landscape");
-          } catch(e) { console.warn("Native lock failed:", e); }
-        }
-        isRotated = true; // State tracking but without aggressive CSS transforms
+        isRotated = true;
       } else {
-        if (document.fullscreenElement && document.exitFullscreen) {
-          try { await document.exitFullscreen(); } catch(e) {}
-        }
+        // EXIT: Unlock orientation first, then exit fullscreen
         // @ts-ignore
         if (screen.orientation && screen.orientation.unlock) {
           // @ts-ignore
           try { screen.orientation.unlock(); } catch(e) {}
+        }
+        if (document.fullscreenElement && document.exitFullscreen) {
+          try { await document.exitFullscreen(); } catch(e) {}
         }
         isRotated = false;
       }
