@@ -128,6 +128,7 @@
   let isRotated = $state(false);
 
   function isMobileDevice() {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
       || (window.innerWidth <= 768);
   }
@@ -135,8 +136,9 @@
   // Check if native Android orientation bridge is available (Capacitor app)
   function hasNativeRotation(): boolean {
     // @ts-ignore
-    return typeof window !== 'undefined' && window.AndroidRotation;
+    return typeof window !== 'undefined' && !!window.AndroidRotation;
   }
+
 
   async function toggleRotation() {
     try {

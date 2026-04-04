@@ -191,12 +191,13 @@
           <button class="profile-trigger" title="Account">
             <img
               src={getProxiedImage(
-                $auth.currentProfile?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user.email}`,
+                ($auth.currentProfile?.avatar) ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user?.email || 'guest'}`,
               )}
               alt="Profile"
             />
           </button>
+
           <div class="profile-dropdown glass">
             <div class="user-info">
               <span class="user-name"
