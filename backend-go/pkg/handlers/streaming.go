@@ -207,7 +207,7 @@ func StreamingEpisodeMetadata(c *gin.Context) {
 			if page > 1 {
 				time.Sleep(500 * time.Millisecond) // Faster than 1s to avoid Vercel 10s timeout
 			}
-			
+
 			jresp, jerr := utils.FetchWithRetries(jikanUrl, 3, 1000)
 			if jerr != nil || jresp.StatusCode() != http.StatusOK {
 				if page == 1 {
