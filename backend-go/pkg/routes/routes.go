@@ -48,6 +48,7 @@ func SetupRoutes(r *gin.Engine) {
 	// 3. Streaming API Routes Group
 	streaming := v1.Group("/streaming")
 	{
+		streaming.GET("/sources/nineanime", handlers.StreamingNineAnime)
 		streaming.GET("/sources/animelok", handlers.StreamingAnimelok)
 		streaming.GET("/animelok-slug", handlers.StreamingAnimelokSlug)
 		streaming.GET("/sources/desidub", handlers.StreamingDesiDub)
