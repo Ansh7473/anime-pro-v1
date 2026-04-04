@@ -22,7 +22,7 @@
   onMount(async () => {
     // Check for updates on Native Platforms
     const userAgent = window.navigator.userAgent;
-    const isElectron = userAgent.includes("Electron");
+    const isElectron = !!(window as any).electronAPI?.isElectron;
     // @ts-ignore
     const isCapacitor = window.Capacitor?.isNativePlatform?.();
 
