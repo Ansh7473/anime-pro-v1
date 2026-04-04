@@ -555,7 +555,6 @@
                     title="Video Player"
                     class="video-frame"
                     allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write"
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox allow-top-navigation allow-presentation allow-modals"
                     referrerpolicy="no-referrer"
                   ></iframe>
                   <!-- Fallback explicit retry warning under iframe in case it gets Refused -->
