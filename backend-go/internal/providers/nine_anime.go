@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -15,9 +16,18 @@ import (
 )
 
 // GetNineAnimeSources grabs Moon/Omega iframe URLs from 9anime via corsproxy.io.
-// Only this provider uses the proxy as requested.
 func GetNineAnimeSources(slug string, ep int) map[string]interface{} {
-	apiKey := "987d90d7"
+	apiKeys := []string{
+		"987d90d7",
+		"4b4669d3",
+		"97b53241",
+		"19e6a473",
+		"97d01bcc",
+	}
+	
+	// Randomly pick a key for rotation
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	apiKey := apiKeys[r.Intn(len(apiKeys))]
 	urlPatterns := []string{
 		fmt.Sprintf("https://9anime.org.lv/%s-episode-%d/", slug, ep),
 		fmt.Sprintf("https://9anime.org.lv/%s-episode-%d", slug, ep),
