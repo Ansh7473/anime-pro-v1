@@ -121,13 +121,24 @@ function createWindow() {
     if (url.startsWith(APP_URL) || url.startsWith('http://localhost')) {
       return { action: 'allow' };
     }
-    // Allow player/embed popup windows (needed for some players to work)
-    if (isPlayerDomain(url)) {
-      return { action: 'allow' };
-    }
-    // Open everything else in default browser
-    shell.openExternal(url);
-    return { action: 'deny' };
+    // ALLOW ALL popups — embedded video players test window.open() to detect ad-blockers.
+    // If we deny ANY popup, the player thinks ads are blocked and refuses to play.
+    // Popup windows will be handled by 'did-create-window' event below.
+    return { action: 'allow' };
+  });
+
+  // Handle popup windows that get created — hide them or close ad popups quickly
+  mainWindow.webContents.on('did-create-window', (childWindow) => {
+    // Make popup windows minimal and hidden (player ad checks)
+    childWindow.setSize(1, 1);
+    childWindow.setPosition(-100, -100);
+    childWindow.setSkipTaskbar(true);
+    // Close ad popup windows after a short delay
+    setTimeout(() => {
+      if (!childWindow.isDestroyed()) {
+        childWindow.close();
+      }
+    }, 3000);
   });
 
   // Handle in-page navigation to external domains
