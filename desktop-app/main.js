@@ -59,6 +59,7 @@ function createWindow() {
     title: 'AnimePro',
     backgroundColor: '#0a0a0f',
     show: false, // Don't show until ready (prevents white flash)
+    fullscreenable: true, // Allow embedded player fullscreen to work
     autoHideMenuBar: true, // Hide menu bar for clean look
     icon: getAppIcon(),
     webPreferences: {
@@ -95,6 +96,20 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+  });
+
+  // ─── Fullscreen support for embedded player iframes ─────────────────────
+  // When the embedded video player requests fullscreen (via Fullscreen API),
+  // Electron must handle it by making the actual window fullscreen.
+
+  mainWindow.webContents.on('enter-html-full-screen', () => {
+    mainWindow.setFullScreen(true);
+    mainWindow.setMenuBarVisibility(false);
+  });
+
+  mainWindow.webContents.on('leave-html-full-screen', () => {
+    mainWindow.setFullScreen(false);
+    mainWindow.setMenuBarVisibility(false); // keep menu hidden
   });
 
   // ─── Handle external links ────────────────────────────────────────────────
