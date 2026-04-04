@@ -118,6 +118,7 @@ func StreamingNineAnime(c *gin.Context) {
 		"status":     404,
 		"message":    "No sources found",
 		"debug_info": fmt.Sprintf("Tried slugs: %v for titles: %v", triedSlugs, titles),
+		"diags":      triedSlugs, // This is just for tracing titles.
 	})
 }
 
