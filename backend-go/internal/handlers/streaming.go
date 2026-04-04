@@ -73,6 +73,39 @@ func StreamingAnimelok(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"provider": "Animelok", "status": 404, "message": "No sources found"})
 }
 
+// StreamingNineAnime handles fetching streaming sources from 9anime
+func StreamingNineAnime(c *gin.Context) {
+	animeId := c.Query("animeId")
+	epStr := c.Query("ep")
+	ep, _ := strconv.Atoi(epStr)
+	if ep == 0 {
+		ep = 1
+	}
+
+	titles, err := providers.GetAnimeTitles(animeId)
+	if err != nil || len(titles) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "9anime"})
+		return
+	}
+
+	// Try all potential titles as slugs to find 9anime match
+	for _, title := range titles {
+		baseSlug := providers.ToKebab(title)
+		
+		res := providers.GetNineAnimeSources(baseSlug, ep)
+		if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"provider": "9anime",
+				"status":   200,
+				"data":     res,
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"provider": "9anime", "status": 404, "message": "No sources found"})
+}
+
 // StreamingAnimelokSlug returns potential slug candidates for client-side fetching
 func StreamingAnimelokSlug(c *gin.Context) {
 	animeId := c.Query("animeId")
