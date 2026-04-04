@@ -19,6 +19,13 @@ const path = require('path');
 const APP_URL = 'https://anime-pro-v1-frontend.vercel.app';
 const IS_DEV = process.env.ELECTRON_ENV === 'development';
 
+// ─── User Agent Override ──────────────────────────────────────────────────────
+// Vercel's bot protection blocks Electron's default user agent (contains "Electron").
+// We set a clean Chrome user agent so Vercel treats us as a normal browser.
+// The web app detects Electron via window.electronAPI (set by preload.js) instead.
+const CHROME_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+app.userAgentFallback = CHROME_UA;
+
 // ─── Globals ──────────────────────────────────────────────────────────────────
 
 let mainWindow = null;
@@ -133,15 +140,9 @@ function createWindow() {
     mainWindow = null;
   });
 
-  // ─── Inject custom CSS for scrollbar styling ──────────────────────────────
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    // Set a custom user-agent suffix so the web app knows it's Electron
-    // (The layout.svelte checks for 'Electron' in userAgent)
-    mainWindow.webContents.setUserAgent(
-      mainWindow.webContents.getUserAgent() + ' Electron/' + app.getVersion()
-    );
-  });
+  // ─── Electron Detection ────────────────────────────────────────────────────
+  // The web app detects Electron via window.electronAPI.isElectron (from preload.js)
+  // We do NOT put "Electron" in the user agent, as Vercel's bot protection blocks it.
 
   // ─── Handle permission requests ───────────────────────────────────────────
 
