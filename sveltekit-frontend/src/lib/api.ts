@@ -206,6 +206,9 @@ export const api = {
 	getAnimelokSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources/animelok?animeId=${animeId}&ep=${ep}`),
 
+	getNineAnimeSources: (animeId: string, ep: number) =>
+		fetchJSON(`${STREAMING_URL}/sources/nineanime?animeId=${animeId}&ep=${ep}`),
+
 	getDesiDubSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources/desidub?animeId=${animeId}&ep=${ep}`),
 

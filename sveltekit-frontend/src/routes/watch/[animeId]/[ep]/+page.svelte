@@ -390,6 +390,7 @@
     }
 
     const providerConfigs = [
+      { name: "9anime", fetcher: api.getNineAnimeSources },
       { name: "Animelok", fetcher: api.getAnimelokSources },
       { name: "DesiDub", fetcher: api.getDesiDubSources },
       { name: "AnimeHindiDubbed", fetcher: api.getAHDSources },
