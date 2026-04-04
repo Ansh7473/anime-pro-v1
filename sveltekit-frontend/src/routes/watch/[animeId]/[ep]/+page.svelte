@@ -948,7 +948,7 @@
   .player-controls-overlay {
     position: absolute;
     top: 1rem;
-    right: 1rem;
+    left: 1rem;
     display: flex;
     gap: 0.5rem;
     opacity: 0;
