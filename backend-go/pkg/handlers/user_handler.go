@@ -210,3 +210,68 @@ func GetWatchlistStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"inWatchlist": true, "status": entry.Status, "entry": entry})
 }
+
+// GetUserStats returns aggregated user statistics
+func GetUserStats(c *gin.Context) {
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(uint)
+
+	var stats struct {
+		TotalSeconds  float64 `json:"totalSeconds"`
+		RecentCount   int64   `json:"recentCount"`
+		ReservesCount int64   `json:"reservesCount"`
+		HistoryCount  int64   `json:"historyCount"`
+	}
+
+	// 1. Total Seconds Watched (Combat Hours)
+	database.DB.Model(&models.WatchHistory{}).Where("user_id = ?", userId).Select("SUM(progress)").Scan(&stats.TotalSeconds)
+
+	// 2. Strategic Reserves (Plan to Watch)
+	database.DB.Model(&models.Watchlist{}).Where("user_id = ? AND status = ?", userId, "PLANNING").Count(&stats.ReservesCount)
+
+	// 3. History Count
+	database.DB.Model(&models.WatchHistory{}).Where("user_id = ?", userId).Count(&stats.HistoryCount)
+
+	// 4. Recently Active (Last 7 days)
+	lastWeek := time.Now().AddDate(0, 0, -7)
+	database.DB.Model(&models.WatchHistory{}).Where("user_id = ? AND last_watched_at > ?", userId, lastWeek).Count(&stats.RecentCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_hours":    stats.TotalSeconds / 3600,
+		"reserves_count": stats.ReservesCount,
+		"history_count":  stats.HistoryCount,
+		"recent_active":  stats.RecentCount,
+		"favorite_genre": "Tactical Scifi", // Placeholder for now - will implement genre aggregation next
+	})
+}
+
+// GetAIRecommendations generates tactical recommendations based on user history
+func GetAIRecommendations(c *gin.Context) {
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(uint)
+	_ = userId // Explicitly ignore until personalized recommendation logic is added
+
+	// Logic: Get top 2 genres from history and fetch trending from Anilist
+	// For now, return a curated "Tactical Briefing" of high-score action/thriller anime
+	// as a fallback while we implement the genre analyzer.
+	
+	// We'll reuse the Anilist search logic or just return popular action anime
+	// Mock implementation for the first phase of UI testing
+	c.JSON(http.StatusOK, gin.H{
+		"intelligence_level": "Alpha",
+		"briefing": "Based on your recent combat logs, intelligence suggests these high-value targets:",
+		"recommendations": []gin.H{
+			{"id": "1", "title": "Psycho-Pass", "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx13601-9t1m1z.jpg", "reason": "High tactical overlap"},
+			{"id": "2", "title": "Code Geass", "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1575-S6AMir9V9m7d.png", "reason": "Strategic mastermind detected"},
+			{"id": "3", "title": "86 Eighty-Six", "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116589-SFrKjZ8132kC.jpg", "reason": "Tactical squad combat"},
+		},
+	})
+}

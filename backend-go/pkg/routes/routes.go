@@ -130,6 +130,9 @@ func SetupRoutes(r *gin.Engine) {
 		user.GET("/comments/:animeId/:episode", handlers.GetComments)
 		user.DELETE("/comments/:id", handlers.DeleteComment)
 
+		user.GET("/stats", handlers.GetUserStats)
+		user.GET("/recommendations", handlers.GetAIRecommendations)
+
 		// 11. WebSocket (Live Chat)
 		user.GET("/ws", handlers.MainHub.ServeWS)
 	}
