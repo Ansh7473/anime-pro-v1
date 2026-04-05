@@ -10,8 +10,8 @@ import (
 )
 
 func GetWatchHistory(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -33,8 +33,8 @@ func GetWatchHistory(c *gin.Context) {
 }
 
 func UpdateWatchHistory(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -76,8 +76,8 @@ func UpdateWatchHistory(c *gin.Context) {
 }
 
 func DeleteHistory(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -99,8 +99,8 @@ func DeleteHistory(c *gin.Context) {
 }
 
 func GetWatchlist(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -114,8 +114,8 @@ func GetWatchlist(c *gin.Context) {
 }
 
 func AddToWatchlist(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -168,8 +168,8 @@ func AddToWatchlist(c *gin.Context) {
 }
 
 func RemoveFromWatchlist(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -192,8 +192,8 @@ func RemoveFromWatchlist(c *gin.Context) {
 
 // GetWatchlistStatus checks if a specific anime is in the user's watchlist
 func GetWatchlistStatus(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 

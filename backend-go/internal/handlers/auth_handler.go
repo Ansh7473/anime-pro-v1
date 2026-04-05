@@ -22,8 +22,8 @@ func generateToken(userId uint) (string, error) {
 }
 
 func Register(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -94,8 +94,8 @@ func Register(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 
@@ -140,8 +140,8 @@ func Login(c *gin.Context) {
 
 // GetCurrentUser returns the authenticated user's info
 func GetCurrentUser(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 

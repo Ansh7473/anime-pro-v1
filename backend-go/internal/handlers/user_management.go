@@ -12,8 +12,8 @@ import (
 
 // ChangePassword updates the authenticated user's password
 func ChangePassword(c *gin.Context) {
-	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+	if !database.WaitForDB() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
 		return
 	}
 

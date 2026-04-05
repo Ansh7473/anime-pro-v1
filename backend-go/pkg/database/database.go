@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
 	"gorm.io/driver/postgres"
@@ -11,6 +12,22 @@ import (
 )
 
 var DB *gorm.DB
+
+// WaitForDB blocks until DB is connected or timeout (20s) is reached.
+// Returns true if DB is ready, false if timed out.
+func WaitForDB() bool {
+	if DB != nil {
+		return true
+	}
+	// Poll every 250ms for up to 20 seconds
+	for i := 0; i < 80; i++ {
+		time.Sleep(250 * time.Millisecond)
+		if DB != nil {
+			return true
+		}
+	}
+	return false
+}
 
 func InitDB() {
 	dsn := os.Getenv("DATABASE_URL")
