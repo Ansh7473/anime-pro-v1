@@ -276,6 +276,9 @@
     right: 0;
     z-index: 1000;
     padding: 0.75rem 1rem;
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
     background: linear-gradient(
       180deg,
       rgba(0, 0, 0, 0.8) 0%,
@@ -349,6 +352,7 @@
 
   .search-container {
     position: relative;
+    max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 2rem);
   }
   .search-box {
     display: flex;
@@ -358,6 +362,8 @@
     border-radius: var(--radius-md);
     padding: 0.4rem 0.8rem;
     gap: 0.5rem;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .search-box input {
     background: none;
@@ -645,6 +651,9 @@
   @media (max-width: 480px) {
     .navbar {
       padding: 0.6rem 0.75rem;
+      padding-top: max(0.6rem, env(safe-area-inset-top));
+      padding-left: max(0.75rem, env(safe-area-inset-left));
+      padding-right: max(0.75rem, env(safe-area-inset-right));
     }
     .logo {
       font-size: 1.2rem;
@@ -653,15 +662,20 @@
       font-size: 1.1rem;
       padding: 0.4rem;
     }
+    .search-box {
+      max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 4rem);
+    }
     .search-box input {
-      width: 140px;
+      width: 120px;
+      min-width: 0;
+      flex: 1;
       font-size: 0.9rem;
     }
     .suggestions-dropdown {
       position: fixed;
-      top: 60px;
-      left: 10px;
-      right: 10px;
+      top: calc(60px + env(safe-area-inset-top, 0px));
+      left: max(10px, env(safe-area-inset-left, 10px));
+      right: max(10px, env(safe-area-inset-right, 10px));
       width: auto !important;
       transform: none !important;
       border-radius: 12px;
@@ -679,6 +693,8 @@
     }
     .mobile-menu {
       padding: 0.75rem;
+      padding-left: max(0.75rem, env(safe-area-inset-left));
+      padding-right: max(0.75rem, env(safe-area-inset-right));
       max-height: calc(100vh - 56px);
     }
     .mobile-link {
@@ -690,6 +706,9 @@
   @media (max-width: 360px) {
     .navbar {
       padding: 0.5rem 0.5rem;
+      padding-top: max(0.5rem, env(safe-area-inset-top));
+      padding-left: max(0.5rem, env(safe-area-inset-left));
+      padding-right: max(0.5rem, env(safe-area-inset-right));
     }
     .logo {
       font-size: 1.1rem;
@@ -700,17 +719,24 @@
       min-width: 40px;
       min-height: 40px;
     }
+    .search-box {
+      max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 3rem);
+    }
     .search-box input {
-      width: 120px;
+      width: 100px;
+      min-width: 0;
+      flex: 1;
       font-size: 0.85rem;
     }
     .suggestions-dropdown {
-      width: calc(100vw - 1rem);
-      right: -0.5rem;
-      left: 0.5rem;
+      left: max(0.5rem, env(safe-area-inset-left, 0.5rem));
+      right: max(0.5rem, env(safe-area-inset-right, 0.5rem));
+      width: auto;
     }
     .mobile-menu {
       padding: 0.5rem;
+      padding-left: max(0.5rem, env(safe-area-inset-left));
+      padding-right: max(0.5rem, env(safe-area-inset-right));
     }
     .mobile-link {
       padding: 0.5rem;
