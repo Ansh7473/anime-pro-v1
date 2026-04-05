@@ -197,7 +197,7 @@
   }
 
   .home-rows {
-    margin-top: -3rem;
+    margin-top: -1rem;
     position: relative;
     z-index: 3;
   }
@@ -257,7 +257,7 @@
       font-size: 1rem;
     }
     .home-rows {
-      margin-top: -2rem;
+      margin-top: 0;
     }
     .continue-section {
       margin-bottom: 1.5rem;
@@ -291,7 +291,7 @@
       font-size: 0.9rem;
     }
     .home-rows {
-      margin-top: -1.5rem;
+      margin-top: 0.5rem;
     }
     .continue-section {
       margin-bottom: 1.25rem;
@@ -325,7 +325,7 @@
       font-size: 0.85rem;
     }
     .home-rows {
-      margin-top: -1rem;
+      margin-top: 1rem;
     }
     .row-title {
       font-size: 0.95rem;
