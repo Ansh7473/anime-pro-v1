@@ -14,7 +14,9 @@
   let isSearching = $state(false);
   let showSuggestions = $state(false);
   let mobileMenuOpen = $state(false);
-  let searchContainer: HTMLElement;
+  let profileOpen = $state(false);
+  let searchContainer: HTMLElement = $state(null!);
+  let profileContainer: HTMLElement = $state(null!);
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -85,6 +87,9 @@
     const handleClick = (e: MouseEvent) => {
       if (searchContainer && !searchContainer.contains(e.target as Node)) {
         showSuggestions = false;
+      }
+      if (profileContainer && !profileContainer.contains(e.target as Node)) {
+        profileOpen = false;
       }
     };
     window.addEventListener("click", handleClick);
@@ -188,8 +193,8 @@
       >
 
       {#if $auth.user}
-        <div class="user-profile">
-          <button class="profile-trigger" title="Account">
+        <div class="user-profile" class:open={profileOpen} bind:this={profileContainer}>
+          <button class="profile-trigger" title="Account" onclick={() => profileOpen = !profileOpen}>
             <img
               src={getProxiedImage(
                 ($auth.currentProfile?.avatar) ||
@@ -207,12 +212,13 @@
               <span class="user-email">{$auth.user.email}</span>
             </div>
             <hr />
-            <a href="/profile" class="dropdown-item">My Profile</a>
-            <a href="/watchlist" class="dropdown-item">Watchlist</a>
-            <a href="/favorites" class="dropdown-item">Favorites</a>
+            <a href="/profile" class="dropdown-item" onclick={() => profileOpen = false}>My Profile</a>
+            <a href="/watchlist" class="dropdown-item" onclick={() => profileOpen = false}>Watchlist</a>
+            <a href="/favorites" class="dropdown-item" onclick={() => profileOpen = false}>Favorites</a>
             <button
               class="dropdown-item logout"
               onclick={() => {
+                profileOpen = false;
                 logoutUser();
                 goto("/");
               }}>Logout</button
@@ -595,7 +601,8 @@
     padding: 0.75rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  .user-profile:hover .profile-dropdown {
+  .user-profile:hover .profile-dropdown,
+  .user-profile.open .profile-dropdown {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
