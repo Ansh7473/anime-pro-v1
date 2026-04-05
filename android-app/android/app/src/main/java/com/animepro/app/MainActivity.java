@@ -30,8 +30,15 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Make status bar transparent for immersive feel
+        // Make status bar transparent and enable Edge-to-Edge (immersive)
         Window window = getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BAR_BACKGROUND_S);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        window.getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        );
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // Configure WebView after bridge is initialized
