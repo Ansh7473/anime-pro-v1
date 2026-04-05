@@ -8,8 +8,16 @@ import (
 	"strconv"
 	"strings"
 
+	"time"
+	"sync"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	homeCache      map[string]interface{}
+	homeCacheTime  time.Time
+	homeCacheMutex sync.Mutex
 )
 
 func transformMedia(anime map[string]interface{}) map[string]interface{} {
@@ -79,6 +87,15 @@ func transformMedia(anime map[string]interface{}) map[string]interface{} {
 
 // AnilistHome reproduces the AniList GraphQL query fetching top trending, popular, etc.
 func AnilistHome(c *gin.Context) {
+	// 1. Check Cache
+	homeCacheMutex.Lock()
+	if homeCache != nil && time.Since(homeCacheTime) < 15*time.Second {
+		defer homeCacheMutex.Unlock()
+		c.JSON(http.StatusOK, gin.H{"data": homeCache})
+		return
+	}
+	homeCacheMutex.Unlock()
+
 	query := `
 		query {
 			trending: Page(page: 1, perPage: 15) {
@@ -141,19 +158,31 @@ func AnilistHome(c *gin.Context) {
 	res := make(map[string]interface{})
 	for key, val := range data {
 		page, ok := val.(map[string]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 		mediaList, ok := page["media"].([]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 
 		transformedMedia := make([]map[string]interface{}, 0)
 		for _, m := range mediaList {
 			anime, ok := m.(map[string]interface{})
-			if !ok { continue }
+			if !ok {
+				continue
+			}
 
 			transformedMedia = append(transformedMedia, transformMedia(anime))
 		}
 		res[key] = transformedMedia
 	}
+
+	// Update Cache
+	homeCacheMutex.Lock()
+	homeCache = res
+	homeCacheTime = time.Now()
+	homeCacheMutex.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{"data": res})
 }
