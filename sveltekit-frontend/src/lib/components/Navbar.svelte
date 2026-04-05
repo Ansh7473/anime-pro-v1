@@ -116,15 +116,15 @@
     </div>
 
     <div class="nav-actions">
-      <button class="nav-icon-btn" onclick={handleRandom} title="Random Anime"
+      <button class="nav-icon-btn hide-mobile" onclick={handleRandom} title="Random Anime"
         >🎲</button
       >
 
-      <a href="/download" class="nav-icon-btn" title="Download Apps">
+      <a href="/download" class="nav-icon-btn hide-mobile" title="Download Apps">
         <Download size={20} />
       </a>
 
-      <a href="/donate" class="nav-icon-btn text-pink-500" title="Donate">
+      <a href="/donate" class="nav-icon-btn text-pink-500 hide-mobile" title="Donate">
         <Heart size={20} fill="currentColor" />
       </a>
 
