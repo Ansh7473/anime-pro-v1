@@ -372,5 +372,10 @@ export function getProxiedUrl(url: string, referer = ''): string {
 }
 
 export function getProxiedImage(url: string, fallback = ''): string {
-	return getProxiedUrl(url) || fallback;
+	if (!url) return fallback;
+	// Use our smart proxy for external images to handle CORS and self-healing
+	if (url.startsWith('http') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+		return `${GENERAL_PROXY}?url=${encodeURIComponent(url)}`;
+	}
+	return url || fallback;
 }

@@ -613,6 +613,8 @@ func StreamingProxy(c *gin.Context) {
 		headers["Sec-Fetch-Dest"] = "iframe"
 	} else if strings.Contains(lowerTarget, ".js") {
 		headers["Sec-Fetch-Dest"] = "script"
+	} else if strings.Contains(lowerTarget, ".jpg") || strings.Contains(lowerTarget, ".jpeg") || strings.Contains(lowerTarget, ".png") || strings.Contains(lowerTarget, ".webp") {
+		headers["Sec-Fetch-Dest"] = "image"
 	} else {
 		headers["Sec-Fetch-Dest"] = "empty"
 	}
@@ -761,6 +763,20 @@ success:
 	}
 
 	if !resp.IsSuccess() && resp.StatusCode() != 200 {
+		// Healing logic for AniList images (resolves 404s due to CDN hash rotation)
+		if resp.StatusCode() == 404 && strings.Contains(lowerTarget, "anilist.co") {
+			log.Printf("[Proxy] 404 for AniList image detected. Attempting repair for: %s", targetUrl)
+			newUrl, err := healAnilistImage(targetUrl)
+			if err == nil && newUrl != "" && newUrl != targetUrl {
+				log.Printf("[Proxy] HEALED! New URL: %s", newUrl)
+				// Retry fetch with the newly resolved URL
+				resp, err = fetchTarget(newUrl, referer)
+				if err == nil && resp.IsSuccess() {
+					goto success
+				}
+			}
+		}
+
 		log.Printf("[Proxy] Target FINALLY returned %d for %s", resp.StatusCode(), targetUrl)
 		c.JSON(resp.StatusCode(), gin.H{"error": "Target CDN returned error", "status": resp.StatusCode()})
 		return
@@ -1095,3 +1111,32 @@ func ProviderAHDWPLatest(c *gin.Context)   { c.JSON(http.StatusOK, []interface{}
 func ProviderAHDWPEpisodes(c *gin.Context) { ProviderAHDInfo(c) }
 func ProviderAHDWPServers(c *gin.Context)  { ProviderAHDInfo(c) }
 func ProviderAHDWPSources(c *gin.Context)  { ProviderAHDSources(c) }
+
+// healAnilistImage extracts the ID from a stale AniList URL and fetches the current living URL
+func healAnilistImage(originalUrl string) (string, error) {
+	// Extract ID from URL like https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx13601-9t1m1z.jpg
+	re := regexp.MustCompile(`bx(\d+)-`)
+	match := re.FindStringSubmatch(originalUrl)
+	if len(match) < 2 {
+		return "", fmt.Errorf("no id found in URL")
+	}
+	id, _ := strconv.Atoi(match[1])
+
+	query := `query($id: Int) { Media(id: $id, type: ANIME) { coverImage { large } } }`
+	vars := map[string]interface{}{"id": id}
+	data, err := utils.FetchAnilist(query, vars)
+	if err != nil {
+		return "", err
+	}
+
+	media, ok := data["Media"].(map[string]interface{})
+	if !ok || media == nil {
+		return "", fmt.Errorf("media not found in AniList")
+	}
+	cover, ok := media["coverImage"].(map[string]interface{})
+	if !ok || cover == nil {
+		return "", fmt.Errorf("cover not found in AniList")
+	}
+
+	return utils.ToString(cover["large"]), nil
+}
