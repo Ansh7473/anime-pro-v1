@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import PullToRefresh from "$lib/components/PullToRefresh.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
   import Footer from "$lib/components/Footer.svelte";
   import { page } from "$app/state";
@@ -68,14 +69,16 @@
     </button>
   {/if}
 
-  <main class="main-content">
-    {#key page.url.pathname}
-      <div in:fly={{ y: 8, duration: 400, delay: 200 }} out:fly={{ y: -8, duration: 200 }}>
-        {@render children()}
-      </div>
-    {/key}
-  </main>
-  <Footer />
+  <PullToRefresh>
+    <main class="main-content">
+      {#key page.url.pathname}
+        <div in:fly={{ y: 8, duration: 400, delay: 200 }} out:fly={{ y: -8, duration: 200 }}>
+          {@render children()}
+        </div>
+      {/key}
+    </main>
+    <Footer />
+  </PullToRefresh>
 
   {#if showUpdatePopup}
     <div class="fixed bottom-6 right-6 z-[9999] w-80 bg-[#1a1a1f] border border-white/10 rounded-2xl p-5 shadow-2xl overflow-hidden" transition:fly={{ x: 100, duration: 200 }}>
