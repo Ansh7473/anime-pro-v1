@@ -601,7 +601,15 @@
     padding: 0.75rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  .user-profile:hover .profile-dropdown,
+  /* Desktop only: hover to open */
+  @media (hover: hover) {
+    .user-profile:hover .profile-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+  }
+  /* Both desktop and mobile: click/tap to open */
   .user-profile.open .profile-dropdown {
     opacity: 1;
     visibility: visible;
