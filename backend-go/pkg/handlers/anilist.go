@@ -560,3 +560,58 @@ func AnilistSchedule(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": transformed})
 }
+
+// ResolveBatchMetadata fetches fresh metadata (titles, posters) for multiple anime IDs in one query
+func ResolveBatchMetadata(malIds []int) (map[int]map[string]interface{}, error) {
+	if len(malIds) == 0 {
+		return make(map[int]map[string]interface{}), nil
+	}
+
+	// Deduplicate IDs to minimize query size
+	uniqueIdsMap := make(map[int]bool)
+	var uniqueIds []int
+	for _, id := range malIds {
+		if !uniqueIdsMap[id] {
+			uniqueIdsMap[id] = true
+			uniqueIds = append(uniqueIds, id)
+		}
+	}
+
+	query := `
+		query($ids: [Int]) {
+			Page(page: 1, perPage: 50) {
+				media(idMal_in: $ids, type: ANIME) {
+					id
+					idMal
+					title { romaji english native }
+					coverImage { extraLarge large }
+				}
+			}
+		}
+	`
+
+	data, err := utils.FetchAnilist(query, map[string]interface{}{"ids": uniqueIds})
+	if err != nil {
+		return nil, err
+	}
+
+	page, ok := data["Page"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid AniList response")
+	}
+
+	mediaList, ok := page["media"].([]interface{})
+	if !ok {
+		return make(map[int]map[string]interface{}), nil
+	}
+
+	results := make(map[int]map[string]interface{})
+	for _, m := range mediaList {
+		if anime, ok := m.(map[string]interface{}); ok {
+			transformed := transformMedia(anime)
+			results[int(utils.ToFloat64(transformed["id"]))] = transformed
+		}
+	}
+
+	return results, nil
+}

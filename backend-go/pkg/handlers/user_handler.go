@@ -6,6 +6,8 @@ import (
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"strconv"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,6 +29,28 @@ func GetWatchHistory(c *gin.Context) {
 	if err := query.Order("last_watched_at desc").Limit(50).Find(&history).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch history"})
 		return
+	}
+
+	// Refresh metadata from AniList API (Main API)
+	var ids []int
+	for _, h := range history {
+		if id, err := strconv.Atoi(h.AnimeID); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) > 0 {
+		freshData, err := ResolveBatchMetadata(ids)
+		if err == nil {
+			for i := range history {
+				if id, err := strconv.Atoi(history[i].AnimeID); err == nil {
+					if fresh, ok := freshData[id]; ok {
+						// Update with fresh data from AniList
+						history[i].AnimeTitle = utils.ToString(fresh["title"])
+						history[i].AnimePoster = utils.ToString(fresh["poster"])
+					}
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, history)
@@ -110,6 +134,29 @@ func GetWatchlist(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch watchlist"})
 		return
 	}
+
+	// Refresh metadata from AniList API (Main API)
+	var ids []int
+	for _, w := range watchlist {
+		if id, err := strconv.Atoi(w.AnimeID); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) > 0 {
+		freshData, err := ResolveBatchMetadata(ids)
+		if err == nil {
+			for i := range watchlist {
+				if id, err := strconv.Atoi(watchlist[i].AnimeID); err == nil {
+					if fresh, ok := freshData[id]; ok {
+						// Update with fresh data from AniList
+						watchlist[i].AnimeTitle = utils.ToString(fresh["title"])
+						watchlist[i].AnimePoster = utils.ToString(fresh["poster"])
+					}
+				}
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, watchlist)
 }
 

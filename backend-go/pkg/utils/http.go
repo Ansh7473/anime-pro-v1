@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"encoding/json"
@@ -72,6 +73,30 @@ func ToString(v interface{}) string {
 		return s
 	}
 	return ""
+}
+
+// ToFloat64 is a helper for safe float64 extraction from interfaces
+func ToFloat64(v interface{}) float64 {
+	if v == nil {
+		return 0
+	}
+	switch t := v.(type) {
+	case float64:
+		return t
+	case int:
+		return float64(t)
+	case int64:
+		return float64(t)
+	case string:
+		f, _ := strconv.ParseFloat(t, 64)
+		return f
+	}
+	return 0
+}
+
+// ToInt is a helper for safe int extraction from interfaces
+func ToInt(v interface{}) int {
+	return int(ToFloat64(v))
 }
 
 // ToUrlQuery escapes a string for use in a URL query parameter
