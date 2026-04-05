@@ -194,7 +194,7 @@
 
       {#if $auth.user}
         <div class="user-profile" class:open={profileOpen} bind:this={profileContainer}>
-          <button class="profile-trigger" title="Account" onclick={() => profileOpen = !profileOpen}>
+          <button class="profile-trigger" title="Account" onclick={(e) => { e.stopPropagation(); profileOpen = !profileOpen; }}>
             <img
               src={getProxiedImage(
                 ($auth.currentProfile?.avatar) ||
