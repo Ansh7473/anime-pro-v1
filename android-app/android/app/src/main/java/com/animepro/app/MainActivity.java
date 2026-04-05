@@ -32,7 +32,7 @@ public class MainActivity extends BridgeActivity {
 
         // Make status bar transparent and enable Edge-to-Edge (immersive)
         Window window = getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BAR_BACKGROUND_S);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
         window.getDecorView().setSystemUiVisibility(
