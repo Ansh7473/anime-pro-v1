@@ -22,6 +22,7 @@
     { href: "/schedule", label: "Schedule" },
     { href: "/tv-series", label: "TV Series" },
     { href: "/movies", label: "Movies" },
+    { href: "/intel", label: "Intel Center" },
   ];
 
   function handleScroll() {
@@ -397,9 +398,12 @@
     top: 115%;
     right: 0;
     width: 300px;
-    max-width: calc(100vw - 2rem);
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--net-red);
     border-radius: var(--radius-lg);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
     overflow: hidden;
     padding: 0.5rem;
     z-index: 1001;
@@ -544,33 +548,6 @@
     font-size: 1.5rem;
   }
 
-  .auth-buttons {
-    display: flex;
-    gap: 0.5rem;
-    margin-left: 0.5rem;
-  }
-  .nav-btn-link {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-decoration: none;
-    color: white;
-    transition: 0.2s;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-  }
-  .nav-btn-link:not(.accent):hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-  .nav-btn-link.accent {
-    background: var(--net-red);
-  }
-  .nav-btn-link.accent:hover {
-    background: #ff1e2b;
-    transform: translateY(-1px);
-  }
 
   .user-profile {
     position: relative;
@@ -681,9 +658,16 @@
       font-size: 0.9rem;
     }
     .suggestions-dropdown {
-      width: calc(100vw - 1.5rem);
-      right: -0.75rem;
-      left: 0.75rem;
+      position: fixed;
+      top: 60px;
+      left: 10px;
+      right: 10px;
+      width: auto !important;
+      transform: none !important;
+      border-radius: 12px;
+      z-index: 2000;
+      max-height: 70vh;
+      overflow-y: auto;
     }
     .suggestion-poster {
       width: 36px;

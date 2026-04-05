@@ -356,6 +356,12 @@ export const api = {
 			headers: authHeaders(token)
 		}),
 
+	getUserStats: (token: string) =>
+		fetchJSON(`${USER_URL}/stats`, { headers: authHeaders(token) }),
+
+	getAIRecommendations: (token: string) =>
+		fetchJSON(`${USER_URL}/recommendations`, { headers: authHeaders(token) }),
+
 	getLatestReleases: () => fetchJSON(`${BACKEND_URL}/api/v1/releases/latest`)
 };
 
