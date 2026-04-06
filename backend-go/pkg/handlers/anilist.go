@@ -284,7 +284,7 @@ func AnilistAnime(c *gin.Context) {
 		if media != nil {
 			transformed := transformMedia(media)
 
-			// Process relations
+			// Process relations dynamically
 			relations := []map[string]interface{}{}
 			if relObj, ok := media["relations"].(map[string]interface{}); ok {
 				if edges, ok := relObj["edges"].([]interface{}); ok {
@@ -292,9 +292,8 @@ func AnilistAnime(c *gin.Context) {
 						if edge, ok := e.(map[string]interface{}); ok {
 							node, _ := edge["node"].(map[string]interface{})
 							if node != nil {
-								// Standardize related anime using transformMedia
 								anime := transformMedia(node)
-								// Add the relation type for UI display
+								// Attach dynamic relation type
 								anime["relation"] = edge["relationType"]
 								relations = append(relations, anime)
 							}
@@ -303,6 +302,21 @@ func AnilistAnime(c *gin.Context) {
 				}
 			}
 			transformed["relations"] = relations
+
+			// Process recommendations dynamically - flattening the "nodes" structure
+			recommendations := []map[string]interface{}{}
+			if recsObj, ok := media["recommendations"].(map[string]interface{}); ok {
+				if nodes, ok := recsObj["nodes"].([]interface{}); ok {
+					for _, n := range nodes {
+						if nodeWrap, ok := n.(map[string]interface{}); ok {
+							if recNode, ok := nodeWrap["mediaRecommendation"].(map[string]interface{}); ok {
+								recommendations = append(recommendations, transformMedia(recNode))
+							}
+						}
+					}
+				}
+			}
+			transformed["recommendations"] = recommendations
 			c.JSON(http.StatusOK, gin.H{"data": transformed})
 			return
 		}
