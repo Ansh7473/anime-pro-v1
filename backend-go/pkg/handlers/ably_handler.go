@@ -28,10 +28,10 @@ func GetChatToken(c *gin.Context) {
 		return
 	}
 
-	// Create a token request with 1 hour TTL
+	// Create a token request with 1 hour TTL (milliseconds)
 	params := &ably.TokenParams{
 		ClientID: userId,
-		TTL:      time.Hour,
+		TTL:      int64(time.Hour / time.Millisecond),
 	}
 
 	tokenRequest, err := client.Auth.CreateTokenRequest(params)
