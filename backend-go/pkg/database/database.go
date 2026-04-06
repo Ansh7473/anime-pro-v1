@@ -43,12 +43,14 @@ func InitDB() {
 	}
 
 	if err != nil {
-		log.Fatalf("❌ Error initializing Firebase App: %v", err)
+		log.Printf("❌ Error initializing Firebase App: %v", err)
+		return
 	}
 
 	client, err := app.Firestore(Ctx)
 	if err != nil {
-		log.Fatalf("❌ Error initializing Firestore client: %v", err)
+		log.Printf("❌ Error initializing Firestore client: %v", err)
+		return
 	}
 
 	DB = client

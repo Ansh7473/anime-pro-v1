@@ -10,6 +10,7 @@ import (
 func SetupRoutes(r *gin.Engine) {
 	// Initialize API version grouping
 	v1 := r.Group("/api/v1")
+	v1.Use(middleware.DBMiddleware())
 	r.NoRoute(handlers.SmartAssetProxy)
 
 	// 1. Jikan API Routes Group
