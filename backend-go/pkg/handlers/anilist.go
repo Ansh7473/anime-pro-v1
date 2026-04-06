@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"time"
 	"sync"
+	"time"
+
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -59,10 +60,12 @@ func transformMedia(anime map[string]interface{}) map[string]interface{} {
 		trailer["url"] = "https://www.youtube.com/watch?v=" + utils.ToString(t["id"])
 	}
 
-	// Determine Best Title (Priority: English > Romaji)
+	// Priority: 1. English, 2. userPreferred, 3. Synonyms, 4. Romaji, 5. Native
 	bestTitle := utils.ToString(title["english"])
 	if bestTitle == "" {
-		// Fallback to Synonyms if English title field is empty
+		bestTitle = utils.ToString(title["userPreferred"])
+	}
+	if bestTitle == "" {
 		if syns, ok := anime["synonyms"].([]interface{}); ok && len(syns) > 0 {
 			bestTitle = utils.ToString(syns[0])
 		}
@@ -70,28 +73,34 @@ func transformMedia(anime map[string]interface{}) map[string]interface{} {
 	if bestTitle == "" {
 		bestTitle = utils.ToString(title["romaji"])
 	}
+	if bestTitle == "" {
+		bestTitle = utils.ToString(title["native"])
+	}
+	if bestTitle == "" {
+		bestTitle = "Unknown Anime"
+	}
 
 	return map[string]interface{}{
-		"id":             finalID,
-		"mal_id":         finalID,
-		"anilist_id":     id,
-		"title":          bestTitle,
-		"poster":         utils.ToString(cover["large"]),
-		"image":          utils.ToString(cover["extraLarge"]),
-		"synopsis":       utils.ToString(anime["description"]),
-		"type":           anime["format"],
-		"episodes":       anime["episodes"],
-		"status":         anime["status"],
-		"score":          anime["averageScore"],
-		"rating":         anime["averageScore"],
-		"year":           anime["seasonYear"],
-		"season":         strings.ToLower(utils.ToString(anime["season"])),
-		"genres":         genres,
-		"duration":       anime["duration"],
-		"popularity":     anime["popularity"],
-		"studios":        studios,
-		"trailer":        trailer,
-		"bannerImage":    anime["bannerImage"],
+		"id":          finalID,
+		"mal_id":      finalID,
+		"anilist_id":  id,
+		"title":       bestTitle,
+		"poster":      utils.ToString(cover["large"]),
+		"image":       utils.ToString(cover["extraLarge"]),
+		"synopsis":    utils.ToString(anime["description"]),
+		"type":        anime["format"],
+		"episodes":    anime["episodes"],
+		"status":      anime["status"],
+		"score":       anime["averageScore"],
+		"rating":      anime["averageScore"],
+		"year":        anime["seasonYear"],
+		"season":      strings.ToLower(utils.ToString(anime["season"])),
+		"genres":      genres,
+		"duration":    anime["duration"],
+		"popularity":  anime["popularity"],
+		"studios":     studios,
+		"trailer":     trailer,
+		"bannerImage": anime["bannerImage"],
 	}
 }
 
@@ -198,8 +207,6 @@ func AnilistHome(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": res})
 }
 
-
-
 func AnilistAnime(c *gin.Context) {
 	idStr := c.Param("id")
 	id, _ := strconv.Atoi(idStr)
@@ -217,7 +224,7 @@ func AnilistAnime(c *gin.Context) {
 		fragment mediaFields on Media {
 			id
 			idMal
-			title { romaji english native }
+			title { romaji english native userPreferred }
 			coverImage { extraLarge large }
 			bannerImage
 			description
@@ -241,11 +248,26 @@ func AnilistAnime(c *gin.Context) {
 					node {
 						id
 						idMal
-						title { romaji english native }
+						title { romaji english native userPreferred }
 						format
 						type
 						status
 						coverImage { large }
+						synonyms
+					}
+				}
+			}
+			recommendations(sort: [RATING_DESC, ID_DESC]) {
+				nodes {
+					mediaRecommendation {
+						id
+						idMal
+						title { romaji english native userPreferred }
+						coverImage { large }
+						format
+						type
+						status
+						synonyms
 					}
 				}
 			}
@@ -337,11 +359,13 @@ func AnilistCharacters(c *gin.Context) {
 	var data map[string]interface{}
 	json.Unmarshal(resp.Body(), &data)
 	chars, _ := data["data"].([]interface{})
-	
+
 	transformed := []map[string]interface{}{}
 	for _, ch := range chars {
 		cMap, ok := ch.(map[string]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 		charNode, _ := cMap["character"].(map[string]interface{})
 		images, _ := charNode["images"].(map[string]interface{})
 		jpg, _ := images["jpg"].(map[string]interface{})
@@ -350,7 +374,7 @@ func AnilistCharacters(c *gin.Context) {
 			"role": cMap["role"],
 			"character": map[string]interface{}{
 				"mal_id": charNode["mal_id"],
-				"name": charNode["name"],
+				"name":   charNode["name"],
 				"images": map[string]interface{}{
 					"jpg": map[string]interface{}{
 						"image_url": jpg["image_url"],
@@ -379,17 +403,19 @@ func AnilistRecommendations(c *gin.Context) {
 	transformed := []map[string]interface{}{}
 	for _, r := range recs {
 		rMap, ok := r.(map[string]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 		node, _ := rMap["entry"].(map[string]interface{})
 		images, _ := node["images"].(map[string]interface{})
 		jpg, _ := images["jpg"].(map[string]interface{})
 
 		transformed = append(transformed, map[string]interface{}{
-			"id": node["mal_id"],
+			"id":     node["mal_id"],
 			"mal_id": node["mal_id"],
-			"title": node["title"],
+			"title":  node["title"],
 			"poster": jpg["large_image_url"],
-			"image": jpg["image_url"],
+			"image":  jpg["image_url"],
 		})
 	}
 
@@ -400,7 +426,7 @@ func AnilistSearch(c *gin.Context) {
 	q := c.Query("q")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	
+
 	query := `
 		query (
 			$page: Int = 1
@@ -449,7 +475,7 @@ func AnilistSearch(c *gin.Context) {
 	`
 
 	variables := map[string]interface{}{
-		"page": page,
+		"page":    page,
 		"perPage": limit,
 	}
 	if q != "" {
@@ -472,7 +498,9 @@ func AnilistSearch(c *gin.Context) {
 	}
 	if seasonYearParam := c.Query("seasonYear"); seasonYearParam != "" {
 		year, _ := strconv.Atoi(seasonYearParam)
-		if year > 0 { variables["seasonYear"] = year }
+		if year > 0 {
+			variables["seasonYear"] = year
+		}
 	}
 
 	data, err := utils.FetchAnilist(query, variables)
@@ -497,7 +525,9 @@ func AnilistSearch(c *gin.Context) {
 	transformedMedia := make([]map[string]interface{}, 0)
 	for _, m := range mediaList {
 		anime, ok := m.(map[string]interface{})
-		if !ok { continue }
+		if !ok {
+			continue
+		}
 
 		transformedMedia = append(transformedMedia, transformMedia(anime))
 	}
@@ -509,8 +539,6 @@ func AnilistSearch(c *gin.Context) {
 		},
 	})
 }
-
-
 
 func AnilistSchedule(c *gin.Context) {
 	startStr := c.Query("start")
@@ -589,7 +617,7 @@ func AnilistSchedule(c *gin.Context) {
 
 		// Transform the media object using the existing helper
 		item := transformMedia(media)
-		
+
 		// Add schedule-specific fields
 		item["episode"] = sched["episode"]
 		item["airingAt"] = sched["airingAt"]
