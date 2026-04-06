@@ -156,7 +156,7 @@
     {:else}
       <div class="login-prompt">
         <p>You must be logged in to participate in the discussion.</p>
-        <a href="/login" class="btn-login">Login / Sign Up</a>
+        <a href="/auth/login" class="btn-login">Login / Sign Up</a>
       </div>
     {/if}
   </div>
