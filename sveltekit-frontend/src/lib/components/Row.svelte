@@ -6,14 +6,26 @@
     items = [],
     href = "",
   } = $props<{ title: string; items: any[]; href?: string }>();
-  let scrollContainer: HTMLDivElement;
+  let scrollContainer: HTMLDivElement | undefined = $state();
+
+  // Deduplicate items to prevent Svelte 'each_key_duplicate' error
+  let uniqueItems = $derived.by(() => {
+    const seen = new Set();
+    return items.filter((anime: any) => {
+      const id = anime.id || anime.mal_id;
+      if (!id) return true; // Keep items without IDs, though rare
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  });
 
   function scrollBy(dir: number) {
     scrollContainer?.scrollBy({ left: dir * 400, behavior: "smooth" });
   }
 </script>
 
-{#if items.length > 0}
+{#if uniqueItems.length > 0}
   <section class="row-section">
     <div class="row-header">
       <h2 class="row-title">{title}</h2>
@@ -24,7 +36,7 @@
     <div class="row-wrapper">
       <button class="row-arrow left" onclick={() => scrollBy(-1)}>‹</button>
       <div class="row-scroll" bind:this={scrollContainer}>
-        {#each items as anime (anime.id || anime.mal_id)}
+        {#each uniqueItems as anime (anime.id || anime.mal_id || Math.random())}
           <AnimeCard {anime} />
         {/each}
       </div>
