@@ -101,7 +101,7 @@ export const api = {
 	},
 
 	getRelations: async (id: string | number) => {
-		const res = await fetchJSON(`${BASE_URL}/jikan/anime/${id}/relations`);
+		const res = await fetchJSON(`${JIKAN_URL}/anime/${id}/relations`);
 		return res?.data || [];
 	},
 
