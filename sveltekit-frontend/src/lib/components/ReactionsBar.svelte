@@ -22,8 +22,14 @@
     { type: 'happy', icon: Smile, label: 'Nice', color: '#00ff7f' }
   ];
 
-  onMount(async () => {
-    fetchReactions();
+  $effect(() => {
+    if (animeId && episode) {
+      // Reset state for new context
+      counts = { fire: 0, heart: 0, shock: 0, happy: 0 };
+      userReaction = null;
+      loading = true;
+      fetchReactions();
+    }
   });
 
   async function fetchReactions() {

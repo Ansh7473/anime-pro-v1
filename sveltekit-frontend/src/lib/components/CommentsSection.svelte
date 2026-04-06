@@ -8,18 +8,38 @@
 
   let comments = $state<any[]>([]);
   let newComment = $state('');
-  let replyingTo = $state<number | null>(null);
+  let replyingTo = $state<string | null>(null);
   let replyText = $state('');
   let loading = $state(true);
   let processing = $state(false);
 
-  onMount(() => {
-    fetchComments();
+  $effect(() => {
+    if (animeId && episode) {
+      fetchComments();
+    }
   });
 
   async function fetchComments() {
     try {
-      comments = await api.getComments(animeId, episode);
+      const allComments = await api.getComments(animeId, episode);
+      // Build discussion tree from flat list
+      const map: Record<string, any> = {};
+      const roots: any[] = [];
+      
+      allComments.forEach((c: any) => {
+        c.replies = [];
+        map[c.id] = c;
+      });
+      
+      allComments.forEach((c: any) => {
+        if (c.parentId && map[c.parentId]) {
+          map[c.parentId].replies.push(c);
+        } else if (!c.parentId) {
+          roots.push(c);
+        }
+      });
+      
+      comments = roots;
     } catch (e) {
       console.error('Failed to fetch comments:', e);
     } finally {
@@ -27,7 +47,7 @@
     }
   }
 
-  async function postComment(parentId?: number) {
+  async function postComment(parentId?: string) {
     if (!$auth.token) {
       alert('Please login to comment!');
       return;
@@ -66,7 +86,7 @@
     }
   }
 
-  function findComment(list: any[], id: number): any {
+  function findComment(list: any[], id: string): any {
     for (const c of list) {
       if (c.id === id) return c;
       if (c.replies) {
@@ -77,7 +97,7 @@
     return null;
   }
 
-  async function deleteComment(id: number) {
+  async function deleteComment(id: string) {
     if (!confirm('Are you sure you want to delete this comment?')) return;
 
     try {
@@ -89,7 +109,7 @@
     }
   }
 
-  function filterComment(list: any[], id: number): any[] {
+  function filterComment(list: any[], id: string): any[] {
     return list.filter(c => c.id !== id).map(c => ({
       ...c,
       replies: c.replies ? filterComment(c.replies, id) : []
@@ -154,10 +174,14 @@
     {:else}
       {#each comments as comment (comment.id)}
         <div class="comment-card">
-          <img src={getProxiedImage(comment.user?.profiles?.[0]?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user?.email || 'anon'}`)} alt={comment.user?.email} class="user-avatar" />
+          <img 
+            src={getProxiedImage(comment.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.userName || 'User'}`)} 
+            alt={comment.userName} 
+            class="user-avatar" 
+          />
           <div class="comment-body">
             <div class="comment-info">
-              <span class="user-name">{comment.user?.profiles?.[0]?.name || comment.user?.email.split('@')[0]}</span>
+              <span class="user-name">{comment.userName || 'User'}</span>
               <span class="timestamp">{formatDate(comment.createdAt)}</span>
             </div>
             <p class="content">{comment.content}</p>
@@ -199,10 +223,14 @@
               <div class="replies-list">
                 {#each comment.replies as reply (reply.id)}
                   <div class="comment-card reply">
-                    <img src={getProxiedImage(reply.user?.profiles?.[0]?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.user?.email || 'anon'}`)} alt={reply.user?.email} class="user-avatar sm" />
+                    <img 
+                      src={getProxiedImage(reply.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.userName || 'User'}`)} 
+                      alt={reply.userName} 
+                      class="user-avatar sm" 
+                    />
                     <div class="comment-body">
                       <div class="comment-info">
-                        <span class="user-name">{reply.user?.profiles?.[0]?.name || reply.user?.email.split('@')[0]}</span>
+                        <span class="user-name">{reply.userName || 'User'}</span>
                         <span class="timestamp">{formatDate(reply.createdAt)}</span>
                       </div>
                       <p class="content">{reply.content}</p>
