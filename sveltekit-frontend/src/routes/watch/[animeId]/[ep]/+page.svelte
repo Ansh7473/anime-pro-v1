@@ -882,7 +882,7 @@
             </div> <!-- section-box -->
           </div> <!-- main-info -->
 
-          <!-- Sidebar -->
+          <!-- Sidebar (About the series) -->
           <aside class="sidebar">
             <div class="anime-meta-card glass">
               <img
@@ -904,10 +904,6 @@
           </aside>
         </div> <!-- info-grid -->
       </div> <!-- player-info container -->
-
-    <div class="container mt-2">
-      <CommentsSection {animeId} episode={ep} />
-    </div>
 
     <LiveChat {animeId} episode={ep} />
   </div>
