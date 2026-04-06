@@ -7,9 +7,22 @@
   const poster = $derived(
     anime?.poster || anime?.image || anime?.images?.jpg?.large_image_url || "",
   );
-  const title = $derived(
-    anime?.title || anime?.name || anime?.userPreferred || anime?.title_english || "Unknown",
+  const rawTitle = $derived(
+    anime?.title || anime?.name || anime?.userPreferred || anime?.title_english,
   );
+  const title = $derived.by(() => {
+    if (typeof rawTitle === "string" && rawTitle) return rawTitle;
+    if (typeof rawTitle === "object" && rawTitle !== null) {
+      return (
+        rawTitle.english ||
+        rawTitle.userPreferred ||
+        rawTitle.romaji ||
+        rawTitle.native ||
+        "Unknown Anime"
+      );
+    }
+    return "Unknown Anime";
+  });
   const score = $derived(anime?.score || anime?.rating || 0);
   const id = $derived(anime?.id || anime?.mal_id);
 </script>
