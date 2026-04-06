@@ -235,6 +235,11 @@
       </section>
     {/if}
 
+    <!-- Relations -->
+    {#if anime.relations?.length > 0}
+      <Row title="Related Seasons & Prequels" items={anime.relations} />
+    {/if}
+
     <!-- Recommendations -->
     {#if recommendations.length > 0}
       <Row title="You Might Also Like" items={recommendations} />
