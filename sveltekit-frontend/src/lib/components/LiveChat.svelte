@@ -9,6 +9,8 @@
     X,
     ChevronRight,
     ChevronLeft,
+    MoreVertical,
+    Settings,
   } from "lucide-svelte";
   import * as Ably from 'ably';
 
@@ -20,9 +22,10 @@
   let isOpen = $state(true);
   let connected = $state(false);
   let chatEndRef: HTMLDivElement | null = $state(null);
+  let chatType = $state("Live Chat"); // Visual only for YT feel
 
   onMount(() => {
-    if (!$auth.token || !$auth.currentProfile) return;
+    // Connect regardless of login state (Backend now handles guest tokens)
     connect();
   });
 
@@ -30,51 +33,43 @@
     if (ably) ably.close();
   });
 
-  function connect() {
-    const authUrl = `https://anime-pro-v1-backend-go.vercel.app/api/v1/user/chat/token`;
+  async function connect() {
+    const authUrl = `https://anime-pro-v1-backend-go.vercel.app/api/v1/chat/token`;
 
     ably = new Ably.Realtime({
       authUrl: authUrl,
-      authHeaders: {
+      authHeaders: $auth.token ? {
         'Authorization': `Bearer ${$auth.token}`
-      }
+      } : {}
     });
 
     ably.connection.on('connected', () => {
       connected = true;
-      console.log("Connected to Ably chat");
-      
       const channelName = `${animeId}-${episode}`;
       channel = ably!.channels.get(channelName);
 
       channel.subscribe('chat', (message: any) => {
-        messages = [...messages, message.data];
+        messages = [...messages, message.data].slice(-100); // Keep last 100 for performance
         scrollToBottom();
       });
-
-      // Presence could be added here later
     });
 
     ably.connection.on('disconnected', () => {
       connected = false;
     });
-
-    ably.connection.on('failed', () => {
-      connected = false;
-      console.error("Ably connection failed");
-    });
   }
 
   function sendMessage() {
-    if (!channel || !newMessage.trim() || !connected) return;
+    if (!channel || !newMessage.trim() || !connected || !$auth.token) return;
 
     const msg = {
       type: "chat",
       userId: $auth.user?.id,
-      userName: $auth.currentProfile?.name || "Anonymous",
+      userName: $auth.currentProfile?.name || "User",
       avatar: $auth.currentProfile?.avatar || "",
       content: newMessage.trim(),
       roomId: `${animeId}-${episode}`,
+      timestamp: new Date().toISOString()
     };
 
     channel.publish('chat', msg);
@@ -82,9 +77,8 @@
   }
 
   function scrollToBottom() {
-    const el = chatEndRef;
-    if (el) {
-      setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 50);
+    if (chatEndRef) {
+      setTimeout(() => chatEndRef?.scrollIntoView({ behavior: "smooth" }), 50);
     }
   }
 
@@ -93,277 +87,440 @@
   }
 </script>
 
-<div class="chat-sidebar" class:closed={!isOpen}>
+<div class="chat-container" class:closed={!isOpen}>
   <button
-    class="toggle-btn"
+    class="sidebar-toggle"
     onclick={() => (isOpen = !isOpen)}
-    aria-label={isOpen ? "Close Chat" : "Open Chat"}
+    title={isOpen ? "Collapse Chat" : "Expand Chat"}
   >
     {#if isOpen}
       <ChevronRight size={20} />
     {:else}
       <ChevronLeft size={20} />
-    {/if}
-    {#if !isOpen}
-      <div class="badge">Chat</div>
+      <span class="vertical-text">CHAT</span>
     {/if}
   </button>
 
   {#if isOpen}
-    <div class="chat-header">
-      <div class="title">
-        <MessageSquare size={18} />
-        <span>Live Chat</span>
-      </div>
-      <div class="status" class:online={connected}>
-        <div class="dot"></div>
-        {connected ? "Live" : "Connecting..."}
-      </div>
-    </div>
-
-    <div class="messages-list">
-      {#if messages.length === 0}
-        <div class="empty-state">
-          <Users size={32} />
-          <p>Be the first to say something!</p>
-        </div>
-      {/if}
-
-      {#each messages as msg}
-        <div class="message-item" class:own={msg.userId === $auth.user?.id}>
-          {#if msg.userId !== $auth.user?.id}
-            <img
-              src={getProxiedImage(msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userName || 'guest'}`)}
-              alt={msg.userName}
-              class="chat-avatar"
-            />
-          {/if}
-          <div class="message-content">
-            <span class="user-name">{msg.userName}</span>
-            <p class="text">{msg.content}</p>
+    <div class="chat-main glass-panel">
+      <!-- YouTube Style Header -->
+      <div class="chat-header">
+        <div class="header-top">
+          <div class="chat-selector">
+            <span>{chatType}</span>
+            <ChevronLeft size={14} class="rotate-down" />
+          </div>
+          <div class="header-actions">
+            <button class="icon-btn"><Settings size={16} /></button>
+            <button class="icon-btn" onclick={() => (isOpen = false)}><X size={18} /></button>
           </div>
         </div>
-      {/each}
-      <div bind:this={chatEndRef}></div>
-    </div>
+        <div class="header-status" class:online={connected}>
+          <div class="pulse-dot"></div>
+          {connected ? "Connected" : "Reconnecting..."}
+        </div>
+      </div>
 
-    <div class="chat-input-area">
-      {#if !$auth.token}
-        <div class="login-prompt">Login to Chat</div>
-      {:else}
-        <input
-          type="text"
-          placeholder="Say something..."
-          bind:value={newMessage}
-          onkeydown={handleKeydown}
-          disabled={!connected}
-        />
-        <button
-          class="send-btn"
-          onclick={sendMessage}
-          disabled={!newMessage.trim() || !connected}
-        >
-          <Send size={18} />
-        </button>
-      {/if}
+      <!-- YouTube Style Message List -->
+      <div class="messages-area">
+        {#if messages.length === 0}
+          <div class="welcome-banner">
+            <div class="welcome-icon"><MessageSquare size={32} /></div>
+            <h3>Welcome to Live Chat!</h3>
+            <p>Remember to guard your privacy and abide by our community guidelines.</p>
+          </div>
+        {/if}
+
+        <div class="message-feed">
+          {#each messages as msg}
+            <div class="yt-message">
+              <img
+                src={getProxiedImage(msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userName || 'Guest'}`)}
+                alt=""
+                class="yt-avatar"
+              />
+              <div class="yt-body">
+                <span class="yt-author" class:is-me={msg.userId === $auth.user?.id}>
+                  {msg.userName}
+                </span>
+                <span class="yt-text">{msg.content}</span>
+              </div>
+            </div>
+          {/each}
+          <div bind:this={chatEndRef}></div>
+        </div>
+      </div>
+
+      <!-- Footer / Input -->
+      <div class="chat-footer">
+        {#if !$auth.token}
+          <div class="guest-notice">
+            <p>Sign in to join the conversation</p>
+            <a href="/login" class="signin-link">SIGN IN</a>
+          </div>
+        {:else}
+          <div class="input-wrapper">
+            <img 
+              src={getProxiedImage($auth.currentProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.currentProfile?.name}`)} 
+              alt="" 
+              class="footer-avatar" 
+            />
+            <div class="input-container">
+              <input
+                type="text"
+                placeholder="Say something..."
+                bind:value={newMessage}
+                onkeydown={handleKeydown}
+                maxlength="200"
+              />
+              <div class="btn-group">
+                <span class="char-count" class:limit={newMessage.length > 180}>
+                  {newMessage.length}/200
+                </span>
+                <button
+                  class="send-icon-btn"
+                  onclick={sendMessage}
+                  disabled={!newMessage.trim() || !connected}
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+        {/if}
+      </div>
     </div>
   {/if}
 </div>
 
 <style>
-  .chat-sidebar {
-    width: 320px;
+  :root {
+    --yt-bg: #0f0f0f;
+    --yt-border: rgba(255, 255, 255, 0.1);
+    --yt-text: #f1f1f1;
+    --yt-muted: #aaaaaa;
+    --yt-blue: #3ea6ff;
+  }
+
+  .chat-container {
+    width: 380px;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(20px);
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 50;
+    flex-shrink: 0;
+  }
+
+  .chat-container.closed {
+    width: 48px;
+  }
+
+  .glass-panel {
+    background: var(--yt-bg);
+    border-left: 1px solid var(--yt-border);
+    height: 100%;
     display: flex;
     flex-direction: column;
-    position: relative;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 100;
   }
 
-  .chat-sidebar.closed {
-    transform: translateX(320px);
-    width: 0;
-  }
-
-  .toggle-btn {
+  /* Toggle Button */
+  .sidebar-toggle {
     position: absolute;
     right: 100%;
-    top: 1rem;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    top: 12px;
+    background: var(--yt-bg);
+    border: 1px solid var(--yt-border);
     border-right: none;
     color: white;
-    width: 40px;
-    height: 48px;
-    border-radius: 12px 0 0 12px;
+    width: 32px;
+    height: 60px;
+    border-radius: 8px 0 0 8px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    z-index: 10;
   }
 
-  .badge {
-    position: absolute;
-    right: 50px;
-    background: var(--net-red);
-    color: white;
-    font-size: 0.75rem;
+  .vertical-text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    font-size: 10px;
     font-weight: 800;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    text-transform: uppercase;
+    margin-top: 4px;
+    letter-spacing: 1px;
+    color: var(--yt-muted);
   }
 
+  /* Header */
   .chat-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--yt-border);
+  }
+
+  .header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    height: 40px;
   }
 
-  .chat-header .title {
+  .chat-selector {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-weight: 700;
-    color: white;
+    gap: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--yt-text);
   }
 
-  .status {
+  .rotate-down {
+    transform: rotate(-90deg);
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    color: var(--yt-text);
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    cursor: pointer;
+  }
+
+  .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .header-status {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--net-text-muted);
+    gap: 6px;
+    font-size: 11px;
+    color: var(--yt-muted);
+    margin-top: -4px;
+    padding-left: 2px;
   }
-  .status.online {
-    color: #00ff7f;
+
+  .header-status.online {
+    color: #2ba640;
   }
-  .status .dot {
+
+  .pulse-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background: currentColor;
   }
 
-  .messages-list {
+  /* Message List */
+  .messages-area {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--yt-border) transparent;
   }
 
-  .message-item {
-    display: flex;
-    gap: 0.75rem;
-    max-width: 90%;
-  }
-  .message-item.own {
-    align-self: flex-end;
-    flex-direction: row-reverse;
+  .welcome-banner {
+    padding: 24px 0;
+    text-align: center;
+    border-bottom: 1px solid var(--yt-border);
+    margin-bottom: 16px;
   }
 
-  .chat-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    flex-shrink: 0;
+  .welcome-icon {
+    color: var(--yt-blue);
+    margin-bottom: 12px;
   }
 
-  .message-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .user-name {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--net-text-muted);
-  }
-  .message-item.own .user-name {
-    text-align: right;
+  .welcome-banner h3 {
+    font-size: 16px;
+    margin-bottom: 8px;
   }
 
-  .text {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.6rem 0.9rem;
-    border-radius: 0 16px 16px 16px;
-    font-size: 0.9rem;
-    color: white;
+  .welcome-banner p {
+    font-size: 13px;
+    color: var(--yt-muted);
     line-height: 1.4;
   }
-  .message-item.own .text {
-    background: var(--net-red);
-    border-radius: 16px 0 16px 16px;
-  }
 
-  .empty-state {
+  .message-feed {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--net-text-muted);
-    gap: 1rem;
+    gap: 8px;
+  }
+
+  /* YouTube Style Message */
+  .yt-message {
+    display: flex;
+    gap: 12px;
+    padding: 4px 0;
+    animation: slideIn 0.2s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .yt-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .yt-body {
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .yt-author {
+    font-weight: 700;
+    color: var(--yt-muted);
+    margin-right: 8px;
+  }
+
+  .yt-author.is-me {
+    color: var(--yt-blue);
+  }
+
+  .yt-text {
+    color: var(--yt-text);
+  }
+
+  /* Footer / Input */
+  .chat-footer {
+    padding: 16px;
+    background: var(--yt-bg);
+    border-top: 1px solid var(--yt-border);
+  }
+
+  .guest-notice {
     text-align: center;
-    opacity: 0.5;
-  }
-
-  .chat-input-area {
-    padding: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
-    gap: 0.75rem;
+    flex-direction: column;
+    gap: 12px;
   }
 
-  .chat-input-area input {
+  .guest-notice p {
+    font-size: 13px;
+    color: var(--yt-muted);
+  }
+
+  .signin-link {
+    background: var(--yt-blue);
+    color: #0f0f0f;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .signin-link:hover {
+    opacity: 0.9;
+  }
+
+  .input-wrapper {
+    display: flex;
+    gap: 12px;
+  }
+
+  .footer-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+
+  .input-container {
     flex: 1;
-    border: none;
-    background: rgba(255, 255, 255, 0.05);
-    font-size: 0.9rem;
-    outline: none;
-  }
-  .chat-input-area input:focus {
-    border: 1px solid var(--net-red);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
-  .send-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--net-red);
+  .input-container input {
+    background: none;
     border: none;
-    color: white;
+    border-bottom: 1px solid var(--yt-border);
+    color: var(--yt-text);
+    padding: 4px 0 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-container input:focus {
+    border-bottom: 2px solid var(--yt-blue);
+  }
+
+  .btn-group {
     display: flex;
+    justify-content: flex-end;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
+  }
+
+  .char-count {
+    font-size: 11px;
+    color: var(--yt-muted);
+  }
+
+  .char-count.limit {
+    color: #ff4e4e;
+  }
+
+  .send-icon-btn {
+    background: none;
+    border: none;
+    color: var(--yt-blue);
     cursor: pointer;
-    transition: 0.2s;
+    display: flex;
+    padding: 4px;
+    border-radius: 50%;
   }
-  .send-btn:hover:not(:disabled) {
-    transform: scale(1.05);
-    filter: brightness(1.1);
+
+  .send-icon-btn:hover:not(:disabled) {
+    background: rgba(62, 166, 255, 0.1);
   }
-  .send-btn:disabled {
+
+  .send-icon-btn:disabled {
+    color: var(--yt-muted);
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .login-prompt {
-    flex: 1;
-    text-align: center;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--net-text-muted);
+  /* Mobile Responsiveness */
+  @media (max-width: 1024px) {
+    .chat-container {
+      width: 100% !important;
+      height: 400px;
+      margin-top: 1rem;
+    }
+
+    .sidebar-toggle {
+      display: none;
+    }
+
+    .glass-panel {
+      border-left: none;
+      border-top: 1px solid var(--yt-border);
+      border-radius: 12px;
+      margin: 0 1rem;
+    }
   }
 </style>
