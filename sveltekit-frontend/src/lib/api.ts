@@ -342,7 +342,7 @@ export const api = {
 		}),
 
 	getReactions: (animeId: string, episode: number, token?: string, profileId?: number | string) =>
-		fetchJSON(`${USER_URL}/reactions/${animeId}/${episode}${profileId ? `?profileId=${profileId}` : ''}`, {
+		fetchJSON(`${BACKEND_URL}/api/v1/reactions/${animeId}/${episode}${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: token ? authHeaders(token) : {}
 		}),
 
@@ -354,7 +354,7 @@ export const api = {
 		}),
 
 	getComments: (animeId: string, episode: number) =>
-		fetchJSON(`${USER_URL}/comments/${animeId}/${episode}`),
+		fetchJSON(`${BACKEND_URL}/api/v1/comments/${animeId}/${episode}`),
 
 	deleteComment: (token: string, commentId: number | string) =>
 		fetchJSON(`${USER_URL}/comments/${commentId}`, {
