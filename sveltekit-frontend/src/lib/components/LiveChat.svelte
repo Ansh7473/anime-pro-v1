@@ -12,7 +12,7 @@
     MoreVertical,
     Settings,
   } from "lucide-svelte";
-  import * as Ably from 'ably';
+  import * as Ably from "ably";
 
   let { animeId, episode } = $props<{ animeId: string; episode: number }>();
   let ably: Ably.Realtime | null = null;
@@ -38,23 +38,25 @@
 
     ably = new Ably.Realtime({
       authUrl: authUrl,
-      authHeaders: $auth.token ? {
-        'Authorization': `Bearer ${$auth.token}`
-      } : {}
+      authHeaders: $auth.token
+        ? {
+            Authorization: `Bearer ${$auth.token}`,
+          }
+        : {},
     });
 
-    ably.connection.on('connected', () => {
+    ably.connection.on("connected", () => {
       connected = true;
       const channelName = `${animeId}-${episode}`;
       channel = ably!.channels.get(channelName);
 
-      channel.subscribe('chat', (message: any) => {
+      channel.subscribe("chat", (message: any) => {
         messages = [...messages, message.data].slice(-100); // Keep last 100 for performance
         scrollToBottom();
       });
     });
 
-    ably.connection.on('disconnected', () => {
+    ably.connection.on("disconnected", () => {
       connected = false;
     });
   }
@@ -69,10 +71,10 @@
       avatar: $auth.currentProfile?.avatar || "",
       content: newMessage.trim(),
       roomId: `${animeId}-${episode}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    channel.publish('chat', msg);
+    channel.publish("chat", msg);
     newMessage = "";
   }
 
@@ -112,7 +114,9 @@
           </div>
           <div class="header-actions">
             <button class="icon-btn"><Settings size={16} /></button>
-            <button class="icon-btn" onclick={() => (isOpen = false)}><X size={18} /></button>
+            <button class="icon-btn" onclick={() => (isOpen = false)}
+              ><X size={18} /></button
+            >
           </div>
         </div>
         <div class="header-status" class:online={connected}>
@@ -127,7 +131,10 @@
           <div class="welcome-banner">
             <div class="welcome-icon"><MessageSquare size={32} /></div>
             <h3>Welcome to Live Chat!</h3>
-            <p>Remember to guard your privacy and abide by our community guidelines.</p>
+            <p>
+              Remember to guard your privacy and abide by our community
+              guidelines.
+            </p>
           </div>
         {/if}
 
@@ -135,12 +142,18 @@
           {#each messages as msg}
             <div class="yt-message">
               <img
-                src={getProxiedImage(msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userName || 'Guest'}`)}
+                src={getProxiedImage(
+                  msg.avatar ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userName || "Guest"}`,
+                )}
                 alt=""
                 class="yt-avatar"
               />
               <div class="yt-body">
-                <span class="yt-author" class:is-me={msg.userId === $auth.user?.id}>
+                <span
+                  class="yt-author"
+                  class:is-me={msg.userId === $auth.user?.id}
+                >
                   {msg.userName}
                 </span>
                 <span class="yt-text">{msg.content}</span>
@@ -156,14 +169,17 @@
         {#if !$auth.token}
           <div class="guest-notice">
             <p>Sign in to join the conversation</p>
-            <a href="/login" class="signin-link">SIGN IN</a>
+            <a href="/auth/login" class="signin-link">SIGN IN</a>
           </div>
         {:else}
           <div class="input-wrapper">
-            <img 
-              src={getProxiedImage($auth.currentProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.currentProfile?.name || 'User'}`)} 
-              alt="" 
-              class="footer-avatar" 
+            <img
+              src={getProxiedImage(
+                $auth.currentProfile?.avatar ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.currentProfile?.name || "User"}`,
+              )}
+              alt=""
+              class="footer-avatar"
             />
             <div class="input-container">
               <input
@@ -223,7 +239,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
 
   /* Toggle Button */
@@ -372,8 +388,14 @@
   }
 
   @keyframes slideIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .yt-avatar {
