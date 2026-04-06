@@ -10,10 +10,11 @@
     ChevronRight,
     ChevronLeft,
   } from "lucide-svelte";
+  import * as Ably from 'ably';
 
   let { animeId, episode } = $props<{ animeId: string; episode: number }>();
-
-  let socket: WebSocket | null = null;
+  let ably: Ably.Realtime | null = null;
+  let channel: any = null;
   let messages = $state<any[]>([]);
   let newMessage = $state("");
   let isOpen = $state(true);
@@ -26,47 +27,57 @@
   });
 
   onDestroy(() => {
-    if (socket) socket.close();
+    if (ably) ably.close();
   });
 
   function connect() {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//anime-pro-v1-backend-go.vercel.app/api/v1/user/ws?animeId=${animeId}&episode=${episode}&token=${$auth.token}`;
+    const authUrl = `https://anime-pro-v1-backend-go.vercel.app/api/v1/user/chat/token`;
 
-    socket = new WebSocket(wsUrl);
+    ably = new Ably.Realtime({
+      authUrl: authUrl,
+      authHeaders: {
+        'Authorization': `Bearer ${$auth.token}`
+      }
+    });
 
-    socket.onopen = () => {
+    ably.connection.on('connected', () => {
       connected = true;
-      console.log("Connected to chat");
-    };
+      console.log("Connected to Ably chat");
+      
+      const channelName = `${animeId}-${episode}`;
+      channel = ably!.channels.get(channelName);
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      messages = [...messages, data];
-      scrollToBottom();
-    };
+      channel.subscribe('chat', (message: any) => {
+        messages = [...messages, message.data];
+        scrollToBottom();
+      });
 
-    socket.onclose = () => {
+      // Presence could be added here later
+    });
+
+    ably.connection.on('disconnected', () => {
       connected = false;
-      console.log("Disconnected from chat");
-      // Tentative reconnect logic
-      setTimeout(() => connect(), 3000);
-    };
+    });
+
+    ably.connection.on('failed', () => {
+      connected = false;
+      console.error("Ably connection failed");
+    });
   }
 
   function sendMessage() {
-    if (!socket || !newMessage.trim() || !connected) return;
+    if (!channel || !newMessage.trim() || !connected) return;
 
     const msg = {
       type: "chat",
-      userId: $auth.user?.id || 0,
+      userId: $auth.user?.id,
       userName: $auth.currentProfile?.name || "Anonymous",
       avatar: $auth.currentProfile?.avatar || "",
       content: newMessage.trim(),
       roomId: `${animeId}-${episode}`,
     };
 
-    socket.send(JSON.stringify(msg));
+    channel.publish('chat', msg);
     newMessage = "";
   }
 
