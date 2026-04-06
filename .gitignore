@@ -43,3 +43,9 @@ Thumbs.db
 #folders
 
 notfor vervel/
+
+# Firebase Service Accounts
+*.json
+!package.json
+!composer.json
+!tsconfig.json
