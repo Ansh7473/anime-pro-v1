@@ -184,7 +184,6 @@ func GetComments(c *gin.Context) {
 	iter := database.DB.Collection("comments").
 		Where("animeId", "==", animeId).
 		Where("episode", "==", episode).
-		Where("parentId", "==", "").
 		Documents(database.Ctx)
 
 	var comments []models.Comment
