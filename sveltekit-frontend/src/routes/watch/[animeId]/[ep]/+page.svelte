@@ -594,10 +594,8 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="player-page">
-  <div class="watch-layout">
-    <div class="main-content">
-      <!-- Video Player Section -->
-      <div class="player-section" class:theater={theaterMode}>
+  <!-- Video Player Section -->
+  <div class="player-section" class:theater={theaterMode}>
         <div class="player-container container" class:theater={theaterMode}>
           <div class="video-wrapper glass" class:theater={theaterMode}>
             {#if sourceLoading}
@@ -880,39 +878,38 @@
                     </div>
                   </button>
                 {/each}
+              </div> <!-- ep-grid -->
+            </div> <!-- section-box -->
+          </div> <!-- main-info -->
+
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="anime-meta-card glass">
+              <img
+                src={anime?.poster || anime?.image}
+                alt={anime?.title}
+                class="side-poster"
+              />
+              <div class="side-info">
+                <h4>About the series</h4>
+                <div class="tags">
+                  <span class="tag">{anime?.type}</span>
+                  <span class="tag">{anime?.status}</span>
+                  <span class="tag">{anime?.year}</span>
+                </div>
+                <p class="side-desc">{anime?.synopsis?.slice(0, 150)}...</p>
+                <a href="/anime/{animeId}" class="link-btn">Show Details</a>
               </div>
             </div>
+          </aside>
+        </div> <!-- info-grid -->
+      </div> <!-- player-info container -->
 
-            <!-- Sidebar Info (Anime Meta) -->
-            <aside class="sidebar-info">
-              <div class="anime-meta-card glass">
-                <img
-                  src={anime?.poster || anime?.image}
-                  alt={anime?.title}
-                  class="side-poster"
-                />
-                <div class="side-info">
-                  <h4>About the series</h4>
-                  <div class="tags">
-                    <span class="tag">{anime?.type}</span>
-                    <span class="tag">{anime?.status}</span>
-                    <span class="tag">{anime?.year}</span>
-                  </div>
-                  <p class="side-desc">{anime?.synopsis?.slice(0, 150)}...</p>
-                  <a href="/anime/{animeId}" class="link-btn">Show Details</a>
-                </div>
-              </div>
-            </aside>
-          </div>
-        </div>
-
-        <!-- Comments Section -->
+      <div class="container mt-2">
         <CommentsSection {animeId} episode={ep} />
-      </div>
-
-      <!-- Live Chat Sidebar -->
-      <LiveChat {animeId} episode={ep} />
     </div>
+
+    <LiveChat {animeId} episode={ep} />
   </div>
 </div>
 
@@ -951,29 +948,6 @@
 
   :global(.css-rotated .player-controls-overlay) {
      z-index: 10000 !important;
-  }
-
-  .watch-layout {
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-  }
-  
-  @media (max-width: 1024px) {
-    .watch-layout {
-      flex-direction: column;
-      height: auto;
-      overflow: visible;
-    }
-  }
-  .main-content {
-    flex: 1;
-    overflow-y: auto;
-    height: 100%;
-    scrollbar-width: none;
-  }
-  .main-content::-webkit-scrollbar {
-    display: none;
   }
 
   .player-section {

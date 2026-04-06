@@ -161,7 +161,7 @@
         {:else}
           <div class="input-wrapper">
             <img 
-              src={getProxiedImage($auth.currentProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.currentProfile?.name}`)} 
+              src={getProxiedImage($auth.currentProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.currentProfile?.name || 'User'}`)} 
               alt="" 
               class="footer-avatar" 
             />
@@ -204,23 +204,26 @@
 
   .chat-container {
     width: 380px;
-    height: 100%;
-    position: relative;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: calc(100vh - 80px); /* Adjust for header if exists */
+    position: fixed;
+    right: 20px;
+    top: 100px;
     z-index: 50;
-    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .chat-container.closed {
-    width: 48px;
+    transform: translateX(332px); /* Hide most of it, leave toggle visible */
   }
 
   .glass-panel {
     background: var(--yt-bg);
-    border-left: 1px solid var(--yt-border);
+    border: 1px solid var(--yt-border);
+    border-radius: 12px;
     height: 100%;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
 
   /* Toggle Button */
