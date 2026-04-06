@@ -133,11 +133,9 @@ func SetupRoutes(r *gin.Engine) {
 		user.DELETE("/comments/:id", handlers.DeleteComment)
 		user.DELETE("/comments/:id", handlers.DeleteComment)
 
+		user.GET("/chat/token", handlers.GetChatToken)
 		user.GET("/stats", handlers.GetUserStats)
 		user.GET("/recommendations", handlers.GetAIRecommendations)
-
-		// 11. WebSocket (Live Chat)
-		user.GET("/ws", handlers.MainHub.ServeWS)
 	}
 
 	// 7. App Release (Windows/Android updates)
