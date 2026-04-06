@@ -59,13 +59,23 @@ func transformMedia(anime map[string]interface{}) map[string]interface{} {
 		trailer["url"] = "https://www.youtube.com/watch?v=" + utils.ToString(t["id"])
 	}
 
+	// Determine Best Title (Priority: English > Romaji)
+	bestTitle := utils.ToString(title["english"])
+	if bestTitle == "" {
+		// Fallback to Synonyms if English title field is empty
+		if syns, ok := anime["synonyms"].([]interface{}); ok && len(syns) > 0 {
+			bestTitle = utils.ToString(syns[0])
+		}
+	}
+	if bestTitle == "" {
+		bestTitle = utils.ToString(title["romaji"])
+	}
+
 	return map[string]interface{}{
 		"id":             finalID,
 		"mal_id":         finalID,
 		"anilist_id":     id,
-		"title":          utils.ToString(title["romaji"]),
-		"title_english":  utils.ToString(title["english"]),
-		"title_japanese": utils.ToString(title["native"]),
+		"title":          bestTitle,
 		"poster":         utils.ToString(cover["large"]),
 		"image":          utils.ToString(cover["extraLarge"]),
 		"synopsis":       utils.ToString(anime["description"]),
@@ -143,6 +153,7 @@ func AnilistHome(c *gin.Context) {
 			seasonYear
 			season
 			genres
+			synonyms
 			popularity
 			nextAiringEpisode { episode airingAt timeUntilAiring }
 		}
@@ -218,6 +229,7 @@ func AnilistAnime(c *gin.Context) {
 			seasonYear
 			season
 			genres
+			synonyms
 			studios(isMain: true) { nodes { name } }
 			trailer { id site thumbnail }
 			nextAiringEpisode { episode airingAt timeUntilAiring }
@@ -258,15 +270,11 @@ func AnilistAnime(c *gin.Context) {
 						if edge, ok := e.(map[string]interface{}); ok {
 							node, _ := edge["node"].(map[string]interface{})
 							if node != nil {
-								nodeTitle, _ := node["title"].(map[string]interface{})
-								relations = append(relations, map[string]interface{}{
-									"relation": edge["relationType"],
-									"entry": []map[string]interface{}{{
-										"mal_id": func() interface{} { if node["idMal"] != nil { return node["idMal"] }; return node["id"] }(),
-										"name":   utils.ToString(nodeTitle["romaji"]),
-										"type":   node["type"],
-									}},
-								})
+								// Standardize related anime using transformMedia
+								anime := transformMedia(node)
+								// Add the relation type for UI display
+								anime["relation"] = edge["relationType"]
+								relations = append(relations, anime)
 							}
 						}
 					}
@@ -434,6 +442,7 @@ func AnilistSearch(c *gin.Context) {
 					seasonYear
 					season
 					genres
+					synonyms
 				}
 			}
 		}
@@ -535,6 +544,7 @@ func AnilistSchedule(c *gin.Context) {
 						seasonYear
 						season
 						genres
+						synonyms
 						popularity
 					}
 				}
@@ -613,6 +623,7 @@ func ResolveBatchMetadata(malIds []int) (map[int]map[string]interface{}, error) 
 					id
 					idMal
 					title { romaji english native }
+					synonyms
 					coverImage { extraLarge large }
 				}
 			}
