@@ -7,6 +7,7 @@
   let anime: any = $state(null);
   let characters: any[] = $state([]);
   let recommendations: any[] = $state([]);
+  let relations: any[] = $state([]);
   let loading = $state(true);
   let inWatchlist = $state(false);
   let isFavorite = $state(false);
@@ -44,12 +45,14 @@
       }
 
       // Parallel fetch
-      const [chars, recs] = await Promise.all([
+      const [chars, recs, rels] = await Promise.all([
         api.getCharacters(id),
         api.getRecommendations(id),
+        api.getRelations(id),
       ]);
       characters = chars;
       recommendations = recs;
+      relations = rels;
     } catch (e) {
       console.error(e);
     } finally {
@@ -236,8 +239,8 @@
     {/if}
 
     <!-- Relations -->
-    {#if anime.relations?.length > 0}
-      <Row title="Related Seasons & Prequels" items={anime.relations} />
+    {#if relations.length > 0}
+      <Row title="Related Seasons & Prequels" items={relations} />
     {/if}
 
     <!-- Recommendations -->

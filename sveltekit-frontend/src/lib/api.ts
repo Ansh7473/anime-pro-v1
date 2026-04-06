@@ -100,6 +100,11 @@ export const api = {
 		return res?.data || res;
 	},
 
+	getRelations: async (id: string | number) => {
+		const res = await fetchJSON(`${BASE_URL}/jikan/anime/${id}/relations`);
+		return res?.data || [];
+	},
+
 	search: async (q: string, page = 1, limit = 20, filters: any = {}) => {
 		const params = new URLSearchParams({
 			q,
@@ -239,9 +244,6 @@ export const api = {
 		fetchJSON(`${STREAMING_URL}/animelok-slug?animeId=${animeId}`),
 
 	// Jikan
-	getRelations: (animeId: string | number) =>
-		fetchJSON(`${JIKAN_URL}/anime/${animeId}/relations`),
-
 	getEpisodes: (animeId: string | number, page = 1) =>
 		fetchJSON(`${JIKAN_URL}/anime/${animeId}/episodes?page=${page}`),
 
