@@ -19,7 +19,7 @@
   let channel: any = null;
   let messages = $state<any[]>([]);
   let newMessage = $state("");
-  let isOpen = $state(true);
+  let isOpen = $state(false);
   let connected = $state(false);
   let chatEndRef: HTMLDivElement | null = $state(null);
   let chatType = $state("Live Chat"); // Visual only for YT feel
@@ -510,20 +510,32 @@
   /* Mobile Responsiveness */
   @media (max-width: 1024px) {
     .chat-container {
-      width: 100% !important;
-      height: 400px;
-      margin-top: 1rem;
+      width: calc(100% - 2rem) !important;
+      height: 450px;
+      position: relative;
+      right: auto;
+      top: auto;
+      margin: 1.5rem auto;
+      z-index: 10;
+      transform: none !important;
+    }
+
+    .chat-container.closed {
+      height: 60px;
+      overflow: hidden;
     }
 
     .sidebar-toggle {
-      display: none;
+      display: flex;
+      position: absolute;
+      top: 10px;
+      right: 10px;
     }
 
     .glass-panel {
-      border-left: none;
-      border-top: 1px solid var(--yt-border);
+      border: 1px solid var(--yt-border);
       border-radius: 12px;
-      margin: 0 1rem;
+      margin: 0;
     }
   }
 </style>
