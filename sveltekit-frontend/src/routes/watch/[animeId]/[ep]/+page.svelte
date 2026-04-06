@@ -14,6 +14,7 @@
     SkipForward,
     Keyboard,
     RotateCw,
+    MessageSquare,
   } from "lucide-svelte";
   import Hls from "hls.js";
   import ReactionsBar from "$lib/components/ReactionsBar.svelte";
@@ -779,6 +780,9 @@
                 <div class="meta-row">
                   <div class="ep-badge">Episode {ep}</div>
                   <ReactionsBar {animeId} episode={ep} />
+                  <button class="nav-secondary-btn" onclick={() => document.querySelector('#community')?.scrollIntoView({behavior:'smooth'})}>
+                    <MessageSquare size={16} /> Community
+                  </button>
                 </div>
               </div>
               <div class="ep-nav">
@@ -880,6 +884,10 @@
                 {/each}
               </div> <!-- ep-grid -->
             </div> <!-- section-box -->
+
+            <div id="community" class="comments-wrapper mt-5">
+              <CommentsSection {animeId} episode={ep} />
+            </div>
           </div> <!-- main-info -->
 
           <!-- Sidebar (About the series) -->
@@ -905,8 +913,8 @@
         </div> <!-- info-grid -->
       </div> <!-- player-info container -->
 
-    <LiveChat {animeId} episode={ep} />
-  </div>
+      <LiveChat {animeId} episode={ep} />
+</div> <!-- player-page -->
 
 <style>
   .player-page {
@@ -1312,6 +1320,24 @@
   .nav-btn:disabled {
     opacity: 0.3;
     cursor: default;
+  }
+  .nav-secondary-btn {
+     display: flex;
+     align-items: center;
+     gap: 8px;
+     padding: 6px 16px;
+     background: rgba(255, 255, 255, 0.05);
+     border-radius: 50px;
+     border: 1px solid rgba(255, 255, 255, 0.1);
+     color: var(--net-text-muted);
+     font-size: 0.85rem;
+     font-weight: 600;
+     cursor: pointer;
+     transition: 0.2s;
+  }
+  .nav-secondary-btn:hover {
+     background: rgba(255, 255, 255, 0.1);
+     color: white;
   }
 
   .section-box {
