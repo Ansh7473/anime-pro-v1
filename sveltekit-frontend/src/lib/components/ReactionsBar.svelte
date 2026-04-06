@@ -44,11 +44,17 @@
     }
   }
 
-  async function toggle(type: string) {
-    if (!$auth.token) {
-      alert('Please login to react!');
-      return;
+  function getGuestId() {
+    let gid = localStorage.getItem('guest_id');
+    if (!gid) {
+      gid = 'guest_' + Math.random().toString(36).substring(2, 11);
+      localStorage.setItem('guest_id', gid);
     }
+    return gid;
+  }
+
+  async function toggle(type: string) {
+    const gid = !$auth.token ? getGuestId() : undefined;
 
     // Optimistic update
     const prev = userReaction;
@@ -62,10 +68,13 @@
     }
 
     try {
-      const res = await api.toggleReaction($auth.token, { animeId, episode, type });
-      // Sync with server response if needed
+      const res = await api.toggleReaction($auth.token || '', { 
+        animeId, 
+        episode, 
+        type,
+        profileId: gid // Use guestId as a temporary identifier if no token
+      });
     } catch (e) {
-      // Revert on error
       userReaction = prev;
       fetchReactions();
     }
