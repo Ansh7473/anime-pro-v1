@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -27,7 +28,7 @@ func GetWatchHistory(c *gin.Context) {
 		query = query.Where("profileId", "==", profileId)
 	}
 
-	iter := query.OrderBy("lastWatchedAt", database.Desc).Limit(50).Documents(database.Ctx)
+	iter := query.Documents(database.Ctx)
 	history := []models.WatchHistory{}
 	ids := []int{}
 
@@ -49,19 +50,14 @@ func GetWatchHistory(c *gin.Context) {
 		}
 	}
 
-	// Refresh metadata from AniList API (Main API)
-	if len(ids) > 0 {
-		freshData, err := ResolveBatchMetadata(ids)
-		if err == nil {
-			for i := range history {
-				if id, err := strconv.Atoi(history[i].AnimeID); err == nil {
-					if fresh, ok := freshData[id]; ok {
-						history[i].AnimeTitle = utils.ToString(fresh["title"])
-						history[i].AnimePoster = utils.ToString(fresh["poster"])
-					}
-				}
-			}
-		}
+	// Sort in-memory to avoid composite index requirements on Spark plan
+	sort.Slice(history, func(i, j int) bool {
+		return history[i].LastWatchedAt.After(history[j].LastWatchedAt)
+	})
+
+	// Apply limit after sorting
+	if len(history) > 50 {
+		history = history[:50]
 	}
 
 	c.JSON(http.StatusOK, history)
@@ -176,7 +172,7 @@ func GetWatchlist(c *gin.Context) {
 		query = query.Where("profileId", "==", profileId)
 	}
 
-	iter := query.OrderBy("createdAt", database.Desc).Documents(database.Ctx)
+	iter := query.Documents(database.Ctx)
 	watchlist := []models.Watchlist{}
 	ids := []int{}
 
@@ -197,20 +193,10 @@ func GetWatchlist(c *gin.Context) {
 		}
 	}
 
-	// Refresh metadata from AniList API (Main API)
-	if len(ids) > 0 {
-		freshData, err := ResolveBatchMetadata(ids)
-		if err == nil {
-			for i := range watchlist {
-				if id, err := strconv.Atoi(watchlist[i].AnimeID); err == nil {
-					if fresh, ok := freshData[id]; ok {
-						watchlist[i].AnimeTitle = utils.ToString(fresh["title"])
-						watchlist[i].AnimePoster = utils.ToString(fresh["poster"])
-					}
-				}
-			}
-		}
-	}
+	// Sort in-memory to avoid composite index requirements
+	sort.Slice(watchlist, func(i, j int) bool {
+		return watchlist[i].CreatedAt.After(watchlist[j].CreatedAt)
+	})
 
 	c.JSON(http.StatusOK, watchlist)
 }

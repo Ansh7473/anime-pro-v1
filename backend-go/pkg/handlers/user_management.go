@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
@@ -245,7 +246,7 @@ func GetFavorites(c *gin.Context) {
 		query = query.Where("profileId", "==", profileId)
 	}
 
-	iter := query.OrderBy("createdAt", database.Desc).Documents(database.Ctx)
+	iter := query.Documents(database.Ctx)
 	favorites := []models.Favorite{}
 	for {
 		doc, err := iter.Next()
@@ -260,6 +261,11 @@ func GetFavorites(c *gin.Context) {
 		doc.DataTo(&f)
 		favorites = append(favorites, f)
 	}
+
+	// Sort in-memory to avoid composite index requirements
+	sort.Slice(favorites, func(i, j int) bool {
+		return favorites[i].CreatedAt.After(favorites[j].CreatedAt)
+	})
 
 	c.JSON(http.StatusOK, favorites)
 }
