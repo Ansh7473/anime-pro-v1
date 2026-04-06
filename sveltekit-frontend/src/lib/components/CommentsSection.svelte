@@ -21,7 +21,7 @@
 
   async function fetchComments() {
     try {
-      const allComments = await api.getComments(animeId, episode);
+      const allComments = (await api.getComments(animeId, episode)) || [];
       // Build discussion tree from flat list
       const map: Record<string, any> = {};
       const roots: any[] = [];
