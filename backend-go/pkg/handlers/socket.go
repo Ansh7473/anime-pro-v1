@@ -12,7 +12,7 @@ import (
 
 // Client represents a connected user in a chat room
 type Client struct {
-	ID     uint
+	ID     string
 	Conn   *websocket.Conn
 	Send   chan []byte
 	RoomID string // animeId-episode
@@ -31,7 +31,7 @@ type Hub struct {
 // Message defines the structure of data sent over WS
 type Message struct {
 	RoomID   string `json:"roomId"`
-	UserID   uint   `json:"userId"`
+	UserID   string `json:"userId"`
 	UserName string `json:"userName"`
 	Avatar   string `json:"avatar"`
 	Content  string `json:"content"`
@@ -114,7 +114,7 @@ func (h *Hub) ServeWS(c *gin.Context) {
 
 	userId, _ := c.Get("userId")
 	client := &Client{
-		ID:     userId.(uint),
+		ID:     userId.(string),
 		Conn:   conn,
 		Send:   make(chan []byte, 256),
 		RoomID: roomId,

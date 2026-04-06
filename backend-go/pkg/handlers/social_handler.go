@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -87,6 +88,9 @@ func GetReactions(c *gin.Context) {
 	counts := make(map[string]int)
 	userReaction := ""
 	currentUserID, loggedIn := c.Get("userId")
+	if !loggedIn || currentUserID == nil {
+		loggedIn = false
+	}
 
 	for {
 		doc, err := iter.Next()
@@ -178,11 +182,7 @@ func GetComments(c *gin.Context) {
 	episode, _ := strconv.Atoi(c.Param("episode"))
 
 	// Currently only fetching top-level. Support for replies could be added by another query.
-	iter := database.DB.Collection("comments").
-		Where("animeId", "==", animeId).
-		Where("episode", "==", episode).
 		Where("parentId", "==", "").
-		OrderBy("createdAt", database.Desc).
 		Documents(database.Ctx)
 
 	var comments []models.Comment
@@ -199,6 +199,11 @@ func GetComments(c *gin.Context) {
 		doc.DataTo(&cm)
 		comments = append(comments, cm)
 	}
+
+	// Sort in-memory to avoid composite index requirements
+	sort.Slice(comments, func(i, j int) bool {
+		return comments[i].CreatedAt.After(comments[j].CreatedAt)
+	})
 
 	c.JSON(http.StatusOK, comments)
 }

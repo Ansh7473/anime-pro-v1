@@ -90,6 +90,9 @@ func SetupRoutes(r *gin.Engine) {
 		ahdWP.GET("/sources", handlers.ProviderAHDWPSources)
 	}
 
+	v1.GET("/reactions/:animeId/:episode", handlers.GetReactions)
+	v1.GET("/comments/:animeId/:episode", handlers.GetComments)
+
 	// Run WebSocket Hub
 	go handlers.MainHub.Run()
 
@@ -126,9 +129,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// 10. Social & Community
 		user.POST("/reactions", handlers.ToggleReaction)
-		user.GET("/reactions/:animeId/:episode", handlers.GetReactions)
 		user.POST("/comments", handlers.CreateComment)
-		user.GET("/comments/:animeId/:episode", handlers.GetComments)
+		user.DELETE("/comments/:id", handlers.DeleteComment)
 		user.DELETE("/comments/:id", handlers.DeleteComment)
 
 		user.GET("/stats", handlers.GetUserStats)
