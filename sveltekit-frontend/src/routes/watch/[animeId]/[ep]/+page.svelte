@@ -905,13 +905,12 @@
         </div> <!-- info-grid -->
       </div> <!-- player-info container -->
 
-      <div class="container mt-2">
-        <CommentsSection {animeId} episode={ep} />
+    <div class="container mt-2">
+      <CommentsSection {animeId} episode={ep} />
     </div>
 
     <LiveChat {animeId} episode={ep} />
   </div>
-</div>
 
 <style>
   .player-page {
