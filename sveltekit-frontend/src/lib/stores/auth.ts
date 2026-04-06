@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 interface User {
-    id: number;
+    id: string;
     email: string;
     profiles: any[];
     createdAt?: string;

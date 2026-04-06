@@ -238,7 +238,7 @@ export const api = {
 	getCurrentUser: (token: string) =>
 		fetchJSON(`${USER_URL}/me`, { headers: authHeaders(token) }),
 
-	getHistory: (token: string, profileId?: number) =>
+	getHistory: (token: string, profileId?: number | string) =>
 		fetchJSON(`${USER_URL}/history${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: authHeaders(token)
 		}),
@@ -268,19 +268,19 @@ export const api = {
 			body: JSON.stringify(data)
 		}),
 
-	removeFromWatchlist: (token: string, animeId: string, profileId?: number) =>
+	removeFromWatchlist: (token: string, animeId: string, profileId?: number | string) =>
 		fetchJSON(`${USER_URL}/watchlist/${animeId}${profileId ? `?profileId=${profileId}` : ''}`, {
 			method: 'DELETE',
 			headers: authHeaders(token)
 		}),
 
-	getWatchlistStatus: (token: string, animeId: string, profileId?: number) =>
+	getWatchlistStatus: (token: string, animeId: string, profileId?: number | string) =>
 		fetchJSON(`${USER_URL}/watchlist/${animeId}${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: authHeaders(token)
 		}),
 
 	// 10. Favorites
-	getFavorites: (token: string, profileId?: number) =>
+	getFavorites: (token: string, profileId?: number | string) =>
 		fetchJSON(`${USER_URL}/favorites${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: authHeaders(token)
 		}),
@@ -290,12 +290,12 @@ export const api = {
 			headers: authHeaders(token),
 			body: JSON.stringify(data)
 		}),
-	removeFromFavorites: (token: string, animeId: string, profileId?: number) =>
+	removeFromFavorites: (token: string, animeId: string, profileId?: number | string) =>
 		fetchJSON(`${USER_URL}/favorites/${animeId}${profileId ? `?profileId=${profileId}` : ''}`, {
 			method: 'DELETE',
 			headers: authHeaders(token)
 		}),
-	getFavoriteStatus: (token: string, animeId: string, profileId?: number) =>
+	getFavoriteStatus: (token: string, animeId: string, profileId?: number | string) =>
 		fetchJSON(`${USER_URL}/favorites/${animeId}${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: authHeaders(token)
 		}),
@@ -328,19 +328,19 @@ export const api = {
 		}),
 
 	// 10. Social & Community
-	toggleReaction: (token: string, data: { animeId: string; episode: number; type: string; profileId?: number }) =>
+	toggleReaction: (token: string, data: { animeId: string; episode: number; type: string; profileId?: number | string }) =>
 		fetchJSON(`${USER_URL}/reactions`, {
 			method: 'POST',
 			headers: authHeaders(token),
 			body: JSON.stringify(data)
 		}),
 
-	getReactions: (animeId: string, episode: number, token?: string, profileId?: number) =>
+	getReactions: (animeId: string, episode: number, token?: string, profileId?: number | string) =>
 		fetchJSON(`${USER_URL}/reactions/${animeId}/${episode}${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: token ? authHeaders(token) : {}
 		}),
 
-	postComment: (token: string, data: { animeId: string; episode: number; content: string; parentId?: number; profileId?: number }) =>
+	postComment: (token: string, data: { animeId: string; episode: number; content: string; parentId?: string | number; profileId?: number | string }) =>
 		fetchJSON(`${USER_URL}/comments`, {
 			method: 'POST',
 			headers: authHeaders(token),
@@ -350,7 +350,7 @@ export const api = {
 	getComments: (animeId: string, episode: number) =>
 		fetchJSON(`${USER_URL}/comments/${animeId}/${episode}`),
 
-	deleteComment: (token: string, commentId: number) =>
+	deleteComment: (token: string, commentId: number | string) =>
 		fetchJSON(`${USER_URL}/comments/${commentId}`, {
 			method: 'DELETE',
 			headers: authHeaders(token)
