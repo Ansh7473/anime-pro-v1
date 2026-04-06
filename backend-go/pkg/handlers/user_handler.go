@@ -393,7 +393,7 @@ func GetUserStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_hours":    totalProgress / 3600,
+		"total_hours":    utils.Round(totalProgress/3600, 1),
 		"reserves_count": reservesCount,
 		"history_count":  historyCount,
 		"recent_active":  recentCount,

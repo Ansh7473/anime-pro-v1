@@ -43,7 +43,7 @@ func initApp() {
 				   origin == "http://localhost:5174" || 
 				   origin == "http://localhost:3000" || 
 				   origin == "https://anime-pro-v1-frontend.vercel.app" || 
-				   (len(origin) > 10 && origin[len(origin)-10:] == ".vercel.app")
+				   (len(origin) > 11 && origin[len(origin)-11:] == ".vercel.app")
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
