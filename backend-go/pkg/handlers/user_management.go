@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -8,16 +9,17 @@ import (
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/api/iterator"
 )
 
 // ChangePassword updates the authenticated user's password
 func ChangePassword(c *gin.Context) {
-	if !database.WaitForDB() {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available, please try again"})
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
-	userId := c.MustGet("userId").(uint)
+	userId := c.MustGet("userId").(string)
 	var input struct {
 		CurrentPassword string `json:"currentPassword" binding:"required"`
 		NewPassword     string `json:"newPassword" binding:"required,min=6"`
@@ -28,11 +30,14 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	if err := database.DB.First(&user, userId).Error; err != nil {
+	doc, err := database.DB.Collection("users").Doc(userId).Get(database.Ctx)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
+
+	var user models.User
+	doc.DataTo(&user)
 
 	// Verify current password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.CurrentPassword)); err != nil {
@@ -47,9 +52,15 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	user.Password = string(hashedPassword)
-	user.UpdatedAt = time.Now()
-	database.DB.Save(&user)
+	_, err = database.DB.Collection("users").Doc(userId).Update(database.Ctx, []database.Update{
+		{Path: "password", Value: string(hashedPassword)},
+		{Path: "updatedAt", Value: time.Now()},
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
@@ -57,7 +68,12 @@ func ChangePassword(c *gin.Context) {
 // Profile Handlers
 
 func CreateProfile(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	var input struct {
 		Name   string `json:"name" binding:"required"`
 		Avatar string `json:"avatar"`
@@ -69,14 +85,27 @@ func CreateProfile(c *gin.Context) {
 	}
 
 	// Limit to 5 profiles
-	var count int64
-	database.DB.Model(&models.Profile{}).Where("user_id = ?", userId).Count(&count)
+	iter := database.DB.Collection("profiles").Where("userId", "==", userId).Documents(database.Ctx)
+	count := 0
+	for {
+		_, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			break
+		}
+		count++
+	}
+
 	if count >= 5 {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Maximum of 5 profiles allowed"})
 		return
 	}
 
+	profileRef := database.DB.Collection("profiles").NewDoc()
 	profile := models.Profile{
+		ID:        profileRef.ID,
 		UserID:    userId,
 		Name:      input.Name,
 		Avatar:    input.Avatar,
@@ -84,7 +113,7 @@ func CreateProfile(c *gin.Context) {
 		AutoNext:  true,
 	}
 
-	if err := database.DB.Create(&profile).Error; err != nil {
+	if _, err := profileRef.Set(database.Ctx, profile); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create profile"})
 		return
 	}
@@ -93,12 +122,25 @@ func CreateProfile(c *gin.Context) {
 }
 
 func UpdateProfile(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	profileId := c.Param("id")
 
-	var profile models.Profile
-	if err := database.DB.Where("id = ? AND user_id = ?", profileId, userId).First(&profile).Error; err != nil {
+	doc, err := database.DB.Collection("profiles").Doc(profileId).Get(database.Ctx)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
+		return
+	}
+
+	var profile models.Profile
+	doc.DataTo(&profile)
+
+	if profile.UserID != userId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized access to profile"})
 		return
 	}
 
@@ -115,30 +157,71 @@ func UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	if input.Name != "" { profile.Name = input.Name }
-	if input.Avatar != "" { profile.Avatar = input.Avatar }
-	if input.AutoNext != nil { profile.AutoNext = *input.AutoNext }
-	if input.AutoSkip != nil { profile.AutoSkip = *input.AutoSkip }
-	if input.Language != "" { profile.Language = input.Language }
+	updates := []database.Update{}
+	if input.Name != "" { updates = append(updates, database.Update{Path: "name", Value: input.Name}) }
+	if input.Avatar != "" { updates = append(updates, database.Update{Path: "avatar", Value: input.Avatar}) }
+	if input.AutoNext != nil { updates = append(updates, database.Update{Path: "autoNext", Value: *input.AutoNext}) }
+	if input.AutoSkip != nil { updates = append(updates, database.Update{Path: "autoSkip", Value: *input.AutoSkip}) }
+	if input.Language != "" { updates = append(updates, database.Update{Path: "language", Value: input.Language}) }
 
-	database.DB.Save(&profile)
+	if len(updates) > 0 {
+		_, err = database.DB.Collection("profiles").Doc(profileId).Update(database.Ctx, updates)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+			return
+		}
+	}
+
+	// Refetch to return full updated profile
+	updatedDoc, _ := database.DB.Collection("profiles").Doc(profileId).Get(database.Ctx)
+	updatedDoc.DataTo(&profile)
+
 	c.JSON(http.StatusOK, profile)
 }
 
 func DeleteProfile(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	profileId := c.Param("id")
 
 	// Ensure they don't delete their last profile
-	var count int64
-	database.DB.Model(&models.Profile{}).Where("user_id = ?", userId).Count(&count)
+	iter := database.DB.Collection("profiles").Where("userId", "==", userId).Documents(database.Ctx)
+	count := 0
+	for {
+		_, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			break
+		}
+		count++
+	}
+
 	if count <= 1 {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the last remaining profile"})
 		return
 	}
 
-	result := database.DB.Where("id = ? AND user_id = ?", profileId, userId).Delete(&models.Profile{})
-	if result.Error != nil {
+	// Double check ownership
+	doc, err := database.DB.Collection("profiles").Doc(profileId).Get(database.Ctx)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
+		return
+	}
+	var profile models.Profile
+	doc.DataTo(&profile)
+	if profile.UserID != userId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	_, err = database.DB.Collection("profiles").Doc(profileId).Delete(database.Ctx)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete profile"})
 		return
 	}
@@ -149,30 +232,50 @@ func DeleteProfile(c *gin.Context) {
 // Favorites Handlers
 
 func GetFavorites(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
-	profileId := c.Query("profileId")
-
-	var favorites []models.Favorite
-	query := database.DB.Where("user_id = ?", userId)
-	if profileId != "" {
-		query = query.Where("profile_id = ?", profileId)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
 	}
 
-	if err := query.Order("created_at desc").Find(&favorites).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch favorites"})
-		return
+	userId := c.MustGet("userId").(string)
+	profileId := c.Query("profileId")
+
+	query := database.DB.Collection("favorites").Where("userId", "==", userId)
+	if profileId != "" {
+		query = query.Where("profileId", "==", profileId)
+	}
+
+	iter := query.OrderBy("createdAt", database.Desc).Documents(database.Ctx)
+	var favorites []models.Favorite
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("❌ Error fetching favorites: %v", err)
+			break
+		}
+		var f models.Favorite
+		doc.DataTo(&f)
+		favorites = append(favorites, f)
 	}
 
 	c.JSON(http.StatusOK, favorites)
 }
 
 func AddToFavorite(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	var input struct {
 		AnimeID     string `json:"animeId" binding:"required"`
 		AnimeTitle  string `json:"animeTitle"`
 		AnimePoster string `json:"animePoster"`
-		ProfileID   uint   `json:"profileId"`
+		ProfileID   string `json:"profileId"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -180,15 +283,22 @@ func AddToFavorite(c *gin.Context) {
 		return
 	}
 
-	// Check if already exists in this profile
-	var existing models.Favorite
-	err := database.DB.Where("user_id = ? AND profile_id = ? AND anime_id = ?", userId, input.ProfileID, input.AnimeID).First(&existing).Error
-	if err == nil {
+	// Check if already exists in this profile (Spark plan has limited indices, but simple equality is fine)
+	iter := database.DB.Collection("favorites").
+		Where("userId", "==", userId).
+		Where("profileId", "==", input.ProfileID).
+		Where("animeId", "==", input.AnimeID).
+		Limit(1).Documents(database.Ctx)
+	
+	_, err := iter.Next()
+	if err != iterator.Done && err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Already in favorites"})
 		return
 	}
 
+	favRef := database.DB.Collection("favorites").NewDoc()
 	favorite := models.Favorite{
+		ID:          favRef.ID,
 		UserID:      userId,
 		ProfileID:   input.ProfileID,
 		AnimeID:     input.AnimeID,
@@ -197,7 +307,7 @@ func AddToFavorite(c *gin.Context) {
 		CreatedAt:   time.Now(),
 	}
 
-	if err := database.DB.Create(&favorite).Error; err != nil {
+	if _, err := favRef.Set(database.Ctx, favorite); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add to favorites"})
 		return
 	}
@@ -206,18 +316,41 @@ func AddToFavorite(c *gin.Context) {
 }
 
 func RemoveFromFavorite(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
-	animeId := c.Param("animeId")
-
-	profileId := c.Query("profileId")
-
-	query := database.DB.Where("user_id = ? AND anime_id = ?", userId, animeId)
-	if profileId != "" {
-		query = query.Where("profile_id = ?", profileId)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
 	}
 
-	result := query.Delete(&models.Favorite{})
-	if result.Error != nil {
+	userId := c.MustGet("userId").(string)
+	animeId := c.Param("animeId")
+	profileId := c.Query("profileId")
+
+	query := database.DB.Collection("favorites").Where("userId", "==", userId).Where("animeId", "==", animeId)
+	if profileId != "" {
+		query = query.Where("profileId", "==", profileId)
+	}
+
+	iter := query.Documents(database.Ctx)
+	batch := database.DB.Batch()
+	found := false
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			break
+		}
+		batch.Delete(doc.Ref)
+		found = true
+	}
+
+	if !found {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Favorite not found"})
+		return
+	}
+
+	if _, err := batch.Commit(database.Ctx); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove from favorites"})
 		return
 	}
@@ -226,17 +359,22 @@ func RemoveFromFavorite(c *gin.Context) {
 }
 
 func GetFavoriteStatus(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	animeId := c.Param("animeId")
 	profileId := c.Query("profileId")
 
-	var entry models.Favorite
-	query := database.DB.Where("user_id = ? AND anime_id = ?", userId, animeId)
+	query := database.DB.Collection("favorites").Where("userId", "==", userId).Where("animeId", "==", animeId)
 	if profileId != "" {
-		query = query.Where("profile_id = ?", profileId)
+		query = query.Where("profileId", "==", profileId)
 	}
 
-	err := query.First(&entry).Error
+	iter := query.Limit(1).Documents(database.Ctx)
+	_, err := iter.Next()
 
 	c.JSON(http.StatusOK, gin.H{"isFavorite": err == nil})
 }

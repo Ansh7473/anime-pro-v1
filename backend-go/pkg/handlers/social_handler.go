@@ -1,18 +1,26 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/api/iterator"
 )
 
 // Reaction Handlers
 
 func ToggleReaction(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	var input struct {
 		AnimeID string `json:"animeId" binding:"required"`
 		Episode int    `json:"episode" binding:"required"`
@@ -24,64 +32,98 @@ func ToggleReaction(c *gin.Context) {
 		return
 	}
 
-	var reaction models.Reaction
-	err := database.DB.Where("user_id = ? AND anime_id = ? AND episode = ? AND type = ?", userId, input.AnimeID, input.Episode, input.Type).First(&reaction).Error
-	
+	// Use a query to find existing reaction
+	iter := database.DB.Collection("reactions").
+		Where("userId", "==", userId).
+		Where("animeId", "==", input.AnimeID).
+		Where("episode", "==", input.Episode).
+		Where("type", "==", input.Type).
+		Limit(1).Documents(database.Ctx)
+
+	doc, err := iter.Next()
 	if err == nil {
 		// Already exists, remove it (toggle off)
-		database.DB.Delete(&reaction)
-		c.JSON(http.StatusOK, gin.H{"status": "removed"})
-	} else {
-		// Not found, add it (toggle on)
-		newReaction := models.Reaction{
-			UserID:  userId,
-			AnimeID: input.AnimeID,
-			Episode: input.Episode,
-			Type:    input.Type,
+		_, err = doc.Ref.Delete(database.Ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove reaction"})
+			return
 		}
-		database.DB.Create(&newReaction)
+		c.JSON(http.StatusOK, gin.H{"status": "removed"})
+	} else if err == iterator.Done {
+		// Not found, add it (toggle on)
+		ref := database.DB.Collection("reactions").NewDoc()
+		newReaction := models.Reaction{
+			ID:        ref.ID,
+			UserID:    userId,
+			AnimeID:   input.AnimeID,
+			Episode:   input.Episode,
+			Type:      input.Type,
+			CreatedAt: time.Now(),
+		}
+		if _, err := ref.Set(database.Ctx, newReaction); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add reaction"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"status": "added"})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 	}
 }
 
 func GetReactions(c *gin.Context) {
-	animeId := c.Param("animeId")
-	episodeStr := c.Param("episode")
-	episode, _ := strconv.Atoi(episodeStr)
-
-	var reactions []models.Reaction
-	database.DB.Where("anime_id = ? AND episode = ?", animeId, episode).Find(&reactions)
-
-	// Aggregate counts
-	counts := make(map[string]int)
-	for _, r := range reactions {
-		counts[r.Type]++
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
 	}
 
-	// User status if logged in
-	userStatus := ""
-	if userId, ok := c.Get("userId"); ok {
+	animeId := c.Param("animeId")
+	episode, _ := strconv.Atoi(c.Param("episode"))
+
+	iter := database.DB.Collection("reactions").
+		Where("animeId", "==", animeId).
+		Where("episode", "==", episode).
+		Documents(database.Ctx)
+
+	counts := make(map[string]int)
+	userReaction := ""
+	currentUserID, loggedIn := c.Get("userId")
+
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			break
+		}
 		var r models.Reaction
-		if err := database.DB.Where("user_id = ? AND anime_id = ? AND episode = ?", userId.(uint), animeId, episode).First(&r).Error; err == nil {
-			userStatus = r.Type
+		doc.DataTo(&r)
+		counts[r.Type]++
+		if loggedIn && r.UserID == currentUserID.(string) {
+			userReaction = r.Type
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"counts":     counts,
-		"userReaction": userStatus,
+		"counts":       counts,
+		"userReaction": userReaction,
 	})
 }
 
 // Comment Handlers
 
 func CreateComment(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	var input struct {
 		AnimeID  string `json:"animeId" binding:"required"`
 		Episode  int    `json:"episode" binding:"required"`
 		Content  string `json:"content" binding:"required"`
-		ParentID *uint  `json:"parentId"`
+		ParentID string `json:"parentId"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -89,48 +131,104 @@ func CreateComment(c *gin.Context) {
 		return
 	}
 
-	comment := models.Comment{
-		UserID:   userId,
-		AnimeID:  input.AnimeID,
-		Episode:  input.Episode,
-		Content:  input.Content,
-		ParentID: input.ParentID,
+	// Fetch user info for denormalization (username/avatar)
+	// We'll use the first profile or a default for now, or just some placeholder
+	// In this app, users can have multiple profiles, but for simplicity we'll check profiles
+	pIter := database.DB.Collection("profiles").Where("userId", "==", userId).Limit(1).Documents(database.Ctx)
+	pDoc, pErr := pIter.Next()
+	
+	userName := "User"
+	userAvatar := ""
+	if pErr == nil {
+		var p models.Profile
+		pDoc.DataTo(&p)
+		userName = p.Name
+		userAvatar = p.Avatar
 	}
 
-	if err := database.DB.Create(&comment).Error; err != nil {
+	ref := database.DB.Collection("comments").NewDoc()
+	comment := models.Comment{
+		ID:              ref.ID,
+		UserID:          userId,
+		UserName:        userName,
+		UserAvatar:      userAvatar,
+		AnimeID:         input.AnimeID,
+		Episode:         input.Episode,
+		Content:         input.Content,
+		ParentID:        input.ParentID,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+
+	if _, err := ref.Set(database.Ctx, comment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to post comment"})
 		return
 	}
 
-	// Load user for response
-	database.DB.Preload("User").First(&comment, comment.ID)
 	c.JSON(http.StatusOK, comment)
 }
 
 func GetComments(c *gin.Context) {
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
 	animeId := c.Param("animeId")
-	episodeStr := c.Param("episode")
-	episode, _ := strconv.Atoi(episodeStr)
+	episode, _ := strconv.Atoi(c.Param("episode"))
+
+	// Currently only fetching top-level. Support for replies could be added by another query.
+	iter := database.DB.Collection("comments").
+		Where("animeId", "==", animeId).
+		Where("episode", "==", episode).
+		Where("parentId", "==", "").
+		OrderBy("createdAt", database.Desc).
+		Documents(database.Ctx)
 
 	var comments []models.Comment
-	// Fetch only top-level comments and preload replies + users
-	database.DB.Preload("User").
-		Preload("Replies").
-		Preload("Replies.User").
-		Where("anime_id = ? AND episode = ? AND parent_id IS NULL", animeId, episode).
-		Order("created_at desc").
-		Find(&comments)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Printf("❌ Error fetching comments: %v", err)
+			break
+		}
+		var cm models.Comment
+		doc.DataTo(&cm)
+		comments = append(comments, cm)
+	}
 
 	c.JSON(http.StatusOK, comments)
 }
 
 func DeleteComment(c *gin.Context) {
-	userId := c.MustGet("userId").(uint)
+	if database.DB == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		return
+	}
+
+	userId := c.MustGet("userId").(string)
 	commentId := c.Param("id")
 
-	result := database.DB.Where("id = ? AND user_id = ?", commentId, userId).Delete(&models.Comment{})
-	if result.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found or not authorized"})
+	doc, err := database.DB.Collection("comments").Doc(commentId).Get(database.Ctx)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		return
+	}
+
+	var comment models.Comment
+	doc.DataTo(&comment)
+
+	if comment.UserID != userId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	_, err = doc.Ref.Delete(database.Ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
 		return
 	}
 

@@ -1,62 +1,77 @@
 package database
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"os"
-	"time"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	firebase "firebase.google.com/go/v4"
+	"cloud.google.com/go/firestore"
+	"google.golang.org/api/option"
 )
 
-var DB *gorm.DB
+var DB *firestore.Client
+var Ctx = context.Background()
 
-// WaitForDB blocks until DB is connected or timeout (20s) is reached.
-// Returns true if DB is ready, false if timed out.
-func WaitForDB() bool {
-	if DB != nil {
-		return true
-	}
-	// Poll every 250ms for up to 20 seconds
-	for i := 0; i < 80; i++ {
-		time.Sleep(250 * time.Millisecond)
-		if DB != nil {
-			return true
-		}
-	}
-	return false
-}
-
+// InitDB initializes the Firebase Admin SDK and Firestore client
 func InitDB() {
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		log.Println("⚠️ DATABASE_URL not set, DB features will be disabled")
+	projectID := os.Getenv("FIREBASE_PROJECT_ID")
+	if projectID == "" {
+		log.Println("⚠️ FIREBASE_PROJECT_ID not set, database features will be disabled")
 		return
 	}
 
-	// Run connection in a goroutine to prevent blocking the main thread (fixes 35s preflight lag)
-	go func() {
-		log.Println("🔌 Connecting to database in background...")
-		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-		if err != nil {
-			log.Println("❌ Failed to connect to database:", err)
-			return
-		}
+	var app *firebase.App
+	var err error
 
-		// Automigrate models only if explicitly requested
-		if os.Getenv("DB_AUTO_MIGRATE") == "true" {
-			log.Println("🔄 Running database auto-migration...")
-			err = db.AutoMigrate(&models.User{}, &models.Profile{}, &models.WatchHistory{}, &models.Watchlist{}, &models.Favorite{}, &models.Reaction{}, &models.Comment{}, &models.Release{})
-			if err != nil {
-				log.Println("❌ Failed to automigrate models:", err)
-				return
-			}
-			log.Println("✅ Database migration completed")
-		}
+	// Check for service account JSON content or file path
+	serviceAccountJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+	var opt option.ClientOption
 
-		DB = db
-		fmt.Println("✅ Database connected and ready")
-	}()
+	if serviceAccountJSON != "" {
+		if _, err := os.Stat(serviceAccountJSON); err == nil {
+			// It's a file path
+			opt = option.WithCredentialsFile(serviceAccountJSON)
+		} else {
+			// It's raw JSON content
+			opt = option.WithCredentialsJSON([]byte(serviceAccountJSON))
+		}
+		app, err = firebase.NewApp(Ctx, &firebase.Config{ProjectID: projectID}, opt)
+	} else {
+		// Fallback to default credentials
+		app, err = firebase.NewApp(Ctx, &firebase.Config{ProjectID: projectID})
+	}
+
+	if err != nil {
+		log.Fatalf("❌ Error initializing Firebase App: %v", err)
+	}
+
+	client, err := app.Firestore(Ctx)
+	if err != nil {
+		log.Fatalf("❌ Error initializing Firestore client: %v", err)
+	}
+
+	DB = client
+	log.Println("✅ Firebase Firestore connected and ready (Spark Plan optimized)")
+}
+
+// Update is an alias for firestore.Update
+type Update = firestore.Update
+
+// Directions
+const (
+	Asc  = firestore.Asc
+	Desc = firestore.Desc
+)
+
+// CloseDB closes the Firestore client connection
+func CloseDB() {
+	if DB != nil {
+		DB.Close()
+	}
+}
+
+// WaitForDB is now a no-op for Firestore as it uses lazy connection
+func WaitForDB() bool {
+	return DB != nil
 }
