@@ -1,5 +1,6 @@
 <script lang="ts">
   import { api, getProxiedImage, getProxiedUrl } from "$lib/api";
+  import Row from "$lib/components/Row.svelte";
   import { auth } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
   import { onMount, onDestroy, untrack } from "svelte";
@@ -36,6 +37,7 @@
   });
 
   let anime: any = $state(null);
+  let recommendations: any[] = $state([]);
   let sources: any[] = $state([]);
   let episodes: any[] = $state([]);
   let selectedSource: any = $state(null);
@@ -337,12 +339,14 @@
 
   onMount(async () => {
     try {
-      const [animeRes, metaRes] = await Promise.all([
+      const [animeRes, metaRes, recsRes] = await Promise.all([
         api.getAnime(animeId),
         api.getEpisodeMetadata(animeId, 1, 2000), // Increase to load all episodes
+        api.getRecommendations(animeId),
       ]);
       anime = animeRes;
       episodes = metaRes?.data?.episodes || [];
+      recommendations = recsRes || [];
 
       // Auto-select pagination page that contains the current episode
       if (ep > 0 && episodes.length > 0) {
@@ -912,6 +916,21 @@
           </aside>
         </div> <!-- info-grid -->
       </div> <!-- player-info container -->
+
+      <!-- Related & Recommendations -->
+      <div class="container pb-10">
+        {#if anime?.relations?.length > 0}
+          <div class="mt-8">
+            <Row title="Related Seasons & Prequels" items={anime.relations} />
+          </div>
+        {/if}
+
+        {#if recommendations.length > 0}
+          <div class="mt-8">
+            <Row title="You Might Also Like" items={recommendations} />
+          </div>
+        {/if}
+      </div>
 
       <LiveChat {animeId} episode={ep} />
 </div> <!-- player-page -->

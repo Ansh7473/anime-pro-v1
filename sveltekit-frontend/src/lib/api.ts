@@ -46,13 +46,18 @@ const mediaFragment = `
 function transformMedia(media: any) {
 	if (!media) return null;
 
-	const titleRaw = media.title || {};
-	let bestTitle = titleRaw.english;
-	if (!bestTitle && media.synonyms && media.synonyms.length > 0) {
-		bestTitle = media.synonyms[0];
-	}
-	if (!bestTitle) {
-		bestTitle = titleRaw.romaji || titleRaw.native || "Unknown Anime";
+	let bestTitle = "";
+	if (typeof media.title === 'string' && media.title) {
+		bestTitle = media.title;
+	} else {
+		const titleRaw = media.title || {};
+		bestTitle = titleRaw.english;
+		if (!bestTitle && media.synonyms && media.synonyms.length > 0) {
+			bestTitle = media.synonyms[0];
+		}
+		if (!bestTitle) {
+			bestTitle = titleRaw.romaji || titleRaw.native || "Unknown Anime";
+		}
 	}
 
 	return {
