@@ -143,7 +143,7 @@
 
         <button type="submit" class="submit-btn" disabled={loading}>
           <div class="btn-content">
-            <Cpu size={20} class:spin={loading} />
+            <Cpu size={20} class={loading ? 'spin' : ''} />
             <span>
               {loading ? "ENROLLING_OPERATOR..." : "FINALIZE_ENROLLMENT"}
             </span>
@@ -309,6 +309,7 @@
     margin: 0;
     background: linear-gradient(to bottom, #fff, #b0bec5);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
