@@ -883,31 +883,31 @@
               </div>
             </div>
 
-            <!-- Comments Section -->
-            <CommentsSection {animeId} episode={ep} />
-          </div>
-
-          <!-- Sidebar -->
-          <aside class="sidebar">
-            <div class="anime-meta-card glass">
-              <img
-                src={anime?.poster || anime?.image}
-                alt={anime?.title}
-                class="side-poster"
-              />
-              <div class="side-info">
-                <h4>About the series</h4>
-                <div class="tags">
-                  <span class="tag">{anime?.type}</span>
-                  <span class="tag">{anime?.status}</span>
-                  <span class="tag">{anime?.year}</span>
+            <!-- Sidebar Info (Anime Meta) -->
+            <aside class="sidebar-info">
+              <div class="anime-meta-card glass">
+                <img
+                  src={anime?.poster || anime?.image}
+                  alt={anime?.title}
+                  class="side-poster"
+                />
+                <div class="side-info">
+                  <h4>About the series</h4>
+                  <div class="tags">
+                    <span class="tag">{anime?.type}</span>
+                    <span class="tag">{anime?.status}</span>
+                    <span class="tag">{anime?.year}</span>
+                  </div>
+                  <p class="side-desc">{anime?.synopsis?.slice(0, 150)}...</p>
+                  <a href="/anime/{animeId}" class="link-btn">Show Details</a>
                 </div>
-                <p class="side-desc">{anime?.synopsis?.slice(0, 150)}...</p>
-                <a href="/anime/{animeId}" class="link-btn">Show Details</a>
               </div>
-            </div>
-          </aside>
+            </aside>
+          </div>
         </div>
+
+        <!-- Comments Section -->
+        <CommentsSection {animeId} episode={ep} />
       </div>
 
       <!-- Live Chat Sidebar -->
@@ -957,6 +957,14 @@
     display: flex;
     height: 100vh;
     overflow: hidden;
+  }
+  
+  @media (max-width: 1024px) {
+    .watch-layout {
+      flex-direction: column;
+      height: auto;
+      overflow: visible;
+    }
   }
   .main-content {
     flex: 1;
