@@ -335,9 +335,9 @@ export const api = {
 
 	// 10. Social & Community
 	toggleReaction: (token: string, data: { animeId: string; episode: number; type: string; profileId?: number | string }) =>
-		fetchJSON(`${USER_URL}/reactions`, {
+		fetchJSON(`${BACKEND_URL}/api/v1/reactions`, {
 			method: 'POST',
-			headers: authHeaders(token),
+			headers: token ? authHeaders(token) : {},
 			body: JSON.stringify(data)
 		}),
 
