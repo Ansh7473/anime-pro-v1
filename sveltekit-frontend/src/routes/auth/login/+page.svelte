@@ -38,303 +38,410 @@
   <title>Login / AnimePro</title>
 </svelte:head>
 
-<div class="netflix-page" class:ready={mounted}>
-  <!-- Cinematic Background -->
-  <div class="hero-bg">
-    <div class="poster-overlay"></div>
-    <div class="gradient-overlay"></div>
+<div class="netflix-container" class:ready={mounted}>
+  <!-- Background Image Overlay (Mirror of Reference) -->
+  <div class="bg-wrapper">
+    <div class="bg-image"></div>
+    <div class="bg-overlay"></div>
   </div>
 
-  <main class="login-wrapper">
-    <div class="login-card glass">
-      <header class="login-header">
-        <h1>Welcome Back</h1>
-        <p class="subtitle">Access your AnimePro operator profile</p>
-      </header>
+  <!-- Header Section (Mirror of Reference) -->
+  <header class="netflix-header">
+    <div class="logo">ANIMEPRO</div>
+  </header>
+
+  <!-- Login Form Main (Mirror of Reference) -->
+  <main class="auth-main">
+    <div class="auth-card">
+      <h1>Sign In</h1>
 
       {#if error}
-        <div class="error-alert">
-          <span>{error}</span>
+        <div class="error-box">
+          {error}
         </div>
       {/if}
 
-      <form onsubmit={handleLogin} class="login-form">
+      <form onsubmit={handleLogin} class="auth-form">
         <div class="form-group">
-          <div class="input-container">
+          <div class="input-wrapper">
             <input
               type="email"
               id="email"
               bind:value={email}
+              placeholder=" "
               required
               autocomplete="email"
             />
-            <label for="email" class:active={email}>Operator ID / Email</label>
-            <div class="focus-border"></div>
+            <label for="email">Email or phone number</label>
+            <div class="focus-ring"></div>
           </div>
         </div>
 
         <div class="form-group">
-          <div class="input-container">
+          <div class="input-wrapper">
             <input
               type="password"
               id="password"
               bind:value={password}
+              placeholder=" "
               required
               autocomplete="current-password"
             />
-            <label for="password" class:active={password}>Access Key / Password</label>
-            <div class="focus-border"></div>
+            <label for="password">Password</label>
+            <div class="focus-ring"></div>
           </div>
         </div>
 
         <button type="submit" class="submit-btn" disabled={loading}>
           {#if loading}
-            <span class="loader"></span>
-            INITIALIZING...
+            <div class="spinner"></div>
           {:else}
-            ESTABLISH CONNECTION
+            Sign In
           {/if}
         </button>
+
+        <div class="form-extras">
+          <label class="remember">
+            <input type="checkbox" />
+            <span>Remember me</span>
+          </label>
+          <a href="#" class="help-link">Need help?</a>
+        </div>
       </form>
 
-      <footer class="login-footer">
-        <div class="footer-links">
-          <span class="new-text">New Operator?</span>
-          <a href="/auth/register" class="signup-link">Register Account</a>
-        </div>
-      </footer>
+      <div class="auth-footer-content">
+        <p>
+          New to AnimePro? 
+          <a href="/auth/register" class="signup-link">Sign up now.</a>
+        </p>
+        <p class="captcha-text">
+          This page is protected by Google reCAPTCHA to ensure you're not a bot. 
+          <a href="#" class="learn-more">Learn more.</a>
+        </p>
+      </div>
     </div>
   </main>
+
+  <!-- Global Footer (Mirror of Reference) -->
+  <footer class="global-footer">
+    <div class="footer-inner">
+      <p>Questions? Contact us.</p>
+      <div class="footer-links">
+        <a href="#">FAQ</a>
+        <a href="#">Help Center</a>
+        <a href="#">Terms of Use</a>
+        <a href="#">Privacy</a>
+        <a href="#">Cookie Preferences</a>
+        <a href="#">Corporate Information</a>
+      </div>
+    </div>
+  </footer>
 </div>
 
 <style>
   :global(:root) {
-    --n-bg: #000;
-    --n-card-bg: rgba(0, 0, 0, 0.75);
-    --n-accent: #0088ff;
-    --n-text: #fff;
-    --n-text-muted: #8c8c8c;
-    --n-input-bg: #333;
-    --n-error: #e87c03;
+    --netflix-red: #e50914;
+    --netflix-red-hover: #c11119;
+    --netflix-dark: #333;
+    --netflix-muted: #8c8c8c;
+    --netflix-bg: #000;
   }
 
-  .netflix-page {
+  .netflix-container {
     position: relative;
     min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--n-bg);
-    color: var(--n-text);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    flex-direction: column;
+    background: var(--netflix-bg);
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     opacity: 0;
     transition: opacity 0.5s ease;
   }
 
-  .netflix-page.ready {
+  .netflix-container.ready {
     opacity: 1;
   }
 
-  /* Cinematic Background */
-  .hero-bg {
+  /* Background Port */
+  .bg-wrapper {
     position: absolute;
     inset: 0;
     z-index: 0;
     overflow: hidden;
   }
 
-  .poster-overlay {
+  .bg-image {
     position: absolute;
     inset: 0;
-    background: url('https://images.unsplash.com/photo-1541562232579-512a21359920?auto=format&fit=crop&q=60&w=1200') center/cover;
-    filter: blur(20px) brightness(0.3);
-    transform: scale(1.1);
+    background: url('https://picsum.photos/seed/anime/1920/1080?blur=2') center/cover;
+    opacity: 0.5;
+    background-color: #000;
   }
 
-  .gradient-overlay {
+  .bg-overlay {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%),
-                linear-gradient(to bottom, rgba(0,0,0,0.5), #000);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 50%, rgba(0,0,0,0.8) 100%);
   }
 
-  .login-wrapper {
+  /* Header Port */
+  .netflix-header {
     position: relative;
     z-index: 10;
+    padding: 24px 48px;
+  }
+
+  .logo {
+    color: var(--netflix-red);
+    font-weight: 700;
+    font-size: 2.5rem;
+    letter-spacing: -1px;
+    font-family: 'Arial Black', Gadget, sans-serif;
+  }
+
+  /* Main Card Port */
+  .auth-main {
+    position: relative;
+    z-index: 10;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px 80px 20px;
+  }
+
+  .auth-card {
     width: 100%;
     max-width: 450px;
-    padding: 1.5rem;
-  }
-
-  .login-card {
-    background: var(--n-card-bg);
-    padding: 3.5rem 4rem;
-    border-radius: 8px;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-  }
-
-  .login-header {
-    margin-bottom: 2rem;
+    min-height: 600px;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 60px 68px 40px;
+    border-radius: 4px;
+    box-sizing: border-box;
   }
 
   h1 {
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 700;
-    margin: 0 0 0.5rem 0;
-    letter-spacing: -0.5px;
+    margin-bottom: 28px;
   }
 
-  .subtitle {
-    color: var(--n-text-muted);
-    font-size: 0.95rem;
-    font-weight: 500;
-  }
-
-  .error-alert {
-    background: var(--n-error);
-    padding: 0.75rem 1rem;
+  .error-box {
+    background: #e87c03;
     border-radius: 4px;
-    font-size: 0.85rem;
-    margin-bottom: 1.5rem;
-    font-weight: 500;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
   }
 
-  .login-form {
+  .auth-form {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 16px;
   }
 
-  .form-group {
+  /* Input & Floating Label Port (Mirror of Reference) */
+  .input-wrapper {
     position: relative;
-  }
-
-  .input-container {
-    position: relative;
-    background: var(--n-input-bg);
+    background: var(--netflix-dark);
     border-radius: 4px;
+    min-height: 50px;
   }
 
   input {
     width: 100%;
+    padding: 16px 20px 0;
+    height: 50px;
     background: transparent;
     border: none;
-    padding: 1.5rem 1rem 0.5rem 1rem;
+    outline: none;
     color: #fff;
     font-size: 1rem;
-    outline: none;
-    height: 55px;
+    box-sizing: border-box;
   }
 
   label {
     position: absolute;
-    left: 1rem;
+    left: 20px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--n-text-muted);
+    color: var(--netflix-muted);
     font-size: 1rem;
-    transition: 0.2s ease all;
+    transition: 0.15s ease all;
     pointer-events: none;
   }
 
-  label.active, input:focus + label {
+  input:focus + label,
+  input:not(:placeholder-shown) + label {
     top: 15px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    color: var(--n-text-muted);
   }
 
-  .focus-border {
+  .focus-ring {
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 0;
+    right: 0;
     height: 2px;
-    background: var(--n-accent);
-    transition: 0.3s ease width;
+    background: #fff;
+    transform: scaleX(0);
+    transition: 0.2s ease transform;
   }
 
-  input:focus ~ .focus-border {
-    width: 100%;
+  input:focus ~ .focus-ring {
+    transform: scaleX(1);
+    background: rgba(255, 255, 255, 0.3);
   }
 
+  /* Button Port */
   .submit-btn {
-    margin-top: 1.5rem;
-    background: var(--n-accent);
+    margin-top: 24px;
+    background: var(--netflix-red);
     color: #fff;
-    border: none;
-    padding: 1rem;
-    border-radius: 4px;
-    font-size: 1rem;
     font-weight: 700;
+    font-size: 1rem;
+    padding: 16px;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
-    transition: transform 0.2s ease, filter 0.2s ease;
+    transition: background 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
-    letter-spacing: 0.5px;
   }
 
   .submit-btn:hover:not(:disabled) {
-    filter: brightness(1.1);
-    transform: scale(1.02);
+    background: var(--netflix-red-hover);
   }
 
   .submit-btn:disabled {
-    opacity: 0.7;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .loader {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  .login-footer {
-    margin-top: 3rem;
-  }
-
-  .footer-links {
+  /* Extras Port */
+  .form-extras {
     display: flex;
-    gap: 0.5rem;
-    font-size: 0.95rem;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #b3b3b3;
+    margin-top: 8px;
   }
 
-  .new-text {
-    color: var(--n-text-muted);
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+  }
+
+  .help-link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .help-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Footer Content Port */
+  .auth-footer-content {
+    margin-top: 60px;
+    color: var(--netflix-muted);
+    font-size: 1rem;
+  }
+
+  .auth-footer-content p {
+    margin-bottom: 12px;
   }
 
   .signup-link {
     color: #fff;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .signup-link:hover {
     text-decoration: underline;
   }
 
-  @media (max-width: 480px) {
-    .login-card {
-      padding: 3rem 1.5rem;
-      background: #000;
-      border-radius: 0;
+  .captcha-text {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .learn-more {
+    color: #0071eb;
+    text-decoration: none;
+  }
+
+  .learn-more:hover {
+    text-decoration: underline;
+  }
+
+  /* Global Footer Port */
+  .global-footer {
+    position: relative;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 30px 48px;
+    border-top: 1px solid var(--netflix-dark);
+    margin-top: auto;
+  }
+
+  .footer-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    color: #737373;
+  }
+
+  .footer-inner p {
+    margin-bottom: 30px;
+  }
+
+  .footer-links {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    font-size: 0.8rem;
+  }
+
+  .footer-links a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .footer-links a:hover {
+    text-decoration: underline;
+  }
+
+  /* Spinner Animation */
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Mobile Adjustments */
+  @media (max-width: 740px) {
+    .bg-image, .bg-overlay { display: none; }
+    .netflix-container { background: #000; }
+    .auth-card {
+      background: transparent;
+      padding: 20px 0;
+      max-width: none;
     }
-    .netflix-page {
-      align-items: flex-start;
-      background: #000;
-    }
-    .hero-bg {
-      display: none;
-    }
+    .netflix-header { padding: 20px; }
+    .global-footer { border-top: 1px solid var(--netflix-dark); }
+    .footer-links { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
