@@ -67,7 +67,7 @@
         </div>
     {:else}
         <div class="favorites-grid">
-            {#each favorites as item}
+            {#each favorites as item (item.id)}
                 <div class="favorites-item">
                     <AnimeCard
                         anime={{

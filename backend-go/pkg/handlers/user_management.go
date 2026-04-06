@@ -246,7 +246,7 @@ func GetFavorites(c *gin.Context) {
 	}
 
 	iter := query.OrderBy("createdAt", database.Desc).Documents(database.Ctx)
-	var favorites []models.Favorite
+	favorites := []models.Favorite{}
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {

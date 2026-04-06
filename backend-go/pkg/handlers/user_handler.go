@@ -28,8 +28,8 @@ func GetWatchHistory(c *gin.Context) {
 	}
 
 	iter := query.OrderBy("lastWatchedAt", database.Desc).Limit(50).Documents(database.Ctx)
-	var history []models.WatchHistory
-	var ids []int
+	history := []models.WatchHistory{}
+	ids := []int{}
 
 	for {
 		doc, err := iter.Next()
@@ -177,8 +177,8 @@ func GetWatchlist(c *gin.Context) {
 	}
 
 	iter := query.OrderBy("createdAt", database.Desc).Documents(database.Ctx)
-	var watchlist []models.Watchlist
-	var ids []int
+	watchlist := []models.Watchlist{}
+	ids := []int{}
 
 	for {
 		doc, err := iter.Next()
