@@ -178,17 +178,66 @@ func JikanSeasonsList(c *gin.Context) {
 
 func JikanRelations(c *gin.Context) {
 	id := c.Param("id")
-	url := fmt.Sprintf("%s/anime/%s/full", JikanBaseURL, id)
+	url := fmt.Sprintf("%s/anime/%s/relations", JikanBaseURL, id)
 
 	resp, err := utils.FetchWithRetries(url, 3, 1000)
 	if err != nil || resp.StatusCode() != http.StatusOK {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed fetching relations"})
+		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
 		return
 	}
 
-	// For relations, we need to parse Jikan's full anime object, extract relations and transform
-	// This mirrors the logic in Node.js JikanRouter
-	c.Data(http.StatusOK, resp.Header().Get("Content-Type"), resp.Body()) // TEMPORARY stub: just return full data for now
+	var data map[string]interface{}
+	if err := json.Unmarshal(resp.Body(), &data); err != nil {
+		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		return
+	}
+
+	rawRelations, _ := data["data"].([]interface{})
+	flattened := []map[string]interface{}{}
+	malIds := []int{}
+
+	for _, rel := range rawRelations {
+		rMap, ok := rel.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		relType := utils.ToString(rMap["relation"])
+		entries, _ := rMap["entry"].([]interface{})
+
+		for _, e := range entries {
+			entry, ok := e.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			malId := int(utils.ToFloat64(entry["mal_id"]))
+			if malId == 0 {
+				continue
+			}
+
+			malIds = append(malIds, malId)
+			flattened = append(flattened, map[string]interface{}{
+				"id":       malId,
+				"mal_id":   malId,
+				"title":    entry["name"],
+				"relation": relType,
+				"type":     entry["type"],
+			})
+		}
+	}
+
+	// Dynamic Bridge: Fetch posters from AniList in a single batch query
+	metadata, mErr := ResolveBatchMetadata(malIds)
+	if mErr == nil && len(metadata) > 0 {
+		for i, item := range flattened {
+			id := item["id"].(int)
+			if meta, found := metadata[id]; found {
+				flattened[i]["poster"] = meta["poster"]
+				flattened[i]["image"] = meta["image"]
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": flattened})
 }
 
 func JikanHealthCheck(c *gin.Context) {
