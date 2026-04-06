@@ -90,8 +90,9 @@ func SetupRoutes(r *gin.Engine) {
 		ahdWP.GET("/sources", handlers.ProviderAHDWPSources)
 	}
 
-	v1.GET("/reactions/:animeId/:episode", handlers.GetReactions)
-	v1.GET("/comments/:animeId/:episode", handlers.GetComments)
+	v1.GET("/reactions/:animeId/:episode", middleware.OptionalAuthMiddleware(), handlers.GetReactions)
+	v1.GET("/comments/:animeId/:episode", middleware.OptionalAuthMiddleware(), handlers.GetComments)
+	v1.GET("/chat/token", middleware.OptionalAuthMiddleware(), handlers.GetChatToken)
 
 	// 11. Ably Chat (Replaced WebSocket Hub for Vercel)
 

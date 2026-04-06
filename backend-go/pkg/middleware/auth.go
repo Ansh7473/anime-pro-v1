@@ -66,3 +66,50 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// OptionalAuthMiddleware identifies the user if a token is present, but allows guests to proceed.
+func OptionalAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		var tokenString string
+
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenString = parts[1]
+			}
+		}
+
+		if tokenString == "" {
+			tokenString = c.Query("token")
+		}
+
+		// If no token, just proceed as guest
+		if tokenString == "" {
+			c.Next()
+			return
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return config.GetJWTSecret(), nil
+		})
+
+		// If invalid token, proceed as guest (or you could return error, but optional usually means proceed)
+		if err != nil || !token.Valid {
+			c.Next()
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if ok {
+			if userId, ok := claims["userId"].(string); ok {
+				c.Set("userId", userId)
+			}
+		}
+
+		c.Next()
+	}
+}

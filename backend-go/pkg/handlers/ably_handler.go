@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"log"
 	"net/http"
 	"os"
@@ -18,7 +20,21 @@ func GetChatToken(c *gin.Context) {
 		return
 	}
 
-	userId := c.MustGet("userId").(string)
+	userId, exists := c.Get("userId")
+	var clientID string
+	var capability string
+
+	if exists {
+		clientID = userId.(string)
+		capability = `{"*":["subscribe","publish","presence"]}`
+	} else {
+		// Guest user: unique ID and subscribe only
+		b := make([]byte, 4)
+		rand.Read(b)
+		randID := hex.EncodeToString(b)
+		clientID = "Guest-" + randID
+		capability = `{"*":["subscribe"]}`
+	}
 	
 	// Initialize Ably client
 	client, err := ably.NewREST(ably.WithKey(apiKey))
@@ -28,10 +44,11 @@ func GetChatToken(c *gin.Context) {
 		return
 	}
 
-	// Create a token request with 1 hour TTL (milliseconds)
+	// Create a token request with specific capabilities
 	params := &ably.TokenParams{
-		ClientID: userId,
+		ClientID: clientID,
 		TTL:      int64(time.Hour / time.Millisecond),
+		Capability: capability,
 	}
 
 	tokenRequest, err := client.Auth.CreateTokenRequest(params)
