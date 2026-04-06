@@ -94,28 +94,28 @@
             <div class="stat-icon"><Clock size={24} /></div>
             <div class="stat-content">
               <span class="stat-label">COMBAT_HOURS</span>
-              <span class="stat-value">{stats.total_hours?.toFixed(1) || '0.0'}</span>
+              <span class="stat-value">{(stats?.total_hours || 0).toFixed(1)}</span>
             </div>
           </div>
           <div class="stat-card glass highlight">
             <div class="stat-icon"><Shield size={24} /></div>
             <div class="stat-content">
               <span class="stat-label">FAVORITE_GENRE</span>
-              <span class="stat-value">{stats.favorite_genre || 'UNKNOWN'}</span>
+              <span class="stat-value">{stats?.favorite_genre || 'Tactical Scifi'}</span>
             </div>
           </div>
           <div class="stat-card glass">
             <div class="stat-icon"><Bookmark size={24} /></div>
             <div class="stat-content">
               <span class="stat-label">RESERVES_COUNT</span>
-              <span class="stat-value">{stats.reserves_count || '0'}</span>
+              <span class="stat-value">{stats?.reserves_count || '0'}</span>
             </div>
           </div>
           <div class="stat-card glass">
             <div class="stat-icon"><Zap size={24} /></div>
             <div class="stat-content">
               <span class="stat-label">RECENT_ACTIVITY</span>
-              <span class="stat-value">{stats.recent_active || '0'}</span>
+              <span class="stat-value">{stats?.recent_active || '0'}</span>
             </div>
           </div>
         </section>
@@ -134,7 +134,7 @@
               {#if history.length === 0}
                 <div class="empty-state">NO_RECENT_ENGAGEMENTS_DETECTED</div>
               {:else}
-                {#each history as entry}
+                {#each history as entry (entry.id)}
                   <a href="/anime/{entry.animeId}" class="history-item">
                     <img src={getProxiedImage(entry.animePoster)} alt="" />
                     <div class="item-info">
@@ -163,10 +163,10 @@
                 <Radio size={16} class="pulse" />
                 <span>AI_INTEL_OFFICER: ACTIVE</span>
               </div>
-              <p class="briefing-text">{recommendations?.briefing}</p>
+              <p class="briefing-text">{recommendations?.briefing || 'Intelligence gathering in progress...'}</p>
               
               <div class="recs-list">
-                {#each (recommendations?.recommendations || []) as rec}
+                {#each (recommendations?.recommendations || []) as rec (rec.id)}
                   <a href="/anime/{rec.id}" class="rec-item glass">
                     <img src={getProxiedImage(rec.poster)} alt="" />
                     <div class="rec-info">
@@ -186,7 +186,7 @@
               <div class="line"></div>
             </div>
             <div class="reserves-grid">
-              {#each (watchlist || []).slice(0, 4) as item}
+              {#each (watchlist || []).slice(0, 4) as item (item.id)}
                 <a href="/anime/{item.animeId}" class="reserve-mini glass">
                   <img src={getProxiedImage(item.animePoster)} alt="" />
                 </a>

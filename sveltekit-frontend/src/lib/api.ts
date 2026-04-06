@@ -238,10 +238,12 @@ export const api = {
 	getCurrentUser: (token: string) =>
 		fetchJSON(`${USER_URL}/me`, { headers: authHeaders(token) }),
 
-	getHistory: (token: string, profileId?: number | string) =>
-		fetchJSON(`${USER_URL}/history${profileId ? `?profileId=${profileId}` : ''}`, {
+	getHistory: async (token: string, profileId?: number | string) => {
+		const res = await fetchJSON(`${USER_URL}/history${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: authHeaders(token)
-		}),
+		});
+		return res || [];
+	},
 
 	updateHistory: (token: string, data: any) =>
 		fetchJSON(`${USER_URL}/history`, {
@@ -256,10 +258,12 @@ export const api = {
 			headers: authHeaders(token)
 		}),
 
-	getWatchlist: (token: string) =>
-		fetchJSON(`${USER_URL}/watchlist`, {
+	getWatchlist: async (token: string) => {
+		const res = await fetchJSON(`${USER_URL}/watchlist`, {
 			headers: authHeaders(token)
-		}),
+		});
+		return res || [];
+	},
 
 	addToWatchlist: (token: string, data: any) =>
 		fetchJSON(`${USER_URL}/watchlist`, {
@@ -280,10 +284,12 @@ export const api = {
 		}),
 
 	// 10. Favorites
-	getFavorites: (token: string, profileId?: number | string) =>
-		fetchJSON(`${USER_URL}/favorites${profileId ? `?profileId=${profileId}` : ''}`, {
+	getFavorites: async (token: string, profileId?: number | string) => {
+		const res = await fetchJSON(`${USER_URL}/favorites${profileId ? `?profileId=${profileId}` : ''}`, {
 			headers: authHeaders(token)
-		}),
+		});
+		return res || [];
+	},
 	addToFavorites: (token: string, data: any) =>
 		fetchJSON(`${USER_URL}/favorites`, {
 			method: 'POST',

@@ -67,7 +67,7 @@
     </div>
   {:else}
     <div class="watchlist-grid">
-      {#each watchlist as item}
+      {#each watchlist as item (item.id)}
         <div class="watchlist-item">
           <!-- Build a mock anime object for AnimeCard since we saved the title and poster -->
           <AnimeCard
