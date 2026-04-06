@@ -32,7 +32,7 @@ async function queryAnilist(query: string, variables: Record<string, any> = {}) 
 const mediaFragment = `
   fragment mediaFields on Media {
     id idMal
-    title { romaji english native }
+    title { romaji english native userPreferred }
     synonyms
     coverImage { extraLarge large }
     description format status episodes
@@ -51,7 +51,7 @@ function transformMedia(media: any) {
 		bestTitle = media.title;
 	} else {
 		const titleRaw = media.title || {};
-		bestTitle = titleRaw.english || media.title_english || media.name;
+		bestTitle = titleRaw.english || media.title_english || titleRaw.userPreferred || media.name;
 		if (!bestTitle && media.synonyms && media.synonyms.length > 0) {
 			bestTitle = media.synonyms[0];
 		}
