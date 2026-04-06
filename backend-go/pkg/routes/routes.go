@@ -92,6 +92,7 @@ func SetupRoutes(r *gin.Engine) {
 
 	v1.GET("/reactions/:animeId/:episode", middleware.OptionalAuthMiddleware(), handlers.GetReactions)
 	v1.GET("/comments/:animeId/:episode", middleware.OptionalAuthMiddleware(), handlers.GetComments)
+	v1.POST("/reactions", middleware.OptionalAuthMiddleware(), handlers.ToggleReaction)
 	v1.GET("/chat/token", middleware.OptionalAuthMiddleware(), handlers.GetChatToken)
 
 	// 11. Ably Chat (Replaced WebSocket Hub for Vercel)
@@ -128,7 +129,6 @@ func SetupRoutes(r *gin.Engine) {
 		user.GET("/favorites/:animeId", handlers.GetFavoriteStatus)
 
 		// 10. Social & Community
-		user.POST("/reactions", handlers.ToggleReaction)
 		user.POST("/comments", handlers.CreateComment)
 		user.DELETE("/comments/:id", handlers.DeleteComment)
 

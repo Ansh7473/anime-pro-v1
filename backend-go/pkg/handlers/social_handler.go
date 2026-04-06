@@ -21,16 +21,32 @@ func ToggleReaction(c *gin.Context) {
 		return
 	}
 
-	userId := c.MustGet("userId").(string)
+	// Get userId from context (optional auth) or use profileId as guestId
+	var userId string
+	val, exists := c.Get("userId")
+	if exists {
+		userId = val.(string)
+	}
+
 	var input struct {
-		AnimeID string `json:"animeId" binding:"required"`
-		Episode int    `json:"episode" binding:"required"`
-		Type    string `json:"type" binding:"required"`
+		AnimeID   string `json:"animeId" binding:"required"`
+		Episode   int    `json:"episode" binding:"required"`
+		Type      string `json:"type" binding:"required"`
+		ProfileID string `json:"profileId"` // Used as guestId if not logged in
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Fallback to guest ID if not logged in
+	if userId == "" {
+		if input.ProfileID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Login or Guest ID required"})
+			return
+		}
+		userId = input.ProfileID
 	}
 
 	// Use a query to find existing reaction
