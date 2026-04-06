@@ -33,6 +33,7 @@ const mediaFragment = `
   fragment mediaFields on Media {
     id idMal
     title { romaji english native }
+    synonyms
     coverImage { extraLarge large }
     description format status episodes
     averageScore seasonYear season genres popularity
@@ -44,12 +45,23 @@ const mediaFragment = `
 
 function transformMedia(media: any) {
 	if (!media) return null;
+
+	const titleRaw = media.title || {};
+	let bestTitle = titleRaw.english;
+	if (!bestTitle && media.synonyms && media.synonyms.length > 0) {
+		bestTitle = media.synonyms[0];
+	}
+	if (!bestTitle) {
+		bestTitle = titleRaw.romaji || titleRaw.native || "Unknown Anime";
+	}
+
 	return {
 		...media,
 		id: media.id || media.mal_id,
+		title: bestTitle,
 		score: media.score > 10 ? media.score / 10 : media.score,
 		rating: media.rating > 10 ? media.rating / 10 : media.rating,
-		poster: media.poster || media.image || '',
+		poster: media.poster || media.image || (media.coverImage?.extraLarge || media.coverImage?.large) || '',
 		synopsis: media.synopsis?.replace(/<[^>]*>?/gm, '') || ''
 	};
 }
