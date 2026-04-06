@@ -181,7 +181,9 @@ func GetComments(c *gin.Context) {
 	animeId := c.Param("animeId")
 	episode, _ := strconv.Atoi(c.Param("episode"))
 
-	// Currently only fetching top-level. Support for replies could be added by another query.
+	iter := database.DB.Collection("comments").
+		Where("animeId", "==", animeId).
+		Where("episode", "==", episode).
 		Where("parentId", "==", "").
 		Documents(database.Ctx)
 
