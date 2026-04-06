@@ -51,7 +51,7 @@ function transformMedia(media: any) {
 		bestTitle = media.title;
 	} else {
 		const titleRaw = media.title || {};
-		bestTitle = titleRaw.english;
+		bestTitle = titleRaw.english || media.title_english || media.name;
 		if (!bestTitle && media.synonyms && media.synonyms.length > 0) {
 			bestTitle = media.synonyms[0];
 		}

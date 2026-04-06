@@ -7,7 +7,7 @@
   const poster = $derived(
     anime?.poster || anime?.image || anime?.images?.jpg?.large_image_url || "",
   );
-  const title = $derived(anime?.title || anime?.title_english || "Unknown");
+  const title = $derived(anime?.title || anime?.name || anime?.title_english || "Unknown");
   const score = $derived(anime?.score || anime?.rating || 0);
   const id = $derived(anime?.id || anime?.mal_id);
 </script>
