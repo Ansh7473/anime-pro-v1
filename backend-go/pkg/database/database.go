@@ -44,6 +44,7 @@ func InitDB() {
 
 	if err != nil {
 		log.Printf("❌ Error initializing Firebase App: %v", err)
+		log.Println("👉 Check if FIREBASE_SERVICE_ACCOUNT_JSON matches your service account JSON file's content.")
 		return
 	}
 

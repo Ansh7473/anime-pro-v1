@@ -93,8 +93,7 @@ func SetupRoutes(r *gin.Engine) {
 	v1.GET("/reactions/:animeId/:episode", handlers.GetReactions)
 	v1.GET("/comments/:animeId/:episode", handlers.GetComments)
 
-	// Run WebSocket Hub
-	go handlers.MainHub.Run()
+	// 11. Ably Chat (Replaced WebSocket Hub for Vercel)
 
 	// 5. Auth Routes
 	auth := v1.Group("/auth")
@@ -130,7 +129,6 @@ func SetupRoutes(r *gin.Engine) {
 		// 10. Social & Community
 		user.POST("/reactions", handlers.ToggleReaction)
 		user.POST("/comments", handlers.CreateComment)
-		user.DELETE("/comments/:id", handlers.DeleteComment)
 		user.DELETE("/comments/:id", handlers.DeleteComment)
 
 		user.GET("/chat/token", handlers.GetChatToken)

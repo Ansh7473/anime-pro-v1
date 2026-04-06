@@ -38,12 +38,25 @@ func initApp() {
 	app.Use(cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
 			// Allow localhost, the production domains, and all vercel preview domains
-			return origin == "http://localhost:4001" || 
+			if origin == "" {
+				return true
+			}
+			
+			// Exact matches
+			if origin == "http://localhost:4001" || 
 				   origin == "http://localhost:5173" || 
 				   origin == "http://localhost:5174" || 
 				   origin == "http://localhost:3000" || 
-				   origin == "https://anime-pro-v1-frontend.vercel.app" || 
-				   (len(origin) > 11 && origin[len(origin)-11:] == ".vercel.app")
+				   origin == "https://anime-pro-v1-frontend.vercel.app" {
+				return true
+			}
+
+			// Vercel Preview domain match (ending with .vercel.app)
+			if len(origin) > 11 && origin[len(origin)-11:] == ".vercel.app" {
+				return true
+			}
+
+			return false
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
@@ -59,14 +72,19 @@ func initApp() {
 	// Health check
 	app.GET("/health", func(c *gin.Context) {
 		dbStatus := "disconnected"
+		dbError := ""
 		if database.DB != nil {
 			dbStatus = "connected"
+		} else {
+			dbError = "Firestore client not initialized. Check FIREBASE_SERVICE_ACCOUNT_JSON."
 		}
+		
 		c.JSON(200, gin.H{
 			"status":   "healthy",
 			"service":  "backend-go-vercel",
 			"database": dbStatus,
-			"version":  "1.2.1",
+			"db_error": dbError,
+			"version":  "1.2.2",
 		})
 	})
 

@@ -23,7 +23,8 @@ func GetJWTSecret() []byte {
 			log.Println("⚠️  JWT_SECRET not set! Generating random secret (sessions won't survive restarts)")
 			b := make([]byte, 32)
 			if _, err := rand.Read(b); err != nil {
-				log.Fatal("Failed to generate random JWT secret:", err)
+				log.Printf("❌ Failed to generate random JWT secret: %v", err)
+				return
 			}
 			secret = hex.EncodeToString(b)
 		}
