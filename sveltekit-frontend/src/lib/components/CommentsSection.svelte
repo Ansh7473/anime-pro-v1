@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api } from '$lib/api';
+  import { api, getProxiedImage } from '$lib/api';
   import { auth } from '$lib/stores/auth';
   import { onMount } from 'svelte';
   import { Send, MessageSquare, Trash2, Reply, MessageCircle } from 'lucide-svelte';
@@ -116,7 +116,7 @@
   <!-- Main Input -->
   <div class="input-container main-input">
     {#if $auth.token}
-      <img src={$auth.currentProfile?.avatar || '/default-avatar.png'} alt="My Avatar" class="user-avatar" />
+      <img src={getProxiedImage($auth.currentProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user?.email || 'guest'}`)} alt="My Avatar" class="user-avatar" />
       <div class="input-wrapper">
         <textarea 
           placeholder="What are your thoughts on this episode?" 
@@ -154,7 +154,7 @@
     {:else}
       {#each comments as comment (comment.id)}
         <div class="comment-card">
-          <img src={comment.user?.profiles?.[0]?.avatar || '/default-avatar.png'} alt={comment.user?.email} class="user-avatar" />
+          <img src={getProxiedImage(comment.user?.profiles?.[0]?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user?.email || 'anon'}`)} alt={comment.user?.email} class="user-avatar" />
           <div class="comment-body">
             <div class="comment-info">
               <span class="user-name">{comment.user?.profiles?.[0]?.name || comment.user?.email.split('@')[0]}</span>
@@ -199,7 +199,7 @@
               <div class="replies-list">
                 {#each comment.replies as reply (reply.id)}
                   <div class="comment-card reply">
-                    <img src={reply.user?.profiles?.[0]?.avatar || '/default-avatar.png'} alt={reply.user?.email} class="user-avatar sm" />
+                    <img src={getProxiedImage(reply.user?.profiles?.[0]?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.user?.email || 'anon'}`)} alt={reply.user?.email} class="user-avatar sm" />
                     <div class="comment-body">
                       <div class="comment-info">
                         <span class="user-name">{reply.user?.profiles?.[0]?.name || reply.user?.email.split('@')[0]}</span>

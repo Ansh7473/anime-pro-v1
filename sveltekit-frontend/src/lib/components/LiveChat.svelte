@@ -1,5 +1,6 @@
 <script lang="ts">
   import { auth } from "$lib/stores/auth";
+  import { getProxiedImage } from "$lib/api";
   import { onMount, onDestroy } from "svelte";
   import {
     Send,
@@ -121,7 +122,7 @@
         <div class="message-item" class:own={msg.userId === $auth.user?.id}>
           {#if msg.userId !== $auth.user?.id}
             <img
-              src={msg.avatar || "/default-avatar.png"}
+              src={getProxiedImage(msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userName || 'guest'}`)}
               alt={msg.userName}
               class="chat-avatar"
             />
