@@ -128,6 +128,15 @@
 
   let isRotated = $state(false);
 
+  let selectedProvider = $state("");
+  
+  // Update selectedProvider when selectedSource changes
+  $effect(() => {
+    if (selectedSource && !selectedProvider) {
+      selectedProvider = selectedSource.provider || "Toonstream";
+    }
+  });
+
   function isMobileDevice() {
     if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
@@ -805,36 +814,44 @@
             <!-- Source Selector -->
             {#if Object.keys(groupedSources).length > 0}
               <div class="section-box">
-                <h3 class="section-label"><Server size={14} /> Providers & Servers</h3>
-                <div class="grouped-sources">
-                  {#each Object.entries(groupedSources) as [provider, categories]}
-                    <div class="provider-container glass">
-                      <div class="provider-header">
-                        <Monitor size={14} class="text-blue-400" />
-                        <h4 class="provider-title">{provider}</h4>
+                <div class="server-selection-header">
+                  <h3 class="section-label"><Server size={14} /> Streaming Servers</h3>
+                  
+                  <!-- Provider Select Menu -->
+                  <div class="provider-select-wrapper">
+                    <select 
+                      class="provider-select glass" 
+                      bind:value={selectedProvider}
+                    >
+                      {#each Object.keys(groupedSources) as provider}
+                        <option value={provider}>{provider}</option>
+                      {/each}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="active-provider-servers">
+                  {#if selectedProvider && groupedSources[selectedProvider]}
+                    {#each Object.entries(groupedSources[selectedProvider]) as [category, categorySources]}
+                      <div class="source-category-group-nested">
+                        <span class="category-tag">{category}</span>
+                        <div class="source-grid">
+                          {#each categorySources as src}
+                            <button
+                              class="source-btn"
+                              class:active={selectedSource?.url === src.url}
+                              onclick={() => handleSourceChange(src)}
+                            >
+                              <span class="src-name">{src.name || "Server"}</span>
+                              {#if src.quality}<span class="src-q">{src.quality}</span>{/if}
+                            </button>
+                          {/each}
+                        </div>
                       </div>
-                      
-                      <div class="provider-content">
-                        {#each Object.entries(categories) as [category, categorySources]}
-                          <div class="source-category-group-nested">
-                            <span class="category-tag">{category}</span>
-                            <div class="source-grid">
-                              {#each categorySources as src}
-                                <button
-                                  class="source-btn"
-                                  class:active={selectedSource?.url === src.url}
-                                  onclick={() => handleSourceChange(src)}
-                                >
-                                  <span class="src-name">{src.name || "Server"}</span>
-                                  {#if src.quality}<span class="src-q">{src.quality}</span>{/if}
-                                </button>
-                              {/each}
-                            </div>
-                          </div>
-                        {/each}
-                      </div>
-                    </div>
-                  {/each}
+                    {/each}
+                  {:else}
+                    <p class="text-gray-500 text-sm italic">Select a provider to see available servers.</p>
+                  {/if}
                 </div>
               </div>
             {/if}
@@ -1378,44 +1395,68 @@
     flex-direction: column;
     gap: 1rem;
   }
-  .provider-container {
-    padding: 1rem;
-    border-radius: 12px;
-    margin-bottom: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .provider-header {
+  .server-selection-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
-  .provider-title {
-    font-size: 1rem;
-    font-weight: 800;
+  .provider-select-wrapper {
+    position: relative;
+    min-width: 200px;
+  }
+  .provider-select {
+    width: 100%;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    transition: 0.2s;
   }
+  .provider-select:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .provider-select option {
+    background: #1a1a1f;
+    color: white;
+  }
+
+  .active-provider-servers {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
   .source-category-group-nested {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
   }
   .source-category-group-nested:last-child {
     margin-bottom: 0;
   }
   .category-tag {
     display: inline-block;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 800;
-    color: var(--net-text-muted);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 2px 8px;
-    border-radius: 4px;
+    color: var(--net-red);
+    background: rgba(229, 9, 20, 0.1);
+    padding: 4px 10px;
+    border-radius: 6px;
     text-transform: uppercase;
-    margin-bottom: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 1rem;
+    border: 1px solid rgba(229, 9, 20, 0.1);
   }
 
   .source-grid {
