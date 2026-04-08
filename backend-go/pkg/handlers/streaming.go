@@ -433,6 +433,55 @@ func StreamingAnimeHindiDubbed(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "Sources not found for any title", "provider": "AnimeHindiDubbed-WP"})
 }
 
+// StreamingToonstream handles fetching sources from Toonstream
+func StreamingToonstream(c *gin.Context) {
+	animeId := c.Query("animeId")
+	epStr := c.Query("ep")
+	ep, _ := strconv.Atoi(epStr)
+	if ep == 0 {
+		ep = 1
+	}
+
+	titles, err := providers.GetAnimeTitles(animeId)
+	if err != nil || len(titles) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
+		return
+	}
+
+	var sources []map[string]interface{}
+	for _, title := range titles {
+		baseSlug := providers.ToKebab(title)
+		// Try using the JSON API with the generated slug
+		res := providers.GetToonstreamSourcesDirect(baseSlug, ep)
+		if len(res) > 0 {
+			sources = res
+			break
+		}
+
+		// Fallback: search and use discovered slug
+		searchRes := providers.SearchToonstream(title)
+		if len(searchRes) > 0 {
+			bestSlug := searchRes[0].Slug
+			res = providers.GetToonstreamSourcesDirect(bestSlug, ep)
+			if len(res) > 0 {
+				sources = res
+				break
+			}
+		}
+	}
+
+	if len(sources) > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"provider": "Toonstream",
+			"status":   200,
+			"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
+		})
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "Sources not found", "provider": "Toonstream"})
+}
+
 func StreamingSourcesAggregate(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
@@ -559,6 +608,33 @@ func StreamingSourcesAggregate(c *gin.Context) {
 			}
 		}
 		if ahdFound {
+			break
+		}
+	}
+
+	// Track 4: Toonstream (Multi Language / Hindi Dub)
+	var toonstreamFound bool
+	for _, title := range titles {
+		baseSlug := providers.ToKebab(title)
+		resTS := providers.GetToonstreamSourcesDirect(baseSlug, ep)
+		if len(resTS) > 0 {
+			allSources = append(allSources, resTS...)
+			toonstreamFound = true
+			break
+		}
+
+		// Search fallback
+		searchTS := providers.SearchToonstream(title)
+		if len(searchTS) > 0 {
+			bestTSSlug := searchTS[0].Slug
+			resTS = providers.GetToonstreamSourcesDirect(bestTSSlug, ep)
+			if len(resTS) > 0 {
+				allSources = append(allSources, resTS...)
+				toonstreamFound = true
+				break
+			}
+		}
+		if toonstreamFound {
 			break
 		}
 	}
@@ -1139,4 +1215,20 @@ func healAnilistImage(originalUrl string) (string, error) {
 	}
 
 	return utils.ToString(cover["large"]), nil
+}
+
+// ProviderToonstreamSearch legacy handler
+func ProviderToonstreamSearch(c *gin.Context) {
+	q := c.Query("q")
+	res := providers.SearchToonstream(q)
+	c.JSON(http.StatusOK, res)
+}
+
+// ProviderToonstreamSources legacy handler
+func ProviderToonstreamSources(c *gin.Context) {
+	slug := c.Query("slug")
+	epStr := c.Query("ep")
+	ep, _ := strconv.Atoi(epStr)
+	res := providers.GetToonstreamSourcesDirect(slug, ep)
+	c.JSON(http.StatusOK, res)
 }

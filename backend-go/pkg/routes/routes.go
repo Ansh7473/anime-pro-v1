@@ -54,6 +54,7 @@ func SetupRoutes(r *gin.Engine) {
 		streaming.GET("/animelok-slug", handlers.StreamingAnimelokSlug)
 		streaming.GET("/sources/desidub", handlers.StreamingDesiDub)
 		streaming.GET("/sources/ahd", handlers.StreamingAnimeHindiDubbed)
+		streaming.GET("/sources/toonstream", handlers.StreamingToonstream)
 		streaming.GET("/sources", handlers.StreamingSourcesAggregate)
 		streaming.GET("/episode-metadata", handlers.StreamingEpisodeMetadata)
 		streaming.GET("/proxy", handlers.StreamingProxy)
@@ -88,6 +89,12 @@ func SetupRoutes(r *gin.Engine) {
 		ahdWP.GET("/episodes", handlers.ProviderAHDWPEpisodes)
 		ahdWP.GET("/servers", handlers.ProviderAHDWPServers)
 		ahdWP.GET("/sources", handlers.ProviderAHDWPSources)
+	}
+
+	toonstream := v1.Group("/toonstream")
+	{
+		toonstream.GET("/search", handlers.ProviderToonstreamSearch)
+		toonstream.GET("/sources", handlers.ProviderToonstreamSources)
 	}
 
 	v1.GET("/reactions/:animeId/:episode", middleware.OptionalAuthMiddleware(), handlers.GetReactions)
