@@ -98,34 +98,57 @@ func SearchDesiDub(query string) []map[string]interface{} {
 	}
 	desiSearchMutex.RUnlock()
 
-	// 1. Try generated slug candidates directly (most reliable approach)
+	// 1. Try generated slug candidates in parallel (High Efficiency)
 	slugCandidates := generateDesiDubSlugCandidates(normalizedQuery)
 	log.Printf("[DesiDub] Trying slug candidates: %v", slugCandidates)
 
+	type slugResult struct {
+		slug  string
+		title string
+		image string
+	}
+	resultChan := make(chan slugResult, len(slugCandidates))
+	var wg sync.WaitGroup
+
 	for _, slug := range slugCandidates {
-		pageUrl := fmt.Sprintf("%s/anime/%s/", DesiDubBase, slug)
-		resp, err := utils.HttpClient.R().Get(pageUrl)
-		if err == nil && resp.IsSuccess() {
-			doc, _ := goquery.NewDocumentFromReader(strings.NewReader(string(resp.Body())))
-			title := strings.TrimSpace(doc.Find(".data h1, h1, .title").First().Text())
-			if title != "" {
-				firstWord := strings.Split(normalizedQuery, " ")[0]
-				if strings.Contains(strings.ToLower(title), firstWord) {
-					image := doc.Find(".poster img, img").First().AttrOr("src", "")
-					log.Printf("[DesiDub] Found anime via slug: %s -> %s", slug, title)
-					results := []map[string]interface{}{
-						{"title": title, "slug": slug, "image": image},
+		wg.Add(1)
+		go func(s string) {
+			defer wg.Done()
+			pageUrl := fmt.Sprintf("%s/anime/%s/", DesiDubBase, s)
+			resp, err := utils.HttpClient.R().Get(pageUrl)
+			if err == nil && resp.IsSuccess() {
+				doc, _ := goquery.NewDocumentFromReader(strings.NewReader(string(resp.Body())))
+				title := strings.TrimSpace(doc.Find(".data h1, h1, .title").First().Text())
+				if title != "" {
+					firstWord := strings.Split(normalizedQuery, " ")[0]
+					if strings.Contains(strings.ToLower(title), firstWord) {
+						image := doc.Find(".poster img, img").First().AttrOr("src", "")
+						resultChan <- slugResult{slug: s, title: title, image: image}
 					}
-					desiSearchMutex.Lock()
-					desiSearchCache[normalizedQuery] = results
-					desiSearchMutex.Unlock()
-					return results
 				}
 			}
-		}
+		}(slug)
 	}
 
-	// 2. Try /search/ page
+	// Wait in background and close channel
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Take the first successful result
+	if res, ok := <-resultChan; ok {
+		log.Printf("[DesiDub] Found anime via slug: %s -> %s", res.slug, res.title)
+		results := []map[string]interface{}{
+			{"title": res.title, "slug": res.slug, "image": res.image},
+		}
+		desiSearchMutex.Lock()
+		desiSearchCache[normalizedQuery] = results
+		desiSearchMutex.Unlock()
+		return results
+	}
+
+	// 2. Try /search/ page if no slug matched
 	searchUrl := fmt.Sprintf("%s/search/%s/", DesiDubBase, url.PathEscape(query))
 	log.Printf("[DesiDub] Trying search URL: %s", searchUrl)
 	resp, err := utils.HttpClient.R().Get(searchUrl)

@@ -27,6 +27,11 @@ var (
 	// Global Origin Cache for SmartAssetProxy (fixes stripped referers)
 	originCache      = make(map[string]string) // ClientIP/ID -> Last successful proxied Hostname
 	originCacheMutex sync.RWMutex
+
+	// High-Efficiency Streaming Cache (Source List)
+	// Key format: provider:animeId:ep
+	sourceCache      = make(map[string]map[string]interface{})
+	sourceCacheMutex sync.RWMutex
 )
 
 // StreamingAnimelok handles fetching sources from Animelok with slug resolution
@@ -34,9 +39,17 @@ func StreamingAnimelok(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
-	if ep == 0 {
-		ep = 1
+	if ep == 0 { ep = 1 }
+
+	// Efficiency: Check global sources cache first
+	cacheKey := fmt.Sprintf("animelok:%s:%d", animeId, ep)
+	sourceCacheMutex.RLock()
+	if cached, ok := sourceCache[cacheKey]; ok {
+		sourceCacheMutex.RUnlock()
+		c.JSON(http.StatusOK, gin.H{"provider": "Animelok", "status": 200, "data": cached, "cached": true})
+		return
 	}
+	sourceCacheMutex.RUnlock()
 
 	// 1. Resolve titles for the animeId (MAL ID)
 	titles, err := providers.GetAnimeTitles(animeId)
@@ -45,7 +58,7 @@ func StreamingAnimelok(c *gin.Context) {
 		return
 	}
 
-	// 2. Generate slug candidates (pattern: title-malId, title-aniId, and title)
+	// 2. Generate slug candidates
 	malId, _ := strconv.Atoi(animeId)
 	aniId, _ := utils.GetAnilistId(malId)
 	baseSlug := providers.ToKebab(titles[0])
@@ -56,16 +69,16 @@ func StreamingAnimelok(c *gin.Context) {
 	}
 	candidates = append(candidates, baseSlug)
 
-	// 3. Try candidates sequentially
+	// 3. Try candidates
 	for _, slug := range candidates {
 		res := providers.GetAnimelokSources(slug, ep)
 		if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
-			// Return raw sources, the frontend will handle proxying if needed
-			c.JSON(http.StatusOK, gin.H{
-				"provider": "Animelok",
-				"status":   200,
-				"data":     res,
-			})
+			// Update Cache
+			sourceCacheMutex.Lock()
+			sourceCache[cacheKey] = res
+			sourceCacheMutex.Unlock()
+
+			c.JSON(http.StatusOK, gin.H{"provider": "Animelok", "status": 200, "data": res})
 			return
 		}
 	}
