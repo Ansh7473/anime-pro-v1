@@ -892,18 +892,24 @@
             <Play size={14} /> Episodes ({episodes.length})
           </h3>
 
-          <!-- Pagination Tabs -->
+          <!-- Episode Range Dropdown Selector -->
           {#if totalPages > 1}
-            <div class="ep-pagination-tabs">
-              {#each epPageRanges as range}
-                <button
-                  class="ep-page-tab"
-                  class:active={currentEpPage === range.index}
-                  onclick={() => goToEpPage(range.index)}
+            <div class="ep-selector-row">
+              <div class="ep-range-select-wrapper">
+                <span class="range-label">Select Range:</span>
+                <select 
+                  class="ep-range-select glass" 
+                  value={currentEpPage}
+                  onchange={(e) => goToEpPage(parseInt(e.currentTarget.value))}
                 >
-                  {range.label}
-                </button>
-              {/each}
+                  {#each epPageRanges as range}
+                    <option value={range.index}>{range.label}</option>
+                  {/each}
+                </select>
+                <div class="dropdown-arrow-mini">
+                  <ChevronDown size={14} />
+                </div>
+              </div>
             </div>
           {/if}
 
@@ -1522,64 +1528,84 @@
     color: var(--net-red);
   }
 
-  .ep-pagination-tabs {
+  .ep-selector-row {
+     display: flex;
+     justify-content: flex-end;
+     margin-bottom: 1.5rem;
+  }
+  .ep-range-select-wrapper {
+    position: relative;
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    scrollbar-width: thin;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
-  .ep-pagination-tabs::-webkit-scrollbar {
-    height: 4px;
-  }
-  .ep-pagination-tabs::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 2px;
-  }
-  .ep-pagination-tabs::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
-  }
-  .ep-page-tab {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  .range-label {
+    font-size: 0.75rem;
+    font-weight: 800;
     color: var(--net-text-muted);
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
-    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
-  .ep-page-tab:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-  }
-  .ep-page-tab.active {
-    background: var(--net-red);
-    border-color: var(--net-red);
-    color: white;
-  }
-  .ep-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1rem;
-    max-height: 500px;
-    overflow-y: auto;
-    padding-right: 0.5rem;
-    scrollbar-width: thin;
-  }
-  .ep-card {
+  .ep-range-select {
+    appearance: none;
     background: none;
     border: none;
-    padding: 0;
+    color: white;
+    font-weight: 800;
+    font-size: 0.9rem;
+    padding-right: 24px;
+    cursor: pointer;
+    outline: none;
+  }
+  .ep-range-select option {
+    background: #0f0f12;
+    color: white;
+  }
+  .dropdown-arrow-mini {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--net-red);
+  }
+
+  .ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.25rem;
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    padding-right: 0.75rem;
+    scrollbar-width: thin;
+  }
+  .ep-grid::-webkit-scrollbar {
+    width: 5px;
+  }
+  .ep-grid::-webkit-scrollbar-thumb {
+    background: var(--net-red);
+    border-radius: 10px;
+  }
+  .ep-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 6px;
+    border-radius: 12px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    text-align: left;
+    gap: 0.6rem;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .ep-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-4px);
+    border-color: rgba(229, 9, 20, 0.2);
   }
   .ep-img-box {
     position: relative;
@@ -1587,18 +1613,17 @@
     aspect-ratio: 16/9;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
   }
   .ep-img-box img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: 0.3s;
+    transition: 0.5s;
   }
   .ep-play-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(229, 9, 20, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1609,17 +1634,19 @@
   .ep-card.active .ep-play-overlay {
     opacity: 1;
   }
-  .ep-card:hover img {
-    transform: scale(1.1);
+  .ep-card.active {
+    background: rgba(229, 9, 20, 0.1);
+    border-color: var(--net-red);
   }
-  .ep-card.active .ep-img-box {
-    border: 2px solid var(--net-red);
+  .ep-details {
+    padding: 0 4px 4px;
   }
   .ep-num {
-    font-size: 0.8rem;
-    font-weight: 700;
+    font-size: 0.85rem;
+    font-weight: 850;
     color: white;
     display: block;
+    margin-bottom: 2px;
   }
   .ep-name {
     font-size: 0.75rem;
@@ -1798,18 +1825,13 @@
        grid-template-columns: 1fr;
     }
 
-    .ep-pagination-tabs {
-      gap: 0.4rem;
-      padding-bottom: 0.4rem;
-    }
-    .ep-page-tab {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.8rem;
+    .ep-selector-row {
+       justify-content: center;
     }
     .ep-grid {
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 0.75rem;
-      max-height: 400px;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+      max-height: 450px;
     }
     .ep-num {
       font-size: 0.75rem;
@@ -1898,18 +1920,9 @@
        font-size: 0.85rem;
     }
 
-    .ep-pagination-tabs {
-      gap: 0.3rem;
-      padding-bottom: 0.3rem;
-    }
-    .ep-page-tab {
-      padding: 0.35rem 0.6rem;
-      font-size: 0.75rem;
-    }
     .ep-grid {
-      grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
-      gap: 0.5rem;
-      max-height: 350px;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.75rem;
     }
     .ep-num {
       font-size: 0.7rem;
