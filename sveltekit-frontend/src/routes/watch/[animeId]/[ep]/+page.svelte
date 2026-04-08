@@ -460,6 +460,9 @@
             if (candidate && !autoStarted) {
               selectedSource = candidate;
               autoStarted = true;
+              
+              // CRITICAL: Stop blocking the UI if we have a valid source to play
+              sourceLoading = false;
 
               const isEmbed =
                 selectedSource.isEmbed ||
@@ -622,12 +625,12 @@
   <div class="player-section" class:theater={theaterMode}>
     <div class="player-container container" class:theater={theaterMode}>
       <div class="video-wrapper glass" class:theater={theaterMode}>
-        {#if sourceLoading}
+        {#if sourceLoading && sources.length === 0}
           <div class="overlay">
             <div class="spinner"></div>
             <p>Fetching best sources...</p>
           </div>
-        {:else if error}
+        {:else if error && sources.length === 0}
           <div class="overlay error">
             <AlertCircle size={48} color="#e50914" />
             <p>{error}</p>
