@@ -67,21 +67,26 @@
     currentEpPage = pageIndex;
   }
 
-  // Categorize servers by language or origin
+  // Group sources by Provider first, then by Language/Category
   let groupedSources = $derived.by(() => {
-    const groups: Record<string, any[]> = {};
+    const providerGroups: Record<string, Record<string, any[]>> = {};
+
     for (const src of sources) {
+      let providerName = src.provider || "Unknown Provider";
+      // Cleanup names
+      if (providerName === "AnimeHindiDubbed-WP") providerName = "AHD (AnimeHindiDubbed)";
+      
       let cat = "Subbed";
       const lang = (src.language || "").toLowerCase();
       const type = (src.type || "").toLowerCase();
       const c = (src.category || "").toLowerCase();
-      const prov = (src.provider || "").toLowerCase();
+      const provLow = providerName.toLowerCase();
 
       if (
         lang.includes("hindi") ||
         c === "hindi" ||
         ((lang.includes("multi") || lang === "multi-audio") &&
-          (prov.includes("desidub") || prov.includes("hindi")))
+          (provLow.includes("desidub") || provLow.includes("hindi")))
       ) {
         cat = "Hindi Dub";
       } else if (lang.includes("english") || c === "dub" || type === "dub") {
@@ -90,19 +95,12 @@
         cat = "Raw / Unsubbed";
       }
 
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(src);
+      if (!providerGroups[providerName]) providerGroups[providerName] = {};
+      if (!providerGroups[providerName][cat]) providerGroups[providerName][cat] = [];
+      providerGroups[providerName][cat].push(src);
     }
 
-    const sortedGroups: Record<string, any[]> = {};
-    const order = ["Hindi Dub", "English Dub", "Subbed", "Raw / Unsubbed"];
-    for (const key of order) {
-      if (groups[key]) sortedGroups[key] = groups[key];
-    }
-    for (const key in groups) {
-      if (!sortedGroups[key]) sortedGroups[key] = groups[key];
-    }
-    return sortedGroups;
+    return providerGroups;
   });
 
   let loading = $state(true);
@@ -807,32 +805,32 @@
             <!-- Source Selector -->
             {#if Object.keys(groupedSources).length > 0}
               <div class="section-box">
-                <h3 class="section-label"><Server size={14} /> Servers</h3>
+                <h3 class="section-label"><Server size={14} /> Providers & Servers</h3>
                 <div class="grouped-sources">
-                  {#each Object.entries(groupedSources) as [category, categorySources]}
-                    <div class="source-category-group">
-                      <h4 class="category-title">{category}</h4>
-                      <div class="source-grid">
-                        {#each categorySources as src}
-                          <button
-                            class="source-btn"
-                            class:active={selectedSource?.url === src.url}
-                            onclick={() => handleSourceChange(src)}
-                            title={src.provider || category}
-                          >
-                            {#if src.provider}
-                              <span class="src-provider-badge"
-                                >{src.provider.replace(
-                                  "AnimeHindiDubbed-WP",
-                                  "AHD",
-                                )}</span
-                              >
-                            {/if}
-                            <span class="src-name">{src.name || "Auto"}</span>
-                            {#if src.quality}<span class="src-q"
-                                >{src.quality}</span
-                              >{/if}
-                          </button>
+                  {#each Object.entries(groupedSources) as [provider, categories]}
+                    <div class="provider-container glass">
+                      <div class="provider-header">
+                        <Monitor size={14} class="text-blue-400" />
+                        <h4 class="provider-title">{provider}</h4>
+                      </div>
+                      
+                      <div class="provider-content">
+                        {#each Object.entries(categories) as [category, categorySources]}
+                          <div class="source-category-group-nested">
+                            <span class="category-tag">{category}</span>
+                            <div class="source-grid">
+                              {#each categorySources as src}
+                                <button
+                                  class="source-btn"
+                                  class:active={selectedSource?.url === src.url}
+                                  onclick={() => handleSourceChange(src)}
+                                >
+                                  <span class="src-name">{src.name || "Server"}</span>
+                                  {#if src.quality}<span class="src-q">{src.quality}</span>{/if}
+                                </button>
+                              {/each}
+                            </div>
+                          </div>
                         {/each}
                       </div>
                     </div>
@@ -1380,30 +1378,44 @@
     flex-direction: column;
     gap: 1rem;
   }
-  .source-category-group {
-    background: rgba(255, 255, 255, 0.02);
+  .provider-container {
     padding: 1rem;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .category-title {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: white;
+  .provider-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-bottom: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
-  .category-title::before {
-    content: "";
-    display: block;
-    width: 4px;
-    height: 14px;
-    background: var(--net-red);
-    border-radius: 2px;
+  .provider-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .source-category-group-nested {
+    margin-bottom: 1rem;
+  }
+  .source-category-group-nested:last-child {
+    margin-bottom: 0;
+  }
+  .category-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--net-text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .source-grid {
