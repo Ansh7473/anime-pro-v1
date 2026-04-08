@@ -2,9 +2,6 @@ package providers
 
 import (
 	"fmt"
-	"net/http"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/Ansh7473/anime-pro/backend-go/internal/utils"
