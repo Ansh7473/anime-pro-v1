@@ -16,6 +16,7 @@
     Keyboard,
     RotateCw,
     MessageSquare,
+    ChevronDown,
   } from "lucide-svelte";
   import Hls from "hls.js";
   import ReactionsBar from "$lib/components/ReactionsBar.svelte";
@@ -844,38 +845,40 @@
         {#if Object.keys(groupedSources).length > 0}
           <div class="section-box">
             <h3 class="section-label">
-              <Server size={14} /> Providers & Servers
+              <Server size={14} /> Streaming Providers
             </h3>
-            <div class="grouped-sources">
+            
+            <div class="provider-dropdowns-grid">
               {#each Object.entries(groupedSources) as [provider, categories]}
-                <div class="provider-container glass">
-                  <div class="provider-header">
-                    <Monitor size={14} class="text-blue-400" />
-                    <h4 class="provider-title">{provider}</h4>
+                <div class="provider-dropdown-box">
+                  <div class="dropdown-label">
+                     <Monitor size={12} /> {provider}
                   </div>
-
-                  <div class="provider-content">
-                    {#each Object.entries(categories) as [category, categorySources]}
-                      <div class="source-category-group-nested">
-                        <span class="category-tag">{category}</span>
-                        <div class="source-grid">
+                  <div class="custom-select-wrapper">
+                    <select 
+                      class="premium-select glass"
+                      onchange={(e) => {
+                         const url = e.currentTarget.value;
+                         const allSources = sources;
+                         const src = allSources.find(s => s.url === url);
+                         if (src) handleSourceChange(src);
+                      }}
+                      value={Object.values(categories).flat().some(s => s.url === selectedSource?.url) ? selectedSource?.url : ""}
+                    >
+                      <option value="" disabled selected>Select Server...</option>
+                      {#each Object.entries(categories) as [category, categorySources]}
+                        <optgroup label={category}>
                           {#each categorySources as src}
-                            <button
-                              class="source-btn"
-                              class:active={selectedSource?.url === src.url}
-                              onclick={() => handleSourceChange(src)}
-                            >
-                              <span class="src-name"
-                                >{src.name || "Server"}</span
-                              >
-                              {#if src.quality}<span class="src-q"
-                                  >{src.quality}</span
-                                >{/if}
-                            </button>
+                            <option value={src.url}>
+                              {src.name || "Default"} {src.quality ? `(${src.quality})` : ""}
+                            </option>
                           {/each}
-                        </div>
-                      </div>
-                    {/each}
+                        </optgroup>
+                      {/each}
+                    </select>
+                    <div class="dropdown-arrow">
+                       <ChevronDown size={16} />
+                    </div>
                   </div>
                 </div>
               {/each}
@@ -1429,89 +1432,94 @@
     flex-direction: column;
     gap: 1rem;
   }
-  .provider-container {
-    padding: 1rem;
-    border-radius: 12px;
-    margin-bottom: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+  .provider-dropdowns-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
   }
-  .provider-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  }
-  .provider-title {
-    font-size: 1rem;
-    font-weight: 800;
-    color: white;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-  }
-  .source-category-group-nested {
-    margin-bottom: 1rem;
-  }
-  .source-category-group-nested:last-child {
-    margin-bottom: 0;
-  }
-  .category-tag {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: var(--net-text-muted);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 2px 8px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    margin-bottom: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .source-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-  .source-btn {
-    padding: 10px 16px;
-    border-radius: 10px;
-    background: var(--net-card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    color: white;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: 0.2s;
-    min-width: 100px;
+  .provider-dropdown-box {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 0.6rem;
   }
-  .source-btn.active {
-    background: var(--net-red);
-    border-color: var(--net-red);
-    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
-  }
-  .src-provider-badge {
-    font-size: 0.65rem;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
+  .dropdown-label {
+    font-size: 0.75rem;
+    font-weight: 800;
     color: var(--net-text-muted);
-    margin-bottom: 4px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 4px;
   }
-  .source-btn.active .src-provider-badge {
-    background: rgba(255, 255, 255, 0.25);
+  .custom-select-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  .premium-select {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 12px 16px;
+    padding-right: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
   }
-  .src-q {
+  .premium-select:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--net-red);
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.15);
+  }
+  .premium-select:focus {
+    border-color: var(--net-red);
+    box-shadow: 0 0 25px rgba(229, 9, 20, 0.2);
+  }
+  .premium-select option, .premium-select optgroup {
+    background: #0f0f12;
+    color: white;
+    padding: 12px;
+  }
+  .premium-select optgroup {
+    font-weight: 800;
+    color: var(--net-red);
+    text-transform: uppercase;
     font-size: 0.7rem;
-    opacity: 0.6;
-    font-weight: 500;
+    letter-spacing: 0.1em;
+  }
+  .dropdown-arrow {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--net-text-muted);
+    transition: 0.3s;
+  }
+  .premium-select:focus + .dropdown-arrow {
+    transform: translateY(-50%) rotate(180deg);
+    color: var(--net-red);
+  }
+  .dropdown-arrow {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--net-text-muted);
+    transition: 0.3s;
+  }
+  .premium-select:focus + .dropdown-arrow {
+    transform: translateY(-50%) rotate(180deg);
+    color: var(--net-red);
   }
 
   .ep-pagination-tabs {
@@ -1786,24 +1794,8 @@
       margin-bottom: 0.75rem;
     }
 
-    .source-category-group {
-      padding: 0.75rem;
-    }
-    .category-title {
-      font-size: 0.85rem;
-      margin-bottom: 0.75rem;
-    }
-    .source-grid {
-      gap: 0.5rem;
-    }
-    .source-btn {
-      padding: 8px 12px;
-      font-size: 0.8rem;
-      min-width: 80px;
-    }
-    .src-provider-badge {
-      font-size: 0.6rem;
-      padding: 1px 4px;
+    .provider-dropdowns-grid {
+       grid-template-columns: 1fr;
     }
 
     .ep-pagination-tabs {
@@ -1901,10 +1893,9 @@
       height: 40px;
     }
 
-    .source-btn {
-      padding: 6px 10px;
-      font-size: 0.75rem;
-      min-width: 70px;
+    .premium-select {
+       padding: 10px 14px;
+       font-size: 0.85rem;
     }
 
     .ep-pagination-tabs {
