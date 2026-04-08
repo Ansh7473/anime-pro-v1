@@ -73,6 +73,41 @@ func StreamingAnimelok(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"provider": "Animelok", "status": 404, "message": "No sources found"})
 }
 
+// StreamingToonstream handles fetching sources from Toonstream
+func StreamingToonstream(c *gin.Context) {
+	animeId := c.Query("animeId")
+	epStr := c.Query("ep")
+	ep, _ := strconv.Atoi(epStr)
+	if ep == 0 {
+		ep = 1
+	}
+
+	titles, err := providers.GetAnimeTitles(animeId)
+	if err != nil || len(titles) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "Toonstream"})
+		return
+	}
+
+	// Try all titles as slugs
+	for _, title := range titles {
+		baseSlug := providers.ToKebab(title)
+		log.Printf("[Toonstream Handler] Trying slug: %s", baseSlug)
+		
+		// Toonstream often has multi-season structures, but default is season 1
+		sources := providers.GetToonstreamSources(baseSlug, 1, ep)
+		if len(sources) > 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"provider": "Toonstream",
+				"status":   200,
+				"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"provider": "Toonstream", "status": 404, "message": "No sources found"})
+}
+
 // StreamingNineAnime handles fetching streaming sources from 9anime
 func StreamingNineAnime(c *gin.Context) {
 	animeId := c.Query("animeId")
@@ -558,6 +593,16 @@ func StreamingSourcesAggregate(c *gin.Context) {
 			}
 		}
 		if ahdFound {
+			break
+		}
+	}
+
+	// Track 4: Toonstream (Multi Audio / Hindi)
+	for _, title := range titles {
+		baseSlug := providers.ToKebab(title)
+		srcs := providers.GetToonstreamSources(baseSlug, 1, ep)
+		if len(srcs) > 0 {
+			allSources = append(allSources, srcs...)
 			break
 		}
 	}
@@ -1094,3 +1139,20 @@ func ProviderAHDWPLatest(c *gin.Context)   { c.JSON(http.StatusOK, []interface{}
 func ProviderAHDWPEpisodes(c *gin.Context) { ProviderAHDInfo(c) }
 func ProviderAHDWPServers(c *gin.Context)  { ProviderAHDInfo(c) }
 func ProviderAHDWPSources(c *gin.Context)  { ProviderAHDSources(c) }
+
+// Toonstream Handlers
+func ProviderToonstreamSearch(c *gin.Context) {
+	q := c.Query("q")
+	res := providers.SearchToonstream(q)
+	c.JSON(http.StatusOK, res)
+}
+
+func ProviderToonstreamSources(c *gin.Context) {
+	slug := c.Query("slug")
+	epStr := c.Query("ep")
+	seasonStr := c.DefaultQuery("season", "1")
+	ep, _ := strconv.Atoi(epStr)
+	season, _ := strconv.Atoi(seasonStr)
+	res := providers.GetToonstreamSources(slug, season, ep)
+	c.JSON(http.StatusOK, res)
+}

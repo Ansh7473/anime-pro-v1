@@ -399,6 +399,7 @@
       { name: "Animelok", fetcher: api.getAnimelokSources },
       { name: "DesiDub", fetcher: api.getDesiDubSources },
       { name: "AnimeHindiDubbed", fetcher: api.getAHDSources },
+      { name: "Toonstream", fetcher: api.getToonstreamSources },
     ];
 
     let autoStarted = false;
