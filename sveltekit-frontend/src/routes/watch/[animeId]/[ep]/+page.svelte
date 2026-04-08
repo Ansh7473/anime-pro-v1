@@ -74,8 +74,9 @@
     for (const src of sources) {
       let providerName = src.provider || "Unknown Provider";
       // Cleanup names
-      if (providerName === "AnimeHindiDubbed-WP") providerName = "AHD (AnimeHindiDubbed)";
-      
+      if (providerName === "AnimeHindiDubbed-WP")
+        providerName = "AHD (AnimeHindiDubbed)";
+
       let cat = "Subbed";
       const lang = (src.language || "").toLowerCase();
       const type = (src.type || "").toLowerCase();
@@ -96,7 +97,8 @@
       }
 
       if (!providerGroups[providerName]) providerGroups[providerName] = {};
-      if (!providerGroups[providerName][cat]) providerGroups[providerName][cat] = [];
+      if (!providerGroups[providerName][cat])
+        providerGroups[providerName][cat] = [];
       providerGroups[providerName][cat].push(src);
     }
 
@@ -128,38 +130,35 @@
 
   let isRotated = $state(false);
 
-  let selectedProvider = $state("");
-  
-  // Update selectedProvider when selectedSource changes
-  $effect(() => {
-    if (selectedSource && !selectedProvider) {
-      selectedProvider = selectedSource.provider || "Toonstream";
-    }
-  });
-
   function isMobileDevice() {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-      || (window.innerWidth <= 768);
+    if (typeof window === "undefined" || typeof navigator === "undefined")
+      return false;
+    return (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      ) || window.innerWidth <= 768
+    );
   }
 
   // Check if native Android orientation bridge is available (Capacitor app)
   function hasNativeRotation(): boolean {
     // @ts-ignore
-    return typeof window !== 'undefined' && !!window.AndroidRotation;
+    return typeof window !== "undefined" && !!window.AndroidRotation;
   }
-
 
   async function toggleRotation() {
     try {
       if (!isRotated) {
-        const player = document.querySelector(".video-wrapper") || document.documentElement;
+        const player =
+          document.querySelector(".video-wrapper") || document.documentElement;
         const isMobile = isMobileDevice();
 
         if (isMobile) {
           // Enter fullscreen first
           if (!document.fullscreenElement && player.requestFullscreen) {
-            try { await player.requestFullscreen(); } catch(e) {}
+            try {
+              await player.requestFullscreen();
+            } catch (e) {}
           }
 
           // Use native Android bridge if available (Capacitor app)
@@ -168,19 +167,23 @@
             window.AndroidRotation.lockLandscape();
           } else {
             // Fallback: try web orientation API (works in mobile Chrome)
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise((r) => setTimeout(r, 300));
             // @ts-ignore
             if (screen.orientation && screen.orientation.lock) {
               try {
                 // @ts-ignore
                 await screen.orientation.lock("landscape");
-              } catch(e) { console.warn("Orientation lock failed:", e); }
+              } catch (e) {
+                console.warn("Orientation lock failed:", e);
+              }
             }
           }
         } else {
           // DESKTOP: Just enter fullscreen (works as rotate/expand)
           if (!document.fullscreenElement && player.requestFullscreen) {
-            try { await player.requestFullscreen(); } catch(e) {}
+            try {
+              await player.requestFullscreen();
+            } catch (e) {}
           }
         }
         isRotated = true;
@@ -193,11 +196,15 @@
           // @ts-ignore
           if (screen.orientation && screen.orientation.unlock) {
             // @ts-ignore
-            try { screen.orientation.unlock(); } catch(e) {}
+            try {
+              screen.orientation.unlock();
+            } catch (e) {}
           }
         }
         if (document.fullscreenElement && document.exitFullscreen) {
-          try { await document.exitFullscreen(); } catch(e) {}
+          try {
+            await document.exitFullscreen();
+          } catch (e) {}
         }
         isRotated = false;
       }
@@ -485,13 +492,16 @@
 
     // Fallback: If after 8 seconds we have nothing, stop loading
     setTimeout(() => {
-      if (sourceLoading && sources.length === 0 && providersFinished < providerConfigs.length) {
+      if (
+        sourceLoading &&
+        sources.length === 0 &&
+        providersFinished < providerConfigs.length
+      ) {
         // We don't force stop, but we set a flag or log
         console.log("Still waiting for some slow providers...");
       }
     }, 8000);
   }
-
 
   function initPlayer(url: string) {
     if (!videoElement) return;
@@ -609,230 +619,243 @@
 <div class="player-page">
   <!-- Video Player Section -->
   <div class="player-section" class:theater={theaterMode}>
-        <div class="player-container container" class:theater={theaterMode}>
-          <div class="video-wrapper glass" class:theater={theaterMode}>
-            {#if sourceLoading}
-              <div class="overlay">
-                <div class="spinner"></div>
-                <p>Fetching best sources...</p>
-              </div>
-            {:else if error}
-              <div class="overlay error">
-                <AlertCircle size={48} color="#e50914" />
-                <p>{error}</p>
-                <button class="btn-secondary" onclick={loadSources}
-                  >Retry</button
-                >
-              </div>
-            {:else if selectedSource}
-              {#if selectedSource.isEmbed || selectedSource.url.includes("embed") || selectedSource.type === "iframe"}
-                <div class="iframe-container" style="width: 100%; height: 100%; position: relative;">
-                  <iframe
-                    src={selectedSource.url}
-                    allowfullscreen
-                    title="Video Player"
-                    class="video-frame"
-                    allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write"
-                    referrerpolicy="no-referrer"
-                  ></iframe>
-                  <!-- Fallback explicit retry warning under iframe in case it gets Refused -->
-                  <div class="iframe-fallback" role="presentation" style="position: absolute; top: 10px; right: 10px; z-index: 50; opacity: 0.85; transition: opacity 0.2s;" onmouseenter={(e) => e.currentTarget.style.opacity = '1'} onmouseleave={(e) => e.currentTarget.style.opacity = '0.85'}>
-                    <button class="btn-secondary" style="font-size: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);" onclick={(e)=>{e.preventDefault(); document.querySelector('.grouped-sources')?.scrollIntoView({behavior:'smooth'});}}>
-                      <AlertCircle size={14} /> Video not loading? Try another server
-                    </button>
-                  </div>
-                </div>
-              {:else}
-                <video
-                  bind:this={videoElement}
-                  controls
-                  class="video-element"
-                  poster={getProxiedImage(anime?.image || anime?.poster)}
-                  onended={handleVideoEnded}
-                  ontimeupdate={saveProgress}
-                >
-                  <track kind="captions" />
-                </video>
-              {/if}
-
-              <!-- Resume Prompt -->
-              {#if showResumePrompt}
-                <div class="resume-overlay">
-                  <div class="resume-card glass">
-                    <p>
-                      Resume from <strong>{formatTime(resumeTime)}</strong>?
-                    </p>
-                    <div class="resume-actions">
-                      <button
-                        class="resume-btn primary"
-                        onclick={resumePlayback}>Resume</button
-                      >
-                      <button class="resume-btn" onclick={dismissResume}
-                        >Start Over</button
-                      >
-                    </div>
-                  </div>
-                </div>
-              {/if}
-
-              <!-- Auto-Next Countdown Overlay -->
-              {#if showCountdown}
-                <div class="countdown-overlay">
-                  <div class="countdown-card glass">
-                    <div class="countdown-ring">
-                      <svg viewBox="0 0 60 60">
-                        <circle cx="30" cy="30" r="26" class="ring-bg" />
-                        <circle
-                          cx="30"
-                          cy="30"
-                          r="26"
-                          class="ring-progress"
-                          style="--progress: {((5 - countdownSeconds) / 5) *
-                            100}"
-                        />
-                      </svg>
-                      <span class="countdown-num">{countdownSeconds}</span>
-                    </div>
-                    <div class="countdown-info">
-                      <p class="countdown-label">Next Episode</p>
-                      <p class="countdown-ep">Episode {ep + 1}</p>
-                    </div>
-                    <button class="countdown-cancel" onclick={cancelCountdown}
-                      >Cancel</button
-                    >
-                  </div>
-                </div>
-              {/if}
-
-              <div class="player-controls-overlay">
-                <button
-                  class="control-btn hide-desktop"
-                  class:active={isRotated}
-                  title="Rotate Screen"
-                  onclick={toggleRotation}
-                >
-                  <RotateCw size={18} />
-                </button>
-                <button
-                  class="control-btn"
-                  title="Theater Mode (T)"
-                  onclick={() => (theaterMode = !theaterMode)}
-                >
-                  <Maximize size={18} />
-                </button>
-                <button
-                  class="control-btn"
-                  title="Picture in Picture"
-                  onclick={togglePiP}
-                >
-                  <Monitor size={18} />
-                </button>
-                <button
-                  class="control-btn"
-                  class:active={autoNext}
-                  title="Auto Next (N)"
-                  onclick={() => (autoNext = !autoNext)}
-                >
-                  <SkipForward size={18} />
-                </button>
-                <button
-                  class="control-btn"
-                  title="Shortcuts (?)"
-                  onclick={() => (showShortcuts = !showShortcuts)}
-                >
-                  <Keyboard size={18} />
-                </button>
-              </div>
-            {/if}
+    <div class="player-container container" class:theater={theaterMode}>
+      <div class="video-wrapper glass" class:theater={theaterMode}>
+        {#if sourceLoading}
+          <div class="overlay">
+            <div class="spinner"></div>
+            <p>Fetching best sources...</p>
           </div>
-        </div>
-      </div>
-
-      <!-- Shortcuts Modal -->
-      {#if showShortcuts}
-        <div
-          class="shortcuts-backdrop"
-          onclick={() => (showShortcuts = false)}
-          onkeydown={(e) => e.key === "Escape" && (showShortcuts = false)}
-          role="presentation"
-          tabindex="-1"
-        >
-          <div
-            class="shortcuts-modal glass"
-            onclick={(e) => e.stopPropagation()}
-            onkeydown={(e) => e.stopPropagation()}
-            role="dialog"
-            tabindex="-1"
-            aria-label="Keyboard shortcuts"
-          >
-            <h3>⌨️ Keyboard Shortcuts</h3>
-            <div class="shortcut-grid">
-              <kbd>F</kbd><span>Toggle Fullscreen</span>
-              <kbd>T</kbd><span>Toggle Theater Mode</span>
-              <kbd>N</kbd><span>Next Episode</span>
-              <kbd>P</kbd><span>Previous Episode</span>
-              <kbd>?</kbd><span>Show Shortcuts</span>
-              <kbd>Esc</kbd><span>Close / Cancel</span>
-            </div>
-            <button
-              class="btn-secondary"
-              onclick={() => (showShortcuts = false)}>Close</button
+        {:else if error}
+          <div class="overlay error">
+            <AlertCircle size={48} color="#e50914" />
+            <p>{error}</p>
+            <button class="btn-secondary" onclick={loadSources}>Retry</button>
+          </div>
+        {:else if selectedSource}
+          {#if selectedSource.isEmbed || selectedSource.url.includes("embed") || selectedSource.type === "iframe"}
+            <div
+              class="iframe-container"
+              style="width: 100%; height: 100%; position: relative;"
             >
-          </div>
-        </div>
-      {/if}
-
-      <div class="player-info container">
-        <div class="info-grid">
-          <!-- Main Content -->
-          <div class="main-info">
-            <div class="ep-header">
-              <div class="title-box">
-                <h1 class="anime-title">{anime?.title || "Loading..."}</h1>
-                <div class="meta-row">
-                  <div class="ep-badge">Episode {ep}</div>
-                  <ReactionsBar {animeId} episode={ep} />
-                  <button class="nav-secondary-btn" onclick={() => document.querySelector('#community')?.scrollIntoView({behavior:'smooth'})}>
-                    <MessageSquare size={16} /> Community
-                  </button>
-                </div>
-              </div>
-              <div class="ep-nav">
+              <iframe
+                src={selectedSource.url}
+                allowfullscreen
+                title="Video Player"
+                class="video-frame"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write"
+                referrerpolicy="no-referrer"
+              ></iframe>
+              <!-- Fallback explicit retry warning under iframe in case it gets Refused -->
+              <div
+                class="iframe-fallback"
+                role="presentation"
+                style="position: absolute; top: 10px; right: 10px; z-index: 50; opacity: 0.85; transition: opacity 0.2s;"
+                onmouseenter={(e) => (e.currentTarget.style.opacity = "1")}
+                onmouseleave={(e) => (e.currentTarget.style.opacity = "0.85")}
+              >
                 <button
-                  class="nav-btn"
-                  onclick={() => changeEp(ep - 1)}
-                  disabled={ep <= 1}
+                  class="btn-secondary"
+                  style="font-size: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"
+                  onclick={(e) => {
+                    e.preventDefault();
+                    document
+                      .querySelector(".grouped-sources")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
                 >
-                  <ChevronLeft size={20} />
-                </button>
-                <button class="nav-btn" onclick={() => changeEp(ep + 1)}>
-                  <ChevronRight size={20} />
+                  <AlertCircle size={14} /> Video not loading? Try another server
                 </button>
               </div>
             </div>
+          {:else}
+            <video
+              bind:this={videoElement}
+              controls
+              class="video-element"
+              poster={getProxiedImage(anime?.image || anime?.poster)}
+              onended={handleVideoEnded}
+              ontimeupdate={saveProgress}
+            >
+              <track kind="captions" />
+            </video>
+          {/if}
 
-            <!-- Source Selector -->
-            {#if Object.keys(groupedSources).length > 0}
-              <div class="section-box">
-                <div class="server-selection-header">
-                  <h3 class="section-label"><Server size={14} /> Streaming Servers</h3>
-                  
-                  <!-- Provider Select Menu -->
-                  <div class="provider-select-wrapper">
-                    <select 
-                      class="provider-select glass" 
-                      bind:value={selectedProvider}
-                    >
-                      {#each Object.keys(groupedSources) as provider}
-                        <option value={provider}>{provider}</option>
-                      {/each}
-                    </select>
-                  </div>
+          <!-- Resume Prompt -->
+          {#if showResumePrompt}
+            <div class="resume-overlay">
+              <div class="resume-card glass">
+                <p>
+                  Resume from <strong>{formatTime(resumeTime)}</strong>?
+                </p>
+                <div class="resume-actions">
+                  <button class="resume-btn primary" onclick={resumePlayback}
+                    >Resume</button
+                  >
+                  <button class="resume-btn" onclick={dismissResume}
+                    >Start Over</button
+                  >
                 </div>
+              </div>
+            </div>
+          {/if}
 
-                <div class="active-provider-servers">
-                  {#if selectedProvider && groupedSources[selectedProvider]}
-                    {#each Object.entries(groupedSources[selectedProvider]) as [category, categorySources]}
+          <!-- Auto-Next Countdown Overlay -->
+          {#if showCountdown}
+            <div class="countdown-overlay">
+              <div class="countdown-card glass">
+                <div class="countdown-ring">
+                  <svg viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="26" class="ring-bg" />
+                    <circle
+                      cx="30"
+                      cy="30"
+                      r="26"
+                      class="ring-progress"
+                      style="--progress: {((5 - countdownSeconds) / 5) * 100}"
+                    />
+                  </svg>
+                  <span class="countdown-num">{countdownSeconds}</span>
+                </div>
+                <div class="countdown-info">
+                  <p class="countdown-label">Next Episode</p>
+                  <p class="countdown-ep">Episode {ep + 1}</p>
+                </div>
+                <button class="countdown-cancel" onclick={cancelCountdown}
+                  >Cancel</button
+                >
+              </div>
+            </div>
+          {/if}
+
+          <div class="player-controls-overlay">
+            <button
+              class="control-btn hide-desktop"
+              class:active={isRotated}
+              title="Rotate Screen"
+              onclick={toggleRotation}
+            >
+              <RotateCw size={18} />
+            </button>
+            <button
+              class="control-btn"
+              title="Theater Mode (T)"
+              onclick={() => (theaterMode = !theaterMode)}
+            >
+              <Maximize size={18} />
+            </button>
+            <button
+              class="control-btn"
+              title="Picture in Picture"
+              onclick={togglePiP}
+            >
+              <Monitor size={18} />
+            </button>
+            <button
+              class="control-btn"
+              class:active={autoNext}
+              title="Auto Next (N)"
+              onclick={() => (autoNext = !autoNext)}
+            >
+              <SkipForward size={18} />
+            </button>
+            <button
+              class="control-btn"
+              title="Shortcuts (?)"
+              onclick={() => (showShortcuts = !showShortcuts)}
+            >
+              <Keyboard size={18} />
+            </button>
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <!-- Shortcuts Modal -->
+  {#if showShortcuts}
+    <div
+      class="shortcuts-backdrop"
+      onclick={() => (showShortcuts = false)}
+      onkeydown={(e) => e.key === "Escape" && (showShortcuts = false)}
+      role="presentation"
+      tabindex="-1"
+    >
+      <div
+        class="shortcuts-modal glass"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.stopPropagation()}
+        role="dialog"
+        tabindex="-1"
+        aria-label="Keyboard shortcuts"
+      >
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="shortcut-grid">
+          <kbd>F</kbd><span>Toggle Fullscreen</span>
+          <kbd>T</kbd><span>Toggle Theater Mode</span>
+          <kbd>N</kbd><span>Next Episode</span>
+          <kbd>P</kbd><span>Previous Episode</span>
+          <kbd>?</kbd><span>Show Shortcuts</span>
+          <kbd>Esc</kbd><span>Close / Cancel</span>
+        </div>
+        <button class="btn-secondary" onclick={() => (showShortcuts = false)}
+          >Close</button
+        >
+      </div>
+    </div>
+  {/if}
+
+  <div class="player-info container">
+    <div class="info-grid">
+      <!-- Main Content -->
+      <div class="main-info">
+        <div class="ep-header">
+          <div class="title-box">
+            <h1 class="anime-title">{anime?.title || "Loading..."}</h1>
+            <div class="meta-row">
+              <div class="ep-badge">Episode {ep}</div>
+              <ReactionsBar {animeId} episode={ep} />
+              <button
+                class="nav-secondary-btn"
+                onclick={() =>
+                  document
+                    .querySelector("#community")
+                    ?.scrollIntoView({ behavior: "smooth" })}
+              >
+                <MessageSquare size={16} /> Community
+              </button>
+            </div>
+          </div>
+          <div class="ep-nav">
+            <button
+              class="nav-btn"
+              onclick={() => changeEp(ep - 1)}
+              disabled={ep <= 1}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button class="nav-btn" onclick={() => changeEp(ep + 1)}>
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        <!-- Source Selector -->
+        {#if Object.keys(groupedSources).length > 0}
+          <div class="section-box">
+            <h3 class="section-label">
+              <Server size={14} /> Providers & Servers
+            </h3>
+            <div class="grouped-sources">
+              {#each Object.entries(groupedSources) as [provider, categories]}
+                <div class="provider-container glass">
+                  <div class="provider-header">
+                    <Monitor size={14} class="text-blue-400" />
+                    <h4 class="provider-title">{provider}</h4>
+                  </div>
+
+                  <div class="provider-content">
+                    {#each Object.entries(categories) as [category, categorySources]}
                       <div class="source-category-group-nested">
                         <span class="category-tag">{category}</span>
                         <div class="source-grid">
@@ -842,114 +865,125 @@
                               class:active={selectedSource?.url === src.url}
                               onclick={() => handleSourceChange(src)}
                             >
-                              <span class="src-name">{src.name || "Server"}</span>
-                              {#if src.quality}<span class="src-q">{src.quality}</span>{/if}
+                              <span class="src-name"
+                                >{src.name || "Server"}</span
+                              >
+                              {#if src.quality}<span class="src-q"
+                                  >{src.quality}</span
+                                >{/if}
                             </button>
                           {/each}
                         </div>
                       </div>
                     {/each}
-                  {:else}
-                    <p class="text-gray-500 text-sm italic">Select a provider to see available servers.</p>
-                  {/if}
+                  </div>
                 </div>
-              </div>
-            {/if}
+              {/each}
+            </div>
+          </div>
+        {/if}
 
-            <!-- Episode Selection -->
-            <div class="section-box mt">
-              <h3 class="section-label">
-                <Play size={14} /> Episodes ({episodes.length})
-              </h3>
+        <!-- Episode Selection -->
+        <div class="section-box mt">
+          <h3 class="section-label">
+            <Play size={14} /> Episodes ({episodes.length})
+          </h3>
 
-              <!-- Pagination Tabs -->
-              {#if totalPages > 1}
-                <div class="ep-pagination-tabs">
-                  {#each epPageRanges as range}
-                    <button
-                      class="ep-page-tab"
-                      class:active={currentEpPage === range.index}
-                      onclick={() => goToEpPage(range.index)}
-                    >
-                      {range.label}
-                    </button>
-                  {/each}
+          <!-- Pagination Tabs -->
+          {#if totalPages > 1}
+            <div class="ep-pagination-tabs">
+              {#each epPageRanges as range}
+                <button
+                  class="ep-page-tab"
+                  class:active={currentEpPage === range.index}
+                  onclick={() => goToEpPage(range.index)}
+                >
+                  {range.label}
+                </button>
+              {/each}
+            </div>
+          {/if}
+
+          <div class="ep-grid">
+            {#each displayedEpisodes as episode}
+              <button
+                class="ep-card"
+                class:active={episode.number === ep}
+                onclick={() => changeEp(episode.number)}
+              >
+                <div class="ep-img-box">
+                  <img
+                    src={getProxiedImage(episode.image || anime?.poster)}
+                    alt="Ep {episode.number}"
+                    loading="lazy"
+                  />
+                  <div class="ep-play-overlay">
+                    <Play size={18} fill="white" />
+                  </div>
                 </div>
-              {/if}
-
-              <div class="ep-grid">
-                {#each displayedEpisodes as episode}
-                  <button
-                    class="ep-card"
-                    class:active={episode.number === ep}
-                    onclick={() => changeEp(episode.number)}
+                <div class="ep-details">
+                  <span class="ep-num">Episode {episode.number}</span>
+                  <span class="ep-name line-clamp-1"
+                    >{episode.title || `Episode ${episode.number}`}</span
                   >
-                    <div class="ep-img-box">
-                      <img
-                        src={getProxiedImage(episode.image || anime?.poster)}
-                        alt="Ep {episode.number}"
-                        loading="lazy"
-                      />
-                      <div class="ep-play-overlay">
-                        <Play size={18} fill="white" />
-                      </div>
-                    </div>
-                    <div class="ep-details">
-                      <span class="ep-num">Episode {episode.number}</span>
-                      <span class="ep-name line-clamp-1"
-                        >{episode.title || `Episode ${episode.number}`}</span
-                      >
-                    </div>
-                  </button>
-                {/each}
-              </div> <!-- ep-grid -->
-            </div> <!-- section-box -->
-
-            <div id="community" class="comments-wrapper mt-5">
-              <CommentsSection {animeId} episode={ep} />
-            </div>
-          </div> <!-- main-info -->
-
-          <!-- Sidebar (About the series) -->
-          <aside class="sidebar">
-            <div class="anime-meta-card glass">
-              <img
-                src={anime?.poster || anime?.image}
-                alt={anime?.title}
-                class="side-poster"
-              />
-              <div class="side-info">
-                <h4>About the series</h4>
-                <div class="tags">
-                  <span class="tag">{anime?.type}</span>
-                  <span class="tag">{anime?.status}</span>
-                  <span class="tag">{anime?.year}</span>
                 </div>
-                <p class="side-desc">{anime?.synopsis?.slice(0, 150)}...</p>
-                <a href="/anime/{animeId}" class="link-btn">Show Details</a>
-              </div>
-            </div>
-          </aside>
-        </div> <!-- info-grid -->
-      </div> <!-- player-info container -->
-
-      <!-- Related & Recommendations -->
-      <div class="container pb-10">
-        {#if anime?.relations?.length > 0}
-          <div class="mt-8">
-            <Row title="Related Seasons & Prequels" items={anime.relations} />
+              </button>
+            {/each}
           </div>
-        {/if}
+          <!-- ep-grid -->
+        </div>
+        <!-- section-box -->
 
-        {#if recommendations.length > 0}
-          <div class="mt-8">
-            <Row title="You Might Also Like" items={recommendations} />
-          </div>
-        {/if}
+        <div id="community" class="comments-wrapper mt-5">
+          <CommentsSection {animeId} episode={ep} />
+        </div>
       </div>
+      <!-- main-info -->
 
-      <LiveChat {animeId} episode={ep} />
-</div> <!-- player-page -->
+      <!-- Sidebar (About the series) -->
+      <aside class="sidebar">
+        <div class="anime-meta-card glass">
+          <img
+            src={anime?.poster || anime?.image}
+            alt={anime?.title}
+            class="side-poster"
+          />
+          <div class="side-info">
+            <h4>About the series</h4>
+            <div class="tags">
+              <span class="tag">{anime?.type}</span>
+              <span class="tag">{anime?.status}</span>
+              <span class="tag">{anime?.year}</span>
+            </div>
+            <p class="side-desc">{anime?.synopsis?.slice(0, 150)}...</p>
+            <a href="/anime/{animeId}" class="link-btn">Show Details</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <!-- info-grid -->
+  </div>
+  <!-- player-info container -->
+
+  <!-- Related & Recommendations -->
+  <div class="container pb-10">
+    {#if anime?.relations?.length > 0}
+      <div class="mt-8">
+        <Row title="Related Seasons & Prequels" items={anime.relations} />
+      </div>
+    {/if}
+
+    {#if recommendations.length > 0}
+      <div class="mt-8">
+        <Row title="You Might Also Like" items={recommendations} />
+      </div>
+    {/if}
+  </div>
+
+  <LiveChat {animeId} episode={ep} />
+</div>
+
+<!-- player-page -->
 
 <style>
   .player-page {
@@ -975,8 +1009,8 @@
     padding: 0 !important;
     margin: 0 !important;
   }
-  
-  :global(.video-wrapper.css-rotated video), 
+
+  :global(.video-wrapper.css-rotated video),
   :global(.video-wrapper.css-rotated iframe) {
     width: 100% !important;
     height: 100% !important;
@@ -985,7 +1019,7 @@
   }
 
   :global(.css-rotated .player-controls-overlay) {
-     z-index: 10000 !important;
+    z-index: 10000 !important;
   }
 
   .player-section {
@@ -1357,22 +1391,22 @@
     cursor: default;
   }
   .nav-secondary-btn {
-     display: flex;
-     align-items: center;
-     gap: 8px;
-     padding: 6px 16px;
-     background: rgba(255, 255, 255, 0.05);
-     border-radius: 50px;
-     border: 1px solid rgba(255, 255, 255, 0.1);
-     color: var(--net-text-muted);
-     font-size: 0.85rem;
-     font-weight: 600;
-     cursor: pointer;
-     transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--net-text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
   }
   .nav-secondary-btn:hover {
-     background: rgba(255, 255, 255, 0.1);
-     color: white;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
   }
 
   .section-box {
@@ -1395,68 +1429,44 @@
     flex-direction: column;
     gap: 1rem;
   }
-  .server-selection-header {
+  .provider-container {
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .provider-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
-  .provider-select-wrapper {
-    position: relative;
-    min-width: 200px;
-  }
-  .provider-select {
-    width: 100%;
-    padding: 10px 16px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  .provider-title {
+    font-size: 1rem;
+    font-weight: 800;
     color: white;
-    font-weight: 700;
-    font-size: 0.9rem;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px;
-    transition: 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
-  .provider-select:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-  .provider-select option {
-    background: #1a1a1f;
-    color: white;
-  }
-
-  .active-provider-servers {
-    background: rgba(255, 255, 255, 0.02);
-    padding: 1.5rem;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
   .source-category-group-nested {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
   .source-category-group-nested:last-child {
     margin-bottom: 0;
   }
   .category-tag {
     display: inline-block;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 800;
-    color: var(--net-red);
-    background: rgba(229, 9, 20, 0.1);
-    padding: 4px 10px;
-    border-radius: 6px;
+    color: var(--net-text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
     text-transform: uppercase;
-    margin-bottom: 1rem;
-    border: 1px solid rgba(229, 9, 20, 0.1);
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .source-grid {
