@@ -458,15 +458,19 @@ func StreamingToonstream(c *gin.Context) {
 			break
 		}
 
-		// Fallback: search and use discovered slug
+		// Fallback: search and try results
 		searchRes := providers.SearchToonstream(title)
-		if len(searchRes) > 0 {
-			bestSlug := searchRes[0].Slug
-			res = providers.GetToonstreamSourcesDirect(bestSlug, ep)
+		found := false
+		for _, sres := range searchRes {
+			res = providers.GetToonstreamSourcesDirect(sres.Slug, ep)
 			if len(res) > 0 {
 				sources = res
+				found = true
 				break
 			}
+		}
+		if found {
+			break
 		}
 	}
 
@@ -625,9 +629,8 @@ func StreamingSourcesAggregate(c *gin.Context) {
 
 		// Search fallback
 		searchTS := providers.SearchToonstream(title)
-		if len(searchTS) > 0 {
-			bestTSSlug := searchTS[0].Slug
-			resTS = providers.GetToonstreamSourcesDirect(bestTSSlug, ep)
+		for _, sres := range searchTS {
+			resTS = providers.GetToonstreamSourcesDirect(sres.Slug, ep)
 			if len(resTS) > 0 {
 				allSources = append(allSources, resTS...)
 				toonstreamFound = true

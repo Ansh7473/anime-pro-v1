@@ -101,8 +101,15 @@ func urlQuery(q string) string {
 	return strings.ReplaceAll(q, " ", "+")
 }
 
-// GetToonstreamSources fetches streaming sources using the Toonstream JSON API
+// GetToonstreamSources fetches streaming sources using either the JSON API or direct website scraping
 func GetToonstreamSources(slug string, season int, ep int) []map[string]interface{} {
+	// Try website scraping first as it seems more reliable for recent titles
+	sources := ScrapeToonstreamSources(slug, season, ep)
+	if len(sources) > 0 {
+		return sources
+	}
+
+	// Fallback to JSON API
 	// Pattern: /episode/{slug}-{season}x{episode}
 	apiUrl := fmt.Sprintf("%s/episode/%s-%dx%d", TOONSTREAM_API_BASE, slug, season, ep)
 
@@ -186,4 +193,92 @@ func GetToonstreamSources(slug string, season int, ep int) []map[string]interfac
 // GetToonstreamSourcesDirect is a helper to try direct URL patterns
 func GetToonstreamSourcesDirect(slug string, ep int) []map[string]interface{} {
 	return GetToonstreamSources(slug, 1, ep)
+}
+
+// ScrapeToonstreamSources scrapes embeds directly from toonstream.dad
+func ScrapeToonstreamSources(slug string, season int, ep int) []map[string]interface{} {
+	epSlug := fmt.Sprintf("%s-%dx%d", slug, season, ep)
+	url := fmt.Sprintf("%s/episode/%s/", TOONSTREAM_SITE_BASE, epSlug)
+
+	resp, err := utils.HttpClient.R().
+		SetHeaders(map[string]string{
+			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+			"Referer":    TOONSTREAM_SITE_BASE + "/",
+			"Accept":     "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+		}).
+		Get(url)
+
+	if err != nil || !resp.IsSuccess() {
+		// Try without season if season is 1
+		if season == 1 {
+			epSlug = fmt.Sprintf("%s-%d", slug, ep)
+			url = fmt.Sprintf("%s/episode/%s/", TOONSTREAM_SITE_BASE, epSlug)
+			resp, err = utils.HttpClient.R().
+				SetHeaders(map[string]string{
+					"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+					"Referer":    TOONSTREAM_SITE_BASE + "/",
+				}).
+				Get(url)
+			if err != nil || !resp.IsSuccess() {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(resp.String()))
+	if err != nil {
+		return nil
+	}
+
+	sourcesList := make([]map[string]interface{}, 0)
+
+	// Pattern 1: Find all iframes in the video player section
+	doc.Find(".video-player .video iframe").Each(func(i int, s *goquery.Selection) {
+		src, _ := s.Attr("src")
+		if src == "" {
+			src, _ = s.Attr("data-src")
+		}
+		if src != "" {
+			addSourceFromUrl(&sourcesList, src, i)
+		}
+	})
+
+	// Pattern 2: Global iframe search for trembed
+	if len(sourcesList) == 0 {
+		doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
+			src, _ := s.Attr("src")
+			if strings.Contains(src, "trembed") {
+				addSourceFromUrl(&sourcesList, src, i)
+			}
+		})
+	}
+
+	return sourcesList
+}
+
+func addSourceFromUrl(list *[]map[string]interface{}, finalUrl string, index int) {
+	serverName := fmt.Sprintf("Server %d", index+1)
+
+	// Extract server ID if possible to get friendly name
+	if strings.Contains(finalUrl, "trembed=") {
+		parts := strings.Split(finalUrl, "trembed=")
+		if len(parts) > 1 {
+			id := strings.Split(parts[1], "&")[0]
+			if friendly, exists := TOONSTREAM_SERVER_NAMES[id]; exists {
+				serverName = friendly
+			}
+		}
+	}
+
+	*list = append(*list, map[string]interface{}{
+		"name":     serverName,
+		"url":      finalUrl,
+		"category": "sub",
+		"isM3U8":   strings.Contains(strings.ToLower(finalUrl), ".m3u8"),
+		"isEmbed":  !strings.Contains(strings.ToLower(finalUrl), ".m3u8"),
+		"type":     "iframe",
+		"provider": "Toonstream",
+	})
 }
