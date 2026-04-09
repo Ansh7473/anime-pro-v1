@@ -10,7 +10,6 @@
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
   import { isTV } from "$lib/stores/device";
-  import TvSidebar from "$lib/components/TvSidebar.svelte";
 
   let { children } = $props();
 
@@ -117,13 +116,7 @@
 
     <MobileBottomNav />
   {:else}
-    <!-- TV Mode specific rendering (No web navbar/footer) -->
-    <TvSidebar />
-    <main class="tv-main-content">
-      <div class="tv-content-inner">
-        {@render children()}
-      </div>
-    </main>
+    {@render children()}
   {/if}
 </div>
 
@@ -140,30 +133,13 @@
     flex: 1;
   }
 
-  /* Lock root elements on TV to force internal scrolling container */
+  /* Root level tv-mode overrides for whole-site TV compatibility */
   :global(.tv-mode) body,
-  :global(.tv-mode) html,
-  :global(.tv-mode) .app {
-    height: 100vh;
-    max-height: 100vh;
-    overflow: hidden;
+  :global(.tv-mode) html {
+    overflow-y: auto !important; 
+    scrollbar-width: none;
   }
-
-  .tv-main-content {
-    height: 100vh;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: none; /* Hide scrollbar for TV */
-    padding-left: 100px; /* Width of collapsed sidebar */
-  }
-  .tv-content-inner {
-     padding: 1rem 3rem;
-     padding-bottom: 10rem;
-  }
-  .tv-main-content::-webkit-scrollbar {
+  :global(.tv-mode) body::-webkit-scrollbar {
     display: none;
   }
 
