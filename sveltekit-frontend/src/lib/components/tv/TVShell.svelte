@@ -94,7 +94,7 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
-<div class="tv-shell-container">
+<div class="tv-shell-container" style="--sidebar-width: {tvSidebarExpanded ? '320px' : '100px'};">
   <nav 
     class="tv-sidebar" 
     class:expanded={tvSidebarExpanded} 
@@ -153,16 +153,11 @@
   .tv-layout-main {
     flex: 1;
     height: 100vh;
-    margin-left: 100px;
+    margin-left: var(--sidebar-width);
     background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.03) 0%, transparent 40%);
     position: relative;
     overflow: hidden;
     transition: margin-left 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  }
-  
-  /* When sidebar expands, we don't want the content to be hidden behind it */
-  .tv-sidebar.expanded + .tv-layout-main {
-    margin-left: 320px;
   }
 
   .tv-sidebar {
