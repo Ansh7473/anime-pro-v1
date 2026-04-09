@@ -556,4 +556,35 @@
       transform: rotate(360deg);
     }
   }
+
+  /* TV Mode Enhancements */
+  :global(.tv-mode) .detail-grid {
+    grid-template-columns: 320px 1fr;
+    gap: 4rem;
+  }
+  :global(.tv-mode) .detail-content {
+    margin-top: -10rem;
+    max-width: 1600px;
+  }
+  :global(.tv-mode) .detail-poster img {
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
+  }
+  :global(.tv-mode) .detail-title {
+    font-size: 3rem;
+  }
+  :global(.tv-mode) .btn-primary,
+  :global(.tv-mode) .btn-watchlist,
+  :global(.tv-mode) .btn-favorite {
+    padding: 1.2rem 2rem;
+    font-size: 1.2rem;
+  }
+  :global(.tv-mode) .btn-primary:focus-visible,
+  :global(.tv-mode) .btn-watchlist:focus-visible,
+  :global(.tv-mode) .btn-favorite:focus-visible {
+    transform: scale(1.1);
+    outline: 4px solid white;
+    outline-offset: 4px;
+    z-index: 10;
+    box-shadow: 0 0 30px rgba(229, 9, 20, 0.5);
+  }
 </style>
