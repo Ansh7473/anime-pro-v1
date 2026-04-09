@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { isTV } from '$lib/stores/device';
-  import { Home, Search, Heart, Clock, Settings, User, LogOut } from 'lucide-svelte';
+  import { Home, Search, Heart, Clock, Settings, User, LogOut, LayoutGrid } from 'lucide-svelte';
   import { fly, fade } from 'svelte/transition';
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -18,9 +18,10 @@
   const menuItems = [
     { icon: Home, label: 'Home', href: '/tv' },
     { icon: Search, label: 'Search', href: '/tv/search' },
-    { icon: Clock, label: 'Watchlist', href: '/watchlist' },
-    { icon: Heart, label: 'Favorites', href: '/favorites' },
-    { icon: User, label: 'Profile', href: '/profile' },
+    { icon: LayoutGrid, label: 'Categories', href: '/tv/genres' },
+    { icon: Clock, label: 'Watchlist', href: '/tv/watchlist' },
+    { icon: Heart, label: 'Favorites', href: '/tv/favorites' },
+    { icon: Settings, label: 'Settings', href: '/tv/settings' },
   ];
 
   function handleExitTV() {
@@ -106,64 +107,69 @@
     left: 0;
     bottom: 0;
     width: 100px;
-    background: linear-gradient(90deg, rgba(0,0,0,0.95), transparent);
+    background: #080808;
     z-index: 2000;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 3rem 0;
-    transition: width 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition: width 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), background 0.4s ease;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
   }
 
   .tv-sidebar.expanded {
-    width: 300px;
-    background: rgba(10, 10, 12, 0.98);
-    backdrop-filter: blur(40px);
-    box-shadow: 50px 0 100px rgba(0, 0, 0, 0.9);
+    width: 320px;
+    background: #0f0f0f;
+    box-shadow: 20px 0 80px rgba(0, 0, 0, 0.8);
   }
 
   .logo-container {
-    margin-bottom: 5rem;
+    margin-bottom: 4rem;
+    transition: transform 0.3s;
   }
+  .expanded .logo-container {
+    transform: translateX(-40px);
+  }
+
   .logo-box {
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
     background: var(--net-red);
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 40px rgba(229, 9, 20, 0.5);
+    box-shadow: 0 0 40px rgba(229, 9, 20, 0.3);
   }
+
   .logo-p {
     color: white;
-    font-size: 2.2rem;
-    font-weight: 900;
+    font-size: 2.5rem;
+    font-weight: 950;
   }
 
   .menu-items {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
     width: 100%;
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
   }
 
   .nav-item {
     display: flex;
     align-items: center;
     text-decoration: none;
-    color: rgba(255, 255, 255, 0.5);
-    border-radius: 18px;
-    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
-    height: 70px;
+    color: rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    height: 64px;
     white-space: nowrap;
     padding: 0 1rem;
     cursor: pointer;
-    border: 2px solid transparent;
+    border: 3px solid transparent;
   }
 
   .icon-box {
@@ -176,37 +182,37 @@
 
   .label {
     margin-left: 2rem;
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
   }
 
   .nav-item:hover,
   .nav-item:focus-visible {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     color: white;
-    transform: scale(1.08);
+    transform: scale(1.05);
     outline: none;
   }
 
   .nav-item:focus-visible {
-     border-color: white;
-     box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+     border-color: rgba(255, 255, 255, 0.8);
+     box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
   }
 
   .nav-item.active {
-    color: var(--net-red);
-    background: rgba(229, 9, 20, 0.12);
+    color: white;
+    background: rgba(229, 9, 20, 0.8);
+    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.3);
   }
 
   .nav-item.active .icon-box {
-    filter: drop-shadow(0 0 10px rgba(229, 9, 20, 0.8));
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
   }
 
   .bottom-items {
     width: 100%;
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
     margin-top: 2rem;
   }
 
@@ -216,27 +222,28 @@
     text-align: left;
     background: none;
     font-family: inherit;
-  }
-
-  .exit-btn:hover {
-    color: #f87171;
-    background: rgba(248, 113, 113, 0.1);
+    color: #ef4444;
   }
 
   /* MAIN CONTENT STYLES */
   .tv-main-content {
     flex: 1;
     height: 100vh;
-    margin-left: 100px; /* Width of collapsed sidebar */
+    margin-left: 100px;
     position: relative;
-    background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.05) 0%, transparent 50%);
+    background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.02) 0%, transparent 40%);
+    transition: margin-left 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+
+  /* When sidebar expands, move content slightly to maintain balance */
+  .tv-sidebar.expanded + .tv-main-content {
+    margin-left: 120px;
   }
 
   .tv-scroll-container {
     height: 100vh;
     overflow-y: auto;
-    padding: 3rem 5rem;
-    padding-bottom: 12rem;
+    padding: 0; /* Remove top padding here, handle in pages */
     scrollbar-width: none;
   }
 
@@ -247,8 +254,8 @@
   /* Smooth Focus Glow for all items in TV mode */
   :global(.tv-mode) :focus-visible {
     outline: 4px solid white !important;
-    outline-offset: 8px !important;
-    box-shadow: 0 0 50px rgba(255, 255, 255, 0.3) !important;
+    outline-offset: 4px !important;
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.4) !important;
     z-index: 100;
   }
 </style>
