@@ -51,13 +51,13 @@
     const p = page.url.pathname as string;
     if ($isTV) {
       // Redirect web navigation routes to TV Hub, but allow /anime, /watch, and /explore
-      if (!p.startsWith('/tv') && !p.startsWith('/anime') && !p.startsWith('/watch') && !p.startsWith('/explore')) {
+      if ((p !== '/tv' && !p.startsWith('/tv/')) && !p.startsWith('/anime') && !p.startsWith('/watch') && !p.startsWith('/explore')) {
         goto('/tv');
       }
     }
   });
 
-  let isTvRoute = $derived($isTV || (page.url.pathname as string).startsWith('/tv'));
+  let isTvRoute = $derived($isTV || (page.url.pathname as string) === '/tv' || (page.url.pathname as string).startsWith('/tv/'));
 
   function handleBack() {
     if (window.history.length > 2) {
