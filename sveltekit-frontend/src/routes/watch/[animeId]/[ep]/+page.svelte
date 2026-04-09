@@ -722,8 +722,8 @@
               </div>
             {/if}
 
-            <!-- Subtle Controls Hub -->
-            <div class="controls-overlay" class:visible={!theaterMode}>
+            <!-- Top-Left Control Menu -->
+            <div class="top-controls-hub">
               <div class="controls-group">
                 <button class="ctrl-btn" class:active={isRotated} title="Rotate" onclick={toggleRotation}>
                   <RotateCw size={18} />
@@ -741,6 +741,10 @@
                   <Keyboard size={18} />
                 </button>
               </div>
+            </div>
+
+            <!-- Bottom Playback Overlays -->
+            <div class="controls-overlay" class:visible={!theaterMode}>
             </div>
           {/if}
         </div>
@@ -1716,6 +1720,35 @@
   .close-modal-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 20px var(--accent-glow);
+  }
+
+  /* Top Controls Hub */
+  .top-controls-hub {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    z-index: 120;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .video-container:hover .top-controls-hub {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .controls-group {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.6rem;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
 
   /* Utilities */
