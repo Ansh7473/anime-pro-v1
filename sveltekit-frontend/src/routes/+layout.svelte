@@ -77,10 +77,14 @@
       goto("/");
     }
   }
+
+  // Derive if we should hide global nav (Watch page should have its own cinematic nav)
+  let isWatchPage = $derived(page.url.pathname.startsWith('/watch/'));
+  let showGlobalNav = $derived(!$isTV && !isWatchPage);
 </script>
 
   <div class="app" class:tv-mode={$isTV}>
-    {#if !$isTV}
+    {#if showGlobalNav}
       <!-- Tactical HUD Backgrounds -->
       <div class="tactical-grid"></div>
       <div class="tactical-vignette"></div>
@@ -102,11 +106,10 @@
             </div>
           {/key}
         </main>
-        <Footer />
       </PullToRefresh>
 
       {#if showUpdatePopup}
-        <div class="fixed bottom-6 right-6 z-[9999] w-80 bg-[#1a1a1f] border border-white/10 rounded-2xl p-5 shadow-2xl overflow-hidden" transition:fly={{ x: 100, duration: 200 }}>
+        <div class="update-popup glass" transition:fly={{ y: 50, duration: 400 }}>
           <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
           <div class="flex justify-between items-start mb-3">
             <div class="flex items-center gap-2 text-blue-400 font-bold">
@@ -126,6 +129,11 @@
       {/if}
 
       <MobileBottomNav />
+    {:else if isWatchPage && !$isTV}
+       <!-- Watch Page cinematic shell for non-TV devices (No sidebars/navbars) -->
+       <main class="watch-shell">
+          {@render children()}
+       </main>
     {:else}
       <!-- Primary TV Shell (Netflix Style) - Persistent for all routes -->
       <nav 

@@ -975,7 +975,10 @@
   .top-nav {
     position: relative;
     z-index: 100;
-    padding: 1.5rem 0;
+    padding: 1.5rem 1rem;
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
     display: flex;
     align-items: center;
     justify-content: space-between;
