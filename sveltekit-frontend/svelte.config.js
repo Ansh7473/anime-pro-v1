@@ -1,5 +1,6 @@
 import adapterVercel from '@sveltejs/adapter-vercel';
 import adapterStatic from '@sveltejs/adapter-static';
+import adapterCloudflare from '@sveltejs/adapter-cloudflare';
 import { relative, sep } from 'node:path';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -20,13 +21,12 @@ const config = {
 		paths: {
 			relative: (process.env.APP_PLATFORM === 'desktop' || process.env.APP_PLATFORM === 'mobile')
 		},
-		// Use Vercel adapter for web, Static for mobile/desktop
+		// Choose adapter based on platform
 		adapter: (() => {
-			console.log('--- Svelte Config ---');
-			console.log('APP_PLATFORM:', process.env.APP_PLATFORM);
-			// Desktop and Mobile (Android) both need the static adapter
+			console.log('--- Svelte Hub Config ---');
+			console.log('PLATFORM:', process.env.APP_PLATFORM);
+			
 			if (process.env.APP_PLATFORM === 'desktop' || process.env.APP_PLATFORM === 'mobile') {
-				console.log('Choosing Static Adapter for Platform Build');
 				return adapterStatic({
 					fallback: 'index.html',
 					pages: 'build',
@@ -35,9 +35,17 @@ const config = {
 					strict: false
 				});
 			}
-			console.log('Choosing Vercel Adapter');
-			return adapterVercel({
-				runtime: 'nodejs20.x'
+
+			if (process.env.APP_PLATFORM === 'vercel') {
+				return adapterVercel({ runtime: 'nodejs20.x' });
+			}
+
+			// Default to Cloudflare for web deployments
+			return adapterCloudflare({
+				routes: {
+					include: ['/*'],
+					exclude: ['<all>']
+				}
 			});
 		})()
 	}
