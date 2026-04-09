@@ -44,7 +44,7 @@
 
   .tv-rows {
     padding-bottom: 10rem;
-    margin-top: -4rem;
+    margin-top: 1rem;
     position: relative;
     z-index: 3;
   }
