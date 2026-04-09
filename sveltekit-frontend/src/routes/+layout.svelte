@@ -8,6 +8,7 @@
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
+  import { isTV } from "$lib/stores/device";
 
   let { children } = $props();
 
@@ -43,6 +44,15 @@
       }
     }
   });
+
+  // TV Mode Redirection Logic
+  $effect(() => {
+    if ($isTV && !page.url.pathname.startsWith('/tv')) {
+      // For TV devices, we automatically redirect to the TV Hub for the best experience
+      goto('/tv');
+    }
+  });
+
 
   function handleBack() {
     // A length of 1 means the user landed directly on the page, or history was wiped.

@@ -1934,4 +1934,33 @@
       font-size: 0.65rem;
     }
   }
+  /* TV Mode Enhancements */
+  :global(.tv-mode) .player-section {
+    padding-top: 0;
+    height: 100vh;
+  }
+  :global(.tv-mode) .player-container {
+    max-width: 100%;
+    padding: 0;
+  }
+  :global(.tv-mode) .video-wrapper {
+    border-radius: 0;
+    height: 100vh;
+  }
+
+  /* Episode Focus */
+  .ep-card:focus-visible,
+  .source-btn:focus-visible {
+    background: var(--net-red) !important;
+    color: white !important;
+    transform: scale(1.1);
+    outline: none;
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+  }
+
+  .control-btn:focus-visible {
+    background: var(--net-red) !important;
+    transform: scale(1.2);
+    outline: none;
+  }
 </style>

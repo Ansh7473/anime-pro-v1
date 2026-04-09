@@ -1,12 +1,17 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.rusty.app',
-  appName: 'ANIME PRO',
+  appId: 'com.animepro.ultra',
+  appName: 'AnimePro Ultra',
   webDir: 'build',
   server: {
     url: 'https://anime-pro-v1-frontend.vercel.app/',
-    cleartext: true
+    cleartext: true,
+    androidScheme: 'https'
+  },
+  android: {
+    allowMixedContent: true,
+    backgroundColor: '#0a0a0a'
   }
 };
 

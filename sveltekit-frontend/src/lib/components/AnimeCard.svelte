@@ -74,15 +74,18 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 6px;
   }
-  .card:hover {
-    transform: translateY(-8px) scale(1.02);
+  .card:hover,
+  .card:focus-visible {
+    transform: translateY(-8px) scale(var(--tv-card-scale, 1.05));
     z-index: 10;
     background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(173, 199, 255, 0.3);
+    border-color: var(--tv-focus-border, rgba(173, 199, 255, 0.3));
     box-shadow: 
-      0 10px 30px -10px rgba(0, 0, 0, 0.5),
-      0 0 20px rgba(173, 199, 255, 0.1);
+      0 10px 40px -10px rgba(0, 0, 0, 0.7),
+      0 0 25px var(--tv-focus-glow, rgba(173, 199, 255, 0.1));
+    outline: none; /* We use box-shadow/border for a cleaner look */
   }
+
   .card.small { width: 130px; }
   .card.large { width: 220px; }
 
@@ -114,7 +117,8 @@
     transition: opacity 0.3s;
     z-index: 2;
   }
-  .card:hover .card-overlay {
+  .card:hover .card-overlay,
+  .card:focus-visible .card-overlay {
     opacity: 1;
   }
   .card-play {
@@ -203,7 +207,8 @@
     line-height: 1.3;
     transition: color 0.3s;
   }
-  .card:hover .card-title {
+  .card:hover .card-title,
+  .card:focus-visible .card-title {
     color: var(--tactical-primary);
   }
 
