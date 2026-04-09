@@ -1,7 +1,7 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import { onMount } from "svelte";
-  import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import TVAnimeCard from "$lib/components/tv/TVAnimeCard.svelte";
   import { Search as SearchIcon } from 'lucide-svelte';
 
   import { page } from "$app/state";
@@ -83,7 +83,7 @@
       <div class="results-grid">
         {#each results as anime}
           <div class="result-item">
-            <AnimeCard {anime} />
+            <TVAnimeCard {anime} />
           </div>
         {/each}
       </div>

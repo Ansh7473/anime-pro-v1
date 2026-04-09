@@ -1,0 +1,311 @@
+<script lang="ts">
+  import { getProxiedImage } from "$lib/api";
+  import { onMount, onDestroy } from "svelte";
+  import { goto } from "$app/navigation";
+
+  let { items = [] } = $props<{ items: any[] }>();
+
+  let current = $state(0);
+  let paused = $state(false);
+  let interval: ReturnType<typeof setInterval> | null = null;
+
+  const heroes = $derived(
+    items.filter((a: any) => a.image || a.poster).slice(0, 8),
+  );
+
+  function next() {
+    current = (current + 1) % heroes.length;
+  }
+  function prev() {
+    current = (current - 1 + heroes.length) % heroes.length;
+  }
+
+  function startAutoplay() {
+    stopAutoplay();
+    interval = setInterval(() => {
+      if (!paused) next();
+    }, 10000);
+  }
+  function stopAutoplay() {
+    if (interval) clearInterval(interval);
+  }
+
+  onMount(startAutoplay);
+  onDestroy(stopAutoplay);
+
+  const anime = $derived(heroes[current]);
+  const title = $derived(anime?.title || "Unknown");
+  const synopsis = $derived((anime?.synopsis || "").replace(/<[^>]*>?/gm, ""));
+  const genres = $derived(anime?.genres || []);
+  const id = $derived(anime?.id || anime?.mal_id);
+  const score = $derived(anime?.score || anime?.rating || 0);
+
+  function handleNavigate(e?: Event) {
+    if (e) e.preventDefault();
+    if (id) goto(`/anime/${id}`);
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter') handleNavigate(e);
+    if (e.key === 'ArrowRight') next();
+    if (e.key === 'ArrowLeft') prev();
+  }
+</script>
+
+{#if heroes.length > 0}
+  <section
+    class="tv-hero"
+    aria-label="Featured anime carousel"
+    onmouseenter={() => (paused = true)}
+    onmouseleave={() => (paused = false)}
+  >
+    <!-- Background slides -->
+    {#each heroes as slide, i}
+      <div
+        class="tv-hero-bg"
+        class:active={i === current}
+        style="background-image: url({getProxiedImage(slide.image || slide.poster || '')});"
+      ></div>
+    {/each}
+
+    <div class="tv-hero-gradient"></div>
+
+    <!-- Content -->
+    <div class="tv-hero-content">
+      <div class="tv-hero-badge">
+        <span class="tv-badge-dot"></span>
+        <span>#{current + 1} Trending Now</span>
+      </div>
+      <h1 class="tv-hero-title">{title}</h1>
+      
+      {#if genres.length > 0}
+        <div class="tv-hero-genres">
+          {#each genres.slice(0, 4) as genre}
+            <span class="tv-genre-tag">{genre}</span>
+          {/each}
+          {#if score > 0}
+            <span class="tv-genre-tag score">⭐ {typeof score === "number" && score > 10 ? (score / 10).toFixed(1) : score}</span>
+          {/if}
+        </div>
+      {/if}
+
+      <p class="tv-hero-desc">
+        {synopsis.slice(0, 300)}{synopsis.length > 300 ? "..." : ""}
+      </p>
+
+      <div class="tv-hero-actions">
+        <button 
+          class="tv-btn tv-btn-primary" 
+          onclick={handleNavigate} 
+          onkeydown={handleKeydown}
+          tabindex="0"
+          autofocus
+        >
+          ▶ Watch Now
+        </button>
+        <button 
+          class="tv-btn tv-btn-secondary" 
+          onclick={handleNavigate} 
+          onkeydown={handleKeydown}
+          tabindex="0"
+        >
+          ℹ More Details
+        </button>
+      </div>
+    </div>
+
+    <!-- Dot indicators -->
+    <div class="tv-hero-dots">
+      {#each heroes as _, i}
+        <div class="tv-dot" class:active={i === current}>
+          {#if i === current}
+            <div class="tv-dot-progress"></div>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  </section>
+{/if}
+
+<style>
+  .tv-hero {
+    position: relative;
+    width: 100%;
+    height: 85vh;
+    min-height: 700px;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .tv-hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center 20%;
+    opacity: 0;
+    transform: scale(1.1);
+    transition: opacity 1.5s ease-in-out, transform 10s linear;
+  }
+  .tv-hero-bg.active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .tv-hero-gradient {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: 
+      linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.8) 20%, transparent 60%),
+      linear-gradient(to right, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.4) 40%, transparent 70%);
+  }
+
+  .tv-hero-content {
+    position: relative;
+    z-index: 3;
+    padding: 6rem 5rem;
+    max-width: 1100px;
+    margin-bottom: 2rem;
+  }
+
+  .tv-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(229, 9, 20, 0.2);
+    border: 2px solid rgba(229, 9, 20, 0.3);
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--net-red);
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .tv-badge-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--net-red);
+    box-shadow: 0 0 15px var(--net-red);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .tv-hero-title {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.8);
+    color: white;
+  }
+
+  .tv-hero-genres {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .tv-genre-tag {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .tv-genre-tag.score {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.3);
+  }
+
+  .tv-hero-desc {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.4rem;
+    line-height: 1.6;
+    margin-bottom: 3rem;
+    max-width: 850px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  }
+
+  .tv-hero-actions {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .tv-btn {
+    font-size: 1.5rem;
+    font-weight: 800;
+    padding: 1rem 2.5rem;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 4px solid transparent;
+  }
+
+  .tv-btn-primary {
+    background: white;
+    color: black;
+  }
+
+  .tv-btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    backdrop-filter: blur(10px);
+  }
+
+  .tv-btn:focus-visible {
+    transform: scale(1.15);
+    border-color: var(--net-red);
+    box-shadow: 0 0 50px rgba(229, 9, 20, 0.4);
+    outline: none;
+  }
+
+  .tv-hero-dots {
+    position: absolute;
+    bottom: 4rem;
+    right: 5rem;
+    display: flex;
+    gap: 1rem;
+    z-index: 5;
+  }
+
+  .tv-dot {
+    width: 60px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .tv-dot.active {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .tv-dot-progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: var(--net-red);
+    animation: fill 10s linear forwards;
+  }
+
+  @keyframes fill {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+</style>

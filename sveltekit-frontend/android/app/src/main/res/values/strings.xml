@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AnimePro Ultra</string>
+    <string name="title_activity_main">AnimePro Ultra</string>
+    <string name="package_name">com.animepro.ultra</string>
+    <string name="custom_url_scheme">com.animepro.ultra</string>
+</resources>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import { auth } from "$lib/stores/auth";
-  import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import TVAnimeCard from "$lib/components/tv/TVAnimeCard.svelte";
   import { Heart } from 'lucide-svelte';
   import { fly } from 'svelte/transition';
   import { onMount } from "svelte";
@@ -42,7 +42,7 @@
     <div class="results-grid">
       {#each favorites as item}
         <div class="result-item">
-          <AnimeCard anime={{
+          <TVAnimeCard anime={{
                 id: item.animeId,
                 title: item.animeTitle,
                 poster: item.animePoster,

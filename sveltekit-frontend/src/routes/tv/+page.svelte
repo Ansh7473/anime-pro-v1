@@ -1,7 +1,7 @@
 <script lang="ts">
   import { api } from "$lib/api";
-  import Row from "$lib/components/Row.svelte";
-  import HeroBanner from "$lib/components/HeroBanner.svelte";
+  import TVRow from "$lib/components/tv/TVRow.svelte";
+  import TVHeroBanner from "$lib/components/tv/TVHeroBanner.svelte";
   import { onMount } from "svelte";
 
   let homeData: any = $state(null);
@@ -26,13 +26,13 @@
       <div class="sk-row"></div>
     </div>
   {:else if homeData}
-    <HeroBanner items={homeData.trending || homeData.popular || []} />
+    <TVHeroBanner items={homeData.trending || homeData.popular || []} />
 
     <div class="tv-rows">
-      <Row title="Trending Now" items={homeData.trending || []} />
-      <Row title="Most Popular" items={homeData.popular || []} />
-      <Row title="Top Rated" items={homeData.topRated || []} />
-      <Row title="Recently Added" items={homeData.latest || []} />
+      <TVRow title="Trending Now" items={homeData.trending || []} />
+      <TVRow title="Most Popular" items={homeData.popular || []} />
+      <TVRow title="Top Rated" items={homeData.topRated || []} />
+      <TVRow title="Recently Added" items={homeData.latest || []} />
     </div>
   {/if}
 </div>
