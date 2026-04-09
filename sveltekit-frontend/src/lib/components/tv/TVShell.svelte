@@ -14,6 +14,10 @@
   }
 
   // Global Remote Control Key Handling
+  let isNavigating = false;
+  let lastNavTime = 0;
+  const NAV_COOLDOWN = 60; // ms between focus shifts to keep UI responsive
+
   function handleGlobalKeydown(e: KeyboardEvent) {
     // 1. Handle Navigation/Back
     if (e.key === 'Backspace' || e.key === 'Escape') {
@@ -27,14 +31,17 @@
 
     // 2. Spatial Navigation for D-pad (Arrows)
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      const now = Date.now();
+      if (now - lastNavTime < NAV_COOLDOWN) return;
+
       const active = document.activeElement;
       if (!active || active === document.body) {
-        // Fallback: focus first focusable element
         const first = document.querySelector('button, a, [tabindex="0"]');
         if (first) (first as HTMLElement).focus();
         return;
       }
 
+      // Professional Spatial Search
       const focusable = Array.from(document.querySelectorAll('button:not(:disabled), a, [tabindex="0"]')) as HTMLElement[];
       const currentRect = active.getBoundingClientRect();
       const currentCenter = {
@@ -43,7 +50,7 @@
       };
 
       let bestCandidate: HTMLElement | null = null;
-      let minDistance = Infinity;
+      let minScore = Infinity;
 
       for (const el of focusable) {
         if (el === active) continue;
@@ -56,27 +63,51 @@
         const dx = center.x - currentCenter.x;
         const dy = center.y - currentCenter.y;
 
-        // Check direction
-        let isValidDirection = false;
-        if (e.key === 'ArrowRight' && dx > 0 && Math.abs(dy) < Math.abs(dx)) isValidDirection = true;
-        if (e.key === 'ArrowLeft' && dx < 0 && Math.abs(dy) < Math.abs(dx)) isValidDirection = true;
-        if (e.key === 'ArrowDown' && dy > 0 && Math.abs(dx) < Math.abs(dy)) isValidDirection = true;
-        if (e.key === 'ArrowUp' && dy < 0 && Math.abs(dx) < Math.abs(dy)) isValidDirection = true;
+        // Directional validation
+        let isValid = false;
+        if (e.key === 'ArrowRight' && dx > 1) isValid = true;
+        if (e.key === 'ArrowLeft' && dx < -1) isValid = true;
+        if (e.key === 'ArrowDown' && dy > 1) isValid = true;
+        if (e.key === 'ArrowUp' && dy < -1) isValid = true;
 
-        if (isValidDirection) {
-           // Squared distance
-           const dist = dx * dx + dy * dy;
-           if (dist < minDistance) {
-             minDistance = dist;
-             bestCandidate = el;
-           }
+        if (isValid) {
+          // Professional distance scoring: primary axis distance weighted more than cross axis
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          // Angle penalty: elements that are more "straight" in the direction get lower scores
+          const angleWeight = e.key === 'ArrowUp' || e.key === 'ArrowDown' 
+            ? Math.abs(dx) / (Math.abs(dy) + 1) 
+            : Math.abs(dy) / (Math.abs(dx) + 1);
+          
+          const score = distance + (distance * angleWeight * 2);
+
+          if (score < minScore) {
+            minScore = score;
+            bestCandidate = el;
+          }
         }
       }
 
       if (bestCandidate) {
         e.preventDefault();
+        lastNavTime = now;
         bestCandidate.focus();
-        bestCandidate.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        
+        // Use smooth scroll but check if it's already visible to save CPU
+        const rect = bestCandidate.getBoundingClientRect();
+        const isVisible = rect.top >= 0 && rect.left >= 0 && 
+                          rect.bottom <= window.innerHeight && 
+                          rect.right <= window.innerWidth;
+        
+        if (!isVisible) {
+          bestCandidate.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+
+        // Handle sidebar auto-expansion on focus
+        if (bestCandidate.closest('.tv-sidebar')) {
+          tvSidebarExpanded = true;
+        } else if (tvSidebarExpanded) {
+          tvSidebarExpanded = false;
+        }
       }
     }
   }
@@ -113,19 +144,20 @@
           class="tv-nav-item" 
           class:active={page.url.pathname === href}
           tabindex="0"
+          onfocus={() => tvSidebarExpanded = true}
         >
           <div class="tv-icon-box">
             <Icon size={32} strokeWidth={2.5} />
           </div>
           {#if tvSidebarExpanded}
-            <span class="tv-label" in:fly={{ x: -10, duration: 300 }}>{label}</span>
+            <span class="tv-label truncate" in:fly={{ x: -10, duration: 300 }}>{label}</span>
           {/if}
         </a>
       {/each}
     </div>
 
     <div class="tv-bottom-items">
-       <button class="tv-nav-item exit-btn" onclick={handleExit}>
+       <button class="tv-nav-item exit-btn" onclick={handleExit} onfocus={() => tvSidebarExpanded = true}>
           <div class="tv-icon-box"><X size={32} /></div>
           {#if tvSidebarExpanded}
             <span class="tv-label">Exit TV Hub</span>

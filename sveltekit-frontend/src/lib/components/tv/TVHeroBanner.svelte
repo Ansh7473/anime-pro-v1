@@ -154,13 +154,14 @@
     background-size: cover;
     background-position: center 20%;
     opacity: 0;
-    transform: scale(1.15);
+    transform: scale(1.15) translateZ(0);
     transition: opacity 1.5s ease-in-out, transform 12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     z-index: 0;
+    will-change: opacity, transform; /* Essential for smooth cross-fades */
   }
   .tv-hero-bg.active {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateZ(0);
     z-index: 1;
   }
 
