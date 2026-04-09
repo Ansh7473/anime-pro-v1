@@ -13,6 +13,74 @@
     await goto('/');
   }
 
+  // Global Remote Control Key Handling
+  function handleGlobalKeydown(e: KeyboardEvent) {
+    // 1. Handle Navigation/Back
+    if (e.key === 'Backspace' || e.key === 'Escape') {
+      const p = page.url.pathname as string;
+      if (p !== '/tv') {
+        e.preventDefault();
+        window.history.back();
+      }
+      return;
+    }
+
+    // 2. Spatial Navigation for D-pad (Arrows)
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      const active = document.activeElement;
+      if (!active || active === document.body) {
+        // Fallback: focus first focusable element
+        const first = document.querySelector('button, a, [tabindex="0"]');
+        if (first) (first as HTMLElement).focus();
+        return;
+      }
+
+      const focusable = Array.from(document.querySelectorAll('button:not(:disabled), a, [tabindex="0"]')) as HTMLElement[];
+      const currentRect = active.getBoundingClientRect();
+      const currentCenter = {
+        x: currentRect.left + currentRect.width / 2,
+        y: currentRect.top + currentRect.height / 2
+      };
+
+      let bestCandidate: HTMLElement | null = null;
+      let minDistance = Infinity;
+
+      for (const el of focusable) {
+        if (el === active) continue;
+        const rect = el.getBoundingClientRect();
+        const center = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+
+        const dx = center.x - currentCenter.x;
+        const dy = center.y - currentCenter.y;
+
+        // Check direction
+        let isValidDirection = false;
+        if (e.key === 'ArrowRight' && dx > 0 && Math.abs(dy) < Math.abs(dx)) isValidDirection = true;
+        if (e.key === 'ArrowLeft' && dx < 0 && Math.abs(dy) < Math.abs(dx)) isValidDirection = true;
+        if (e.key === 'ArrowDown' && dy > 0 && Math.abs(dx) < Math.abs(dy)) isValidDirection = true;
+        if (e.key === 'ArrowUp' && dy < 0 && Math.abs(dx) < Math.abs(dy)) isValidDirection = true;
+
+        if (isValidDirection) {
+           // Squared distance
+           const dist = dx * dx + dy * dy;
+           if (dist < minDistance) {
+             minDistance = dist;
+             bestCandidate = el;
+           }
+        }
+      }
+
+      if (bestCandidate) {
+        e.preventDefault();
+        bestCandidate.focus();
+        bestCandidate.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+    }
+  }
+
   const tvMenuItems = [
     { icon: Home, label: 'Home', href: '/tv' },
     { icon: Search, label: 'Search', href: '/tv/search' },
@@ -23,6 +91,8 @@
     { icon: Settings, label: 'Settings', href: '/tv/settings' },
   ];
 </script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
 
 <div class="tv-shell-container">
   <nav 
