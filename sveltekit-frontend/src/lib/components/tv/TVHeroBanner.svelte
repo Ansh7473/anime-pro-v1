@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getProxiedImage } from "$lib/api";
   import { onMount, onDestroy } from "svelte";
+  import { fly } from "svelte/transition";
   import { goto } from "$app/navigation";
 
   let { items = [] } = $props<{ items: any[] }>();
@@ -30,7 +31,15 @@
     if (interval) clearInterval(interval);
   }
 
-  onMount(startAutoplay);
+  let watchBtn: HTMLButtonElement | undefined = $state();
+
+  onMount(() => {
+    startAutoplay();
+    // Delay focus slightly to ensure hydration is complete
+    setTimeout(() => {
+      watchBtn?.focus();
+    }, 100);
+  });
   onDestroy(stopAutoplay);
 
   const anime = $derived(heroes[current]);
@@ -47,8 +56,14 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') handleNavigate(e);
-    if (e.key === 'ArrowRight') next();
-    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') {
+      next();
+      startAutoplay(); // Reset timer
+    }
+    if (e.key === 'ArrowLeft') {
+      prev();
+      startAutoplay(); // Reset timer
+    }
   }
 </script>
 
@@ -58,6 +73,7 @@
     aria-label="Featured anime carousel"
     onmouseenter={() => (paused = true)}
     onmouseleave={() => (paused = false)}
+    in:fly={{ y: 20, duration: 800 }}
   >
     <!-- Background slides -->
     {#each heroes as slide, i}
@@ -95,11 +111,11 @@
 
       <div class="tv-hero-actions">
         <button 
+          bind:this={watchBtn}
           class="tv-btn tv-btn-primary" 
           onclick={handleNavigate} 
           onkeydown={handleKeydown}
           tabindex="0"
-          autofocus
         >
           ▶ Watch Now
         </button>
@@ -144,29 +160,36 @@
     background-size: cover;
     background-position: center 20%;
     opacity: 0;
-    transform: scale(1.1);
-    transition: opacity 1.5s ease-in-out, transform 10s linear;
+    transform: scale(1.15);
+    transition: opacity 1.5s ease-in-out, transform 12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 0;
   }
   .tv-hero-bg.active {
     opacity: 1;
     transform: scale(1);
+    z-index: 1;
   }
 
   .tv-hero-gradient {
     position: absolute;
     inset: 0;
-    z-index: 1;
+    z-index: 2;
     background: 
-      linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.8) 20%, transparent 60%),
-      linear-gradient(to right, rgba(5, 5, 5, 0.9) 0%, rgba(5, 5, 5, 0.4) 40%, transparent 70%);
+      linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.9) 15%, rgba(5, 5, 5, 0.4) 40%, transparent 80%),
+      linear-gradient(to right, rgba(5, 5, 5, 1) 0%, rgba(5, 5, 5, 0.8) 20%, rgba(5, 5, 5, 0.4) 45%, transparent 75%);
   }
 
   .tv-hero-content {
     position: relative;
-    z-index: 3;
+    z-index: 10;
     padding: 6rem 5rem;
     max-width: 1100px;
-    margin-bottom: 2rem;
+    margin-bottom: 3.5rem;
+    pointer-events: none; /* Let clicks pass to buttons specifically */
+  }
+
+  .tv-hero-content > * {
+    pointer-events: auto;
   }
 
   .tv-hero-badge {
@@ -239,6 +262,11 @@
     margin-bottom: 3rem;
     max-width: 850px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .tv-hero-actions {
