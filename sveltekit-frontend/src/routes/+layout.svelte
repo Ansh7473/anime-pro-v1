@@ -54,10 +54,9 @@
     }
   });
 
+  let isTvRoute = $derived(page.url.pathname.startsWith('/tv'));
 
   function handleBack() {
-    // A length of 1 means the user landed directly on the page, or history was wiped.
-    // A length of 2 is typically the minimum safe stack inside standard Capacitor wrappers/SPAs.
     if (window.history.length > 2) {
       window.history.back();
     } else {
@@ -67,51 +66,58 @@
 </script>
 
 <div class="app">
-  <!-- Tactical HUD Backgrounds -->
-  <div class="tactical-grid"></div>
-  <div class="tactical-vignette"></div>
-  
-  <Navbar />
+  {#if !isTvRoute}
+    <!-- Tactical HUD Backgrounds -->
+    <div class="tactical-grid"></div>
+    <div class="tactical-vignette"></div>
+    
+    <Navbar />
 
-  <!-- Floating back button for Android -->
-  {#if canGoBack}
-    <button class="back-fab" onclick={handleBack} aria-label="Go back" title="Go back">
-      ←
-    </button>
-  {/if}
+    <!-- Floating back button for Android -->
+    {#if canGoBack}
+      <button class="back-fab" onclick={handleBack} aria-label="Go back" title="Go back">
+        ←
+      </button>
+    {/if}
 
-  <PullToRefresh>
-    <main class="main-content">
-      {#key page.url.pathname}
-        <div in:fly={{ y: 8, duration: 400, delay: 200 }} out:fly={{ y: -8, duration: 200 }}>
-          {@render children()}
+    <PullToRefresh>
+      <main class="main-content">
+        {#key page.url.pathname}
+          <div in:fly={{ y: 8, duration: 400, delay: 200 }} out:fly={{ y: -8, duration: 200 }}>
+            {@render children()}
+          </div>
+        {/key}
+      </main>
+      <Footer />
+    </PullToRefresh>
+
+    {#if showUpdatePopup}
+      <div class="fixed bottom-6 right-6 z-[9999] w-80 bg-[#1a1a1f] border border-white/10 rounded-2xl p-5 shadow-2xl overflow-hidden" transition:fly={{ x: 100, duration: 200 }}>
+        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+        <div class="flex justify-between items-start mb-3">
+          <div class="flex items-center gap-2 text-blue-400 font-bold">
+            <Download size={18} /> Update Available
+          </div>
+          <button onclick={() => showUpdatePopup = false} class="text-gray-500 hover:text-white transition-colors">
+            <X size={18} />
+          </button>
         </div>
-      {/key}
-    </main>
-    <Footer />
-  </PullToRefresh>
-
-  {#if showUpdatePopup}
-    <div class="fixed bottom-6 right-6 z-[9999] w-80 bg-[#1a1a1f] border border-white/10 rounded-2xl p-5 shadow-2xl overflow-hidden" transition:fly={{ x: 100, duration: 200 }}>
-      <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-      <div class="flex justify-between items-start mb-3">
-        <div class="flex items-center gap-2 text-blue-400 font-bold">
-          <Download size={18} /> Update Available
-        </div>
-        <button onclick={() => showUpdatePopup = false} class="text-gray-500 hover:text-white transition-colors">
-          <X size={18} />
-        </button>
+        <p class="text-sm text-gray-400 mb-4 font-medium">
+          Version <span class="text-white">v{latestVersion}</span> is now ready. Download the new update for the latest features and fixes.
+        </p>
+        <a href="/download" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all">
+          Get Update
+        </a>
       </div>
-      <p class="text-sm text-gray-400 mb-4 font-medium">
-        Version <span class="text-white">v{latestVersion}</span> is now ready. Download the new update for the latest features and fixes.
-      </p>
-      <a href="/download" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all">
-        Get Update
-      </a>
-    </div>
-  {/if}
+    {/if}
 
-  <MobileBottomNav />
+    <MobileBottomNav />
+  {:else}
+    <!-- TV Mode specific rendering (No web navbar/footer) -->
+    <main class="tv-main-content">
+      {@render children()}
+    </main>
+  {/if}
 </div>
 
 <style>
@@ -125,6 +131,14 @@
     padding-top: 64px;
     min-height: 100vh;
     flex: 1;
+  }
+
+  .tv-main-content {
+    min-height: 100vh;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   /* Floating back button — mobile/Android APK */
