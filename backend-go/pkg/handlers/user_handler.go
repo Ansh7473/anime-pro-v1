@@ -10,13 +10,11 @@ import (
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
-	"github.com/gin-gonic/gin"
-	"google.golang.org/api/iterator"
 )
 
-func GetWatchHistory(c *gin.Context) {
+func GetWatchHistory(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -34,7 +32,7 @@ func GetWatchHistory(c *gin.Context) {
 
 	for {
 		doc, err := iter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -63,16 +61,16 @@ func GetWatchHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, history)
 }
 
-func UpdateWatchHistory(c *gin.Context) {
+func UpdateWatchHistory(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
 	userId := c.MustGet("userId").(string)
 	var input models.WatchHistory
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
 		return
 	}
 
@@ -98,30 +96,30 @@ func UpdateWatchHistory(c *gin.Context) {
 			{Path: "animePoster", Value: input.AnimePoster},
 		})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update history"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to update history"})
 			return
 		}
 		// Refetch updated data to return
 		updatedDoc, _ := doc.Ref.Get(database.Ctx)
 		updatedDoc.DataTo(&input)
 		c.JSON(http.StatusOK, input)
-	} else if err == iterator.Done {
+	} else if err == database.Done {
 		// Create new
 		ref := database.DB.Collection("watch_history").NewDoc()
 		input.ID = ref.ID
 		if _, err := ref.Set(database.Ctx, input); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create history"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to create history"})
 			return
 		}
 		c.JSON(http.StatusOK, input)
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Database error"})
 	}
 }
 
-func DeleteHistory(c *gin.Context) {
+func DeleteHistory(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -129,7 +127,7 @@ func DeleteHistory(c *gin.Context) {
 	animeId := c.Param("animeId")
 
 	if animeId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "animeId is required"})
+		c.JSON(http.StatusBadRequest, utils.H{"error": "animeId is required"})
 		return
 	}
 
@@ -138,7 +136,7 @@ func DeleteHistory(c *gin.Context) {
 	count := 0
 	for {
 		doc, err := iter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -150,17 +148,17 @@ func DeleteHistory(c *gin.Context) {
 
 	if count > 0 {
 		if _, err := batch.Commit(database.Ctx); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete history"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to delete history"})
 			return
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "History deleted", "deleted": count})
+	c.JSON(http.StatusOK, utils.H{"message": "History deleted", "deleted": count})
 }
 
-func GetWatchlist(c *gin.Context) {
+func GetWatchlist(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -178,7 +176,7 @@ func GetWatchlist(c *gin.Context) {
 
 	for {
 		doc, err := iter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -201,9 +199,9 @@ func GetWatchlist(c *gin.Context) {
 	c.JSON(http.StatusOK, watchlist)
 }
 
-func AddToWatchlist(c *gin.Context) {
+func AddToWatchlist(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -216,7 +214,7 @@ func AddToWatchlist(c *gin.Context) {
 		Status      string `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
 		return
 	}
 
@@ -240,14 +238,14 @@ func AddToWatchlist(c *gin.Context) {
 			{Path: "animePoster", Value: input.AnimePoster},
 		})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update watchlist status"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to update watchlist status"})
 			return
 		}
 		var updated models.Watchlist
 		updatedDoc, _ := doc.Ref.Get(database.Ctx)
 		updatedDoc.DataTo(&updated)
 		c.JSON(http.StatusOK, updated)
-	} else if err == iterator.Done {
+	} else if err == database.Done {
 		// Create new
 		ref := database.DB.Collection("watchlist").NewDoc()
 		entry := models.Watchlist{
@@ -261,18 +259,18 @@ func AddToWatchlist(c *gin.Context) {
 			CreatedAt:   time.Now(),
 		}
 		if _, err := ref.Set(database.Ctx, entry); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add to watchlist"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to add to watchlist"})
 			return
 		}
 		c.JSON(http.StatusOK, entry)
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Database error"})
 	}
 }
 
-func RemoveFromWatchlist(c *gin.Context) {
+func RemoveFromWatchlist(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -280,7 +278,7 @@ func RemoveFromWatchlist(c *gin.Context) {
 	animeId := c.Param("animeId")
 
 	if animeId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "animeId is required"})
+		c.JSON(http.StatusBadRequest, utils.H{"error": "animeId is required"})
 		return
 	}
 
@@ -289,7 +287,7 @@ func RemoveFromWatchlist(c *gin.Context) {
 	count := 0
 	for {
 		doc, err := iter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -301,17 +299,17 @@ func RemoveFromWatchlist(c *gin.Context) {
 
 	if count > 0 {
 		if _, err := batch.Commit(database.Ctx); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove from watchlist"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to remove from watchlist"})
 			return
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Removed from watchlist", "deleted": count})
+	c.JSON(http.StatusOK, utils.H{"message": "Removed from watchlist", "deleted": count})
 }
 
-func GetWatchlistStatus(c *gin.Context) {
+func GetWatchlistStatus(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -322,18 +320,18 @@ func GetWatchlistStatus(c *gin.Context) {
 	doc, err := iter.Next()
 
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"inWatchlist": false})
+		c.JSON(http.StatusOK, utils.H{"inWatchlist": false})
 		return
 	}
 
 	var entry models.Watchlist
 	doc.DataTo(&entry)
-	c.JSON(http.StatusOK, gin.H{"inWatchlist": true, "status": entry.Status, "entry": entry})
+	c.JSON(http.StatusOK, utils.H{"inWatchlist": true, "status": entry.Status, "entry": entry})
 }
 
-func GetUserStats(c *gin.Context) {
+func GetUserStats(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -349,7 +347,7 @@ func GetUserStats(c *gin.Context) {
 	hIter := database.DB.Collection("watch_history").Where("userId", "==", userId).Documents(database.Ctx)
 	for {
 		doc, err := hIter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -369,7 +367,7 @@ func GetUserStats(c *gin.Context) {
 	rIter := database.DB.Collection("watchlist").Where("userId", "==", userId).Where("status", "==", "PLANNING").Documents(database.Ctx)
 	for {
 		_, err := rIter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -378,7 +376,7 @@ func GetUserStats(c *gin.Context) {
 		reservesCount++
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, utils.H{
 		"total_hours":    utils.Round(totalProgress/3600, 1),
 		"reserves_count": reservesCount,
 		"history_count":  historyCount,
@@ -387,18 +385,18 @@ func GetUserStats(c *gin.Context) {
 	})
 }
 
-func GetAIRecommendations(c *gin.Context) {
+func GetAIRecommendations(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
 	// In a real high-perf scenario, we'd query past history genres
 	// Mock remains for the "WOW" tactical UI fallback
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, utils.H{
 		"intelligence_level": "Alpha",
 		"briefing": "Based on your recent combat logs, intelligence suggests these high-value targets:",
-		"recommendations": []gin.H{
+		"recommendations": []utils.H{
 			{"id": "1", "title": "Psycho-Pass", "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx13601-9t1m1z.jpg", "reason": "High tactical overlap"},
 			{"id": "2", "title": "Code Geass", "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1575-S6AMir9V9m7d.png", "reason": "Strategic mastermind detected"},
 			{"id": "3", "title": "86 Eighty-Six", "poster": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116589-SFrKjZ8132kC.jpg", "reason": "Tactical squad combat"},

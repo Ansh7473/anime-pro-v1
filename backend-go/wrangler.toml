@@ -1,0 +1,11 @@
+name = "anime-pro-backend"
+main = "index.js"
+compatibility_date = "2024-04-03"
+
+[build]
+command = "go build -ldflags=\"-s -w\" -trimpath -o main.wasm cmd/server/main.go"
+
+[vars]
+WORKER_MODE = "true"
+PORT = "3001"
+# FIREBASE_PROJECT_ID should be set via wrangler secrets or dashboard

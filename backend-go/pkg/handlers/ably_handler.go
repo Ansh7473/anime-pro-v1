@@ -1,3 +1,6 @@
+//go:build !js || !wasm
+// +build !js !wasm
+
 package handlers
 
 import (
@@ -8,15 +11,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 	"github.com/ably/ably-go/ably"
 )
 
 // GetChatToken generates an Ably TokenRequest for the client
-func GetChatToken(c *gin.Context) {
+func GetChatToken(c *utils.LiteContext) {
 	apiKey := os.Getenv("ABLY_API_KEY")
 	if apiKey == "" || apiKey == "PLACEHOLDER_FOR_ABLY_API_KEY" {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Ably API Key not configured"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Ably API Key not configured"})
 		return
 	}
 
@@ -40,7 +43,7 @@ func GetChatToken(c *gin.Context) {
 	client, err := ably.NewREST(ably.WithKey(apiKey))
 	if err != nil {
 		log.Printf("❌ Failed to initialize Ably REST: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initialize realtime service"})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to initialize realtime service"})
 		return
 	}
 
@@ -54,7 +57,7 @@ func GetChatToken(c *gin.Context) {
 	tokenRequest, err := client.Auth.CreateTokenRequest(params)
 	if err != nil {
 		log.Printf("❌ Failed to create Ably token request: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to generate access token"})
 		return
 	}
 

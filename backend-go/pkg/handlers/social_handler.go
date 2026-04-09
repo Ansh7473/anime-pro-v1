@@ -9,15 +9,14 @@ import (
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
-	"github.com/gin-gonic/gin"
-	"google.golang.org/api/iterator"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 )
 
 // Reaction Handlers
 
-func ToggleReaction(c *gin.Context) {
+func ToggleReaction(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -36,14 +35,14 @@ func ToggleReaction(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
 		return
 	}
 
 	// Fallback to guest ID if not logged in
 	if userId == "" {
 		if input.ProfileID == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Login or Guest ID required"})
+			c.JSON(http.StatusUnauthorized, utils.H{"error": "Login or Guest ID required"})
 			return
 		}
 		userId = input.ProfileID
@@ -62,11 +61,11 @@ func ToggleReaction(c *gin.Context) {
 		// Already exists, remove it (toggle off)
 		_, err = doc.Ref.Delete(database.Ctx)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove reaction"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to remove reaction"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "removed"})
-	} else if err == iterator.Done {
+		c.JSON(http.StatusOK, utils.H{"status": "removed"})
+	} else if err == database.Done {
 		// Not found, add it (toggle on)
 		ref := database.DB.Collection("reactions").NewDoc()
 		newReaction := models.Reaction{
@@ -78,18 +77,18 @@ func ToggleReaction(c *gin.Context) {
 			CreatedAt: time.Now(),
 		}
 		if _, err := ref.Set(database.Ctx, newReaction); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add reaction"})
+			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to add reaction"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "added"})
+		c.JSON(http.StatusOK, utils.H{"status": "added"})
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Database error"})
 	}
 }
 
-func GetReactions(c *gin.Context) {
+func GetReactions(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -110,7 +109,7 @@ func GetReactions(c *gin.Context) {
 
 	for {
 		doc, err := iter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -124,7 +123,7 @@ func GetReactions(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, utils.H{
 		"counts":       counts,
 		"userReaction": userReaction,
 	})
@@ -132,9 +131,9 @@ func GetReactions(c *gin.Context) {
 
 // Comment Handlers
 
-func CreateComment(c *gin.Context) {
+func CreateComment(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -147,7 +146,7 @@ func CreateComment(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
 		return
 	}
 
@@ -181,16 +180,16 @@ func CreateComment(c *gin.Context) {
 	}
 
 	if _, err := ref.Set(database.Ctx, comment); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to post comment"})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to post comment"})
 		return
 	}
 
 	c.JSON(http.StatusOK, comment)
 }
 
-func GetComments(c *gin.Context) {
+func GetComments(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -205,7 +204,7 @@ func GetComments(c *gin.Context) {
 	var comments []models.Comment
 	for {
 		doc, err := iter.Next()
-		if err == iterator.Done {
+		if err == database.Done {
 			break
 		}
 		if err != nil {
@@ -225,9 +224,9 @@ func GetComments(c *gin.Context) {
 	c.JSON(http.StatusOK, comments)
 }
 
-func DeleteComment(c *gin.Context) {
+func DeleteComment(c *utils.LiteContext) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
 		return
 	}
 
@@ -236,7 +235,7 @@ func DeleteComment(c *gin.Context) {
 
 	doc, err := database.DB.Collection("comments").Doc(commentId).Get(database.Ctx)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		c.JSON(http.StatusNotFound, utils.H{"error": "Comment not found"})
 		return
 	}
 
@@ -244,15 +243,15 @@ func DeleteComment(c *gin.Context) {
 	doc.DataTo(&comment)
 
 	if comment.UserID != userId {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusForbidden, utils.H{"error": "Unauthorized"})
 		return
 	}
 
 	_, err = doc.Ref.Delete(database.Ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to delete comment"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Comment deleted"})
+	c.JSON(http.StatusOK, utils.H{"message": "Comment deleted"})
 }

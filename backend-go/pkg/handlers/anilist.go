@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
-	"github.com/gin-gonic/gin"
 )
 
 var (
@@ -105,12 +104,12 @@ func transformMedia(anime map[string]interface{}) map[string]interface{} {
 }
 
 // AnilistHome reproduces the AniList GraphQL query fetching top trending, popular, etc.
-func AnilistHome(c *gin.Context) {
+func AnilistHome(c *utils.LiteContext) {
 	// 1. Check Cache
 	homeCacheMutex.Lock()
 	if homeCache != nil && time.Since(homeCacheTime) < 15*time.Second {
 		defer homeCacheMutex.Unlock()
-		c.JSON(http.StatusOK, gin.H{"data": homeCache})
+		c.JSON(http.StatusOK, utils.H{"data": homeCache})
 		return
 	}
 	homeCacheMutex.Unlock()
@@ -170,7 +169,7 @@ func AnilistHome(c *gin.Context) {
 
 	data, err := utils.FetchAnilist(query, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch from AniList", "message": err.Error()})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to fetch from AniList", "message": err.Error()})
 		return
 	}
 
@@ -204,10 +203,10 @@ func AnilistHome(c *gin.Context) {
 	homeCacheTime = time.Now()
 	homeCacheMutex.Unlock()
 
-	c.JSON(http.StatusOK, gin.H{"data": res})
+	c.JSON(http.StatusOK, utils.H{"data": res})
 }
 
-func AnilistAnime(c *gin.Context) {
+func AnilistAnime(c *utils.LiteContext) {
 	idStr := c.Param("id")
 	id, _ := strconv.Atoi(idStr)
 
@@ -317,7 +316,7 @@ func AnilistAnime(c *gin.Context) {
 				}
 			}
 			transformed["recommendations"] = recommendations
-			c.JSON(http.StatusOK, gin.H{"data": transformed})
+			c.JSON(http.StatusOK, utils.H{"data": transformed})
 			return
 		}
 	}
@@ -339,7 +338,7 @@ func AnilistAnime(c *gin.Context) {
 				images, _ := anime["images"].(map[string]interface{})
 				jpg, _ := images["jpg"].(map[string]interface{})
 
-				c.JSON(http.StatusOK, gin.H{"data": map[string]interface{}{
+				c.JSON(http.StatusOK, utils.H{"data": map[string]interface{}{
 					"id":        id,
 					"mal_id":    id,
 					"title":     title,
@@ -358,15 +357,15 @@ func AnilistAnime(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": "Anime not found in AniList or Jikan"})
+	c.JSON(http.StatusNotFound, utils.H{"error": "Anime not found in AniList or Jikan"})
 }
 
-func AnilistCharacters(c *gin.Context) {
+func AnilistCharacters(c *utils.LiteContext) {
 	id := c.Param("id")
 	url := fmt.Sprintf("https://api.jikan.moe/v4/anime/%s/characters", id)
 	resp, err := utils.FetchWithRetries(url, 2, 500)
 	if err != nil || resp.StatusCode() != http.StatusOK {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, utils.H{"data": []interface{}{}})
 		return
 	}
 
@@ -398,15 +397,15 @@ func AnilistCharacters(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": transformed})
+	c.JSON(http.StatusOK, utils.H{"data": transformed})
 }
 
-func AnilistRecommendations(c *gin.Context) {
+func AnilistRecommendations(c *utils.LiteContext) {
 	id := c.Param("id")
 	url := fmt.Sprintf("https://api.jikan.moe/v4/anime/%s/recommendations", id)
 	resp, err := utils.FetchWithRetries(url, 2, 500)
 	if err != nil || resp.StatusCode() != http.StatusOK {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, utils.H{"data": []interface{}{}})
 		return
 	}
 
@@ -433,10 +432,10 @@ func AnilistRecommendations(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": transformed})
+	c.JSON(http.StatusOK, utils.H{"data": transformed})
 }
 
-func AnilistSearch(c *gin.Context) {
+func AnilistSearch(c *utils.LiteContext) {
 	q := c.Query("q")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -519,20 +518,20 @@ func AnilistSearch(c *gin.Context) {
 
 	data, err := utils.FetchAnilist(query, variables)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search AniList", "message": err.Error()})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to search AniList", "message": err.Error()})
 		return
 	}
 
 	// Transform raw search results
 	rawPage, ok := data["Page"].(map[string]interface{})
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{"data": data})
+		c.JSON(http.StatusOK, utils.H{"data": data})
 		return
 	}
 
 	mediaList, ok := rawPage["media"].([]interface{})
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{"data": data})
+		c.JSON(http.StatusOK, utils.H{"data": data})
 		return
 	}
 
@@ -546,7 +545,7 @@ func AnilistSearch(c *gin.Context) {
 		transformedMedia = append(transformedMedia, transformMedia(anime))
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, utils.H{
 		"data": transformedMedia,
 		"pagination": map[string]interface{}{
 			"has_next_page": rawPage["pageInfo"].(map[string]interface{})["hasNextPage"],
@@ -554,7 +553,7 @@ func AnilistSearch(c *gin.Context) {
 	})
 }
 
-func AnilistSchedule(c *gin.Context) {
+func AnilistSchedule(c *utils.LiteContext) {
 	startStr := c.Query("start")
 	endStr := c.Query("end")
 
@@ -562,7 +561,7 @@ func AnilistSchedule(c *gin.Context) {
 	end, _ := strconv.Atoi(endStr)
 
 	if start == 0 || end == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Start and End timestamps are required"})
+		c.JSON(http.StatusBadRequest, utils.H{"error": "Start and End timestamps are required"})
 		return
 	}
 
@@ -601,19 +600,19 @@ func AnilistSchedule(c *gin.Context) {
 
 	data, err := utils.FetchAnilist(query, variables)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch schedule from AniList", "message": err.Error()})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to fetch schedule from AniList", "message": err.Error()})
 		return
 	}
 
 	rawPage, ok := data["Page"].(map[string]interface{})
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, utils.H{"data": []interface{}{}})
 		return
 	}
 
 	schedules, ok := rawPage["airingSchedules"].([]interface{})
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, utils.H{"data": []interface{}{}})
 		return
 	}
 
@@ -639,7 +638,7 @@ func AnilistSchedule(c *gin.Context) {
 		transformed = append(transformed, item)
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": transformed})
+	c.JSON(http.StatusOK, utils.H{"data": transformed})
 }
 
 // ResolveBatchMetadata fetches fresh metadata (titles, posters) for multiple anime IDs in one query

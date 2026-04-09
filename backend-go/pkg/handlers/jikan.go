@@ -6,13 +6,12 @@ import (
 	"net/http"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
-	"github.com/gin-gonic/gin"
 )
 
 // Base URL for Jikan API
 const JikanBaseURL = "https://api.jikan.moe/v4"
 
-func GenericJikanProxy(c *gin.Context, path string) {
+func GenericJikanProxy(c *utils.LiteContext, path string) {
 	url := fmt.Sprintf("%s%s", JikanBaseURL, path)
 	// Add original query parameters
 	if c.Request.URL.RawQuery != "" {
@@ -21,7 +20,7 @@ func GenericJikanProxy(c *gin.Context, path string) {
 
 	resp, err := utils.FetchWithRetries(url, 3, 1000)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch from Jikan API", "message": err.Error()})
+		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to fetch from Jikan API", "message": err.Error()})
 		return
 	}
 
@@ -34,57 +33,57 @@ func GenericJikanProxy(c *gin.Context, path string) {
 	c.Data(http.StatusOK, resp.Header().Get("Content-Type"), resp.Body())
 }
 
-func JikanInfo(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
+func JikanInfo(c *utils.LiteContext) {
+	c.JSON(http.StatusOK, utils.H{
 		"name":        "Jikan API Proxy",
 		"version":     "1.0.0",
 		"description": "Proxy for Jikan (MyAnimeList) API with rate limiting implemented in Go",
 	})
 }
 
-func JikanAnimeFull(c *gin.Context) {
+func JikanAnimeFull(c *utils.LiteContext) {
 	id := c.Param("id")
 	GenericJikanProxy(c, fmt.Sprintf("/anime/%s/full", id))
 }
 
-func JikanAnimeBasic(c *gin.Context) {
+func JikanAnimeBasic(c *utils.LiteContext) {
 	id := c.Param("id")
 	GenericJikanProxy(c, fmt.Sprintf("/anime/%s", id))
 }
 
-func JikanSearch(c *gin.Context) {
+func JikanSearch(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/anime")
 }
 
-func JikanSeasonal(c *gin.Context) {
+func JikanSeasonal(c *utils.LiteContext) {
 	year := c.Param("year")
 	season := c.Param("season")
 	GenericJikanProxy(c, fmt.Sprintf("/seasons/%s/%s", year, season))
 }
 
-func JikanSeasonalCurrent(c *gin.Context) {
+func JikanSeasonalCurrent(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/seasons/now")
 }
 
-func JikanTop(c *gin.Context) {
+func JikanTop(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/top/anime")
 }
 
-func JikanTopAnime(c *gin.Context) {
+func JikanTopAnime(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/top/anime")
 }
 
-func JikanRecommendations(c *gin.Context) {
+func JikanRecommendations(c *utils.LiteContext) {
 	id := c.Param("id")
 	GenericJikanProxy(c, fmt.Sprintf("/anime/%s/recommendations", id))
 }
 
-func JikanCharacters(c *gin.Context) {
+func JikanCharacters(c *utils.LiteContext) {
 	id := c.Param("id")
 	GenericJikanProxy(c, fmt.Sprintf("/anime/%s/characters", id))
 }
 
-func JikanEpisodes(c *gin.Context) {
+func JikanEpisodes(c *utils.LiteContext) {
 	id := c.Param("id")
 
 	// Fetch all episodes by paginating through all pages
@@ -97,7 +96,7 @@ func JikanEpisodes(c *gin.Context) {
 		resp, err := utils.FetchWithRetries(url, 3, 1000)
 		if err != nil {
 			if page == 1 {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch from Jikan API", "message": err.Error()})
+				c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to fetch from Jikan API", "message": err.Error()})
 				return
 			}
 			// If we already have some episodes, return what we have
@@ -116,7 +115,7 @@ func JikanEpisodes(c *gin.Context) {
 		var result map[string]interface{}
 		if err := json.Unmarshal(resp.Body(), &result); err != nil {
 			if page == 1 {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse Jikan API response", "message": err.Error()})
+				c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to parse Jikan API response", "message": err.Error()})
 				return
 			}
 			break
@@ -145,13 +144,13 @@ func JikanEpisodes(c *gin.Context) {
 	}
 
 	// Return all episodes in the same format as Jikan API
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusOK, utils.H{
 		"data": allEpisodes,
-		"pagination": gin.H{
+		"pagination": utils.H{
 			"last_visible_page": page - 1,
 			"has_next_page":     false,
 			"current_page":      page - 1,
-			"items": gin.H{
+			"items": utils.H{
 				"count":    len(allEpisodes),
 				"total":    len(allEpisodes),
 				"per_page": limit,
@@ -160,35 +159,35 @@ func JikanEpisodes(c *gin.Context) {
 	})
 }
 
-func JikanSchedule(c *gin.Context) {
+func JikanSchedule(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/schedules")
 }
 
-func JikanSeasonsNow(c *gin.Context) {
+func JikanSeasonsNow(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/seasons/now")
 }
 
-func JikanSeasonsUpcoming(c *gin.Context) {
+func JikanSeasonsUpcoming(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/seasons/upcoming")
 }
 
-func JikanSeasonsList(c *gin.Context) {
+func JikanSeasonsList(c *utils.LiteContext) {
 	GenericJikanProxy(c, "/seasons")
 }
 
-func JikanRelations(c *gin.Context) {
+func JikanRelations(c *utils.LiteContext) {
 	id := c.Param("id")
 	url := fmt.Sprintf("%s/anime/%s/relations", JikanBaseURL, id)
 
 	resp, err := utils.FetchWithRetries(url, 3, 1000)
 	if err != nil || resp.StatusCode() != http.StatusOK {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, utils.H{"data": []interface{}{}})
 		return
 	}
 
 	var data map[string]interface{}
 	if err := json.Unmarshal(resp.Body(), &data); err != nil {
-		c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+		c.JSON(http.StatusOK, utils.H{"data": []interface{}{}})
 		return
 	}
 
@@ -237,10 +236,10 @@ func JikanRelations(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": flattened})
+	c.JSON(http.StatusOK, utils.H{"data": flattened})
 }
 
-func JikanHealthCheck(c *gin.Context) {
+func JikanHealthCheck(c *utils.LiteContext) {
 	resp, err := utils.HttpClient.R().Get(fmt.Sprintf("%s/anime/1", JikanBaseURL))
 
 	isHealthy := err == nil && resp.StatusCode() == http.StatusOK
@@ -250,12 +249,12 @@ func JikanHealthCheck(c *gin.Context) {
 	if isHealthy {
 		status = "healthy"
 		apiStatus = "available"
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusOK, utils.H{
 			"status":    status,
 			"jikan_api": apiStatus,
 		})
 	} else {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
+		c.JSON(http.StatusServiceUnavailable, utils.H{
 			"status":    status,
 			"jikan_api": apiStatus,
 		})
