@@ -3,6 +3,7 @@
   import PullToRefresh from "$lib/components/PullToRefresh.svelte";
   import Navbar from "$lib/components/Navbar.svelte";
   import Footer from "$lib/components/Footer.svelte";
+  import MobileBottomNav from "$lib/components/MobileBottomNav.svelte";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
@@ -109,6 +110,8 @@
       </a>
     </div>
   {/if}
+
+  <MobileBottomNav />
 </div>
 
 <style>
@@ -132,6 +135,7 @@
   @media (max-width: 768px) {
     .main-content {
       padding-top: 56px;
+      padding-bottom: 70px; /* Space for bottom nav */
     }
 
     .back-fab {
