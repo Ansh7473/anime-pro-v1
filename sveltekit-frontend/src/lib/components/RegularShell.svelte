@@ -54,7 +54,6 @@
 <div class="regular-shell">
   {#if !isWatchPage}
     <div class="tactical-grid"></div>
-    <div class="tactical-vignette"></div>
     <Navbar />
 
     {#if canGoBack}

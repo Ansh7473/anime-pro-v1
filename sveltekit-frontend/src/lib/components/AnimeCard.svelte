@@ -90,8 +90,8 @@
     cursor: pointer;
     position: relative;
     border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 6px;
   }
   .card:hover,
@@ -218,7 +218,7 @@
   .card-title {
     font-size: 0.85rem;
     font-weight: 600;
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 1);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
