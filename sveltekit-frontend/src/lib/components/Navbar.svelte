@@ -215,6 +215,16 @@
             <a href="/profile" class="dropdown-item" onclick={() => profileOpen = false}>My Profile</a>
             <a href="/watchlist" class="dropdown-item" onclick={() => profileOpen = false}>Watchlist</a>
             <a href="/favorites" class="dropdown-item" onclick={() => profileOpen = false}>Favorites</a>
+            <hr />
+            <button
+               class="dropdown-item"
+               onclick={() => {
+                 import('$lib/stores/device').then(m => {
+                   m.isTV.set(true);
+                   document.body.classList.add('tv-mode');
+                 });
+                 profileOpen = false;
+               }}>TV Mode Hub</button>
             <button
               class="dropdown-item logout"
               onclick={() => {
@@ -328,8 +338,11 @@
     padding: 0.5rem 0;
   }
   .nav-link:hover,
-  .nav-link.active {
+  .nav-link.active,
+  .nav-link:focus-visible {
     color: white;
+    outline: none;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
 
   .nav-actions {
@@ -352,8 +365,12 @@
     align-items: center;
     justify-content: center;
   }
-  .nav-icon-btn:hover {
+  .nav-icon-btn:hover,
+  .nav-icon-btn:focus-visible {
     background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+    outline: none;
+    color: var(--net-red);
   }
 
   .search-container {

@@ -25,7 +25,34 @@
   --tactical-outline: #8B909F;
   --tactical-glow: 0 0 20px rgba(26, 115, 232, 0.2);
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* TV App Tokens */
+  --tv-focus-border: #E50914;
+  --tv-focus-glow: 0 0 30px rgba(229, 9, 20, 0.4);
+  --tv-card-scale: 1.1;
 }
+
+/* Global TV Compatibility & Focus Management */
+:focus-visible {
+  outline: 4px solid var(--tv-focus-border);
+  outline-offset: 4px;
+  box-shadow: var(--tv-focus-glow);
+  transition: outline 0.1s ease;
+}
+
+@media (min-width: 1920px), (tv) {
+  html {
+    font-size: 20px; /* Larger base font for 10-foot UI */
+  }
+  
+  .container {
+    max-width: 1800px;
+  }
+  
+  /* Prevent mouse-only effects from cluttering TV experience if desired, 
+     but usually scaling on focus is what we want */
+}
+
 
 *,
 *::before,

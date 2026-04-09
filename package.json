@@ -2,13 +2,16 @@
   "name": "anime-pro-monorepo",
   "private": true,
   "workspaces": [
-    "jikan-frontend",
-    "jikan-backend"
+    "sveltekit-frontend",
+    "backend-go",
+    "android-app",
+    "desktop-app",
+    "tv-app"
   ],
   "scripts": {
-    "dev:frontend": "npm run dev --workspace=jikan-frontend",
-    "dev:backend": "npm run dev --workspace=jikan-backend",
-    "build:frontend": "npm run build --workspace=jikan-frontend",
-    "build:backend": "npm run build --workspace=jikan-backend"
+    "dev": "npm run dev --workspace=sveltekit-frontend",
+    "dev:backend": "go run .",
+    "build:tv": "npm run build --workspace=tv-app",
+    "sync:tv": "npm run sync --workspace=tv-app"
   }
 }

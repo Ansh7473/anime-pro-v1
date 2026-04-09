@@ -210,8 +210,14 @@
     position: relative;
     z-index: 3;
     padding: 3rem 3rem;
-    max-width: 700px;
+    max-width: 800px;
     padding-bottom: 4rem; /* extra space so dots don't overlap buttons */
+    transition: all 0.5s ease;
+  }
+
+  :global(.tv-mode) .hero-content {
+    max-width: 1000px;
+    padding: 5rem 6rem;
   }
 
   .hero-badge {
@@ -287,8 +293,17 @@
 
   .hero-actions {
     display: flex;
-    gap: 0.75rem;
+    gap: 1.25rem;
     flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible {
+    transform: scale(1.15);
+    outline: 4px solid var(--net-red);
+    outline-offset: 4px;
+    box-shadow: 0 0 30px rgba(229, 9, 20, 0.5);
   }
 
   /* Navigation Arrows */

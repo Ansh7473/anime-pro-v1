@@ -9,13 +9,13 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://anime-pro-v1-frontend.vercel.app',
     cleartext: true,
+    androidScheme: 'https',
     allowNavigation: ['*'],
   },
 
   android: {
-    // Allow mixed content (HTTP inside HTTPS)
     allowMixedContent: true,
-    // Custom WebView settings
+    backgroundColor: '#0a0a0a',
     webContentsDebuggingEnabled: false,
   },
 };
