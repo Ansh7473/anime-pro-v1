@@ -226,11 +226,6 @@
     transition: all 0.5s ease;
   }
 
-  :global(.tv-mode) .hero-content {
-    max-width: 1200px;
-    padding: 6rem 4rem;
-  }
-
   .hero-badge {
     display: inline-flex;
     align-items: center;
