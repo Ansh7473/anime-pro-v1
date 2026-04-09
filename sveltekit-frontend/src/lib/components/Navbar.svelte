@@ -237,8 +237,8 @@
         </div>
       {:else}
         <!-- Give unauthenticated users a guest profile dropdown instead of raw buttons on home screen -->
-        <div class="user-profile hide-mobile">
-          <button class="profile-trigger" title="Guest">
+        <div class="user-profile" class:open={profileOpen} bind:this={profileContainer}>
+          <button class="profile-trigger" title="Guest" onclick={(e) => { e.stopPropagation(); profileOpen = !profileOpen; }}>
             <img
               src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest&backgroundColor=b6e3f4"
               alt="Guest"
@@ -250,8 +250,18 @@
               <span class="user-email">Not logged in</span>
             </div>
             <hr />
-            <a href="/auth/login" class="dropdown-item">Login</a>
-            <a href="/auth/register" class="dropdown-item accent">Sign Up</a>
+            <a href="/auth/login" class="dropdown-item" onclick={() => profileOpen = false}>Login</a>
+            <a href="/auth/register" class="dropdown-item accent" onclick={() => profileOpen = false}>Sign Up</a>
+            <hr />
+            <button
+               class="dropdown-item"
+               onclick={() => {
+                 import('$lib/stores/device').then(m => {
+                   m.isTV.set(true);
+                   document.body.classList.add('tv-mode');
+                 });
+                 profileOpen = false;
+               }}>TV Mode Hub</button>
           </div>
         </div>
       {/if}
