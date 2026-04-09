@@ -1398,6 +1398,11 @@
     background: var(--net-red);
     border-color: var(--net-red);
   }
+  .nav-btn:focus-visible {
+    background: var(--net-red);
+    outline: 4px solid white;
+    outline-offset: 2px;
+  }
   .nav-btn:disabled {
     opacity: 0.3;
     cursor: default;
@@ -1488,9 +1493,13 @@
     border-color: var(--net-red);
     box-shadow: 0 0 20px rgba(229, 9, 20, 0.15);
   }
+  .premium-select:focus-visible,
   .premium-select:focus {
     border-color: var(--net-red);
     box-shadow: 0 0 25px rgba(229, 9, 20, 0.2);
+    outline: 4px solid white;
+    outline-offset: 2px;
+    background: rgba(229, 9, 20, 0.1);
   }
   .premium-select option, .premium-select optgroup {
     background: #0f0f12;
@@ -1587,6 +1596,11 @@
     padding-right: 0.75rem;
     scrollbar-width: thin;
   }
+  :global(.tv-mode) .ep-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    max-height: 800px;
+    gap: 2rem;
+  }
   .ep-grid::-webkit-scrollbar {
     width: 5px;
   }
@@ -1604,6 +1618,14 @@
     flex-direction: column;
     gap: 0.6rem;
     transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .ep-card:focus-visible {
+    transform: scale(1.05);
+    background: rgba(229, 9, 20, 0.2);
+    border-color: white;
+    outline: none;
+    box-shadow: 0 10px 30px rgba(229, 9, 20, 0.4);
+    z-index: 10;
   }
   .ep-card:hover {
     background: rgba(255, 255, 255, 0.05);
