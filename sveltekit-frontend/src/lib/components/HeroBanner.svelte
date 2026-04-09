@@ -227,8 +227,8 @@
   }
 
   :global(.tv-mode) .hero-content {
-    max-width: 1000px;
-    padding: 5rem 6rem;
+    max-width: 1200px;
+    padding: 6rem 4rem;
   }
 
   .hero-badge {

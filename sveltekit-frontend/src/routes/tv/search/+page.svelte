@@ -115,6 +115,8 @@
     border: 2px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s;
     margin-bottom: 5rem;
+    margin-left: 4rem;
+    margin-right: 4rem;
   }
 
   .search-input-container:focus-within {
