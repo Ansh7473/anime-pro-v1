@@ -13,7 +13,8 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     backgroundColor: '#0a0a0a'
-  }
+  },
+  appendUserAgent: 'AnimeProTV'
 };
 
 export default config;
