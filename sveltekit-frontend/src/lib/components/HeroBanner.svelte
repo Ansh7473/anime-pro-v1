@@ -338,12 +338,15 @@
     opacity: 0;
     transition: all 0.3s ease;
   }
-  .hero:hover .hero-arrow {
+  .hero:hover .hero-arrow,
+  .hero:focus-within .hero-arrow {
     opacity: 1;
   }
-  .hero-arrow:hover {
+  .hero-arrow:hover,
+  .hero-arrow:focus-visible {
     background: rgba(229, 9, 20, 0.6);
     border-color: var(--net-red);
+    opacity: 1;
   }
   .hero-arrow.left {
     left: 1rem;
@@ -376,8 +379,11 @@
     min-height: auto;
     min-width: auto;
   }
-  .dot:hover {
+  .dot:hover,
+  .dot:focus-visible {
     background: rgba(255, 255, 255, 0.5);
+    outline: 2px solid white;
+    outline-offset: 2px;
   }
   .dot.active {
     background: rgba(255, 255, 255, 0.2);
