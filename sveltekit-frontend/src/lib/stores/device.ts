@@ -13,7 +13,8 @@ if (browser) {
     ];
     
     const isTVDevice = tvKeywords.some(keyword => ua.includes(keyword)) || 
-                      (window.innerWidth >= 1920 && !('ontouchstart' in window));
+                       // @ts-ignore
+                       (window.Capacitor?.isNativePlatform?.() && ua.includes('tv'));
     
     isTV.set(isTVDevice);
     
@@ -23,16 +24,4 @@ if (browser) {
   };
 
   detectTV();
-  
-  // Also listen for key events to enable TV mode if remote is used
-  const enableTVOnKey = (e: KeyboardEvent) => {
-    const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
-    if (keys.includes(e.key)) {
-      isTV.set(true);
-      document.body.classList.add('tv-mode');
-      window.removeEventListener('keydown', enableTVOnKey);
-    }
-  };
-  
-  window.addEventListener('keydown', enableTVOnKey);
 }
