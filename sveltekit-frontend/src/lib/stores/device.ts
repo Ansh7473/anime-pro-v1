@@ -23,7 +23,7 @@ if (browser) {
     const tvKeywords = [
       'smarttv', 'smart-tv', 'googletv', 'appletv', 'hbbtv', 'viera', 'tizen',
       'webos', 'playstation', 'xbox', 'roku', 'firetv', 'nettv', 'mibox',
-      'chromecast', 'androidtv'
+      'chromecast', 'androidtv', 'animeprotv'
     ];
     
     const isTVDevice = tvKeywords.some(keyword => ua.includes(keyword)) || 
