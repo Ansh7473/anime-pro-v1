@@ -460,7 +460,7 @@
             if (candidate && !autoStarted) {
               selectedSource = candidate;
               autoStarted = true;
-              
+
               // CRITICAL: Stop blocking the UI if we have a valid source to play
               sourceLoading = false;
 
@@ -622,7 +622,12 @@
 
 <div class="player-page">
   <!-- Cinematic Background Blur -->
-  <div class="page-background" style="background-image: url({getProxiedImage(anime?.image || anime?.poster)})"></div>
+  <div
+    class="page-background"
+    style="background-image: url({getProxiedImage(
+      anime?.image || anime?.poster,
+    )})"
+  ></div>
   <div class="page-overlay"></div>
 
   <!-- Top Navigation Bar (Floating) -->
@@ -631,23 +636,30 @@
       <button class="nav-back-btn" onclick={() => goto(`/anime/${animeId}`)}>
         <ChevronLeft size={20} />
       </button>
-      <div class="top-logo" onclick={() => goto('/')} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && goto('/')}>
+      <div
+        class="top-logo"
+        onclick={() => goto("/")}
+        role="button"
+        tabindex="0"
+        onkeydown={(e) => e.key === "Enter" && goto("/")}
+      >
         <span class="logo-text">ANIME<span class="logo-accent">AP</span></span>
       </div>
     </div>
     <div class="top-nav-meta">
       <span class="watching-label">Now Watching</span>
       <h2 class="anime-mini-title">
-        {typeof anime?.title === 'object' 
-          ? (anime.title.english || anime.title.romaji || anime.title.userPreferred) 
-          : (anime?.title || "Loading...")}
+        {typeof anime?.title === "object"
+          ? anime.title.english ||
+            anime.title.romaji ||
+            anime.title.userPreferred
+          : anime?.title || "Loading..."}
       </h2>
     </div>
   </div>
 
   <!-- Main Content Layout -->
   <div class="watch-layout container">
-    
     <!-- Left Column: Video & Main Controls -->
     <div class="primary-section">
       <div class="player-wrapper" class:theater={theaterMode}>
@@ -675,7 +687,10 @@
                   referrerpolicy="no-referrer"
                 ></iframe>
                 <div class="iframe-nav-tip">
-                   <p><AlertCircle size={14}/> Change server below if player is slow ↓</p>
+                  <p>
+                    <AlertCircle size={14} /> Change server below if player is slow
+                    ↓
+                  </p>
                 </div>
               </div>
             {:else}
@@ -694,13 +709,17 @@
             <!-- In-Player Overlays -->
             {#if showResumePrompt}
               <div class="resume-popup glass">
-                <div class="resume-icon"><RotateCw size={24}/></div>
+                <div class="resume-icon"><RotateCw size={24} /></div>
                 <div class="resume-text">
                   <p>Resume from <strong>{formatTime(resumeTime)}</strong>?</p>
                 </div>
                 <div class="resume-btns">
-                  <button class="res-btn-p" onclick={resumePlayback}>Resume</button>
-                  <button class="res-btn-s" onclick={dismissResume}>Reset</button>
+                  <button class="res-btn-p" onclick={resumePlayback}
+                    >Resume</button
+                  >
+                  <button class="res-btn-s" onclick={dismissResume}
+                    >Reset</button
+                  >
                 </div>
               </div>
             {/if}
@@ -710,7 +729,13 @@
                 <div class="countdown-circle">
                   <svg viewBox="0 0 60 60">
                     <circle cx="30" cy="30" r="28" class="bg" />
-                    <circle cx="30" cy="30" r="28" class="progress" style="--progress: {((5 - countdownSeconds) / 5) * 100}" />
+                    <circle
+                      cx="30"
+                      cy="30"
+                      r="28"
+                      class="progress"
+                      style="--progress: {((5 - countdownSeconds) / 5) * 100}"
+                    />
                   </svg>
                   <span class="val">{countdownSeconds}</span>
                 </div>
@@ -718,34 +743,35 @@
                   <span class="label">Up Next</span>
                   <span class="ep">Episode {ep + 1}</span>
                 </div>
-                <button class="cancel-next" onclick={cancelCountdown}>Cancel</button>
+                <button class="cancel-next" onclick={cancelCountdown}
+                  >Cancel</button
+                >
               </div>
             {/if}
 
             <!-- Top-Left Control Menu -->
             <div class="top-controls-hub">
               <div class="controls-group">
-                <button class="ctrl-btn" class:active={isRotated} title="Rotate" onclick={toggleRotation}>
+                <button
+                  class="ctrl-btn"
+                  class:active={isRotated}
+                  title="Rotate"
+                  onclick={toggleRotation}
+                >
                   <RotateCw size={18} />
                 </button>
-                <button class="ctrl-btn" title="Theater Mode" onclick={() => (theaterMode = !theaterMode)}>
-                  <Maximize size={18} />
-                </button>
-                <button class="ctrl-btn" title="PiP" onclick={togglePiP}>
-                  <Monitor size={18} />
-                </button>
-                <button class="ctrl-btn" class:active={autoNext} title="Auto Next" onclick={() => (autoNext = !autoNext)}>
-                  <SkipForward size={18} />
-                </button>
-                <button class="ctrl-btn" title="Shortcuts" onclick={() => (showShortcuts = !showShortcuts)}>
+                <button
+                  class="ctrl-btn"
+                  title="Shortcuts"
+                  onclick={() => (showShortcuts = !showShortcuts)}
+                >
                   <Keyboard size={18} />
                 </button>
               </div>
             </div>
 
             <!-- Bottom Playback Overlays -->
-            <div class="controls-overlay" class:visible={!theaterMode}>
-            </div>
+            <div class="controls-overlay" class:visible={!theaterMode}></div>
           {/if}
         </div>
       </div>
@@ -770,13 +796,14 @@
                       <span class="cat-label">{category}</span>
                       <div class="source-chips">
                         {#each categorySources as src}
-                          <button 
-                            class="source-chip" 
+                          <button
+                            class="source-chip"
                             class:active={selectedSource?.url === src.url}
                             onclick={() => handleSourceChange(src)}
                           >
                             {src.name || "Default"}
-                            {#if src.quality}<span class="q">{src.quality}</span>{/if}
+                            {#if src.quality}<span class="q">{src.quality}</span
+                              >{/if}
                           </button>
                         {/each}
                       </div>
@@ -796,11 +823,11 @@
             <h3><Play size={18} /> Episodes</h3>
             <span class="ep-count">{episodes.length} total</span>
           </div>
-          
+
           {#if totalPages > 1}
             <div class="range-selector">
-              <select 
-                class="range-select" 
+              <select
+                class="range-select"
                 value={currentEpPage}
                 onchange={(e) => goToEpPage(parseInt(e.currentTarget.value))}
               >
@@ -821,7 +848,11 @@
               onclick={() => changeEp(episode.number)}
             >
               <div class="ep-thumb">
-                <img src={getProxiedImage(episode.image || anime?.poster)} alt="Ep {episode.number}" loading="lazy" />
+                <img
+                  src={getProxiedImage(episode.image || anime?.poster)}
+                  alt="Ep {episode.number}"
+                  loading="lazy"
+                />
                 <div class="ep-hover">
                   <Play size={20} fill="white" />
                 </div>
@@ -832,11 +863,17 @@
               <div class="ep-meta">
                 <div class="ep-num-row">
                   <span class="num">Episode {episode.number}</span>
-                  {#if episode.isFiller}<span class="filler-tag">Filler</span>{/if}
+                  {#if episode.isFiller}<span class="filler-tag">Filler</span
+                    >{/if}
                 </div>
-                <p class="name line-clamp-1">{episode.title || `Episode ${episode.number}`}</p>
+                <p class="name line-clamp-1">
+                  {episode.title || `Episode ${episode.number}`}
+                </p>
                 <div class="ep-progress-bar">
-                   <div class="progress-fill" style="width: {episode.progressPercent || 0}%"></div>
+                  <div
+                    class="progress-fill"
+                    style="width: {episode.progressPercent || 0}%"
+                  ></div>
                 </div>
               </div>
             </button>
@@ -853,7 +890,11 @@
     <aside class="side-info-section">
       <div class="anime-quick-card glass">
         <div class="quick-header">
-          <img src={anime?.image || anime?.poster} alt={anime?.title} class="quick-poster" />
+          <img
+            src={anime?.image || anime?.poster}
+            alt={anime?.title}
+            class="quick-poster"
+          />
           <div class="quick-titles">
             <h1 class="main-title">{anime?.title}</h1>
             <div class="quick-stats">
@@ -865,9 +906,9 @@
             </div>
           </div>
         </div>
-        
+
         <div class="engagement-row">
-           <ReactionsBar {animeId} episode={ep} />
+          <ReactionsBar {animeId} episode={ep} />
         </div>
 
         <div class="quick-synopsis">
@@ -877,7 +918,13 @@
       </div>
 
       <div class="side-actions mt-6">
-        <button class="nav-secondary-btn w-full" onclick={() => document.getElementById('community')?.scrollIntoView({behavior:'smooth'})}>
+        <button
+          class="nav-secondary-btn w-full"
+          onclick={() =>
+            document
+              .getElementById("community")
+              ?.scrollIntoView({ behavior: "smooth" })}
+        >
           <MessageSquare size={16} /> Show Comments
         </button>
       </div>
@@ -898,17 +945,17 @@
           </div>
         </div>
       {/if}
-        <!-- Live Chat (Integrated for Desktop/TV) -->
-        <div class="hidden md:block mt-8">
-          <LiveChat {animeId} episode={ep} isInline={true} />
-        </div>
-      </aside>
-    </div>
+      <!-- Live Chat (Integrated for Desktop/TV) -->
+      <div class="hidden md:block mt-8">
+        <LiveChat {animeId} episode={ep} isInline={true} />
+      </div>
+    </aside>
+  </div>
 
-    <!-- Live Chat (Full Width for Mobile) -->
-    <div class="md:hidden container mt-8 px-4">
-      <LiveChat {animeId} episode={ep} isInline={false} />
-    </div>
+  <!-- Live Chat (Full Width for Mobile) -->
+  <div class="md:hidden container mt-8 px-4">
+    <LiveChat {animeId} episode={ep} isInline={false} />
+  </div>
 
   <!-- Related Content (Bottom) -->
   <div class="container mt-12 pb-20">
@@ -919,20 +966,19 @@
     {/if}
   </div>
 
-
   <!-- Shortcuts Dialog -->
   {#if showShortcuts}
-    <div 
-      class="shortcuts-overlay" 
-      onclick={() => (showShortcuts = false)} 
-      onkeydown={(e) => e.key === 'Escape' && (showShortcuts = false)}
+    <div
+      class="shortcuts-overlay"
+      onclick={() => (showShortcuts = false)}
+      onkeydown={(e) => e.key === "Escape" && (showShortcuts = false)}
       role="button"
       tabindex="0"
       aria-label="Close shortcuts"
     >
-      <div 
-        class="shortcuts-modal-clean" 
-        onclick={(e) => e.stopPropagation()} 
+      <div
+        class="shortcuts-modal-clean"
+        onclick={(e) => e.stopPropagation()}
         onkeydown={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="shortcuts-title"
@@ -940,13 +986,17 @@
       >
         <h3 id="shortcuts-title">Keyboard Shortcuts</h3>
         <div class="key-list">
-          <div class="key-item"><kbd>F</kbd> <span>Toggle Fullscreen</span></div>
+          <div class="key-item">
+            <kbd>F</kbd> <span>Toggle Fullscreen</span>
+          </div>
           <div class="key-item"><kbd>T</kbd> <span>Theater Mode</span></div>
           <div class="key-item"><kbd>N</kbd> <span>Next Episode</span></div>
           <div class="key-item"><kbd>P</kbd> <span>Previous Episode</span></div>
           <div class="key-item"><kbd>?</kbd> <span>Toggle Help</span></div>
         </div>
-        <button class="close-modal-btn" onclick={() => (showShortcuts = false)}>GOT IT</button>
+        <button class="close-modal-btn" onclick={() => (showShortcuts = false)}
+          >GOT IT</button
+        >
       </div>
     </div>
   {/if}
@@ -985,8 +1035,12 @@
   .page-overlay {
     position: fixed;
     inset: 0;
-    background: radial-gradient(circle at top right, rgba(229, 9, 20, 0.05), transparent),
-                linear-gradient(to bottom, transparent, #050505);
+    background: radial-gradient(
+        circle at top right,
+        rgba(229, 9, 20, 0.05),
+        transparent
+      ),
+      linear-gradient(to bottom, transparent, #050505);
     z-index: 1;
   }
 
@@ -1013,7 +1067,9 @@
     cursor: pointer;
     transition: transform 0.3s;
   }
-  .top-logo:hover { transform: scale(1.05); }
+  .top-logo:hover {
+    transform: scale(1.05);
+  }
 
   .logo-text {
     font-size: 1.5rem;
@@ -1106,7 +1162,9 @@
     background: #000;
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--glass-border);
+    box-shadow:
+      0 30px 60px rgba(0, 0, 0, 0.8),
+      0 0 0 1px var(--glass-border);
     transition: border-radius 0.5s;
   }
 
@@ -1116,7 +1174,9 @@
     box-shadow: none;
   }
 
-  .video-element, .video-frame, .iframe-box {
+  .video-element,
+  .video-frame,
+  .iframe-box {
     width: 100%;
     height: 100%;
     border: none;
@@ -1134,7 +1194,7 @@
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(10px);
     padding: 6px 12px;
     border-radius: 8px;
@@ -1164,7 +1224,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.9);
     gap: 1.5rem;
     z-index: 10;
   }
@@ -1179,7 +1239,11 @@
     box-shadow: 0 0 20px var(--accent-glow);
   }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
   /* Controls Overlay */
   .controls-overlay {
@@ -1188,7 +1252,7 @@
     left: 0;
     right: 0;
     padding: 4rem 2rem 1.5rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
     display: flex;
     justify-content: flex-end;
     opacity: 0;
@@ -1207,7 +1271,7 @@
   .controls-group {
     display: flex;
     gap: 0.75rem;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
     padding: 0.5rem;
     border-radius: 12px;
@@ -1229,7 +1293,7 @@
   }
 
   .ctrl-btn:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--accent-red);
   }
   .ctrl-btn.active {
@@ -1244,7 +1308,7 @@
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     padding: 2rem;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   }
 
   .section-header {
@@ -1281,7 +1345,7 @@
   }
 
   .provider-card {
-    background: rgba(255,255,255,0.03);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 1.25rem;
@@ -1318,7 +1382,7 @@
 
   .source-chip {
     padding: 8px 16px;
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     color: #fff;
@@ -1332,7 +1396,7 @@
   }
 
   .source-chip:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     border-color: #fff;
   }
 
@@ -1345,7 +1409,7 @@
   .source-chip .q {
     font-size: 0.65rem;
     opacity: 0.6;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     padding: 2px 4px;
     border-radius: 4px;
   }
@@ -1385,7 +1449,7 @@
   .ep-hover {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1394,8 +1458,12 @@
     backdrop-filter: blur(2px);
   }
 
-  .episode-card:hover .ep-thumb img { transform: scale(1.1); }
-  .episode-card:hover .ep-hover { opacity: 1; }
+  .episode-card:hover .ep-thumb img {
+    transform: scale(1.1);
+  }
+  .episode-card:hover .ep-hover {
+    opacity: 1;
+  }
 
   .episode-card.current .ep-thumb {
     border: 2px solid var(--accent-red);
@@ -1423,15 +1491,15 @@
   }
 
   .ep-num-row {
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
   }
 
   .filler-tag {
     font-size: 0.6rem;
-    background: rgba(255,165,0,0.2);
+    background: rgba(255, 165, 0, 0.2);
     color: orange;
     padding: 2px 6px;
     border-radius: 4px;
@@ -1441,7 +1509,7 @@
   .ep-progress-bar {
     width: 100%;
     height: 3px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     margin-top: 8px;
     border-radius: 2px;
     overflow: hidden;
@@ -1480,7 +1548,7 @@
     aspect-ratio: 2/3;
     object-fit: cover;
     border-radius: 12px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
   }
 
   .main-title {
@@ -1498,14 +1566,23 @@
     color: var(--net-text-muted);
   }
 
-  .dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.3; }
-  .status { color: #10b981; font-weight: 700; }
+  .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.3;
+  }
+  .status {
+    color: #10b981;
+    font-weight: 700;
+  }
 
   .engagement-row {
-     margin-bottom: 1.5rem;
-     padding: 1rem 0;
-     border-top: 1px solid var(--glass-border);
-     border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 1.5rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
   }
 
   .quick-synopsis p {
@@ -1523,7 +1600,8 @@
   }
 
   /* Overlays UI */
-  .resume-popup, .next-countdown {
+  .resume-popup,
+  .next-countdown {
     position: absolute;
     bottom: 2rem;
     left: 2rem;
@@ -1537,9 +1615,27 @@
     animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  .resume-icon { color: var(--accent-red); }
-  .res-btn-p { padding: 8px 20px; background: #fff; color: #000; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; }
-  .res-btn-s { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; }
+  .resume-icon {
+    color: var(--accent-red);
+  }
+  .res-btn-p {
+    padding: 8px 20px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .res-btn-s {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
 
   .countdown-circle {
     position: relative;
@@ -1549,8 +1645,17 @@
     align-items: center;
     justify-content: center;
   }
-  .countdown-circle svg { position: absolute; transform: rotate(-90deg); width: 100%; height: 100%; }
-  .countdown-circle .bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
+  .countdown-circle svg {
+    position: absolute;
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+  }
+  .countdown-circle .bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 3;
+  }
   .countdown-circle .progress {
     fill: none;
     stroke: var(--accent-red);
@@ -1560,7 +1665,10 @@
     stroke-linecap: round;
     transition: stroke-dashoffset 1s linear;
   }
-  .countdown-circle .val { font-size: 1.25rem; font-weight: 900; }
+  .countdown-circle .val {
+    font-size: 1.25rem;
+    font-weight: 900;
+  }
 
   /* Misc */
   .range-selector {
@@ -1569,7 +1677,7 @@
     align-items: center;
   }
   .range-selector::after {
-    content: '▼';
+    content: "▼";
     font-size: 0.6rem;
     position: absolute;
     right: 12px;
@@ -1580,7 +1688,7 @@
 
   .range-select {
     appearance: none;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     padding: 8px 36px 8px 16px;
@@ -1593,8 +1701,8 @@
     outline: none;
   }
   .range-select:hover {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .range-select option {
@@ -1604,8 +1712,12 @@
   }
 
   /* TV Mode Enhancements */
-  :global(.tv-mode) .watch-layout { grid-template-columns: 1fr; }
-  :global(.tv-mode) .side-info-section { display: none; }
+  :global(.tv-mode) .watch-layout {
+    grid-template-columns: 1fr;
+  }
+  :global(.tv-mode) .side-info-section {
+    display: none;
+  }
   :global(.tv-mode) .episode-card:focus-visible {
     transform: scale(1.1);
     background: var(--accent-red);
@@ -1619,16 +1731,25 @@
   }
 
   @media (max-width: 1100px) {
-    .watch-layout { grid-template-columns: 1fr; }
-    .side-info-section { display: none; }
+    .watch-layout {
+      grid-template-columns: 1fr;
+    }
+    .side-info-section {
+      display: none;
+    }
   }
 
   @media (max-width: 768px) {
-    .watch-layout { gap: 1.5rem; }
-    .cards-glass { padding: 1.25rem; border-radius: 16px; }
-    
+    .watch-layout {
+      gap: 1.5rem;
+    }
+    .cards-glass {
+      padding: 1.25rem;
+      border-radius: 16px;
+    }
+
     /* MOBILE LIST VIEW: Thumbnail on left, title on right */
-    .episodes-grid { 
+    .episodes-grid {
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -1639,14 +1760,14 @@
       align-items: center;
       gap: 16px;
       padding: 8px;
-      background: rgba(255,255,255,0.03);
+      background: rgba(255, 255, 255, 0.03);
       border-radius: 12px;
       border: 1px solid transparent;
     }
 
     .episode-card.current {
-      background: rgba(229,9,20,0.1);
-      border-color: rgba(229,9,20,0.3);
+      background: rgba(229, 9, 20, 0.1);
+      border-color: rgba(229, 9, 20, 0.3);
     }
 
     .ep-thumb {
@@ -1664,18 +1785,33 @@
   }
 
   @keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px) scale(0.9); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
   @media (max-width: 480px) {
-    .video-container { border-radius: 12px; }
-    
-    .resume-popup, .next-countdown {
+    .video-container {
+      border-radius: 12px;
+    }
+
+    .resume-popup,
+    .next-countdown {
       bottom: 1rem;
       left: 1rem;
       right: 1rem;
@@ -1688,7 +1824,7 @@
   .shortcuts-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
     z-index: 2000;
     display: flex;
@@ -1703,7 +1839,7 @@
     border-radius: 24px;
     width: 90%;
     max-width: 400px;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
   }
 
   .key-list {
@@ -1718,7 +1854,7 @@
     align-items: center;
     justify-content: space-between;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .key-item kbd {
@@ -1729,7 +1865,7 @@
     font-weight: 800;
     min-width: 35px;
     text-align: center;
-    box-shadow: 0 4px 0 rgba(255,255,255,0.2);
+    box-shadow: 0 4px 0 rgba(255, 255, 255, 0.2);
   }
 
   .close-modal-btn {
@@ -1771,11 +1907,11 @@
     display: flex;
     gap: 0.75rem;
     padding: 0.6rem;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(12px);
     border-radius: 12px;
     border: 1px solid var(--glass-border);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
 
   /* Utilities */
