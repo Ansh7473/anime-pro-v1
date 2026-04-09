@@ -1824,6 +1824,28 @@
       justify-content: center;
       overflow: hidden;
     }
+
+    /* Scale down HUD controls on mobile to prevent blocking stream */
+    .top-controls-hub {
+      top: 0.5rem;
+      left: 0.5rem;
+    }
+    
+    .top-controls-hub .controls-group {
+      gap: 0.5rem;
+      padding: 0.4rem;
+      border-radius: 8px;
+    }
+
+    .top-controls-hub .ctrl-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+    .top-controls-hub .ctrl-btn :global(svg) {
+      width: 14px;
+      height: 14px;
+    }
   }
 
   @keyframes fadeInDown {
