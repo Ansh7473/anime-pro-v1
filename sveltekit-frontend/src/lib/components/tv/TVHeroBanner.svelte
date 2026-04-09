@@ -145,7 +145,7 @@
     min-height: 700px;
     overflow: hidden;
     display: flex;
-    align-items: flex-end;
+    align-items: center; /* Changed from flex-end to center to keep content safe from clipping */
   }
 
   .tv-hero-bg {
@@ -176,9 +176,8 @@
   .tv-hero-content {
     position: relative;
     z-index: 10;
-    padding: 6rem 12rem; /* Increased horizontal padding for perfect centering */
+    padding: 2rem 8rem; /* Balanced vertical padding */
     max-width: 1400px;
-    margin-bottom: 3.5rem;
     pointer-events: none;
     width: 100%;
   }
@@ -219,13 +218,18 @@
   }
 
   .tv-hero-title {
-    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-size: clamp(3rem, 6vw, 5rem);
     font-weight: 900;
     letter-spacing: -0.04em;
-    line-height: 1;
+    line-height: 1.1;
     margin-bottom: 1.5rem;
     text-shadow: 0 4px 30px rgba(0,0,0,0.8);
     color: white;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Limit title to 2 lines to prevent layout blowout */
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .tv-hero-genres {
@@ -298,9 +302,9 @@
 
   .tv-hero-dots {
     position: absolute;
-    bottom: 5rem;
+    bottom: 3rem;
     left: 50%;
-    transform: translateX(-50%); /* Center dots for better dashboard balance */
+    transform: translateX(-50%); /* Centered bottom indicators */
     display: flex;
     gap: 1.25rem;
     z-index: 5;
