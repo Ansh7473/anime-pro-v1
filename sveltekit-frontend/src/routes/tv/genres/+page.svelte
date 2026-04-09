@@ -17,7 +17,7 @@
 
   <div class="genres-grid">
     {#each genres as genre, i}
-      <a href="/tv/search?q={genre}" class="genre-card" in:fly={{ y: 20, delay: i * 30 }}>
+      <a href="/tv/search?genre={genre}" class="genre-card" in:fly={{ y: 20, delay: i * 30 }}>
         <div class="genre-content">
           <span class="genre-name">{genre}</span>
           <div class="genre-arrow-wrapper">

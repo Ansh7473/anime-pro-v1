@@ -4,17 +4,22 @@
   import AnimeCard from "$lib/components/AnimeCard.svelte";
   import { Search as SearchIcon } from 'lucide-svelte';
 
+  import { page } from "$app/state";
+
   let query = $state("");
   let results = $state<any[]>([]);
   let loading = $state(false);
   let inputElement: HTMLInputElement = $state(null!);
 
+  let isGenre = $state(false);
+
   async function handleSearch() {
     if (query.length < 2) return;
     loading = true;
     try {
-      const res = await api.search(query);
-      results = res.data;
+      const res = isGenre ? await api.getByGenre(query) : await api.search(query);
+      results = res.data || [];
+
     } catch (e) {
       console.error(e);
     } finally {
@@ -24,12 +29,26 @@
 
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
+      isGenre = false;
       handleSearch();
     }
   }
 
   onMount(() => {
-    inputElement?.focus();
+    const q = page.url.searchParams.get("q");
+    const genre = page.url.searchParams.get("genre");
+
+    if (genre) {
+        query = genre;
+        isGenre = true;
+        handleSearch();
+    } else if (q) {
+        query = q;
+        isGenre = false;
+        handleSearch();
+    } else {
+        inputElement?.focus();
+    }
   });
 </script>
 
@@ -44,7 +63,7 @@
       onkeydown={onKeyDown}
       class="tv-search-input"
     />
-    <button class="tv-search-btn" onclick={handleSearch}>SEARCH</button>
+    <button class="tv-search-btn" onclick={() => { isGenre = false; handleSearch(); }}>SEARCH</button>
   </div>
 
   <div class="search-results">
