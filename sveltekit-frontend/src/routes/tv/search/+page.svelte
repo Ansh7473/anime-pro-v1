@@ -13,40 +13,32 @@
 
   let isGenre = $state(false);
 
-  let searchTimeout: ReturnType<typeof setTimeout>;
-
-  async function handleSearch() {
-    if (query.trim().length < 2) return;
-    loading = true;
-    try {
-      const res = isGenre ? await api.getByGenre(query) : await api.search(query);
-      results = res.data || [];
-    } catch (e) {
-      console.error(e);
-    } finally {
-      loading = false;
-    }
-  }
-
-  function handleInput() {
-    isGenre = false;
-    clearTimeout(searchTimeout);
-    
+  // Svelte 5 Debounced Search Effect (Smart Search)
+  $effect(() => {
     if (query.trim().length < 2) {
       if (query.trim().length === 0) results = [];
       return;
     }
-    
-    searchTimeout = setTimeout(() => {
-      handleSearch();
+
+    const timer = setTimeout(async () => {
+      loading = true;
+      try {
+        const res = isGenre ? await api.getByGenre(query) : await api.search(query);
+        results = res.data || [];
+      } catch (e) {
+        console.error("Search error:", e);
+        results = [];
+      } finally {
+        loading = false;
+      }
     }, 600);
-  }
+
+    return () => clearTimeout(timer);
+  });
 
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
-      clearTimeout(searchTimeout);
       isGenre = false;
-      handleSearch();
     }
   }
 
@@ -55,13 +47,11 @@
     const genre = page.url.searchParams.get("genre");
 
     if (genre) {
-        query = genre;
         isGenre = true;
-        handleSearch();
+        query = genre; // This triggers the $effect
     } else if (q) {
-        query = q;
         isGenre = false;
-        handleSearch();
+        query = q; // This triggers the $effect
     } else {
         inputElement?.focus();
     }
@@ -76,11 +66,11 @@
       type="text" 
       placeholder="Search for Anime, Movies, or Series..." 
       bind:value={query}
-      oninput={handleInput}
+      oninput={() => isGenre = false}
       onkeydown={onKeyDown}
       class="tv-search-input"
     />
-    <button class="tv-search-btn" onclick={() => { isGenre = false; handleSearch(); }}>SEARCH</button>
+    <button class="tv-search-btn" onclick={() => { isGenre = false; }}>SEARCH</button>
   </div>
 
   <div class="search-results">
