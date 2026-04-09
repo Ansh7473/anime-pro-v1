@@ -1,12 +1,31 @@
 <script lang="ts">
+  import { api } from "$lib/api";
   import { auth } from "$lib/stores/auth";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
   import { Heart } from 'lucide-svelte';
   import { fly } from 'svelte/transition';
+  import { onMount } from "svelte";
 
-  // In a real app, you'd fetch favorites from the API
-  // Using a derived state or store for now
-  let favorites = $derived($auth.user?.favorites || []);
+  let favorites = $state<any[]>([]);
+  let loading = $state(true);
+  let error = $state("");
+
+  onMount(async () => {
+    if (!$auth.token) {
+        loading = false;
+        return;
+    }
+
+    try {
+        const res = await api.getFavorites($auth.token);
+        favorites = Array.isArray(res) ? res : res.data || [];
+    } catch (e: any) {
+        error = e.message;
+        console.error(e);
+    } finally {
+        loading = false;
+    }
+  });
 </script>
 
 <div class="tv-favorites-page" in:fly={{ y: 20, duration: 500 }}>
@@ -15,11 +34,20 @@
     <h1>My Favorites</h1>
   </header>
 
-  {#if favorites.length > 0}
+  {#if loading}
+    <div class="row-loading">
+        <div class="tv-spinner"></div>
+    </div>
+  {:else if favorites.length > 0}
     <div class="results-grid">
-      {#each favorites as anime}
+      {#each favorites as item}
         <div class="result-item">
-          <AnimeCard {anime} />
+          <AnimeCard anime={{
+                id: item.animeId,
+                title: item.animeTitle,
+                poster: item.animePoster,
+                status: item.status,
+            }} />
         </div>
       {/each}
     </div>
@@ -36,6 +64,22 @@
 </div>
 
 <style>
+  .row-loading {
+    display: flex;
+    justify-content: center;
+    padding: 4rem;
+  }
+  .tv-spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid rgba(255,255,255,0.1);
+    border-top-color: var(--net-red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
   .section-header {
     display: flex;
     align-items: center;
