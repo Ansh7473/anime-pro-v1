@@ -119,7 +119,8 @@
     position: relative;
     width: 100%;
     min-height: 100%;
-    overflow: hidden;
+    overflow-x: clip; /* Hide horizontal loading indicators without breaking vertical scroll */
+    overflow-y: visible;
     touch-action: pan-x pan-y;
   }
 
