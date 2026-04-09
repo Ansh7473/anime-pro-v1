@@ -60,15 +60,16 @@
 
 <div class="tv-search-page">
   <div class="search-input-container">
-    <SearchIcon size={40} />
+    <SearchIcon size={48} />
     <input 
       bind:this={inputElement}
       type="text" 
-      placeholder="Search for Anime, Movies, or Series..." 
+      placeholder="Type to search..." 
       bind:value={query}
       oninput={() => isGenre = false}
       onkeydown={onKeyDown}
       class="tv-search-input"
+      tabindex="0"
     />
     <button class="tv-search-btn" onclick={() => { isGenre = false; }}>SEARCH</button>
   </div>

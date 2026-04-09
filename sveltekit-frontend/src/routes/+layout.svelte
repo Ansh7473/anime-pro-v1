@@ -10,6 +10,7 @@
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
   import { isTV } from "$lib/stores/device";
+  import TvSidebar from "$lib/components/TvSidebar.svelte";
 
   let { children } = $props();
 
@@ -117,8 +118,11 @@
     <MobileBottomNav />
   {:else}
     <!-- TV Mode specific rendering (No web navbar/footer) -->
+    <TvSidebar />
     <main class="tv-main-content">
-      {@render children()}
+      <div class="tv-content-inner">
+        {@render children()}
+      </div>
     </main>
   {/if}
 </div>
@@ -153,6 +157,11 @@
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none; /* Hide scrollbar for TV */
+    padding-left: 100px; /* Width of collapsed sidebar */
+  }
+  .tv-content-inner {
+     padding: 1rem 3rem;
+     padding-bottom: 10rem;
   }
   .tv-main-content::-webkit-scrollbar {
     display: none;
