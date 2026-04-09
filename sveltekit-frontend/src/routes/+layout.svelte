@@ -23,7 +23,7 @@
     { icon: LayoutGrid, label: 'Categories', href: '/tv/genres' },
     { icon: Clock, label: 'Watchlist', href: '/tv/watchlist' },
     { icon: Heart, label: 'Favorites', href: '/tv/favorites' },
-    { icon: User, label: 'Profile', href: '/tv/settings' }, // Point profile to settings for now or dedicated page
+    { icon: User, label: 'Profile', href: '/tv/profile' },
     { icon: Settings, label: 'Settings', href: '/tv/settings' },
   ];
 
