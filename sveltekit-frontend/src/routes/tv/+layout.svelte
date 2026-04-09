@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { isTV } from '$lib/stores/device';
   import { Search, Home, Heart, Settings, LayoutGrid } from 'lucide-svelte';
+  import { fly } from 'svelte/transition';
   import { page } from '$app/state';
   
   let { children } = $props();
@@ -34,10 +35,16 @@
     <nav class="sidebar-nav">
       {#each menuItems as item}
         {@const Icon = item.icon}
-        <a href={item.href} class="sidebar-item" class:active={page.url.pathname === item.href}>
+        <a 
+          href={item.href} 
+          class="sidebar-item" 
+          class:active={page.url.pathname === item.href}
+          tabindex="0"
+          aria-label={item.label}
+        >
           <Icon size={28} />
           {#if focusedNav}
-            <span class="item-label">{item.label}</span>
+            <span class="item-label" in:fly={{ x: -10, duration: 200 }}>{item.label}</span>
           {/if}
         </a>
       {/each}

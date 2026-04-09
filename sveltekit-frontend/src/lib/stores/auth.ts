@@ -5,6 +5,7 @@ interface User {
     id: string;
     email: string;
     profiles: any[];
+    favorites?: any[];
     createdAt?: string;
 }
 

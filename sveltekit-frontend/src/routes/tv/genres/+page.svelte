@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { api } from "$lib/api";
-  import { onMount } from "svelte";
-  import { LayoutGrid, ArrowRight } from 'lucide-svelte';
+  import { ArrowRight, LayoutGrid } from 'lucide-svelte';
   import { fly } from 'svelte/transition';
 
   const genres = [
@@ -22,7 +20,9 @@
       <a href="/tv/search?q={genre}" class="genre-card" in:fly={{ y: 20, delay: i * 30 }}>
         <div class="genre-content">
           <span class="genre-name">{genre}</span>
-          <ArrowRight size={24} class="genre-arrow" />
+          <div class="genre-arrow-wrapper">
+            <ArrowRight size={24} />
+          </div>
         </div>
       </a>
     {/each}
@@ -83,13 +83,13 @@
     color: white;
   }
 
-  .genre-arrow {
+  .genre-arrow-wrapper {
     color: rgba(255, 255, 255, 0.3);
     transition: transform 0.3s;
   }
 
-  .genre-card:hover .genre-arrow,
-  .genre-card:focus-visible .genre-arrow {
+  .genre-card:hover .genre-arrow-wrapper,
+  .genre-card:focus-visible .genre-arrow-wrapper {
     transform: translateX(10px);
     color: white;
   }
