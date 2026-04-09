@@ -1827,24 +1827,29 @@
 
     /* Scale down HUD controls on mobile to prevent blocking stream */
     .top-controls-hub {
-      top: 0.5rem;
-      left: 0.5rem;
+      top: 0.25rem;
+      left: 0.25rem;
     }
     
     .top-controls-hub .controls-group {
-      gap: 0.5rem;
-      padding: 0.4rem;
-      border-radius: 8px;
+      gap: 0;
+      padding: 0.2rem;
+      border-radius: 6px;
     }
 
     .top-controls-hub .ctrl-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
     }
+    
+    .top-controls-hub .ctrl-btn[title="Shortcuts"] {
+      display: none;
+    }
+
     .top-controls-hub .ctrl-btn :global(svg) {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
     }
   }
 
