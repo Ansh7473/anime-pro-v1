@@ -2,7 +2,6 @@
   import { api } from "$lib/api";
   import { onMount } from "svelte";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
-  import ScreenLoader from "$lib/components/ScreenLoader.svelte";
   import { Search as SearchIcon } from 'lucide-svelte';
 
   let query = $state("");
@@ -36,7 +35,7 @@
 
 <div class="tv-search-page">
   <div class="search-input-container">
-    <SearchIcon size={40} class="search-icon" />
+    <SearchIcon size={40} />
     <input 
       bind:this={inputElement}
       type="text" 
@@ -51,7 +50,7 @@
   <div class="search-results">
     {#if loading}
       <div class="row-loading">
-        <ScreenLoader />
+        <div class="tv-spinner"></div>
       </div>
     {:else if results.length > 0}
       <div class="results-grid">
@@ -98,10 +97,6 @@
     transform: scale(1.02);
   }
 
-  .search-icon {
-    color: var(--net-text-muted);
-  }
-
   .tv-search-input {
     flex: 1;
     background: none;
@@ -133,6 +128,25 @@
     color: black;
   }
 
+  .tv-spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid rgba(255,255,255,0.1);
+    border-top-color: var(--net-red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .row-loading {
+    display: flex;
+    justify-content: center;
+    padding: 4rem;
+  }
+
   .results-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -161,7 +175,6 @@
     font-size: 1.25rem;
   }
 
-  /* TV Specific Focus for results */
   .result-item:focus-within {
     transform: scale(1.1);
     z-index: 10;
