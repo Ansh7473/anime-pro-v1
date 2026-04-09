@@ -15,7 +15,7 @@
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
-  
+
   /* Tactical Interface Tokens */
   --tactical-bg: #0E0E0E;
   --tactical-primary: #ADC7FF;
@@ -41,7 +41,8 @@
 }
 
 .tv-mode {
-  font-size: 13px; /* Smaller base to fix over-zooming on TVs */
+  font-size: 12px;
+  /* Smaller base to fix over-zooming on TVs */
   overflow: hidden;
   height: 100vh;
   width: 100vw;
@@ -243,12 +244,10 @@ img {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent);
   transition: none;
 }
 
@@ -257,12 +256,17 @@ img {
 }
 
 @keyframes tactical-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(200%);
+  }
 }
 
 .tactical-grid {
-  background-image: 
+  background-image:
     linear-gradient(rgba(173, 199, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(173, 199, 255, 0.03) 1px, transparent 1px);
   background-size: 32px 32px;
@@ -283,8 +287,13 @@ img {
 }
 
 @keyframes tactical-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .line-clamp-2 {
