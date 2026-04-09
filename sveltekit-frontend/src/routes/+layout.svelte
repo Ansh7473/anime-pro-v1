@@ -16,6 +16,11 @@
       if ((p !== '/tv' && !p.startsWith('/tv/')) && !p.startsWith('/anime') && !p.startsWith('/watch') && !p.startsWith('/explore')) {
         goto('/tv');
       }
+    } else {
+      // If NOT in TV Mode, but on a TV specific route, redirect to main home
+      if (p === '/tv' || p.startsWith('/tv/')) {
+        goto('/');
+      }
     }
   });
 </script>

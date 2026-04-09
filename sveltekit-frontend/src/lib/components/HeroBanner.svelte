@@ -430,6 +430,7 @@
       /* Limit lines on mobile to prevent overflow into dots */
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -499,6 +500,7 @@
     .hero-desc {
       font-size: 0.75rem;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       margin-bottom: 0.8rem;
     }
     .hero-actions {

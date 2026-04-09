@@ -43,10 +43,10 @@
   }
 
   .tv-rows {
-    padding-bottom: 10rem;
-    margin-top: 1rem;
+    padding-bottom: 12rem;
+    margin-top: 3rem;
     position: relative;
-    z-index: 3;
+    z-index: 5;
   }
 
   /* Skeletons */

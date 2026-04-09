@@ -3,9 +3,15 @@
   import { fly } from "svelte/transition";
   import { X, Home, Search, LayoutGrid, Clock, Heart, Settings, User } from "lucide-svelte";
   import { isTV } from "$lib/stores/device";
+  import { goto } from "$app/navigation";
 
   let { children } = $props();
   let tvSidebarExpanded = $state(false);
+
+  async function handleExit() {
+    isTV.set(false);
+    await goto('/');
+  }
 
   const tvMenuItems = [
     { icon: Home, label: 'Home', href: '/tv' },
@@ -49,7 +55,7 @@
     </div>
 
     <div class="tv-bottom-items">
-       <button class="tv-nav-item exit-btn" onclick={() => isTV.set(false)}>
+       <button class="tv-nav-item exit-btn" onclick={handleExit}>
           <div class="tv-icon-box"><X size={32} /></div>
           {#if tvSidebarExpanded}
             <span class="tv-label">Exit TV Hub</span>
