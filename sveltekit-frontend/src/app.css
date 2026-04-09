@@ -211,8 +211,8 @@ img {
 /* Tactical Utilities */
 .tactical-glass {
   background: rgba(14, 14, 14, 0.6);
-  backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
   border-top: 0.5px solid rgba(173, 199, 255, 0.2);
   border-left: 0.5px solid rgba(173, 199, 255, 0.1);
   border-right: 0.5px solid rgba(173, 199, 255, 0.05);
