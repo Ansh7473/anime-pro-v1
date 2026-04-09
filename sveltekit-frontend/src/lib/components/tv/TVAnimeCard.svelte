@@ -41,7 +41,7 @@
   onclick={handleNavigate}
 >
   <div class="tv-card-img-wrap">
-    <img src={poster} alt={title} loading="lazy" />
+    <img src={poster} alt={title} loading="lazy" decoding="async" />
     <div class="tv-card-overlay">
       <div class="tv-card-play">▶</div>
     </div>
@@ -76,7 +76,7 @@
 
   .tv-card:focus-visible,
   .tv-card:hover {
-    transform: scale(1.1);
+    transform: scale(1.1) translateZ(0); /* Force 3D context for faster scaling */
     z-index: 10;
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--net-red);
@@ -89,6 +89,7 @@
     overflow: hidden;
     aspect-ratio: 2 / 3;
     background: #000;
+    will-change: transform; /* Hint for scaling performance */
   }
 
   .tv-card-img-wrap img {
