@@ -2,8 +2,29 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 // Persistent TV store
-const initialValue = browser ? (localStorage.getItem('tv-mode-enabled') === 'true') : false;
-export const isTV = writable(initialValue);
+const getInitialTVState = () => {
+  if (!browser) return false;
+  const ua = navigator.userAgent.toLowerCase();
+  
+  // High-priority native wrapper detection
+  if (ua.includes('animeprotv')) return true;
+  
+  // Saved preference
+  const saved = localStorage.getItem('tv-mode-enabled');
+  if (saved !== null) return saved === 'true';
+
+  // Standard auto-detection
+  const tvKeywords = [
+    'smarttv', 'smart-tv', 'googletv', 'appletv', 'hbbtv', 'viera', 'tizen',
+    'webos', 'playstation', 'xbox', 'roku', 'firetv', 'nettv', 'mibox',
+    'chromecast', 'androidtv'
+  ];
+  return tvKeywords.some(keyword => ua.includes(keyword)) || 
+         // @ts-ignore
+         (window.Capacitor?.isNativePlatform?.() && ua.includes('tv'));
+};
+
+export const isTV = writable(getInitialTVState());
 
 if (browser) {
   isTV.subscribe(value => {
@@ -16,14 +37,21 @@ if (browser) {
   });
 
   const detectTV = () => {
-    // Only auto-detect if not manually set in localStorage yet
+    const ua = navigator.userAgent.toLowerCase();
+    
+    // Always keep forced if native wrapper
+    if (ua.includes('animeprotv')) {
+      isTV.set(true);
+      return;
+    }
+    
+    // Auto-detect only if no manual preference exists
     if (localStorage.getItem('tv-mode-enabled') !== null) return;
 
-    const ua = navigator.userAgent.toLowerCase();
     const tvKeywords = [
       'smarttv', 'smart-tv', 'googletv', 'appletv', 'hbbtv', 'viera', 'tizen',
       'webos', 'playstation', 'xbox', 'roku', 'firetv', 'nettv', 'mibox',
-      'chromecast', 'androidtv', 'animeprotv'
+      'chromecast', 'androidtv'
     ];
     
     const isTVDevice = tvKeywords.some(keyword => ua.includes(keyword)) || 
