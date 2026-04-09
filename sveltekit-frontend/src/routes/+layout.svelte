@@ -13,7 +13,7 @@
   // TV Mode Redirection Logic
   $effect(() => {
     if (!browser) return;
-    const p = page.url.pathname;
+    const p = page.url.pathname as string;
     
     if ($isTV) {
       if ((p !== '/tv' && !p.startsWith('/tv/')) && !p.startsWith('/anime') && !p.startsWith('/watch') && !p.startsWith('/explore')) {
