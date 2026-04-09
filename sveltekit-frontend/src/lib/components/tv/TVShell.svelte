@@ -107,18 +107,18 @@
     </div>
 
     <div class="tv-menu-items">
-      {#each tvMenuItems as item}
+      {#each tvMenuItems as { icon: Icon, label, href }}
         <a 
-          href={item.href} 
+          {href} 
           class="tv-nav-item" 
-          class:active={page.url.pathname === item.href}
+          class:active={page.url.pathname === href}
           tabindex="0"
         >
           <div class="tv-icon-box">
-            <item.icon size={32} strokeWidth={2.5} />
+            <Icon size={32} strokeWidth={2.5} />
           </div>
           {#if tvSidebarExpanded}
-            <span class="tv-label" in:fly={{ x: -10, duration: 300 }}>{item.label}</span>
+            <span class="tv-label" in:fly={{ x: -10, duration: 300 }}>{label}</span>
           {/if}
         </a>
       {/each}
