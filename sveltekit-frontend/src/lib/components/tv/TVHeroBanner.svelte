@@ -141,11 +141,11 @@
   .tv-hero {
     position: relative;
     width: 100%;
-    height: 75vh;
-    min-height: 500px;
+    height: 60vh;
+    min-height: 400px;
     overflow: hidden;
     display: flex;
-    align-items: center; /* Changed from flex-end to center to keep content safe from clipping */
+    align-items: center; 
   }
 
   .tv-hero-bg {
@@ -219,11 +219,11 @@
   }
 
   .tv-hero-title {
-    font-size: clamp(3rem, 6vw, 5rem);
+    font-size: clamp(2rem, 4vw, 3.5rem);
     font-weight: 900;
     letter-spacing: -0.04em;
     line-height: 1.1;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     text-shadow: 0 4px 30px rgba(0,0,0,0.8);
     color: white;
     display: -webkit-box;

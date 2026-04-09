@@ -41,7 +41,7 @@
 }
 
 .tv-mode {
-  font-size: 11px; /* Extreme reset to prevent any cropping on TV panels */
+  font-size: 9px; /* Even smaller base to counteract TV-level zooming */
   overflow: hidden;
   height: 100vh;
   width: 100vw;

@@ -43,8 +43,8 @@
   }
 
   .tv-rows {
-    padding-bottom: 12rem;
-    margin-top: 3rem;
+    padding-bottom: 6rem;
+    margin-top: -2rem; /* Pull rows up into the hero's safe-gradient area */
     position: relative;
     z-index: 5;
   }
