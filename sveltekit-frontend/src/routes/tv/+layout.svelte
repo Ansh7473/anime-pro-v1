@@ -28,9 +28,6 @@
   <aside class="tv-sidebar" class:expanded={focusedNav} 
          onmouseenter={() => focusedNav = true}
          onmouseleave={() => focusedNav = false}>
-    <div class="sidebar-logo">
-      <span class="logo-text">AP</span>
-    </div>
     
     <nav class="sidebar-nav">
       {#each menuItems as item}
@@ -90,19 +87,13 @@
     padding-left: 1.5rem;
   }
 
-  .sidebar-logo {
-    margin-bottom: 3rem;
-    font-weight: 900;
-    font-size: 1.8rem;
-    color: var(--net-red);
-    letter-spacing: -2px;
-  }
-
   .sidebar-nav {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     width: 100%;
+    margin-top: auto;
+    margin-bottom: auto;
   }
 
   .sidebar-item {
