@@ -14,9 +14,6 @@
   let { children } = $props();
   let tvSidebarExpanded = $state(false);
 
-  // Hide sidebar when watching video
-  let hideTvSidebar = $derived(page.url.pathname.includes('/watch/'));
-
   const tvMenuItems = [
     { icon: Home, label: 'Home', href: '/tv' },
     { icon: Search, label: 'Search', href: '/tv/search' },
@@ -82,7 +79,7 @@
   }
 </script>
 
-  <div class="app" class:tv-mode-active={$isTV}>
+  <div class="app" class:tv-mode={$isTV}>
     {#if !$isTV}
       <!-- Tactical HUD Backgrounds -->
       <div class="tactical-grid"></div>
@@ -131,52 +128,46 @@
       <MobileBottomNav />
     {:else}
       <!-- Primary TV Shell (Netflix Style) - Persistent for all routes -->
-      {#if !hideTvSidebar}
-        <nav 
-          class="tv-sidebar" 
-          class:expanded={tvSidebarExpanded} 
-          onmouseenter={() => tvSidebarExpanded = true}
-          onmouseleave={() => tvSidebarExpanded = false}
-          transition:fly={{ x: -100, duration: 400 }}
-        >
-          <div class="tv-logo-container">
-             <div class="tv-logo-box">P</div>
-          </div>
-
-          <div class="tv-menu-items">
-            {#each tvMenuItems as item}
-              <a 
-                href={item.href} 
-                class="tv-nav-item" 
-                class:active={page.url.pathname === item.href}
-                tabindex="0"
-              >
-                <div class="tv-icon-box">
-                  <item.icon size={32} strokeWidth={2.5} />
-                </div>
-                {#if tvSidebarExpanded}
-                  <span class="tv-label" in:fly={{ x: -10, duration: 300 }}>{item.label}</span>
-                {/if}
-              </a>
-            {/each}
-          </div>
-
-          <div class="tv-bottom-items">
-             <button class="tv-nav-item exit-btn" onclick={() => isTV.set(false)}>
-                <div class="tv-icon-box"><X size={32} /></div>
-                {#if tvSidebarExpanded}
-                  <span class="tv-label">Exit TV Hub</span>
-                {/if}
-             </button>
-          </div>
-        </nav>
-      {/if}
-
-      <main 
-        class="tv-layout-main" 
-        style:margin-left={hideTvSidebar ? '0' : '100px'}
-        style:background={hideTvSidebar ? 'black' : 'radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.03) 0%, transparent 40%)'}
+      <nav 
+        class="tv-sidebar" 
+        class:expanded={tvSidebarExpanded} 
+        onmouseenter={() => tvSidebarExpanded = true}
+        onmouseleave={() => tvSidebarExpanded = false}
+        transition:fly={{ x: -100, duration: 400 }}
       >
+        <div class="tv-logo-container">
+           <div class="tv-logo-box">P</div>
+        </div>
+
+        <div class="tv-menu-items">
+          {#each tvMenuItems as item}
+            <a 
+              href={item.href} 
+              class="tv-nav-item" 
+              class:active={page.url.pathname === item.href}
+              tabindex="0"
+            >
+              <div class="tv-icon-box">
+                <item.icon size={32} strokeWidth={2.5} />
+              </div>
+              {#if tvSidebarExpanded}
+                <span class="tv-label" in:fly={{ x: -10, duration: 300 }}>{item.label}</span>
+              {/if}
+            </a>
+          {/each}
+        </div>
+
+        <div class="tv-bottom-items">
+           <button class="tv-nav-item exit-btn" onclick={() => isTV.set(false)}>
+              <div class="tv-icon-box"><X size={32} /></div>
+              {#if tvSidebarExpanded}
+                <span class="tv-label">Exit TV Hub</span>
+              {/if}
+           </button>
+        </div>
+      </nav>
+
+      <main class="tv-layout-main">
         <div class="tv-layout-scroll">
           {@render children()}
         </div>
@@ -198,12 +189,20 @@
   }
 
   /* TV SHELL STYLES */
-  .tv-mode-active {
+  .tv-mode {
     background: #050505;
     color: white;
     overflow: hidden;
   }
 
+  .tv-layout-main {
+    flex: 1;
+    height: 100vh;
+    margin-left: 100px;
+    background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.03) 0%, transparent 40%);
+    position: relative;
+    overflow: hidden;
+  }
   .tv-sidebar {
     position: fixed;
     top: 0;

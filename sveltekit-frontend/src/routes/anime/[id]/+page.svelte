@@ -558,33 +558,64 @@
   }
 
   /* TV Mode Enhancements */
+  :global(.tv-mode) .detail-banner {
+    height: 60vh;
+  }
   :global(.tv-mode) .detail-grid {
-    grid-template-columns: 320px 1fr;
-    gap: 4rem;
+    grid-template-columns: 380px 1fr;
+    gap: 6rem;
   }
   :global(.tv-mode) .detail-content {
-    margin-top: -10rem;
-    max-width: 1600px;
+    margin-top: -15rem;
+    max-width: 100%;
+    padding: 0 5rem;
   }
   :global(.tv-mode) .detail-poster img {
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255,255,255,0.1);
   }
   :global(.tv-mode) .detail-title {
-    font-size: 3rem;
+    font-size: 5rem;
+    font-weight: 950;
+    line-height: 1;
+    margin-bottom: 2rem;
+  }
+  :global(.tv-mode) .detail-synopsis {
+    font-size: 1.4rem;
+    max-width: 1000px;
+    margin-bottom: 3rem;
   }
   :global(.tv-mode) .btn-primary,
   :global(.tv-mode) .btn-watchlist,
   :global(.tv-mode) .btn-favorite {
-    padding: 1.2rem 2rem;
-    font-size: 1.2rem;
+    padding: 1.5rem 3rem;
+    font-size: 1.5rem;
+    border-radius: 12px;
   }
   :global(.tv-mode) .btn-primary:focus-visible,
   :global(.tv-mode) .btn-watchlist:focus-visible,
   :global(.tv-mode) .btn-favorite:focus-visible {
-    transform: scale(1.1);
-    outline: 4px solid white;
-    outline-offset: 4px;
+    transform: scale(1.15);
+    background: white;
+    color: black;
+    outline: 6px solid var(--net-red);
+    outline-offset: 8px;
     z-index: 10;
-    box-shadow: 0 0 30px rgba(229, 9, 20, 0.5);
+    box-shadow: 0 0 50px rgba(229, 9, 20, 0.6);
+  }
+  :global(.tv-mode) .btn-primary {
+    background: var(--net-red);
+    color: white;
+  }
+  :global(.tv-mode) .chars-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 2.5rem;
+  }
+  :global(.tv-mode) .char-card img {
+    width: 150px;
+    height: 150px;
+  }
+  :global(.tv-mode) .char-name {
+    font-size: 1.2rem;
   }
 </style>
