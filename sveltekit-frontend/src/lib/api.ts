@@ -1,4 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://anime-pro-v1-backend-go.vercel.app';
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
 const JIKAN_URL = `${BACKEND_URL}/api/v1/jikan`;
