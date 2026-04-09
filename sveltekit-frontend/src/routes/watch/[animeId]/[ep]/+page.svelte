@@ -1289,7 +1289,8 @@
   .video-container:hover .controls-overlay {
     opacity: 1;
     transform: translateY(0);
-    pointer-events: auto;
+    /* Keep pointer-events none so it doesn't block iframe seekbars */
+    pointer-events: none;
   }
 
   .controls-group {
@@ -1918,12 +1919,17 @@
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Hub container should not block clicks, only buttons should */
     pointer-events: none;
   }
 
   .video-container:hover .top-controls-hub {
     opacity: 1;
     transform: translateY(0);
+    /* Allow interaction with hub buttons, but container remains transparent to clicks */
+  }
+
+  .top-controls-hub .controls-group {
     pointer-events: auto;
   }
 
