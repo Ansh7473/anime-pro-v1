@@ -150,68 +150,58 @@
 
   async function toggleRotation() {
     try {
-      if (!isRotated) {
-        const player =
-          document.querySelector(".video-wrapper") || document.documentElement;
-        const isMobile = isMobileDevice();
+      const player = document.querySelector(".video-container");
+      if (!player) return;
 
-        if (isMobile) {
-          // Enter fullscreen first
+      if (!isRotated) {
+        // ENTER ROTATION / LANDSCAPE
+        if (isMobileDevice()) {
+          // 1. First try native/web Fullscreen
           if (!document.fullscreenElement && player.requestFullscreen) {
-            try {
-              await player.requestFullscreen();
-            } catch (e) {}
+            await player.requestFullscreen().catch(() => {});
           }
 
-          // Use native Android bridge if available (Capacitor app)
+          // 2. Try to Lock Orientation
           if (hasNativeRotation()) {
             // @ts-ignore
             window.AndroidRotation.lockLandscape();
-          } else {
-            // Fallback: try web orientation API (works in mobile Chrome)
-            await new Promise((r) => setTimeout(r, 300));
-            // @ts-ignore
-            if (screen.orientation && screen.orientation.lock) {
-              try {
-                // @ts-ignore
-                await screen.orientation.lock("landscape");
-              } catch (e) {
-                console.warn("Orientation lock failed:", e);
-              }
+          // @ts-ignore
+          } else if (screen.orientation && screen.orientation.lock) {
+            // Wait slightly for fullscreen transition before locking
+            await new Promise(r => setTimeout(r, 200));
+            try {
+              // @ts-ignore
+              await screen.orientation.lock("landscape");
+            } catch (e) {
+              console.warn("Soft lock failed:", e);
             }
           }
         } else {
-          // DESKTOP: Just enter fullscreen (works as rotate/expand)
+          // DESKTOP/TV: Just maximize
           if (!document.fullscreenElement && player.requestFullscreen) {
-            try {
-              await player.requestFullscreen();
-            } catch (e) {}
+            await player.requestFullscreen();
           }
         }
         isRotated = true;
       } else {
-        // EXIT: Unlock orientation, then exit fullscreen
+        // EXIT ROTATION
         if (hasNativeRotation()) {
           // @ts-ignore
           window.AndroidRotation.unlock();
-        } else {
-          // @ts-ignore
-          if (screen.orientation && screen.orientation.unlock) {
-            // @ts-ignore
-            try {
-              screen.orientation.unlock();
-            } catch (e) {}
-          }
-        }
-        if (document.fullscreenElement && document.exitFullscreen) {
+        } else if (screen.orientation && screen.orientation.unlock) {
           try {
-            await document.exitFullscreen();
+            screen.orientation.unlock();
           } catch (e) {}
+        }
+
+        if (document.fullscreenElement && document.exitFullscreen) {
+          await document.exitFullscreen().catch(() => {});
         }
         isRotated = false;
       }
     } catch (e) {
-      console.warn("Screen rotation error", e);
+      console.warn("Rotation error:", e);
+      // Fallback: just toggle the state so CSS can try to handle it
       isRotated = !isRotated;
     }
   }
@@ -672,7 +662,11 @@
     <!-- Left Column: Video & Main Controls -->
     <div class="primary-section">
       <div class="player-wrapper" class:theater={theaterMode}>
-        <div class="video-container" class:theater={theaterMode}>
+        <div 
+          class="video-container" 
+          class:theater={theaterMode}
+          class:is-rotated={isRotated}
+        >
           {#if sourceLoading && sources.length === 0}
             <div class="overlay-state">
               <div class="spinner-premium"></div>
@@ -1181,6 +1175,27 @@
     border-radius: 0;
     height: 100%;
     box-shadow: none;
+  }
+
+  /* Rotation Lock Styles */
+  .video-container.is-rotated {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 5000;
+    border-radius: 0;
+    background: #000;
+  }
+
+  @media (orientation: portrait) {
+    .video-container.is-rotated {
+      width: 100vh;
+      height: 100vw;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(90deg);
+    }
   }
 
   .video-element,
