@@ -141,8 +141,8 @@
   .tv-hero {
     position: relative;
     width: 100%;
-    height: 85vh;
-    min-height: 700px;
+    height: 75vh;
+    min-height: 500px;
     overflow: hidden;
     display: flex;
     align-items: center; /* Changed from flex-end to center to keep content safe from clipping */
@@ -177,7 +177,7 @@
   .tv-hero-content {
     position: relative;
     z-index: 10;
-    padding: 2rem 8rem; /* Balanced vertical padding */
+    padding: 2rem 10rem; /* Balanced vertical padding */
     max-width: 1400px;
     pointer-events: none;
     width: 100%;
