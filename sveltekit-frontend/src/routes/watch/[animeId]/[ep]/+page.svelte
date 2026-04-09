@@ -27,7 +27,8 @@
   const animeId = $derived(data.animeId);
 
   let tempEpUrl = $derived(data.ep);
-  let ep = $state(1);
+  let ep = $state(0);
+  let currentLoadId = 0;
 
   $effect(() => {
     const dataEp = parseInt(tempEpUrl as string) || 1;
@@ -376,7 +377,6 @@
       loading = false;
     }
 
-    loadSources();
     checkResumeProgress();
   });
 
@@ -398,6 +398,7 @@
   });
 
   async function loadSources() {
+    const loadId = ++currentLoadId;
     sourceLoading = true;
     error = "";
     sources = [];
@@ -424,14 +425,22 @@
     providerConfigs.forEach(async (config) => {
       try {
         const res = await config.fetcher(animeId, ep);
+        // Guard: If a new load request started, discard these results
+        if (loadId !== currentLoadId) return;
+
         if (res?.data?.sources) {
           const providerSources = res.data.sources.map((s: any) => ({
             ...s,
             provider: s.provider || config.name,
           }));
 
+          // Deduplicate: Don't add if URL already exists
+          const uniqueNewSources = providerSources.filter(
+            (ns: any) => !sources.some((s) => s.url === ns.url),
+          );
+
           // Add to global sources list reactively
-          sources = [...sources, ...providerSources];
+          sources = [...sources, ...uniqueNewSources];
 
           // Auto-select logic if we haven't started anything yet
           if (!autoStarted && providerSources.length > 0) {
