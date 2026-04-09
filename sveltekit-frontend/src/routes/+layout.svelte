@@ -136,8 +136,17 @@
     flex: 1;
   }
 
+  /* Lock root elements on TV to force internal scrolling container */
+  :global(.tv-mode) body,
+  :global(.tv-mode) html,
+  :global(.tv-mode) .app {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
   .tv-main-content {
-    min-height: 100vh;
+    height: 100vh;
     flex: 1;
     display: flex;
     flex-direction: column;
