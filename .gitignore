@@ -47,5 +47,6 @@ notfor vervel/
 # Firebase Service Accounts
 *.json
 !package.json
+!package-lock.json
 !composer.json
 !tsconfig.json
