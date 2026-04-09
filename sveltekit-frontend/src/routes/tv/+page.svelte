@@ -59,11 +59,14 @@
 
   .tv-hero {
     position: relative;
-    height: 70vh;
+    min-height: 70vh;
     margin-bottom: 2rem;
     border-radius: 24px;
     overflow: hidden;
     background: #111;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
   }
 
   .hero-backdrop {
@@ -82,11 +85,10 @@
   }
 
   .hero-info {
-    position: absolute;
-    bottom: 5rem;
-    left: 4rem;
+    position: relative;
     z-index: 2;
     max-width: 800px;
+    padding: 3rem 4rem 6rem 4rem; /* Top/Right/Bottom/Left padding to push content properly */
   }
 
   .trending-tag {
@@ -149,7 +151,7 @@
 
   .tv-rows {
     padding-bottom: 10rem;
-    margin-top: -8rem;
+    margin-top: -4rem;
     position: relative;
     z-index: 3;
   }
@@ -174,6 +176,6 @@
 
   @media (max-width: 1200px) {
     .hero-title { font-size: 3.5rem; }
-    .hero-info { left: 2rem; }
+    .hero-info { padding-left: 2rem; padding-bottom: 4rem; }
   }
 </style>
