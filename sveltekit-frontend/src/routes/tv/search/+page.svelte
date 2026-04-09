@@ -13,13 +13,14 @@
 
   let isGenre = $state(false);
 
+  let searchTimeout: ReturnType<typeof setTimeout>;
+
   async function handleSearch() {
-    if (query.length < 2) return;
+    if (query.trim().length < 2) return;
     loading = true;
     try {
       const res = isGenre ? await api.getByGenre(query) : await api.search(query);
       results = res.data || [];
-
     } catch (e) {
       console.error(e);
     } finally {
@@ -27,8 +28,23 @@
     }
   }
 
+  function handleInput() {
+    isGenre = false;
+    clearTimeout(searchTimeout);
+    
+    if (query.trim().length < 2) {
+      if (query.trim().length === 0) results = [];
+      return;
+    }
+    
+    searchTimeout = setTimeout(() => {
+      handleSearch();
+    }, 600);
+  }
+
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
+      clearTimeout(searchTimeout);
       isGenre = false;
       handleSearch();
     }
@@ -60,6 +76,7 @@
       type="text" 
       placeholder="Search for Anime, Movies, or Series..." 
       bind:value={query}
+      oninput={handleInput}
       onkeydown={onKeyDown}
       class="tv-search-input"
     />
