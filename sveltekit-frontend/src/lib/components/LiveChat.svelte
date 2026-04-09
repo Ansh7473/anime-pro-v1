@@ -14,7 +14,7 @@
   } from "lucide-svelte";
   import * as Ably from "ably";
 
-  let { animeId, episode } = $props<{ animeId: string; episode: number }>();
+  let { animeId, episode, isInline = false } = $props<{ animeId: string; episode: number; isInline?: boolean }>();
   let ably: Ably.Realtime | null = null;
   let channel: any = null;
   let messages = $state<any[]>([]);
@@ -89,7 +89,7 @@
   }
 </script>
 
-<div class="chat-container" class:closed={!isOpen}>
+<div class="chat-container" class:closed={!isOpen} class:inline={isInline}>
   <button
     class="sidebar-toggle"
     onclick={() => (isOpen = !isOpen)}
@@ -220,7 +220,7 @@
 
   .chat-container {
     width: 380px;
-    height: calc(100vh - 80px); /* Adjust for header if exists */
+    height: calc(100vh - 80px);
     position: fixed;
     right: 20px;
     top: 100px;
@@ -228,8 +228,27 @@
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  .chat-container.inline {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    right: auto;
+    top: auto;
+    z-index: 1;
+    margin-top: 2rem;
+  }
+
+  .chat-container.inline .sidebar-toggle {
+     display: none;
+  }
+
   .chat-container.closed {
-    transform: translateX(332px); /* Hide most of it, leave toggle visible */
+    transform: translateX(332px);
+  }
+
+  .chat-container.inline.closed {
+    transform: none;
+    height: auto;
   }
 
   .glass-panel {

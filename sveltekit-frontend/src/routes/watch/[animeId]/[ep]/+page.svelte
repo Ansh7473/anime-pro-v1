@@ -894,8 +894,17 @@
           </div>
         </div>
       {/if}
-    </aside>
-  </div>
+        <!-- Live Chat (Integrated for Desktop/TV) -->
+        <div class="hidden md:block mt-8">
+          <LiveChat {animeId} episode={ep} isInline={true} />
+        </div>
+      </aside>
+    </div>
+
+    <!-- Live Chat (Full Width for Mobile) -->
+    <div class="md:hidden container mt-8 px-4">
+      <LiveChat {animeId} episode={ep} isInline={false} />
+    </div>
 
   <!-- Related Content (Bottom) -->
   <div class="container mt-12 pb-20">
@@ -906,7 +915,6 @@
     {/if}
   </div>
 
-  <LiveChat {animeId} episode={ep} />
 
   <!-- Shortcuts Dialog -->
   {#if showShortcuts}
