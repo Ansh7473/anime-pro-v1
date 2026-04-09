@@ -141,7 +141,12 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none; /* Hide scrollbar for TV */
+  }
+  .tv-main-content::-webkit-scrollbar {
+    display: none;
   }
 
   /* Floating back button — mobile/Android APK */
