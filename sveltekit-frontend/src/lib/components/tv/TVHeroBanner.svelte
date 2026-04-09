@@ -176,11 +176,11 @@
   .tv-hero-content {
     position: relative;
     z-index: 10;
-    padding: 6rem 8rem; /* Increased padding for better centering */
-    max-width: 1200px;
+    padding: 6rem 12rem; /* Increased horizontal padding for perfect centering */
+    max-width: 1400px;
     margin-bottom: 3.5rem;
     pointer-events: none;
-    margin-left: 2rem; /* Compensate for sidebar offset slightly */
+    width: 100%;
   }
 
   .tv-hero-content > * {
@@ -299,7 +299,8 @@
   .tv-hero-dots {
     position: absolute;
     bottom: 5rem;
-    left: 8rem; /* Move to bottom left for a more balanced "Dashboard" feel */
+    left: 50%;
+    transform: translateX(-50%); /* Center dots for better dashboard balance */
     display: flex;
     gap: 1.25rem;
     z-index: 5;

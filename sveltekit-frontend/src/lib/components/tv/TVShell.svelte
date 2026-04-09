@@ -157,6 +157,12 @@
     background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.03) 0%, transparent 40%);
     position: relative;
     overflow: hidden;
+    transition: margin-left 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+  
+  /* When sidebar expands, we don't want the content to be hidden behind it */
+  .tv-sidebar.expanded + .tv-layout-main {
+    margin-left: 320px;
   }
 
   .tv-sidebar {

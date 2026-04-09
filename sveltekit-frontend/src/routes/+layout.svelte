@@ -6,20 +6,22 @@
   import TVShell from "$lib/components/tv/TVShell.svelte";
   import RegularShell from "$lib/components/RegularShell.svelte";
 
+  import { browser } from "$app/environment";
+
   let { children } = $props();
 
   // TV Mode Redirection Logic
   $effect(() => {
-    const p = page.url.pathname as string;
+    if (!browser) return;
+    const p = page.url.pathname;
+    
     if ($isTV) {
-      // Redirect web navigation routes to TV Hub, but allow /anime, /watch, and /explore
       if ((p !== '/tv' && !p.startsWith('/tv/')) && !p.startsWith('/anime') && !p.startsWith('/watch') && !p.startsWith('/explore')) {
-        goto('/tv');
+        goto('/tv', { replaceState: true });
       }
     } else {
-      // If NOT in TV Mode, but on a TV specific route, redirect to main home
       if (p === '/tv' || p.startsWith('/tv/')) {
-        goto('/');
+        goto('/', { replaceState: true });
       }
     }
   });
