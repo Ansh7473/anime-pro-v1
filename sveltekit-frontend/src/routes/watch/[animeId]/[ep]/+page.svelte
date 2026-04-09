@@ -675,7 +675,7 @@
                   referrerpolicy="no-referrer"
                 ></iframe>
                 <div class="iframe-nav-tip">
-                   <p><AlertCircle size={14}/> Not loading? Change server below ↓</p>
+                   <p><AlertCircle size={14}/> Change server below if player is slow ↓</p>
                 </div>
               </div>
             {:else}
@@ -1095,11 +1095,44 @@
     box-shadow: none;
   }
 
-  .video-element, .video-frame {
+  .video-element, .video-frame, .iframe-box {
     width: 100%;
     height: 100%;
     border: none;
-    object-fit: contain;
+    display: block;
+  }
+
+  .iframe-box {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .iframe-nav-tip {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    pointer-events: none;
+    opacity: 0;
+    transition: 0.3s;
+    z-index: 10;
+  }
+  .iframe-box:hover .iframe-nav-tip {
+    opacity: 1;
+  }
+  .iframe-nav-tip p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--net-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   /* Overlay States */
@@ -1130,18 +1163,18 @@
   /* Controls Overlay */
   .controls-overlay {
     position: absolute;
-    bottom: 0;
+    bottom: 0px;
     left: 0;
     right: 0;
-    padding: 3rem 2rem 1.5rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding: 4rem 2rem 1.5rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
     display: flex;
     justify-content: flex-end;
     opacity: 0;
-    transform: translateY(10px);
-    transition: 0.3s ease;
+    transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
-    z-index: 20;
+    z-index: 100;
   }
 
   .video-container:hover .controls-overlay {
