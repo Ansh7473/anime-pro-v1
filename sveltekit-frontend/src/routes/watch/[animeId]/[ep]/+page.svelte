@@ -32,10 +32,13 @@
 
   $effect(() => {
     const dataEp = parseInt(tempEpUrl as string) || 1;
-    if (ep !== dataEp) {
-      ep = dataEp;
-      loadSources();
-    }
+    // Use untrack to avoid infinite loops if loadSources changes other tracked state
+    untrack(() => {
+      if (ep !== dataEp) {
+        ep = dataEp;
+        loadSources();
+      }
+    });
   });
 
   let anime: any = $state(null);
@@ -43,6 +46,16 @@
   let sources: any[] = $state([]);
   let episodes: any[] = $state([]);
   let selectedSource: any = $state(null);
+
+  let isEmbedPlayer = $derived.by(() => {
+    if (!selectedSource) return false;
+    return (
+      selectedSource.isEmbed ||
+      selectedSource.type === "iframe" ||
+      selectedSource.url.includes("embed") ||
+      !selectedSource.url.includes(".m3u8")
+    );
+  });
 
   // Episode pagination
   let currentEpPage = $state(0);
@@ -709,50 +722,57 @@
               </video>
             {/if}
 
-            <!-- In-Player Overlays -->
-            {#if showResumePrompt}
-              <div class="resume-popup glass">
-                <div class="resume-icon"><RotateCw size={24} /></div>
-                <div class="resume-text">
-                  <p>Resume from <strong>{formatTime(resumeTime)}</strong>?</p>
+            <!-- In-Player Overlays (Only for native video) -->
+            {#if !isEmbedPlayer}
+              {#if showResumePrompt}
+                <div class="resume-popup glass">
+                  <div class="resume-icon"><RotateCw size={24} /></div>
+                  <div class="resume-text">
+                    <p>
+                      Resume from <strong>{formatTime(resumeTime)}</strong>?
+                    </p>
+                  </div>
+                  <div class="resume-btns">
+                    <button class="res-btn-p" onclick={resumePlayback}
+                      >Resume</button
+                    >
+                    <button class="res-btn-s" onclick={dismissResume}
+                      >Reset</button
+                    >
+                  </div>
                 </div>
-                <div class="resume-btns">
-                  <button class="res-btn-p" onclick={resumePlayback}
-                    >Resume</button
-                  >
-                  <button class="res-btn-s" onclick={dismissResume}
-                    >Reset</button
-                  >
-                </div>
-              </div>
-            {/if}
+              {/if}
 
-            {#if showCountdown}
-              <div class="next-countdown glass">
-                <div class="countdown-circle">
-                  <svg viewBox="0 0 60 60">
-                    <circle cx="30" cy="30" r="28" class="bg" />
-                    <circle
-                      cx="30"
-                      cy="30"
-                      r="28"
-                      class="progress"
-                      style="--progress: {((5 - countdownSeconds) / 5) * 100}"
-                    />
-                  </svg>
-                  <span class="val">{countdownSeconds}</span>
+              {#if showCountdown}
+                <div class="next-countdown glass">
+                  <div class="countdown-circle">
+                    <svg viewBox="0 0 60 60">
+                      <circle cx="30" cy="30" r="28" class="bg" />
+                      <circle
+                        cx="30"
+                        cy="30"
+                        r="28"
+                        class="progress"
+                        style="--progress: {((5 - countdownSeconds) / 5) * 100}"
+                      />
+                    </svg>
+                    <span class="val">{countdownSeconds}</span>
+                  </div>
+                  <div class="next-info">
+                    <span class="label">Up Next</span>
+                    <span class="ep">Episode {ep + 1}</span>
+                  </div>
+                  <button class="cancel-next" onclick={cancelCountdown}
+                    >Cancel</button
+                  >
                 </div>
-                <div class="next-info">
-                  <span class="label">Up Next</span>
-                  <span class="ep">Episode {ep + 1}</span>
-                </div>
-                <button class="cancel-next" onclick={cancelCountdown}
-                  >Cancel</button
-                >
-              </div>
-            {/if}
+              {/if}
 
-            <!-- Top-Left Control Menu -->
+              <!-- Bottom Playback Overlays -->
+              <div class="controls-overlay" class:visible={!theaterMode}></div>
+            {/if}
+            
+            <!-- Global Utils (Needed for both but positioned carefully) -->
             <div class="top-controls-hub">
               <div class="controls-group">
                 <button
@@ -772,9 +792,6 @@
                 </button>
               </div>
             </div>
-
-            <!-- Bottom Playback Overlays -->
-            <div class="controls-overlay" class:visible={!theaterMode}></div>
           {/if}
         </div>
       </div>
