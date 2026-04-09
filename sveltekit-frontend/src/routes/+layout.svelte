@@ -48,13 +48,16 @@
 
   // TV Mode Redirection Logic
   $effect(() => {
-    if ($isTV && !page.url.pathname.startsWith('/tv')) {
-      // For TV devices, we automatically redirect to the TV Hub for the best experience
-      goto('/tv');
+    const p = page.url.pathname as string;
+    if ($isTV) {
+      // Redirect web navigation routes to TV Hub, but allow /anime, /watch, and /explore
+      if (!p.startsWith('/tv') && !p.startsWith('/anime') && !p.startsWith('/watch') && !p.startsWith('/explore')) {
+        goto('/tv');
+      }
     }
   });
 
-  let isTvRoute = $derived(page.url.pathname.startsWith('/tv'));
+  let isTvRoute = $derived($isTV || (page.url.pathname as string).startsWith('/tv'));
 
   function handleBack() {
     if (window.history.length > 2) {
