@@ -31,12 +31,6 @@
     if (e) e.preventDefault();
     if (id) goto(`/anime/${id}`);
   }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      handleNavigate(e);
-    }
-  }
 </script>
 
 <a
@@ -45,7 +39,6 @@
   role="button"
   tabindex="0"
   onclick={handleNavigate}
-  onkeydown={handleKeydown}
 >
   <div class="tv-card-img-wrap">
     <img src={poster} alt={title} loading="lazy" />

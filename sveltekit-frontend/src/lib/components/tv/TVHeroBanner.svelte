@@ -53,18 +53,6 @@
     if (e) e.preventDefault();
     if (id) goto(`/anime/${id}`);
   }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') handleNavigate(e);
-    if (e.key === 'ArrowRight') {
-      next();
-      startAutoplay(); // Reset timer
-    }
-    if (e.key === 'ArrowLeft') {
-      prev();
-      startAutoplay(); // Reset timer
-    }
-  }
 </script>
 
 {#if heroes.length > 0}
@@ -114,7 +102,6 @@
           bind:this={watchBtn}
           class="tv-btn tv-btn-primary" 
           onclick={handleNavigate} 
-          onkeydown={handleKeydown}
           tabindex="0"
         >
           ▶ Watch Now
@@ -122,13 +109,20 @@
         <button 
           class="tv-btn tv-btn-secondary" 
           onclick={handleNavigate} 
-          onkeydown={handleKeydown}
           tabindex="0"
         >
           ℹ More Details
         </button>
       </div>
     </div>
+
+    <!-- Manual Navigation Arrows -->
+    <button class="tv-nav-arrow prev" onclick={() => { prev(); startAutoplay(); }} aria-label="Previous slide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <button class="tv-nav-arrow next" onclick={() => { next(); startAutoplay(); }} aria-label="Next slide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </button>
 
     <!-- Dot indicators -->
     <div class="tv-hero-dots">
@@ -182,10 +176,11 @@
   .tv-hero-content {
     position: relative;
     z-index: 10;
-    padding: 6rem 5rem;
-    max-width: 1100px;
+    padding: 6rem 8rem; /* Increased padding for better centering */
+    max-width: 1200px;
     margin-bottom: 3.5rem;
-    pointer-events: none; /* Let clicks pass to buttons specifically */
+    pointer-events: none;
+    margin-left: 2rem; /* Compensate for sidebar offset slightly */
   }
 
   .tv-hero-content > * {
@@ -303,12 +298,48 @@
 
   .tv-hero-dots {
     position: absolute;
-    bottom: 4rem;
-    right: 5rem;
+    bottom: 5rem;
+    left: 8rem; /* Move to bottom left for a more balanced "Dashboard" feel */
     display: flex;
-    gap: 1rem;
+    gap: 1.25rem;
     z-index: 5;
   }
+
+  .tv-nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px;
+    height: 80px;
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    transition: all 0.3s;
+    opacity: 0; /* Hidden by default, visible on focus/hover */
+    backdrop-filter: blur(10px);
+  }
+
+  .tv-hero:hover .tv-nav-arrow,
+  .tv-nav-arrow:focus-visible {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .tv-nav-arrow:focus-visible {
+    transform: translateY(-50%) scale(1.2);
+    border: 3px solid var(--net-red);
+    outline: none;
+  }
+
+  .tv-nav-arrow svg { width: 40px; height: 40px; }
+  .tv-nav-arrow.prev { left: 2rem; }
+  .tv-nav-arrow.next { right: 2rem; }
 
   .tv-dot {
     width: 60px;
