@@ -819,15 +819,21 @@
               <div class="ep-thumb">
                 <img src={getProxiedImage(episode.image || anime?.poster)} alt="Ep {episode.number}" loading="lazy" />
                 <div class="ep-hover">
-                  <Play size={24} fill="white" />
+                  <Play size={20} fill="white" />
                 </div>
                 {#if episode.number === ep}
-                  <div class="playing-tag">Current</div>
+                  <div class="playing-tag">PLAYING</div>
                 {/if}
               </div>
               <div class="ep-meta">
-                <span class="num">Episode {episode.number}</span>
+                <div class="ep-num-row">
+                  <span class="num">Episode {episode.number}</span>
+                  {#if episode.isFiller}<span class="filler-tag">Filler</span>{/if}
+                </div>
                 <p class="name line-clamp-1">{episode.title || `Episode ${episode.number}`}</p>
+                <div class="ep-progress-bar">
+                   <div class="progress-fill" style="width: {episode.progressPercent || 0}%"></div>
+                </div>
               </div>
             </button>
           {/each}
@@ -1399,13 +1405,42 @@
 
   .ep-meta .num {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 800;
     margin-bottom: 2px;
   }
 
+  .ep-num-row {
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+     width: 100%;
+  }
+
+  .filler-tag {
+    font-size: 0.6rem;
+    background: rgba(255,165,0,0.2);
+    color: orange;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 800;
+  }
+
+  .ep-progress-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    margin-top: 8px;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent-red);
+  }
+
   .ep-meta .name {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: var(--net-text-muted);
   }
 
@@ -1551,8 +1586,42 @@
 
   @media (max-width: 768px) {
     .watch-layout { gap: 1.5rem; }
-    .cards-glass { padding: 1.5rem; border-radius: 16px; }
-    .episodes-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    .cards-glass { padding: 1.25rem; border-radius: 16px; }
+    
+    /* MOBILE LIST VIEW: Thumbnail on left, title on right */
+    .episodes-grid { 
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .episode-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      border: 1px solid transparent;
+    }
+
+    .episode-card.current {
+      background: rgba(229,9,20,0.1);
+      border-color: rgba(229,9,20,0.3);
+    }
+
+    .ep-thumb {
+      width: 120px;
+      flex-shrink: 0;
+      margin-bottom: 0;
+    }
+
+    .ep-meta {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+    }
   }
 
   @keyframes fadeInDown {
