@@ -1563,17 +1563,44 @@
   .countdown-circle .val { font-size: 1.25rem; font-weight: 900; }
 
   /* Misc */
-  .range-selector { position: relative; }
+  .range-selector {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .range-selector::after {
+    content: '▼';
+    font-size: 0.6rem;
+    position: absolute;
+    right: 12px;
+    pointer-events: none;
+    color: var(--net-text-muted);
+    opacity: 0.7;
+  }
+
   .range-select {
     appearance: none;
-    background: rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
-    padding: 8px 32px 8px 16px;
+    padding: 8px 36px 8px 16px;
     border-radius: 10px;
     color: #fff;
     font-weight: 800;
     font-size: 0.8rem;
     cursor: pointer;
+    transition: 0.3s;
+    outline: none;
+  }
+  .range-select:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .range-select option {
+    background: #111;
+    color: #fff;
+    padding: 10px;
   }
 
   /* TV Mode Enhancements */
