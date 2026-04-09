@@ -150,8 +150,8 @@ img {
 
 .glass {
   background: rgba(20, 20, 20, 0.7);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -183,7 +183,8 @@ img {
   align-items: center;
   gap: 0.5rem;
   font-size: 1rem;
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   transition: var(--transition);
 }
 
@@ -464,7 +465,6 @@ img {
 /* Scrollable container for mobile */
 .scrollable-mobile {
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 
