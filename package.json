@@ -3,9 +3,6 @@
   "private": true,
   "workspaces": [
     "sveltekit-frontend",
-    "backend-go",
-    "android-app",
-    "desktop-app",
     "tv-app"
   ],
   "scripts": {
