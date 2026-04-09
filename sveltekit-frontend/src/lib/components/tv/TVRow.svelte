@@ -43,20 +43,21 @@
 
 <style>
   .tv-row-section {
-    margin-bottom: 4rem;
-    padding: 0 4rem;
+    margin-bottom: 2rem;
+    padding: 0 2rem;
   }
   
   .tv-row-header {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
   }
   
   .tv-row-title {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 2.2rem;
+    font-weight: 900;
     color: white;
     letter-spacing: -0.02em;
-    opacity: 0.9;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    opacity: 1;
   }
   
   .tv-row-wrapper {
