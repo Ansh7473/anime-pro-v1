@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
+
   let { anime, size = "normal" } = $props<{
     anime: any;
     size?: "small" | "normal" | "large";
@@ -25,6 +27,20 @@
   });
   const score = $derived(anime?.score || anime?.rating || 0);
   const id = $derived(anime?.id || anime?.mal_id);
+
+  function handleNavigate(e?: Event) {
+    // If middle click or ctrl click, let the browser handle it naturally
+    if (e instanceof MouseEvent && (e.button === 1 || e.ctrlKey || e.metaKey)) return;
+    
+    if (e) e.preventDefault();
+    if (id) goto(`/anime/${id}`);
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      handleNavigate(e);
+    }
+  }
 </script>
 
 <a
@@ -32,6 +48,10 @@
   class="card"
   class:small={size === "small"}
   class:large={size === "large"}
+  role="button"
+  tabindex="0"
+  onclick={handleNavigate}
+  onkeydown={handleKeydown}
 >
 <div class="card-img-wrap">
     <img src={poster} alt={title} loading="lazy" />

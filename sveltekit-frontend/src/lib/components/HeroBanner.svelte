@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getProxiedImage } from "$lib/api";
   import { onMount, onDestroy } from "svelte";
+  import { goto } from "$app/navigation";
 
   let { items = [] } = $props<{ items: any[] }>();
 
@@ -78,6 +79,16 @@
   const genres = $derived(anime?.genres || []);
   const id = $derived(anime?.id || anime?.mal_id);
   const score = $derived(anime?.score || anime?.rating || 0);
+
+  function handleNavigate(e?: Event) {
+    if (e instanceof MouseEvent && (e.button === 1 || e.ctrlKey || e.metaKey)) return;
+    if (e) e.preventDefault();
+    if (id) goto(`/anime/${id}`);
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter') handleNavigate(e);
+  }
 </script>
 
 {#if heroes.length > 0}
@@ -128,8 +139,8 @@
         {synopsis.slice(0, 180)}{synopsis.length > 180 ? "..." : ""}
       </p>
       <div class="hero-actions">
-        <a href="/anime/{id}" class="btn-primary">▶ Watch Now</a>
-        <a href="/anime/{id}" class="btn-secondary">ℹ More Info</a>
+        <a href="/anime/{id}" class="btn-primary" role="button" tabindex="0" onclick={handleNavigate} onkeydown={handleKeydown}>▶ Watch Now</a>
+        <a href="/anime/{id}" class="btn-secondary" role="button" tabindex="0" onclick={handleNavigate} onkeydown={handleKeydown}>ℹ More Info</a>
       </div>
     </div>
 
