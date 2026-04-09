@@ -22,7 +22,7 @@
     {/each}
 
     {#if $auth.user}
-      <a href="/profile" class="nav-item" class:active={page.url.pathname === '/profile'}>
+      <a href="/profile" class="nav-item" class:active={page.url.pathname.startsWith('/profile')}>
         <User size={20} />
         <span>Profile</span>
       </a>
