@@ -16,7 +16,9 @@
     }
   });
 
-  let featuredAnime = $derived(homeData?.trending?.[0] || homeData?.popular?.[0]);
+  let featuredAnime = $derived(
+    homeData?.trending?.[0] || homeData?.popular?.[0],
+  );
 </script>
 
 <div class="tv-home">
@@ -30,14 +32,24 @@
     <section class="tv-hero">
       <div class="hero-overlay"></div>
       {#if featuredAnime}
-        <img src={featuredAnime.image || featuredAnime.poster} alt={featuredAnime.title} class="hero-backdrop" />
+        <img
+          src={featuredAnime.image || featuredAnime.poster}
+          alt={featuredAnime.title}
+          class="hero-backdrop"
+        />
         <div class="hero-info">
           <span class="trending-tag">#1 TRENDING TODAY</span>
           <h1 class="hero-title">{featuredAnime.title}</h1>
-          <p class="hero-synopsis">{featuredAnime.synopsis?.slice(0, 250)}...</p>
+          <p class="hero-synopsis">
+            {featuredAnime.synopsis?.slice(0, 250)}...
+          </p>
           <div class="hero-btns">
-            <a href="/anime/{featuredAnime.id}" class="tv-btn primary">PLAY NOW</a>
-            <a href="/anime/{featuredAnime.id}" class="tv-btn secondary">MORE INFO</a>
+            <a href="/anime/{featuredAnime.id}" class="tv-btn primary"
+              >PLAY NOW</a
+            >
+            <a href="/anime/{featuredAnime.id}" class="tv-btn secondary"
+              >MORE INFO</a
+            >
           </div>
         </div>
       {/if}
@@ -59,7 +71,7 @@
 
   .tv-hero {
     position: relative;
-    min-height: 70vh;
+    min-height: 40vh;
     margin-bottom: 2rem;
     border-radius: 24px;
     overflow: hidden;
@@ -80,7 +92,7 @@
     position: absolute;
     inset: 0;
     background: linear-gradient(to top, #050505 0%, transparent 60%),
-                linear-gradient(to right, #050505 0%, transparent 50%);
+      linear-gradient(to right, #050505 0%, transparent 50%);
     z-index: 1;
   }
 
@@ -105,12 +117,12 @@
     font-weight: 900;
     margin-bottom: 1.5rem;
     line-height: 1;
-    text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   }
 
   .hero-synopsis {
     font-size: 1.25rem;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.7);
     line-height: 1.6;
     margin-bottom: 2rem;
   }
@@ -135,7 +147,7 @@
   }
 
   .tv-btn.secondary {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: white;
     backdrop-filter: blur(10px);
   }
@@ -175,7 +187,12 @@
   }
 
   @media (max-width: 1200px) {
-    .hero-title { font-size: 3.5rem; }
-    .hero-info { padding-left: 2rem; padding-bottom: 4rem; }
+    .hero-title {
+      font-size: 3.5rem;
+    }
+    .hero-info {
+      padding-left: 2rem;
+      padding-bottom: 4rem;
+    }
   }
 </style>
