@@ -48,9 +48,12 @@
   .container {
     max-width: 1800px;
   }
-  
-  /* Prevent mouse-only effects from cluttering TV experience if desired, 
-     but usually scaling on focus is what we want */
+}
+
+.tv-mode .container {
+  max-width: 95%;
+  padding: 0 5rem;
+  margin: 0;
 }
 
 
