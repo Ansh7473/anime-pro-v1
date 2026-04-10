@@ -141,7 +141,7 @@
   .tv-hero {
     position: relative;
     width: 100%;
-    height: 60vh;
+    height: 80vh;
     min-height: 400px;
     overflow: hidden;
     display: flex;
@@ -177,7 +177,7 @@
   .tv-hero-content {
     position: relative;
     z-index: 10;
-    padding: 2rem 10rem; /* Balanced vertical padding */
+    padding: 0; /* Handled by TVShell overscan layer */
     max-width: 1400px;
     pointer-events: none;
     width: 100%;

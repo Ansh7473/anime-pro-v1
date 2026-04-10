@@ -43,8 +43,8 @@
 
 <style>
   .tv-row-section {
-    margin-bottom: 2rem;
-    padding: 0 2rem;
+    margin-bottom: 3.5rem;
+    padding: 0; /* Handled by TVShell overscan layer */
   }
   
   .tv-row-header {
