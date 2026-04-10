@@ -5,7 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "wrangler types && vite build",
+		"cf-typegen": "wrangler types",
 		"build:desktop": "set APP_PLATFORM=desktop && vite build",
 		"sync:desktop": "npx cap sync electron",
 		"preview": "vite preview",
