@@ -50,3 +50,8 @@ notfor vervel/
 !package-lock.json
 !composer.json
 !tsconfig.json
+
+hello-world-fire-tv/
+native-android-tv/
+ComposeForTv/
+tv-samples/
