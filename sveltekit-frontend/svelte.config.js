@@ -41,12 +41,7 @@ const config = {
 			}
 
 			// Default to Cloudflare for web deployments
-			return adapterCloudflare({
-				routes: {
-					include: ['/*'],
-					exclude: ['<all>']
-				}
-			});
+			return adapterCloudflare();
 		})()
 	}
 };
