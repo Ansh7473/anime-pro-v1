@@ -48,7 +48,15 @@ self.addEventListener('fetch', (event) => {
 
 			return response;
 		} catch {
-			return cache.match(event.request);
+			const cachedResponse = await cache.match(event.request);
+			if (cachedResponse) return cachedResponse;
+
+			// Return a 404 response if not in cache either, to avoid respondWith(undefined) crash
+			return new Response("Not available offline", {
+				status: 404,
+				statusText: "Not Found",
+				headers: { "Content-Type": "text/plain" }
+			});
 		}
 	}
 
