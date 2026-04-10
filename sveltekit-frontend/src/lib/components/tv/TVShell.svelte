@@ -125,7 +125,7 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
-<div class="tv-shell-container" style="--sidebar-width: {tvSidebarExpanded ? '320px' : '100px'};">
+<div class="tv-shell-container" style="--cur-sidebar-width: {tvSidebarExpanded ? 'var(--tv-sidebar-expanded)' : 'var(--tv-sidebar-width)'};">
   <nav 
     class="tv-sidebar" 
     class:expanded={tvSidebarExpanded} 
@@ -168,7 +168,9 @@
 
   <main class="tv-layout-main">
     <div class="tv-layout-scroll">
-      {@render children()}
+      <div class="tv-overscan-layer">
+        {@render children()}
+      </div>
     </div>
   </main>
 </div>
@@ -185,11 +187,15 @@
   .tv-layout-main {
     flex: 1;
     height: 100vh;
-    margin-left: var(--sidebar-width);
-    background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.03) 0%, transparent 40%);
+    margin-left: var(--cur-sidebar-width);
+    background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.05) 0%, transparent 40%);
     position: relative;
     overflow: hidden;
     transition: margin-left 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+
+  .tv-overscan-layer {
+     padding: var(--tv-overscan-y) var(--tv-overscan-x) 100px var(--tv-overscan-x);
   }
 
   .tv-sidebar {

@@ -25,6 +25,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
 	if (event.request.method !== 'GET') return;
 
+	// Skip manifest and other metadata files to avoid syntax errors if they return stale HTML
+	if (event.request.url.includes('manifest.json') || event.request.url.includes('favicon')) {
+		return;
+	}
+
 	async function respond() {
 		const url = new URL(event.request.url);
 		const cache = await caches.open(CACHE);

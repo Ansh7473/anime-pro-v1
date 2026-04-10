@@ -26,10 +26,14 @@
   --tactical-glow: 0 0 20px rgba(26, 115, 232, 0.2);
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  /* TV App Tokens */
+  /* TV App Tokens - High Quality 10-foot UI */
   --tv-focus-border: #E50914;
   --tv-focus-glow: 0 0 30px rgba(229, 9, 20, 0.4);
-  --tv-card-scale: 1.1;
+  --tv-card-scale: 1.15;
+  --tv-overscan-x: 5%; /* 96px on 1080p */
+  --tv-overscan-y: 27px; /* 5% of height approx */
+  --tv-sidebar-width: 100px;
+  --tv-sidebar-expanded: 320px;
 }
 
 /* Global TV Compatibility & Focus Management */
@@ -41,19 +45,23 @@
 }
 
 .tv-mode {
-  font-size: 9px; /* Even smaller base to counteract TV-level zooming */
+  font-size: 11px; /* Improved base for better readability */
   overflow: hidden;
   height: 100vh;
   width: 100vw;
   position: fixed;
   top: 0;
   left: 0;
+  background: #050505;
 }
 
 .tv-mode .container {
   max-width: 100%;
-  padding: 0 4rem;
-  margin: 0 auto;
+  padding-left: var(--tv-overscan-x);
+  padding-right: var(--tv-overscan-x);
+  padding-top: var(--tv-overscan-y);
+  padding-bottom: var(--tv-overscan-y);
+  margin: 0;
 }
 
 
