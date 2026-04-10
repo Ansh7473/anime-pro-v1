@@ -53,7 +53,7 @@ fun AnimeProApp() {
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            shape = ClickableSurfaceDefaults.shape(shape = androidx.compose.foundation.shape.RectangleShape)
+            shape = androidx.compose.foundation.shape.RectangleShape
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
                 TVSidebar()
