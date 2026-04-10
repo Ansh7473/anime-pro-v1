@@ -51,7 +51,7 @@ notfor vervel/
 !composer.json
 !tsconfig.json
 
-hello-world-fire-tv/
-native-android-tv/
-ComposeForTv/
-tv-samples/
+hello-world-fire-tv
+native-android-tv
+ComposeForTv
+tv-samples
