@@ -178,7 +178,7 @@ export const api = {
 	getStaff: async (id: string | number) => {
 		try {
 			const query = `query($id:Int){Media(idMal:$id,type:ANIME){staff(sort:[RELEVANCE,ID_DESC],page:1,perPage:12){edges{role node{id name{full}image{large}}}}}}`;
-			const data = await queryAnilist(query, { id: parseInt(id.toString()) });
+			const data = await queryAnilist(query, { id: parseInt(String(id)) });
 			return data.Media?.staff?.edges?.map((e: any) => ({ name: e.node.name.full, role: e.role, image: e.node.image.large })) || [];
 		} catch { return []; }
 	},

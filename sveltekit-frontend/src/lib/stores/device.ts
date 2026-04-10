@@ -19,9 +19,10 @@ const getInitialTVState = () => {
     'webos', 'playstation', 'xbox', 'roku', 'firetv', 'nettv', 'mibox',
     'chromecast', 'androidtv'
   ];
-  return tvKeywords.some(keyword => ua.includes(keyword)) || 
+  const isTVDevice = tvKeywords.some(keyword => ua.includes(keyword)) || 
          // @ts-ignore
-         (window.Capacitor?.isNativePlatform?.() && ua.includes('tv'));
+         !!(window.Capacitor?.isNativePlatform?.() && ua.includes('tv'));
+  return isTVDevice;
 };
 
 export const isTV = writable(getInitialTVState());

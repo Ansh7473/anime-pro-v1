@@ -247,7 +247,7 @@
 
     try {
       await api.updateHistory($auth.token, {
-        animeId: animeId.toString(),
+        animeId: String(animeId),
         animeTitle: anime?.title || "",
         animePoster: anime?.image || anime?.poster || "",
         episodeNumber: ep,
@@ -325,7 +325,7 @@
       if (Array.isArray(history)) {
         const entry = history.find(
           (h: any) =>
-            h.animeId === animeId.toString() &&
+            h.animeId === String(animeId) &&
             h.episodeNumber === ep &&
             !h.completed,
         );
@@ -353,7 +353,7 @@
   function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, "0")}`;
+    return `${m}:${String(s).padStart(2, "0")}`;
   }
 
   onMount(async () => {
