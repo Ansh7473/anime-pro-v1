@@ -1,54 +1,153 @@
 package routes
 
 import (
-	"net/http"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/handlers"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/middleware"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(mux *http.ServeMux) {
-	// Root/Health
-	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
-		w.Write([]byte(`{"status":"ok"}`))
-	})
+// SetupRoutes registers all API routes for the backend
+func SetupRoutes(r *gin.Engine) {
+	// Initialize API version grouping
+	v1 := r.Group("/api/v1")
+	v1.Use(middleware.DBMiddleware())
+	r.NoRoute(handlers.SmartAssetProxy)
 
-	// Public Routes (No Auth required)
-	mux.HandleFunc("GET /api/v1/jikan/", utils.ToStd(handlers.JikanInfo))
-	mux.HandleFunc("GET /api/v1/jikan/anime/{id}", utils.ToStd(handlers.JikanAnimeFull))
-	mux.HandleFunc("GET /api/v1/jikan/anime/{id}/basic", utils.ToStd(handlers.JikanAnimeBasic))
-	mux.HandleFunc("GET /api/v1/jikan/search", utils.ToStd(handlers.JikanSearch))
-	mux.HandleFunc("GET /api/v1/jikan/top", utils.ToStd(handlers.JikanTop))
-	mux.HandleFunc("GET /api/v1/jikan/schedule", utils.ToStd(handlers.JikanSchedule))
+	// 1. Jikan API Routes Group
+	jikan := v1.Group("/jikan")
+	{
+		jikan.GET("/", handlers.JikanInfo)
+		jikan.GET("/anime/:id", handlers.JikanAnimeFull)
+		jikan.GET("/anime/:id/basic", handlers.JikanAnimeBasic)
+		jikan.GET("/search", handlers.JikanSearch)
+		jikan.GET("/seasonal/:year/:season", handlers.JikanSeasonal)
+		jikan.GET("/seasonal", handlers.JikanSeasonalCurrent) // fallback
+		jikan.GET("/top", handlers.JikanTop)
+		jikan.GET("/top/anime", handlers.JikanTopAnime)
+		jikan.GET("/anime/:id/recommendations", handlers.JikanRecommendations)
+		jikan.GET("/anime/:id/characters", handlers.JikanCharacters)
+		jikan.GET("/anime/:id/episodes", handlers.JikanEpisodes)
+		jikan.GET("/schedule", handlers.JikanSchedule)
+		jikan.GET("/seasons/now", handlers.JikanSeasonsNow)
+		jikan.GET("/seasons/upcoming", handlers.JikanSeasonsUpcoming)
+		jikan.GET("/seasons", handlers.JikanSeasonsList)
+		jikan.GET("/anime/:id/relations", handlers.JikanRelations)
+		jikan.GET("/health", handlers.JikanHealthCheck)
+	}
 
-	mux.HandleFunc("GET /api/v1/anilist/home", utils.ToStd(handlers.AnilistHome))
-	mux.HandleFunc("GET /api/v1/anilist/anime/{id}", utils.ToStd(handlers.AnilistAnime))
-	mux.HandleFunc("GET /api/v1/anilist/search", utils.ToStd(handlers.AnilistSearch))
+	// 2. AniList GraphQL API Routes Group
+	anilist := v1.Group("/anilist")
+	{
+		anilist.GET("/home", handlers.AnilistHome)
+		anilist.GET("/anime/:id", handlers.AnilistAnime)
+		anilist.GET("/search", handlers.AnilistSearch)
+		anilist.GET("/characters/:id", handlers.AnilistCharacters)
+		anilist.GET("/recommendations/:id", handlers.AnilistRecommendations)
+		anilist.GET("/schedule", handlers.AnilistSchedule)
+	}
 
-	mux.HandleFunc("GET /api/v1/streaming/sources", utils.ToStd(handlers.StreamingSourcesAggregate))
-	mux.HandleFunc("GET /api/v1/streaming/proxy", utils.ToStd(handlers.StreamingProxy))
+	// 3. Streaming API Routes Group
+	streaming := v1.Group("/streaming")
+	{
+		streaming.GET("/sources/nineanime", handlers.StreamingNineAnime)
+		streaming.GET("/sources/animelok", handlers.StreamingAnimelok)
+		streaming.GET("/animelok-slug", handlers.StreamingAnimelokSlug)
+		streaming.GET("/sources/desidub", handlers.StreamingDesiDub)
+		streaming.GET("/sources/ahd", handlers.StreamingAnimeHindiDubbed)
+		streaming.GET("/sources/toonstream", handlers.StreamingToonstream)
+		streaming.GET("/sources", handlers.StreamingSourcesAggregate)
+		streaming.GET("/episode-metadata", handlers.StreamingEpisodeMetadata)
+		streaming.GET("/proxy", handlers.StreamingProxy)
+	}
 
-	// Auth Routes
-	mux.HandleFunc("POST /api/v1/auth/register", utils.ToStd(handlers.Register))
-	mux.HandleFunc("POST /api/v1/auth/login", utils.ToStd(handlers.Login))
+	// 4. Dedicated Provider Routes (Optional legacy support)
+	animelok := v1.Group("/animelok")
+	{
+		animelok.GET("/search", handlers.ProviderAnimelokSearch)
+		animelok.GET("/metadata/:slug", handlers.ProviderAnimelokMetadata)
+		animelok.GET("/sources/:id", handlers.ProviderAnimelokSources)
+	}
 
-	// Protected Routes (Auth Required)
-	auth := middleware.AuthMiddleware
-	db := middleware.DBMiddleware
+	desidub := v1.Group("/desidubanime")
+	{
+		desidub.GET("/search", handlers.ProviderDesidubSearch)
+		desidub.GET("/info/:slug", handlers.ProviderDesidubInfo)
+		desidub.GET("/sources", handlers.ProviderDesidubSources)
+	}
 
-	mux.HandleFunc("GET /api/v1/user/me", utils.ToStd(utils.Chain(handlers.GetCurrentUser, db, auth)))
-	mux.HandleFunc("GET /api/v1/user/history", utils.ToStd(utils.Chain(handlers.GetWatchHistory, db, auth)))
-	mux.HandleFunc("POST /api/v1/user/history", utils.ToStd(utils.Chain(handlers.UpdateWatchHistory, db, auth)))
-	mux.HandleFunc("GET /api/v1/user/watchlist", utils.ToStd(utils.Chain(handlers.GetWatchlist, db, auth)))
-	mux.HandleFunc("POST /api/v1/user/watchlist", utils.ToStd(utils.Chain(handlers.AddToWatchlist, db, auth)))
-	
-	// Social
-	mux.HandleFunc("POST /api/v1/social/reaction", utils.ToStd(utils.Chain(handlers.ToggleReaction, db, auth)))
-	mux.HandleFunc("GET /api/v1/social/reactions", utils.ToStd(utils.Chain(handlers.GetReactions, db)))
+	ahd := v1.Group("/animehindidubbed")
+	{
+		ahd.GET("/search", handlers.ProviderAHDSearch)
+		ahd.GET("/info", handlers.ProviderAHDInfo)
+		ahd.GET("/sources", handlers.ProviderAHDSources)
+	}
 
-	// Real-time (Conditional build)
-	mux.HandleFunc("GET /api/v1/chat/token", utils.ToStd(utils.Chain(handlers.GetChatToken, auth)))
-	mux.HandleFunc("GET /api/v1/ws", utils.ToStd(handlers.MainHub.ServeWS))
+	ahdWP := v1.Group("/animehindidubbed-wp")
+	{
+		ahdWP.GET("/search", handlers.ProviderAHDWPSearch)
+		ahdWP.GET("/latest", handlers.ProviderAHDWPLatest)
+		ahdWP.GET("/episodes", handlers.ProviderAHDWPEpisodes)
+		ahdWP.GET("/servers", handlers.ProviderAHDWPServers)
+		ahdWP.GET("/sources", handlers.ProviderAHDWPSources)
+	}
+
+	toonstream := v1.Group("/toonstream")
+	{
+		toonstream.GET("/search", handlers.ProviderToonstreamSearch)
+		toonstream.GET("/sources", handlers.ProviderToonstreamSources)
+	}
+
+	v1.GET("/reactions/:animeId/:episode", middleware.OptionalAuthMiddleware(), handlers.GetReactions)
+	v1.GET("/comments/:animeId/:episode", middleware.OptionalAuthMiddleware(), handlers.GetComments)
+	v1.POST("/reactions", middleware.OptionalAuthMiddleware(), handlers.ToggleReaction)
+	v1.GET("/chat/token", middleware.OptionalAuthMiddleware(), handlers.GetChatToken)
+
+	// 11. Ably Chat (Replaced WebSocket Hub for Vercel)
+
+	// 5. Auth Routes
+	auth := v1.Group("/auth")
+	{
+		auth.POST("/register", handlers.Register)
+		auth.POST("/login", handlers.Login)
+	}
+
+	// 6. User Routes (Protected)
+	user := v1.Group("/user")
+	user.Use(middleware.AuthMiddleware())
+	{
+		user.GET("/me", handlers.GetCurrentUser)
+		user.GET("/history", handlers.GetWatchHistory)
+		user.POST("/history", handlers.UpdateWatchHistory)
+		user.DELETE("/history/:animeId", handlers.DeleteHistory)
+		user.GET("/watchlist", handlers.GetWatchlist)
+		user.POST("/watchlist", handlers.AddToWatchlist)
+		user.DELETE("/watchlist/:animeId", handlers.RemoveFromWatchlist)
+		user.GET("/watchlist/:animeId", handlers.GetWatchlistStatus)
+
+		// 7. Profile Management
+		user.POST("/profiles", handlers.CreateProfile)
+		user.PUT("/profiles/:id", handlers.UpdateProfile)
+		user.DELETE("/profiles/:id", handlers.DeleteProfile)
+
+		// 8. Favorites
+		user.GET("/favorites", handlers.GetFavorites)
+		user.POST("/favorites", handlers.AddToFavorite)
+		user.DELETE("/favorites/:animeId", handlers.RemoveFromFavorite)
+		user.GET("/favorites/:animeId", handlers.GetFavoriteStatus)
+
+		// 10. Social & Community
+		user.POST("/comments", handlers.CreateComment)
+		user.DELETE("/comments/:id", handlers.DeleteComment)
+
+		user.GET("/chat/token", handlers.GetChatToken)
+		user.GET("/stats", handlers.GetUserStats)
+		user.GET("/recommendations", handlers.GetAIRecommendations)
+	}
+
+	// 7. App Release (Windows/Android updates)
+	releases := v1.Group("/releases")
+	{
+		releases.GET("/latest", handlers.GetLatestReleases)
+		releases.POST("/", middleware.AuthMiddleware(), handlers.AddRelease)
+	}
 }

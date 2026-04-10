@@ -8,14 +8,15 @@ import (
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/models"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/api/iterator"
 )
 
 // ChangePassword updates the authenticated user's password
-func ChangePassword(c *utils.LiteContext) {
+func ChangePassword(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -26,13 +27,13 @@ func ChangePassword(c *utils.LiteContext) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	doc, err := database.DB.Collection("users").Doc(userId).Get(database.Ctx)
 	if err != nil {
-		c.JSON(http.StatusNotFound, utils.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
@@ -41,14 +42,14 @@ func ChangePassword(c *utils.LiteContext) {
 
 	// Verify current password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.CurrentPassword)); err != nil {
-		c.JSON(http.StatusUnauthorized, utils.H{"error": "Current password incorrect"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password incorrect"})
 		return
 	}
 
 	// Hash new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to process new password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process new password"})
 		return
 	}
 
@@ -58,18 +59,18 @@ func ChangePassword(c *utils.LiteContext) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to update password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return
 	}
 
-	c.JSON(http.StatusOK, utils.H{"message": "Password updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
 // Profile Handlers
 
-func CreateProfile(c *utils.LiteContext) {
+func CreateProfile(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -80,7 +81,7 @@ func CreateProfile(c *utils.LiteContext) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -89,7 +90,7 @@ func CreateProfile(c *utils.LiteContext) {
 	count := 0
 	for {
 		_, err := iter.Next()
-		if err == database.Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
@@ -99,7 +100,7 @@ func CreateProfile(c *utils.LiteContext) {
 	}
 
 	if count >= 5 {
-		c.JSON(http.StatusForbidden, utils.H{"error": "Maximum of 5 profiles allowed"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Maximum of 5 profiles allowed"})
 		return
 	}
 
@@ -114,16 +115,16 @@ func CreateProfile(c *utils.LiteContext) {
 	}
 
 	if _, err := profileRef.Set(database.Ctx, profile); err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to create profile"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create profile"})
 		return
 	}
 
 	c.JSON(http.StatusOK, profile)
 }
 
-func UpdateProfile(c *utils.LiteContext) {
+func UpdateProfile(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -132,7 +133,7 @@ func UpdateProfile(c *utils.LiteContext) {
 
 	doc, err := database.DB.Collection("profiles").Doc(profileId).Get(database.Ctx)
 	if err != nil {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Profile not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
 		return
 	}
 
@@ -140,7 +141,7 @@ func UpdateProfile(c *utils.LiteContext) {
 	doc.DataTo(&profile)
 
 	if profile.UserID != userId {
-		c.JSON(http.StatusForbidden, utils.H{"error": "Unauthorized access to profile"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized access to profile"})
 		return
 	}
 
@@ -153,7 +154,7 @@ func UpdateProfile(c *utils.LiteContext) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -167,7 +168,7 @@ func UpdateProfile(c *utils.LiteContext) {
 	if len(updates) > 0 {
 		_, err = database.DB.Collection("profiles").Doc(profileId).Update(database.Ctx, updates)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to update profile"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 			return
 		}
 	}
@@ -179,9 +180,9 @@ func UpdateProfile(c *utils.LiteContext) {
 	c.JSON(http.StatusOK, profile)
 }
 
-func DeleteProfile(c *utils.LiteContext) {
+func DeleteProfile(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -193,7 +194,7 @@ func DeleteProfile(c *utils.LiteContext) {
 	count := 0
 	for {
 		_, err := iter.Next()
-		if err == database.Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
@@ -203,37 +204,37 @@ func DeleteProfile(c *utils.LiteContext) {
 	}
 
 	if count <= 1 {
-		c.JSON(http.StatusForbidden, utils.H{"error": "Cannot delete the last remaining profile"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete the last remaining profile"})
 		return
 	}
 
 	// Double check ownership
 	doc, err := database.DB.Collection("profiles").Doc(profileId).Get(database.Ctx)
 	if err != nil {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Profile not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
 		return
 	}
 	var profile models.Profile
 	doc.DataTo(&profile)
 	if profile.UserID != userId {
-		c.JSON(http.StatusForbidden, utils.H{"error": "Unauthorized"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized"})
 		return
 	}
 
 	_, err = database.DB.Collection("profiles").Doc(profileId).Delete(database.Ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to delete profile"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete profile"})
 		return
 	}
 
-	c.JSON(http.StatusOK, utils.H{"message": "Profile deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Profile deleted"})
 }
 
 // Favorites Handlers
 
-func GetFavorites(c *utils.LiteContext) {
+func GetFavorites(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -249,7 +250,7 @@ func GetFavorites(c *utils.LiteContext) {
 	favorites := []models.Favorite{}
 	for {
 		doc, err := iter.Next()
-		if err == database.Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
@@ -269,9 +270,9 @@ func GetFavorites(c *utils.LiteContext) {
 	c.JSON(http.StatusOK, favorites)
 }
 
-func AddToFavorite(c *utils.LiteContext) {
+func AddToFavorite(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -284,7 +285,7 @@ func AddToFavorite(c *utils.LiteContext) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, utils.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -296,8 +297,8 @@ func AddToFavorite(c *utils.LiteContext) {
 		Limit(1).Documents(database.Ctx)
 	
 	_, err := iter.Next()
-	if err != database.Done {
-		c.JSON(http.StatusConflict, utils.H{"error": "Already in favorites"})
+	if err != iterator.Done && err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Already in favorites"})
 		return
 	}
 
@@ -313,16 +314,16 @@ func AddToFavorite(c *utils.LiteContext) {
 	}
 
 	if _, err := favRef.Set(database.Ctx, favorite); err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to add to favorites"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add to favorites"})
 		return
 	}
 
 	c.JSON(http.StatusOK, favorite)
 }
 
-func RemoveFromFavorite(c *utils.LiteContext) {
+func RemoveFromFavorite(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -340,7 +341,7 @@ func RemoveFromFavorite(c *utils.LiteContext) {
 	found := false
 	for {
 		doc, err := iter.Next()
-		if err == database.Done {
+		if err == iterator.Done {
 			break
 		}
 		if err != nil {
@@ -351,21 +352,21 @@ func RemoveFromFavorite(c *utils.LiteContext) {
 	}
 
 	if !found {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Favorite not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Favorite not found"})
 		return
 	}
 
 	if _, err := batch.Commit(database.Ctx); err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to remove from favorites"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove from favorites"})
 		return
 	}
 
-	c.JSON(http.StatusOK, utils.H{"message": "Removed from favorites"})
+	c.JSON(http.StatusOK, gin.H{"message": "Removed from favorites"})
 }
 
-func GetFavoriteStatus(c *utils.LiteContext) {
+func GetFavoriteStatus(c *gin.Context) {
 	if database.DB == nil {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Database not available"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
 		return
 	}
 
@@ -381,5 +382,5 @@ func GetFavoriteStatus(c *utils.LiteContext) {
 	iter := query.Limit(1).Documents(database.Ctx)
 	_, err := iter.Next()
 
-	c.JSON(http.StatusOK, utils.H{"isFavorite": err == nil})
+	c.JSON(http.StatusOK, gin.H{"isFavorite": err == nil})
 }

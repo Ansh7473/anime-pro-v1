@@ -1,6 +1,3 @@
-//go:build !js || !wasm
-// +build !js !wasm
-
 package handlers
 
 import (
@@ -9,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
 
@@ -100,11 +97,11 @@ var upgrader = websocket.Upgrader{
 }
 
 // ServeWS handles WebSocket upgradation and client lifecycle
-func (h *Hub) ServeWS(c *utils.LiteContext) {
+func (h *Hub) ServeWS(c *gin.Context) {
 	animeId := c.Query("animeId")
 	episode := c.Query("episode")
 	if animeId == "" || episode == "" {
-		c.JSON(http.StatusBadRequest, utils.H{"error": "Missing animeId or episode"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing animeId or episode"})
 		return
 	}
 	roomId := animeId + "-" + episode
@@ -115,13 +112,9 @@ func (h *Hub) ServeWS(c *utils.LiteContext) {
 		return
 	}
 
-	userIdStr := ""
-	if userId, ok := c.Get("userId"); ok {
-		userIdStr = userId.(string)
-	}
-
+	userId, _ := c.Get("userId")
 	client := &Client{
-		ID:     userIdStr,
+		ID:     userId.(string),
 		Conn:   conn,
 		Send:   make(chan []byte, 256),
 		RoomID: roomId,
@@ -158,8 +151,15 @@ func (c *Client) writePump() {
 		c.Conn.Close()
 	}()
 
-	for message := range c.Send {
-		c.Conn.WriteMessage(websocket.TextMessage, message)
+	for {
+		select {
+		case message, ok := <-c.Send:
+			if !ok {
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			c.Conn.WriteMessage(websocket.TextMessage, message)
+		}
 	}
 }
 

@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/config"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware(next utils.HandlerFunc) utils.HandlerFunc {
-	return func(c *utils.LiteContext) {
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		var tokenString string
 
@@ -22,12 +22,13 @@ func AuthMiddleware(next utils.HandlerFunc) utils.HandlerFunc {
 			}
 		}
 
+		// Fallback to query parameter for WebSockets or server-sent events
 		if tokenString == "" {
 			tokenString = c.Query("token")
 		}
 
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, utils.H{"error": "Authorization token is required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token is required"})
 			c.Abort()
 			return
 		}
@@ -41,32 +42,34 @@ func AuthMiddleware(next utils.HandlerFunc) utils.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, utils.H{"error": "Invalid or expired token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, utils.H{"error": "Invalid token claims"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 			c.Abort()
 			return
 		}
 
+		// Store user info in context
 		userId, ok := claims["userId"].(string)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, utils.H{"error": "Invalid user ID in token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
 			c.Abort()
 			return
 		}
 		c.Set("userId", userId)
 
-		next(c)
+		c.Next()
 	}
 }
 
-func OptionalAuthMiddleware(next utils.HandlerFunc) utils.HandlerFunc {
-	return func(c *utils.LiteContext) {
+// OptionalAuthMiddleware identifies the user if a token is present, but allows guests to proceed.
+func OptionalAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		var tokenString string
 
@@ -81,8 +84,9 @@ func OptionalAuthMiddleware(next utils.HandlerFunc) utils.HandlerFunc {
 			tokenString = c.Query("token")
 		}
 
+		// If no token, just proceed as guest
 		if tokenString == "" {
-			next(c)
+			c.Next()
 			return
 		}
 
@@ -93,14 +97,19 @@ func OptionalAuthMiddleware(next utils.HandlerFunc) utils.HandlerFunc {
 			return config.GetJWTSecret(), nil
 		})
 
-		if err == nil && token.Valid {
-			if claims, ok := token.Claims.(jwt.MapClaims); ok {
-				if userId, ok := claims["userId"].(string); ok {
-					c.Set("userId", userId)
-				}
+		// If invalid token, proceed as guest (or you could return error, but optional usually means proceed)
+		if err != nil || !token.Valid {
+			c.Next()
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if ok {
+			if userId, ok := claims["userId"].(string); ok {
+				c.Set("userId", userId)
 			}
 		}
 
-		next(c)
+		c.Next()
 	}
 }

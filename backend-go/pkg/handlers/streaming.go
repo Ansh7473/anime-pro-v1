@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,32 +14,39 @@ import (
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/providers"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
 )
 
 var (
-	sourceCache      = make(map[string]interface{})
-	sourceCacheMutex sync.RWMutex
-	metadataCache    = make(map[string]interface{})
-	cacheMutex      sync.RWMutex
-	originCache      = make(map[string]string)
+	// Simple in-memory cache for metadata to mirror Node.js implementation
+	cacheMutex    sync.RWMutex
+	metadataCache = make(map[string]map[string]interface{})
+	slugCache     = make(map[string]string)
+
+	// Global Origin Cache for SmartAssetProxy (fixes stripped referers)
+	originCache      = make(map[string]string) // ClientIP/ID -> Last successful proxied Hostname
 	originCacheMutex sync.RWMutex
+
+	// High-Efficiency Streaming Cache (Source List)
+	// Key format: provider:animeId:ep
+	sourceCache      = make(map[string]map[string]interface{})
+	sourceCacheMutex sync.RWMutex
 )
 
 // StreamingAnimelok handles fetching sources from Animelok with slug resolution
-func StreamingAnimelok(c *utils.LiteContext) {
+func StreamingAnimelok(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
-	if ep == 0 {
-		ep = 1
-	}
+	if ep == 0 { ep = 1 }
 
-	cacheKey := fmt.Sprintf("animelok-%s-%d", animeId, ep)
+	// Efficiency: Check global sources cache first
+	cacheKey := fmt.Sprintf("animelok:%s:%d", animeId, ep)
 	sourceCacheMutex.RLock()
 	if cached, ok := sourceCache[cacheKey]; ok {
 		sourceCacheMutex.RUnlock()
-		c.JSON(http.StatusOK, utils.H{"provider": "Animelok", "status": 200, "data": cached, "cached": true})
+		c.JSON(http.StatusOK, gin.H{"provider": "Animelok", "status": 200, "data": cached, "cached": true})
 		return
 	}
 	sourceCacheMutex.RUnlock()
@@ -46,37 +54,40 @@ func StreamingAnimelok(c *utils.LiteContext) {
 	// 1. Resolve titles for the animeId (MAL ID)
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Title not found", "provider": "Animelok"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "Animelok"})
 		return
 	}
 
-	// 2. Generate and test candidate slugs
-	var baseSlug string
-	for _, title := range titles {
-		baseSlug = providers.ToKebab(title)
-		candidates := []string{
-			fmt.Sprintf("%s-%s", baseSlug, animeId),
-			baseSlug,
-		}
+	// 2. Generate slug candidates
+	malId, _ := strconv.Atoi(animeId)
+	aniId, _ := utils.GetAnilistId(malId)
+	baseSlug := providers.ToKebab(titles[0])
 
-		for _, slug := range candidates {
-			res := providers.GetAnimelokSources(slug, ep)
-			if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
-				sourceCacheMutex.Lock()
-				sourceCache[cacheKey] = res
-				sourceCacheMutex.Unlock()
+	candidates := []string{fmt.Sprintf("%s-%d", baseSlug, malId)}
+	if aniId > 0 && aniId != malId {
+		candidates = append(candidates, fmt.Sprintf("%s-%d", baseSlug, aniId))
+	}
+	candidates = append(candidates, baseSlug)
 
-				c.JSON(http.StatusOK, utils.H{"provider": "Animelok", "status": 200, "data": res})
-				return
-			}
+	// 3. Try candidates
+	for _, slug := range candidates {
+		res := providers.GetAnimelokSources(slug, ep)
+		if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
+			// Update Cache
+			sourceCacheMutex.Lock()
+			sourceCache[cacheKey] = res
+			sourceCacheMutex.Unlock()
+
+			c.JSON(http.StatusOK, gin.H{"provider": "Animelok", "status": 200, "data": res})
+			return
 		}
 	}
 
-	c.JSON(http.StatusNotFound, utils.H{"provider": "Animelok", "status": 404, "message": "No sources found"})
+	c.JSON(http.StatusNotFound, gin.H{"provider": "Animelok", "status": 404, "message": "No sources found"})
 }
 
 // StreamingNineAnime handles fetching streaming sources from 9anime
-func StreamingNineAnime(c *utils.LiteContext) {
+func StreamingNineAnime(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
@@ -84,22 +95,28 @@ func StreamingNineAnime(c *utils.LiteContext) {
 		ep = 1
 	}
 
+	log.Printf("[9anime Handler] Request: animeId=%s ep=%d", animeId, ep)
+
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		log.Printf("[9anime Handler] FAILED: Could not resolve titles for animeId=%s err=%v", animeId, err)
-		c.JSON(http.StatusNotFound, utils.H{"error": "Title not found", "provider": "9anime"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "9anime"})
 		return
 	}
 
-	triedSlugs := []string{}
+	log.Printf("[9anime Handler] Resolved %d titles for animeId=%s: %v", len(titles), animeId, titles)
+
+	// Try all potential titles as slugs to find 9anime match
+	triedSlugs := make([]string, 0)
 	for _, title := range titles {
 		baseSlug := providers.ToKebab(title)
 		triedSlugs = append(triedSlugs, baseSlug)
+		log.Printf("[9anime Handler] Trying title='%s' slug='%s' ep=%d", title, baseSlug, ep)
 
 		res := providers.GetNineAnimeSources(baseSlug, ep)
 		if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
 			log.Printf("[9anime Handler] SUCCESS: Found %d sources for slug='%s'", len(src), baseSlug)
-			c.JSON(http.StatusOK, utils.H{
+			c.JSON(http.StatusOK, gin.H{
 				"provider": "9anime",
 				"status":   200,
 				"data":     res,
@@ -109,20 +126,21 @@ func StreamingNineAnime(c *utils.LiteContext) {
 	}
 
 	log.Printf("[9anime Handler] FAILED: No sources found for animeId=%s after trying slugs: %v", animeId, triedSlugs)
-	c.JSON(http.StatusNotFound, utils.H{
+	c.JSON(http.StatusNotFound, gin.H{
 		"provider":   "9anime",
 		"status":     404,
 		"message":    "No sources found",
-		"triedSlugs": triedSlugs,
+		"debug_info": fmt.Sprintf("Tried slugs: %v for titles: %v", triedSlugs, titles),
+		"diags":      triedSlugs, // This is just for tracing titles.
 	})
 }
 
 // StreamingAnimelokSlug returns potential slug candidates for client-side fetching
-func StreamingAnimelokSlug(c *utils.LiteContext) {
+func StreamingAnimelokSlug(c *gin.Context) {
 	animeId := c.Query("animeId")
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Title not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
 	}
 
@@ -132,98 +150,165 @@ func StreamingAnimelokSlug(c *utils.LiteContext) {
 		baseSlug,
 	}
 
-	c.JSON(http.StatusOK, utils.H{
+	c.JSON(http.StatusOK, gin.H{
 		"malId":          animeId,
 		"slugCandidates": candidates,
 		"titles":         titles,
+		"apiTemplate":    "https://animelok.xyz/api/anime/{slug}/episodes/{ep}",
 	})
 }
 
 // StreamingEpisodeMetadata aggregates metadata from multiple providers
-func StreamingEpisodeMetadata(c *utils.LiteContext) {
+func StreamingEpisodeMetadata(c *gin.Context) {
 	animeId := c.Query("animeId")
 	if animeId == "" {
-		c.JSON(http.StatusBadRequest, utils.H{"error": "animeId required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "animeId required"})
 		return
 	}
 
-	// Try Cache
+	// Check cache - but we want to bypass old cached data that might have limited episodes
+	// For now, bypass cache to ensure we get all episodes
+	// TODO: Implement proper cache invalidation when episode count changes
+
 	// cacheMutex.RLock()
 	// if cached, ok := metadataCache[animeId]; ok {
 	// 	cacheMutex.RUnlock()
-	// 	c.JSON(http.StatusOK, utils.H{"provider": "Cache", "status": 200, "data": cached})
+	// 	c.JSON(http.StatusOK, gin.H{"provider": "Cache", "status": 200, "data": cached})
 	// 	return
 	// }
 	// cacheMutex.RUnlock()
+
+	malId, _ := strconv.Atoi(animeId)
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
-		c.JSON(http.StatusOK, utils.H{"provider": "None", "data": utils.H{"episodes": []interface{}{}, "totalEpisodes": 0}})
+		c.JSON(http.StatusOK, gin.H{"provider": "None", "data": gin.H{"episodes": []interface{}{}, "totalEpisodes": 0}})
 		return
 	}
 
-	var episodes []map[string]interface{}
+	var episodes []utils.EpisodeMetadata
 	var providerName string
 
-	// Track 1: DesiDub (Priority 1)
-	for _, title := range titles {
-		baseSlug := providers.ToKebab(title)
-		info := providers.GetDesiDubInfo(baseSlug)
-		if info != nil {
-			providerName = "DesiDub"
-			if rawEps, ok := info["episodes"].([]map[string]interface{}); ok {
-				for _, ep := range rawEps {
-					episodes = append(episodes, map[string]interface{}{
-						"number": ep["number"],
-						"title":  fmt.Sprintf("Episode %v", ep["number"]),
-						"slug":   ep["slug"],
-					})
-				}
-			}
-			break
+	// 1. Try Animelok first (FAST & handles pagination better)
+	log.Printf("[Metadata Handler] Trying Animelok metadata for %s", animeId)
+	alokEps := providers.GetAnimelokMetadataByMalId(malId, titles)
+	if len(alokEps) > 0 {
+		providerName = "Animelok"
+		for _, ae := range alokEps {
+			num, _ := ae["number"].(float64)
+			episodes = append(episodes, utils.EpisodeMetadata{
+				Number:      int(num),
+				Title:       utils.ToString(ae["title"]),
+				Image:       utils.ToString(ae["image"]),
+				Description: utils.ToString(ae["description"]),
+				IsFiller:    ae["isFiller"].(bool),
+			})
 		}
+		log.Printf("[Metadata Handler] Fetched %d episodes from %s", len(episodes), providerName)
 	}
 
-	// Track 2: Animelok (Priority 2)
+	// 3. Jikan Fallback (Best for descriptions and titles) - Fetch all pages if needed
 	if len(episodes) == 0 {
-		for _, title := range titles {
-			baseSlug := providers.ToKebab(title)
-			candidates := []string{fmt.Sprintf("%s-%s", baseSlug, animeId), baseSlug}
+		log.Printf("[Metadata Handler] No episodes from providers, trying Jikan fallback for %s", animeId)
 
-			for _, slug := range candidates {
-				eps := providers.GetAnimelokMetadata(slug)
-				if len(eps) > 0 {
-					providerName = "Animelok"
-					for _, epMap := range eps {
-						episodes = append(episodes, map[string]interface{}{
-							"number": epMap["number"],
-							"title":  epMap["title"],
-						})
-					}
-					break
-				}
+		// Fetch all episodes by paginating through all pages
+		page := 1
+		limit := 100 // Maximum allowed by Jikan API
+
+		for {
+			jikanUrl := fmt.Sprintf("https://api.jikan.moe/v4/anime/%s/episodes?page=%d&limit=%d", animeId, page, limit)
+			// Jikan has a strict rate limit (3 requests per second)
+			if page > 1 {
+				time.Sleep(500 * time.Millisecond) // Faster than 1s to avoid Vercel 10s timeout
 			}
-			if providerName != "" {
+
+			jresp, jerr := utils.FetchWithRetries(jikanUrl, 3, 1000)
+			if jerr != nil || jresp.StatusCode() != http.StatusOK {
+				if page == 1 {
+					log.Printf("[Metadata Handler] Failed to fetch from Jikan API: %v", jerr)
+				}
+				log.Printf("[Metadata Handler] Stopped fetching Jikan episodes at page %d due to: %v", page, jerr)
 				break
 			}
+
+			var jdata map[string]interface{}
+			if err := json.Unmarshal(jresp.Body(), &jdata); err != nil {
+				break
+			}
+
+			jeps, ok := jdata["data"].([]interface{})
+			if !ok || len(jeps) == 0 {
+				break
+			}
+
+			providerName = "Jikan"
+			for _, je := range jeps {
+				mapEp := je.(map[string]interface{})
+				num, _ := mapEp["mal_id"].(float64)
+				episodes = append(episodes, utils.EpisodeMetadata{
+					Number:       int(num),
+					Title:        utils.ToString(mapEp["title"]),
+					IsFiller:     mapEp["filler"].(bool),
+					OfficialSite: utils.ToString(mapEp["forum_url"]),
+				})
+			}
+
+			// Check if there are more pages
+			pagination, ok := jdata["pagination"].(map[string]interface{})
+			if !ok {
+				break
+			}
+
+			hasNextPage, _ := pagination["has_next_page"].(bool)
+			if !hasNextPage {
+				break
+			}
+
+			page++
+		}
+
+		log.Printf("[Metadata Handler] Total episodes fetched from Jikan: %d", len(episodes))
+	}
+
+	// 4. AniList Enrichment (Official high-res thumbnails and titles)
+	aniId, _ := utils.GetAnilistId(malId)
+	if aniId > 0 && len(episodes) > 0 {
+		streamingEps, _ := providers.GetAniListStreamingEpisodes(aniId)
+		if len(streamingEps) > 0 {
+			for i, ep := range episodes {
+				for _, strip := range streamingEps {
+					title := utils.ToString(strip["title"])
+					if strings.Contains(strings.ToLower(title), fmt.Sprintf("episode %d", ep.Number)) {
+						if ep.Image == "" || strings.Contains(ep.Image, "placeholder") {
+							episodes[i].Image = utils.ToString(strip["thumbnail"])
+						}
+						if ep.Title == "" || ep.Title == fmt.Sprintf("Episode %d", ep.Number) {
+							episodes[i].Title = title
+						}
+						break
+					}
+				}
+			}
 		}
 	}
 
-	res := utils.H{
+	res := gin.H{
 		"episodes":      episodes,
 		"totalEpisodes": len(episodes),
 		"timestamp":     time.Now().Unix(),
+		"provider":      providerName,
 	}
 
-	if providerName != "Jikan" { // Don't cache jikan fallbacks, they're missing slugs
+	// Update cache
+	if len(episodes) > 0 {
 		cacheMutex.Lock()
 		metadataCache[animeId] = res
 		cacheMutex.Unlock()
 	}
 
-	c.JSON(http.StatusOK, utils.H{"provider": providerName, "status": 200, "data": res})
+	c.JSON(http.StatusOK, gin.H{"provider": providerName, "status": 200, "data": res})
 }
 
-func StreamingDesiDub(c *utils.LiteContext) {
+func StreamingDesiDub(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
@@ -233,33 +318,41 @@ func StreamingDesiDub(c *utils.LiteContext) {
 
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Title not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
 	}
 
 	var sources []map[string]interface{}
+
+	// Track 1: Try DIRECT episode URL patterns first (fastest approach)
+	// DesiDub URLs follow: /watch/{anime-slug}-episode-{ep}/
 	for _, title := range titles {
 		baseSlug := providers.ToKebab(title)
-
-		// 1. Try resolving sources directly with common patterns
 		directSources := providers.GetDesiDubSourcesDirect(baseSlug, ep)
 		if len(directSources) > 0 {
 			sources = directSources
 			break
 		}
+	}
 
-		// 2. Search fallback
-		searchRes := providers.SearchDesiDub(title)
-		if len(searchRes) > 0 {
-			bestSlug := utils.ToString(searchRes[0]["slug"])
-			// Try direct patterns with best match slug
-			directSources = providers.GetDesiDubSourcesDirect(bestSlug, ep)
+	// Track 2: Search + info scrape fallback
+	if len(sources) == 0 {
+		for _, title := range titles {
+			results := providers.SearchDesiDub(title)
+			if len(results) == 0 {
+				continue
+			}
+
+			bestSlug := utils.ToString(results[0]["slug"])
+
+			// Try direct patterns with the discovered slug
+			directSources := providers.GetDesiDubSourcesDirect(bestSlug, ep)
 			if len(directSources) > 0 {
 				sources = directSources
 				break
 			}
 
-			// Info scrape fallback (Slower but accurate)
+			// Fallback: info scrape to find episode slug
 			info := providers.GetDesiDubInfo(bestSlug)
 			if info == nil {
 				continue
@@ -268,12 +361,14 @@ func StreamingDesiDub(c *utils.LiteContext) {
 			rawEps, _ := info["episodes"].([]map[string]interface{})
 			var epSlug string
 			for _, e := range rawEps {
-				numStr := strings.TrimSpace(utils.ToString(e["number"]))
+				numStr := utils.ToString(e["number"])
+				// Flexible matching: try exact string match and integer match
+				numStr = strings.TrimSpace(numStr)
 				if numStr == epStr {
 					epSlug = utils.ToString(e["slug"])
 					break
 				}
-				// Robust numeric match
+				// Try parsing as int for numeric comparison
 				epNumRe := regexp.MustCompile(`(\d+)`)
 				if m := epNumRe.FindString(numStr); m != "" {
 					parsedNum, _ := strconv.Atoi(m)
@@ -295,42 +390,44 @@ func StreamingDesiDub(c *utils.LiteContext) {
 
 	if len(sources) > 0 {
 		// Return raw sources, the frontend will handle proxying if needed
-		c.JSON(http.StatusOK, utils.H{
+		c.JSON(http.StatusOK, gin.H{
 			"provider": "DesiDubAnime",
 			"status":   200,
-			"data":     utils.H{"sources": sources, "subtitles": []interface{}{}},
+			"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
 		})
 		return
 	}
 
-	c.JSON(http.StatusNotFound, utils.H{"error": "Sources not found for any title", "provider": "DesiDubAnime"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "Sources not found for any title", "provider": "DesiDubAnime"})
 }
 
-func StreamingAnimeHindiDubbed(c *utils.LiteContext) {
+func StreamingAnimeHindiDubbed(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Title not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
 	}
 
 	var sources []map[string]interface{}
 	for _, title := range titles {
-		searchRes := providers.SearchAHD(title)
-		if len(searchRes) > 0 {
-			// AHD search usually yields the series ID.
-			// We try sources for the series ID + episode number.
-			for _, res := range searchRes {
-				bestId := utils.ToString(res["id"])
-				ahdSources := providers.GetAHDSources(bestId, epStr)
-				if len(ahdSources) > 0 {
-					sources = ahdSources
-					break
-				}
+		results := providers.SearchAHD(title)
+		if len(results) == 0 {
+			continue
+		}
+
+		// AHD provider returns sources by title/postId and episode string
+		for _, res := range results {
+			bestId := utils.ToString(res["id"])
+			srcs := providers.GetAHDSources(bestId, epStr)
+			if len(srcs) > 0 {
+				sources = srcs
+				break
 			}
 		}
+
 		if len(sources) > 0 {
 			break
 		}
@@ -338,19 +435,19 @@ func StreamingAnimeHindiDubbed(c *utils.LiteContext) {
 
 	if len(sources) > 0 {
 		// Return raw sources, the frontend will handle proxying if needed
-		c.JSON(http.StatusOK, utils.H{
+		c.JSON(http.StatusOK, gin.H{
 			"provider": "AnimeHindiDubbed-WP",
 			"status":   200,
-			"data":     utils.H{"sources": sources, "subtitles": []interface{}{}},
+			"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
 		})
 		return
 	}
 
-	c.JSON(http.StatusNotFound, utils.H{"error": "Sources not found for any title", "provider": "AnimeHindiDubbed-WP"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "Sources not found for any title", "provider": "AnimeHindiDubbed-WP"})
 }
 
 // StreamingToonstream handles fetching sources from Toonstream
-func StreamingToonstream(c *utils.LiteContext) {
+func StreamingToonstream(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
@@ -360,7 +457,7 @@ func StreamingToonstream(c *utils.LiteContext) {
 
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Title not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
 	}
 
@@ -391,18 +488,18 @@ func StreamingToonstream(c *utils.LiteContext) {
 	}
 
 	if len(sources) > 0 {
-		c.JSON(http.StatusOK, utils.H{
+		c.JSON(http.StatusOK, gin.H{
 			"provider": "Toonstream",
 			"status":   200,
-			"data":     utils.H{"sources": sources, "subtitles": []interface{}{}},
+			"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
 		})
 		return
 	}
 
-	c.JSON(http.StatusNotFound, utils.H{"error": "Sources not found", "provider": "Toonstream"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "Sources not found", "provider": "Toonstream"})
 }
 
-func StreamingSourcesAggregate(c *utils.LiteContext) {
+func StreamingSourcesAggregate(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
@@ -412,7 +509,7 @@ func StreamingSourcesAggregate(c *utils.LiteContext) {
 
 	titles, err := providers.GetAnimeTitles(animeId)
 	if err != nil || len(titles) == 0 {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Title not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
 	}
 
@@ -560,9 +657,9 @@ func StreamingSourcesAggregate(c *utils.LiteContext) {
 
 	if len(allSources) > 0 {
 		// Return raw sources, the frontend will handle proxying if needed
-		c.JSON(http.StatusOK, utils.H{
+		c.JSON(http.StatusOK, gin.H{
 			"status": 200,
-			"data": utils.H{
+			"data": gin.H{
 				"sources":   allSources,
 				"subtitles": []interface{}{},
 			},
@@ -570,13 +667,13 @@ func StreamingSourcesAggregate(c *utils.LiteContext) {
 		return
 	}
 
-	c.JSON(http.StatusNotFound, utils.H{"status": 404, "message": "No sources found"})
+	c.JSON(http.StatusNotFound, gin.H{"status": 404, "message": "No sources found"})
 }
 
-func StreamingProxy(c *utils.LiteContext) {
+func StreamingProxy(c *gin.Context) {
 	targetUrl := c.Query("url")
 	if targetUrl == "" {
-		c.JSON(http.StatusBadRequest, utils.H{"error": "url required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url required"})
 		return
 	}
 
@@ -753,7 +850,7 @@ success:
 
 	if err != nil {
 		log.Printf("[Proxy] FINAL ERROR for %s: %v", targetUrl, err)
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "failed to fetch resource", "status": 503})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "failed to fetch resource", "status": 503})
 		return
 	}
 
@@ -773,7 +870,7 @@ success:
 		}
 
 		log.Printf("[Proxy] Target FINALLY returned %d for %s", resp.StatusCode(), targetUrl)
-		c.JSON(resp.StatusCode(), utils.H{"error": "Target CDN returned error", "status": resp.StatusCode()})
+		c.JSON(resp.StatusCode(), gin.H{"error": "Target CDN returned error", "status": resp.StatusCode()})
 		return
 	}
 
@@ -827,7 +924,7 @@ success:
 
 		if err != nil || (!resp.IsSuccess() && resp.StatusCode() != 200) {
 			log.Printf("[Proxy] Stealth retry failed (%d) for %s", resp.StatusCode(), lowerTarget)
-			c.JSON(resp.StatusCode(), utils.H{"error": "Target CDN block", "status": resp.StatusCode()})
+			c.JSON(resp.StatusCode(), gin.H{"error": "Target CDN block", "status": resp.StatusCode()})
 			return
 		}
 	}
@@ -932,7 +1029,7 @@ success:
 		}
 
 		c.Header("Content-Type", contentType)
-		c.String(resp.StatusCode(), "%s", body)
+		c.String(resp.StatusCode(), body)
 		return
 	}
 
@@ -956,20 +1053,20 @@ success:
 }
 
 // SmartAssetProxy handles 404s by checking the Referer and trying to fix relative paths
-func SmartAssetProxy(c *utils.LiteContext) {
+func SmartAssetProxy(c *gin.Context) {
 	referer := c.GetHeader("Referer")
 	path := c.Request.URL.Path
 
 	// Skip if it's already an API route or no referer
 	if referer == "" || strings.HasPrefix(path, "/api/v1") || path == "/" {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Resource not found", "path": path})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Resource not found", "path": path})
 		return
 	}
 
 	// Filter common metadata/asset patterns to avoid infinite loops on real 404s
 	isAsset := strings.Contains(path, ".") || strings.Contains(path, "assets") || strings.Contains(path, "static") || strings.Contains(path, "wp-")
 	if !isAsset {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Resource not found", "path": path})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Resource not found", "path": path})
 		return
 	}
 
@@ -977,7 +1074,7 @@ func SmartAssetProxy(c *utils.LiteContext) {
 	// Referer looks like: http://localhost:3001/api/v1/streaming/proxy?url=https://target.com/embed/page
 	refUrl, err := url.Parse(referer)
 	if err != nil {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Invalid referer"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invalid referer"})
 		return
 	}
 
@@ -1011,14 +1108,14 @@ func SmartAssetProxy(c *utils.LiteContext) {
 			targetParam = "https://af03.anvod.pro" + path
 		} else {
 			log.Printf("[SmartProxy] Could not find target in referer: %s", referer)
-			c.JSON(http.StatusNotFound, utils.H{"error": "No target URL in referer"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "No target URL in referer"})
 			return
 		}
 	}
 
 	targetUrl, err := url.Parse(targetParam)
 	if err != nil || targetUrl.Host == "" {
-		c.JSON(http.StatusNotFound, utils.H{"error": "Invalid target URL"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invalid target URL"})
 		return
 	}
 
@@ -1043,19 +1140,19 @@ func SmartAssetProxy(c *utils.LiteContext) {
 }
 
 // Provider direct routes (Legacy support)
-func ProviderAnimelokSearch(c *utils.LiteContext) {
+func ProviderAnimelokSearch(c *gin.Context) {
 	q := c.Query("q")
 	res := providers.SearchAnimelok(q)
-	c.JSON(http.StatusOK, utils.H{"results": res})
+	c.JSON(http.StatusOK, gin.H{"results": res})
 }
 
-func ProviderAnimelokMetadata(c *utils.LiteContext) {
+func ProviderAnimelokMetadata(c *gin.Context) {
 	slug := c.Param("slug")
 	res := providers.GetAnimelokMetadata(slug)
 	c.JSON(http.StatusOK, res)
 }
 
-func ProviderAnimelokSources(c *utils.LiteContext) {
+func ProviderAnimelokSources(c *gin.Context) {
 	id := c.Param("id")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
@@ -1064,48 +1161,48 @@ func ProviderAnimelokSources(c *utils.LiteContext) {
 }
 
 // Provider direct routes
-func ProviderDesidubSearch(c *utils.LiteContext) {
+func ProviderDesidubSearch(c *gin.Context) {
 	q := c.Query("q")
 	res := providers.SearchDesiDub(q)
 	c.JSON(http.StatusOK, res)
 }
 
-func ProviderDesidubInfo(c *utils.LiteContext) {
+func ProviderDesidubInfo(c *gin.Context) {
 	slug := c.Param("slug")
 	res := providers.GetDesiDubInfo(slug)
 	c.JSON(http.StatusOK, res)
 }
 
-func ProviderDesidubSources(c *utils.LiteContext) {
+func ProviderDesidubSources(c *gin.Context) {
 	id := c.Param("id")
 	res := providers.GetDesiDubSources(id)
 	c.JSON(http.StatusOK, res)
 }
 
-func ProviderAHDSearch(c *utils.LiteContext) {
+func ProviderAHDSearch(c *gin.Context) {
 	q := c.Query("q")
 	res := providers.SearchAHD(q)
 	c.JSON(http.StatusOK, res)
 }
 
-func ProviderAHDInfo(c *utils.LiteContext) {
+func ProviderAHDInfo(c *gin.Context) {
 	id := c.Param("id")
 	res := providers.GetAHDInfo(id)
 	c.JSON(http.StatusOK, res)
 }
 
-func ProviderAHDSources(c *utils.LiteContext) {
+func ProviderAHDSources(c *gin.Context) {
 	id := c.Param("id")
 	ep := c.Query("ep")
 	res := providers.GetAHDSources(id, ep)
 	c.JSON(http.StatusOK, res)
 }
 
-func ProviderAHDWPSearch(c *utils.LiteContext)   { ProviderAHDSearch(c) }
-func ProviderAHDWPLatest(c *utils.LiteContext)   { c.JSON(http.StatusOK, []interface{}{}) }
-func ProviderAHDWPEpisodes(c *utils.LiteContext) { ProviderAHDInfo(c) }
-func ProviderAHDWPServers(c *utils.LiteContext)  { ProviderAHDInfo(c) }
-func ProviderAHDWPSources(c *utils.LiteContext)  { ProviderAHDSources(c) }
+func ProviderAHDWPSearch(c *gin.Context)   { ProviderAHDSearch(c) }
+func ProviderAHDWPLatest(c *gin.Context)   { c.JSON(http.StatusOK, []interface{}{}) }
+func ProviderAHDWPEpisodes(c *gin.Context) { ProviderAHDInfo(c) }
+func ProviderAHDWPServers(c *gin.Context)  { ProviderAHDInfo(c) }
+func ProviderAHDWPSources(c *gin.Context)  { ProviderAHDSources(c) }
 
 // healAnilistImage extracts the ID from a stale AniList URL and fetches the current living URL
 func healAnilistImage(originalUrl string) (string, error) {
@@ -1137,14 +1234,14 @@ func healAnilistImage(originalUrl string) (string, error) {
 }
 
 // ProviderToonstreamSearch legacy handler
-func ProviderToonstreamSearch(c *utils.LiteContext) {
+func ProviderToonstreamSearch(c *gin.Context) {
 	q := c.Query("q")
 	res := providers.SearchToonstream(q)
 	c.JSON(http.StatusOK, res)
 }
 
 // ProviderToonstreamSources legacy handler
-func ProviderToonstreamSources(c *utils.LiteContext) {
+func ProviderToonstreamSources(c *gin.Context) {
 	slug := c.Query("slug")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)

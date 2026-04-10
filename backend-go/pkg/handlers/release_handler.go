@@ -7,24 +7,25 @@ import (
 	"strings"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
+	"github.com/gin-gonic/gin"
 )
 
 // GitHubRepo point to the repository for releases
 const GitHubRepo = "Ansh7473/anime-pro-v1"
 
 // AddRelease - Admin only method (Legacy/Disabled)
-func AddRelease(c *utils.LiteContext) {
-	c.JSON(http.StatusNotImplemented, utils.H{"message": "Manual releases are disabled. Use GitHub Releases instead."})
+func AddRelease(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"message": "Manual releases are disabled. Use GitHub Releases instead."})
 }
 
 // GetLatestReleases - Scan recent releases to find newest Windows and Android binaries independently
-func GetLatestReleases(c *utils.LiteContext) {
+func GetLatestReleases(c *gin.Context) {
 	// Query GitHub Public API for last 10 releases
 	url := "https://api.github.com/repos/" + GitHubRepo + "/releases?per_page=10"
 	
 	resp, err := utils.HttpClient.R().Get(url)
 	if err != nil || resp.IsError() {
-		c.JSON(http.StatusServiceUnavailable, utils.H{"error": "Failed to fetch releases from GitHub API"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Failed to fetch releases from GitHub API"})
 		return
 	}
 
@@ -40,7 +41,7 @@ func GetLatestReleases(c *utils.LiteContext) {
 	}
 
 	if err := json.Unmarshal(resp.Body(), &ghReleases); err != nil {
-		c.JSON(http.StatusInternalServerError, utils.H{"error": "Failed to parse metadata from GitHub"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse metadata from GitHub"})
 		return
 	}
 
