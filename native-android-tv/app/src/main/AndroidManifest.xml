@@ -12,11 +12,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AnimePro"
-        android:banner="@drawable/app_banner">
+        android:theme="@style/Theme.AnimePro">
         <activity
             android:name=".MainActivity"
             android:exported="true"
