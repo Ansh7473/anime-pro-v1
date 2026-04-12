@@ -47,14 +47,12 @@ func initApp() {
 				   origin == "http://localhost:5173" || 
 				   origin == "http://localhost:5174" || 
 				   origin == "http://localhost:3000" || 
-				   origin == "https://anime-pro-v1.anshsoni310.workers.dev" ||
 				   origin == "https://anime-pro-v1-frontend.vercel.app" {
 				return true
 			}
 
-			// Vercel/Workers domain match
-			if (len(origin) > 11 && origin[len(origin)-11:] == ".vercel.app") ||
-			   (len(origin) > 12 && origin[len(origin)-12:] == ".workers.dev") {
+			// Vercel Preview domain match (ending with .vercel.app)
+			if len(origin) > 11 && origin[len(origin)-11:] == ".vercel.app" {
 				return true
 			}
 
