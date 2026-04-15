@@ -54,6 +54,7 @@ Featuring **Incremental Parallel Loading**, AnimePro starts your video faster th
 | **Backend** | Go (Gin Gonic), PostgreSQL, JWT Auth |
 | **Mobile** | Capacitor 6, Java (Native Android), XML Layouts |
 | **Desktop** | Electron JS (Sandbox-free High Performance) |
+| **TV** | FLUTTER  |
 | **Streaming** | HLS.js, Video.js, Tactical Segments Proxy |
 
 ---
