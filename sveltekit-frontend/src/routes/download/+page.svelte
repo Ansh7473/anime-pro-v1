@@ -1,11 +1,32 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { Monitor, Smartphone, Download, Info, Terminal, Cpu, Activity, ShieldCheck, Zap } from 'lucide-svelte';
-	import { fade, fly } from 'svelte/transition';
-	import { api } from '$lib/api';
+	import { onMount } from "svelte";
+	import {
+		Monitor,
+		Smartphone,
+		Download,
+		Info,
+		Terminal,
+		Cpu,
+		Activity,
+		ShieldCheck,
+		Zap,
+		Tv,
+	} from "lucide-svelte";
+	import { fade, fly } from "svelte/transition";
+	import { api } from "$lib/api";
 
 	let releases = $state<any[]>([]);
 	let loading = $state(true);
+
+	const tvRelease = {
+		platform: "tv",
+		download_url:
+			"https://drive.google.com/uc?export=download&id=1cAOt75WCIvy7WTwW7sSFgZKgRxMMGrUa",
+		version: "1.0.0",
+		size: "128.5MB",
+		architecture: "ARM64_TV",
+		api_level: "Flutter TV",
+	};
 	onMount(async () => {
 		try {
 			const res = await api.getLatestReleases();
@@ -13,13 +34,14 @@
 				releases = res;
 			}
 		} catch (error) {
-			console.error('Failed to fetch releases:', error);
+			console.error("Failed to fetch releases:", error);
 		} finally {
 			loading = false;
 		}
 	});
 
 	function getLatest(platform: string) {
+		if (platform === "tv") return tvRelease;
 		return releases.find((r) => r.platform === platform);
 	}
 </script>
@@ -27,8 +49,14 @@
 <div class="tactical-page-container">
 	<!-- Background HUD Elements -->
 	<div class="tactical-hud-overlay">
-		<div class="tactical-hud-circle dashed large" style="top: -10%; right: -5%; width: 600px; height: 600px;"></div>
-		<div class="tactical-hud-circle dashed medium" style="bottom: 10%; left: -5%; width: 400px; height: 400px; animation-direction: reverse;"></div>
+		<div
+			class="tactical-hud-circle dashed large"
+			style="top: -10%; right: -5%; width: 600px; height: 600px;"
+		></div>
+		<div
+			class="tactical-hud-circle dashed medium"
+			style="bottom: 10%; left: -5%; width: 400px; height: 400px; animation-direction: reverse;"
+		></div>
 		<div class="tactical-grid absolute inset-0 opacity-40"></div>
 	</div>
 
@@ -43,31 +71,34 @@
 				ANIME_PRO <span class="version-tag">v2.0 // CORE</span>
 			</h1>
 			<p class="tactical-subtitle">
-				Initialize high-performance streaming protocol on your primary devices. 
-				Low-latency, ad-free, encrypted anime synchronization.
+				Initialize high-performance streaming protocol on your primary
+				devices. Low-latency, ad-free, encrypted anime synchronization.
 			</p>
 		</header>
 
 		<!-- Cards Grid -->
 		<div class="tactical-grid-system">
 			<!-- Windows OS -->
-			<section 
+			<section
 				class="tactical-glass tactical-card group"
 				in:fly={{ y: 40, duration: 800, delay: 200 }}
 			>
 				<div class="card-icon-overlay">
 					<Monitor size={80} strokeWidth={1} />
 				</div>
-				
+
 				<div class="card-content">
 					<div class="release-indicator">
 						<span class="indicator-dot primary"></span>
-						<span class="indicator-label primary">STABLE_RELEASE_X64</span>
+						<span class="indicator-label primary"
+							>STABLE_RELEASE_X64</span
+						>
 					</div>
-					
+
 					<h2 class="card-title">WINDOWS_OS</h2>
 					<p class="card-description">
-						Hyper-threaded desktop architecture with native hardware acceleration and Picture-in-Picture protocol.
+						Hyper-threaded desktop architecture with native hardware
+						acceleration and Picture-in-Picture protocol.
 					</p>
 
 					<div class="tech-specs">
@@ -84,22 +115,29 @@
 					{#if loading}
 						<div class="loading-placeholder">
 							<div class="progress-bar">
-								<div class="progress-fill shimmer" style="width: 65%;"></div>
+								<div
+									class="progress-fill shimmer"
+									style="width: 65%;"
+								></div>
 							</div>
 						</div>
 					{:else}
-						{@const win = getLatest('windows')}
+						{@const win = getLatest("windows")}
 						<div class="download-action">
-							<a 
-								href={win?.download_url || '#'} 
+							<a
+								href={win?.download_url || "#"}
 								class="tactical-btn primary-action"
 							>
 								<Download size={20} />
 								<span>DOWNLOAD FOR WINDOWS</span>
 							</a>
 							<div class="file-meta">
-								<span class="meta-item">VER: {win?.version || '2.0.4'}</span>
-								<span class="meta-item">SIZE: {win?.size || '412.8MB'}</span>
+								<span class="meta-item"
+									>VER: {win?.version || "2.0.4"}</span
+								>
+								<span class="meta-item"
+									>SIZE: {win?.size || "412.8MB"}</span
+								>
 								<span class="meta-item">PROTO: AES_256</span>
 							</div>
 						</div>
@@ -108,23 +146,26 @@
 			</section>
 
 			<!-- Android OS -->
-			<section 
+			<section
 				class="tactical-glass tactical-card group"
 				in:fly={{ y: 40, duration: 800, delay: 400 }}
 			>
 				<div class="card-icon-overlay">
 					<Smartphone size={80} strokeWidth={1} />
 				</div>
-				
+
 				<div class="card-content">
 					<div class="release-indicator">
 						<span class="indicator-dot secondary"></span>
-						<span class="indicator-label secondary">MOBILE_CORE_V8A</span>
+						<span class="indicator-label secondary"
+							>MOBILE_CORE_V8A</span
+						>
 					</div>
-					
+
 					<h2 class="card-title">ANDROID_OS</h2>
 					<p class="card-description">
-						Streamlined mobile interface optimized for low-latency data streaming and tactile synchronization.
+						Streamlined mobile interface optimized for low-latency
+						data streaming and tactile synchronization.
 					</p>
 
 					<div class="tech-specs">
@@ -141,23 +182,97 @@
 					{#if loading}
 						<div class="loading-placeholder">
 							<div class="progress-bar">
-								<div class="progress-fill shimmer" style="width: 45%;"></div>
+								<div
+									class="progress-fill shimmer"
+									style="width: 45%;"
+								></div>
 							</div>
 						</div>
 					{:else}
-						{@const apk = getLatest('android')}
+						{@const apk = getLatest("android")}
 						<div class="download-action">
-							<a 
-								href={apk?.download_url || '#'} 
+							<a
+								href={apk?.download_url || "#"}
 								class="tactical-btn secondary-action"
 							>
 								<Zap size={20} />
 								<span>DOWNLOAD FOR ANDROID</span>
 							</a>
 							<div class="file-meta">
-								<span class="meta-item">VER: {apk?.version || '1.9.2'}</span>
-								<span class="meta-item">SIZE: {apk?.size || '84.5MB'}</span>
+								<span class="meta-item"
+									>VER: {apk?.version || "1.9.2"}</span
+								>
+								<span class="meta-item"
+									>SIZE: {apk?.size || "84.5MB"}</span
+								>
 								<span class="meta-item">ENGINE: V5_CORE</span>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</section>
+
+			<!-- TV OS -->
+			<section
+				class="tactical-glass tactical-card group"
+				in:fly={{ y: 40, duration: 800, delay: 600 }}
+			>
+				<div class="card-icon-overlay">
+					<Tv size={80} strokeWidth={1} />
+				</div>
+
+				<div class="card-content">
+					<div class="release-indicator">
+						<span class="indicator-dot primary"></span>
+						<span class="indicator-label primary"
+							>TV_RELEASE_V1</span
+						>
+					</div>
+
+					<h2 class="card-title">TV_OS</h2>
+					<p class="card-description">
+						High-performance streaming for TV devices with Flutter
+						TV SDK. Optimized for remote control and 4K playback.
+					</p>
+
+					<div class="tech-specs">
+						<div class="spec-item">
+							<span class="spec-label">ARCHITECTURE</span>
+							<span class="spec-value">ARM64_TV</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">FRAMEWORK</span>
+							<span class="spec-value">FLUTTER_TV</span>
+						</div>
+					</div>
+
+					{#if loading}
+						<div class="loading-placeholder">
+							<div class="progress-bar">
+								<div
+									class="progress-fill shimmer"
+									style="width: 55%;"
+								></div>
+							</div>
+						</div>
+					{:else}
+						{@const tv = getLatest("tv")}
+						<div class="download-action">
+							<a
+								href={tv?.download_url || "#"}
+								class="tactical-btn primary-action"
+							>
+								<Download size={20} />
+								<span>DOWNLOAD FOR TV</span>
+							</a>
+							<div class="file-meta">
+								<span class="meta-item"
+									>VER: {tv?.version || "1.0.0"}</span
+								>
+								<span class="meta-item"
+									>SIZE: {tv?.size || "128.5MB"}</span
+								>
+								<span class="meta-item">PROTO: AES_256</span>
 							</div>
 						</div>
 					{/if}
@@ -200,7 +315,10 @@
 		<!-- Guide Tip -->
 		<div class="tactical-guide" in:fade={{ delay: 1200 }}>
 			<Info size={18} />
-			<span>INSTALLATION_TIP: Enable "Unknown Sources" in OS Security Settings for APK deployment.</span>
+			<span
+				>INSTALLATION_TIP: Enable "Unknown Sources" in OS Security
+				Settings for APK deployment.</span
+			>
 		</div>
 	</main>
 </div>
@@ -264,8 +382,15 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50% { opacity: 0.5; transform: scale(1.2); }
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.5;
+			transform: scale(1.2);
+		}
 	}
 
 	.status-label {
@@ -311,7 +436,9 @@
 		padding: 2.5rem;
 		border-radius: 1.5rem;
 		overflow: hidden;
-		transition: transform 0.3s ease, border-color 0.3s ease;
+		transition:
+			transform 0.3s ease,
+			border-color 0.3s ease;
 	}
 
 	.tactical-card:hover {
@@ -339,9 +466,19 @@
 		margin-bottom: 1rem;
 	}
 
-	.indicator-dot { width: 8px; height: 8px; border-radius: 50%; }
-	.indicator-dot.primary { background: var(--tactical-primary); box-shadow: 0 0 8px var(--tactical-primary); }
-	.indicator-dot.secondary { background: #4caf50; box-shadow: 0 0 8px #4caf50; }
+	.indicator-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+	.indicator-dot.primary {
+		background: var(--tactical-primary);
+		box-shadow: 0 0 8px var(--tactical-primary);
+	}
+	.indicator-dot.secondary {
+		background: #4caf50;
+		box-shadow: 0 0 8px #4caf50;
+	}
 
 	.indicator-label {
 		font-family: var(--font-mono);
@@ -349,8 +486,12 @@
 		letter-spacing: 0.15em;
 		text-transform: uppercase;
 	}
-	.indicator-label.primary { color: var(--tactical-primary); }
-	.indicator-label.secondary { color: #4caf50; }
+	.indicator-label.primary {
+		color: var(--tactical-primary);
+	}
+	.indicator-label.secondary {
+		color: #4caf50;
+	}
 
 	.card-title {
 		font-size: 2.25rem;
@@ -450,7 +591,10 @@
 		gap: 1rem;
 	}
 
-	.stat-icon { color: var(--tactical-outline); opacity: 0.4; }
+	.stat-icon {
+		color: var(--tactical-outline);
+		opacity: 0.4;
+	}
 
 	.stat-label {
 		display: block;
@@ -506,24 +650,39 @@
 	}
 
 	.shimmer::after {
-		content: '';
+		content: "";
 		position: absolute;
 		left: -100%;
 		top: 0;
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+		background: linear-gradient(
+			90deg,
+			transparent,
+			rgba(255, 255, 255, 0.2),
+			transparent
+		);
 		animation: shimmer-load 1.5s infinite;
 	}
 
 	@keyframes shimmer-load {
-		100% { left: 100%; }
+		100% {
+			left: 100%;
+		}
 	}
 
 	@media (max-width: 480px) {
-		.tactical-page-container { padding: 3rem 1rem; }
-		.tactical-title { font-size: 2.5rem; }
-		.tactical-card { padding: 1.5rem; }
-		.card-title { font-size: 1.75rem; }
+		.tactical-page-container {
+			padding: 3rem 1rem;
+		}
+		.tactical-title {
+			font-size: 2.5rem;
+		}
+		.tactical-card {
+			padding: 1.5rem;
+		}
+		.card-title {
+			font-size: 1.75rem;
+		}
 	}
 </style>
