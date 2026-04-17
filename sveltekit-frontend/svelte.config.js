@@ -1,4 +1,3 @@
-import adapterVercel from '@sveltejs/adapter-vercel';
 import adapterStatic from '@sveltejs/adapter-static';
 import adapterCloudflare from '@sveltejs/adapter-cloudflare';
 import { relative, sep } from 'node:path';
@@ -34,10 +33,6 @@ const config = {
 					precompress: false,
 					strict: false
 				});
-			}
-
-			if (process.env.APP_PLATFORM === 'vercel') {
-				return adapterVercel({ runtime: 'nodejs20.x' });
 			}
 
 			// Default to Cloudflare for web deployments
