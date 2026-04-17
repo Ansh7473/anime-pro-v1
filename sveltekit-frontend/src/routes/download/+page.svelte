@@ -160,9 +160,9 @@
 							</div>
 						{/if}
 					</div>
-				</section>
-			</section>
 
+			</section>
+			
 			<!-- Android OS --> 
 			<section 
 				class="tactical-glass tactical-card group"
