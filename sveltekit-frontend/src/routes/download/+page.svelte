@@ -100,11 +100,14 @@
 							<div class="file-meta">
 								<span class="meta-item">VER: {win?.version || '2.0.4'}</span>
 								<span class="meta-item">SIZE: {win?.size || '412.8MB'}</span>
-						<span class="meta-item">PROTO: AES_256</span>
-					</div>
+								<span class="meta-item">PROTO: AES_256</span>
+							</div>
+						</div>
+					{/if}
 				</div>
+			</section>
 
-				<!-- TV OS -->
+			<!-- TV OS -->
 				<section 
 					class="tactical-glass tactical-card group"
 					in:fly={{ y: 40, duration: 800, delay: 600 }}
@@ -154,7 +157,7 @@
 								</a>
 								<div class="file-meta">
 									<span class="meta-item">VER: {tv?.version || '1.0.0'}</span>
-									<span class="meta-item">SIZE: {tv?.size || '120MB'}</span>
+									<span class="meta-item">SIZE: {tv?.size || '50MB'}</span>
 									<span class="meta-item">ENGINE: LEANBACK</span>
 								</div>
 							</div>
