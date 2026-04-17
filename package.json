@@ -4,13 +4,11 @@
   "workspaces": [
     "sveltekit-frontend",
     "android-app",
-    "desktop-app",
-    "tv-app"
+    "desktop-app"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=sveltekit-frontend",
     "dev:backend": "go run .",
-    "build:tv": "npm run build --workspace=tv-app",
-    "sync:tv": "npm run sync --workspace=tv-app"
+    "build:tv": "npm run build --workspace=tv-app"
   }
 }
