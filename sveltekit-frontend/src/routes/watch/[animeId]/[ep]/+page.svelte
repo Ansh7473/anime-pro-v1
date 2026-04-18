@@ -425,12 +425,17 @@
     let autoStarted = false;
     let providersFinished = 0;
 
-    // Handle each provider independently
-    providerConfigs.forEach(async (config) => {
+    // Sequential fetching to avoid state race conditions and overwriting
+    for (const config of providerConfigs) {
       try {
+        console.log(`[Player] Fetching sources from ${config.name}...`);
         const res = await config.fetcher(animeId, ep);
-        // Guard: If a new load request started, discard these results
-        if (loadId !== currentLoadId) return;
+        
+        // Guard: If a new load request started while we were awaiting, discard these results
+        if (loadId !== currentLoadId) {
+          console.warn(`[Player] Discarding ${config.name} results (stale load)`);
+          return;
+        }
 
         if (res?.data?.sources) {
           const providerSources = res.data.sources.map((s: any) => ({
@@ -438,13 +443,17 @@
             provider: s.provider || config.name,
           }));
 
+          console.log(`[Player] ${config.name} returned ${providerSources.length} sources`);
+
           // Deduplicate: Don't add if URL already exists
           const uniqueNewSources = providerSources.filter(
             (ns: any) => !sources.some((s) => s.url === ns.url),
           );
 
           // Add to global sources list reactively
-          sources = [...sources, ...uniqueNewSources];
+          if (uniqueNewSources.length > 0) {
+            sources = [...sources, ...uniqueNewSources];
+          }
 
           // Auto-select logic if we haven't started anything yet
           if (!autoStarted && providerSources.length > 0) {
@@ -468,13 +477,12 @@
             }
 
             // Start player with the best match from this batch, or just the first available source
-            // if it's the first provider to return and we have no match.
             const candidate = bestMatch || providerSources[0];
             if (candidate && !autoStarted) {
               selectedSource = candidate;
               autoStarted = true;
 
-              // CRITICAL: Stop blocking the UI if we have a valid source to play
+              // Top blocking the UI if we have a valid source to play
               sourceLoading = false;
 
               const isEmbed =
@@ -495,17 +503,17 @@
           }
         }
       } catch (err) {
-        console.warn(`Provider ${config.name} failed:`, err);
+        console.warn(`[Player] Provider ${config.name} failed:`, err);
       } finally {
         providersFinished++;
-        if (providersFinished === providerConfigs.length) {
-          sourceLoading = false;
-          if (sources.length === 0) {
-            error = "No sources found for this episode on any provider.";
-          }
-        }
       }
-    });
+    }
+
+    // All finished
+    sourceLoading = false;
+    if (sources.length === 0) {
+      error = "No sources found for this episode on any provider.";
+    }
 
     // Fallback: If after 8 seconds we have nothing, stop loading
     setTimeout(() => {
