@@ -53,3 +53,10 @@ export const switchProfile = (profile: any) => {
         currentProfile: profile
     }));
 };
+
+export const updateProfile = (profile: any) => {
+    auth.update((state) => ({
+        ...state,
+        currentProfile: profile
+    }));
+};
