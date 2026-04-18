@@ -49,6 +49,16 @@
   }
 
   onMount(loadIntel);
+
+  async function togglePref(key: string, value: any) {
+    if (!$auth.currentProfile?.id) return;
+    try {
+      const updated = await api.updateProfile($auth.currentProfile.id, { [key]: value }, $auth.token);
+      auth.updateProfile(updated); // Update local store
+    } catch (err) {
+      console.error('Failed to sync settings:', err);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -86,10 +96,83 @@
         </div>
       </header>
 
-      <!-- MAIN HUD GRID -->
-      <main class="hud-main">
+        <!-- TACTICAL PROGRESSION (RANK & XP) -->
+        <section class="progression-block stats-grid">
+          <div class="rank-card glass highlight">
+            <div class="rank-header">
+              <span class="rank-title">{recommendations?.intelligence_level || 'GAMMA'} // {stats?.progression?.rank || 'RECRUIT'}</span>
+              <span class="rank-level">LVL_{stats?.progression?.level || '01'}</span>
+            </div>
+            <div class="xp-container">
+              <div class="xp-bar">
+                <div class="xp-fill" style="width: {(stats?.progression?.xp / stats?.progression?.next_rank) * 100}%"></div>
+              </div>
+              <div class="xp-meta">
+                <span>XP: {stats?.progression?.xp}</span>
+                <span>NEXT: {stats?.progression?.next_rank}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTIVITY RADAR (Last 7 Days) -->
+          <div class="activity-card glass">
+            <div class="activity-header">
+              <Activity size={16} />
+              <span>COMBAT_SYNC_ACTIVITY</span>
+            </div>
+            <div class="activity-bars">
+              {#each (stats?.activity || []) as day}
+                <div class="activity-col">
+                  <div class="bar-limit">
+                    <div class="bar-fill level-{day.level}" style="height: {Math.min(day.minutes, 100)}%"></div>
+                  </div>
+                  <span class="day-label">{day.day}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        </section>
+
+        <!-- QUICK RESUME / CURRENT OBJECTIVE -->
+...
+        {#if stats?.quick_resume}
+          <section class="quick-resume glass">
+            <div class="objective-header">
+              <div class="indicator pulse-green"></div>
+              <span>CURRENT_OBJECTIVE: ACTIVE</span>
+            </div>
+            <div class="resume-content">
+              <img src={getProxiedImage(stats.quick_resume.animePoster)} alt="" class="resume-poster" />
+              <div class="resume-info">
+                <h2 class="anime-title">{stats.quick_resume.animeTitle}</h2>
+                <div class="meta-row">
+                  <span class="ep-tag">EPISODE {stats.quick_resume.episodeNumber}</span>
+                  <span class="divider">//</span>
+                  <span class="status">IN_PROGRESS</span>
+                </div>
+                <div class="progress-container">
+                  <div class="progress-label">SYNCHRONIZATION</div>
+                  <div class="progress-bar-large">
+                    <div class="fill" style="width: {stats.quick_resume.duration > 0 ? (stats.quick_resume.progress / stats.quick_resume.duration) * 100 : 0}%"></div>
+                  </div>
+                </div>
+                <a href="/watch/{stats.quick_resume.animeId}/{stats.quick_resume.episodeNumber}" class="resume-btn">
+                  <Zap size={18} />
+                  <span>RESUME_MISSION</span>
+                </a>
+              </div>
+              <div class="decoration-lines">
+                <div class="line"></div>
+                <div class="line"></div>
+                <div class="line"></div>
+              </div>
+            </div>
+          </section>
+        {/if}
+
         <!-- TOP STATS ROW -->
         <section class="stats-grid">
+...
           <div class="stat-card glass">
             <div class="stat-icon"><Clock size={24} /></div>
             <div class="stat-content">
@@ -195,12 +278,48 @@
                 <a href="/watchlist" class="reserve-more glass">+{(watchlist || []).length - 4}</a>
               {/if}
             </div>
+
+            <!-- TACTICAL SETTINGS (Preferences Sync) -->
+            <div class="settings-preview column-header" style="margin-top: 2rem">
+              <Shield size={18} />
+              <span class="title">TACTICAL_LOADOUT_SYNC</span>
+              <div class="line"></div>
+            </div>
+            <div class="settings-grid glass">
+              <button 
+                class="settings-btn {($auth.currentProfile?.autoNext) ? 'active' : ''}"
+                onclick={() => togglePref('autoNext', !$auth.currentProfile?.autoNext)}
+              >
+                <span>AUTO_NEXT_ENGAGEMENT</span>
+                <div class="led"></div>
+              </button>
+              <button 
+                class="settings-btn {($auth.currentProfile?.autoSkip) ? 'active' : ''}"
+                onclick={() => togglePref('autoSkip', !$auth.currentProfile?.autoSkip)}
+              >
+                <span>AUTO_SKIP_INTRO</span>
+                <div class="led"></div>
+              </button>
+              <div class="language-selector">
+                <span class="label">COMMS_LANGUAGE:</span>
+                <select 
+                  value={$auth.currentProfile?.language || 'sub'} 
+                  onchange={(e) => togglePref('language', e.target.value)}
+                  class="glass-select"
+                >
+                  <option value="sub">SUBTITLED</option>
+                  <option value="dub">DUBBED</option>
+                  <option value="multi">MULTI_AUDIO</option>
+                </select>
+              </div>
+            </div>
           </section>
         </div>
       </main>
     </div>
   {/if}
 </div>
+
 
 <style>
   .intel-page {
@@ -395,11 +514,146 @@
     font-size: 0.8rem;
   }
 
-  .glass {
-    background: rgba(10, 10, 10, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+  /* PROGRESSION & ACTIVITY */
+  .progression-block {
+    margin-bottom: 1.5rem;
+    grid-template-columns: 1fr 1fr;
   }
+  .rank-card {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .rank-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 15px;
+  }
+  .rank-title { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: 1px; }
+  .rank-level { font-size: 0.7rem; color: #00ffcc; font-weight: 700; background: rgba(0, 255, 204, 0.1); padding: 2px 8px; border-radius: 4px; }
+  
+  .xp-container { width: 100%; }
+  .xp-bar { height: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 5px; overflow: hidden; margin-bottom: 8px; border: 1px solid rgba(0, 255, 204, 0.1); }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, #00ffcc, #0099ff); box-shadow: 0 0 10px rgba(0, 255, 204, 0.5); border-radius: 5px; transition: width 1s ease-out; }
+  .xp-meta { display: flex; justify-content: space-between; font-size: 0.6rem; color: rgba(0, 255, 204, 0.6); font-weight: 700; }
+
+  .activity-card { padding: 24px; }
+  .activity-header { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #fff; margin-bottom: 20px; font-weight: 700; letter-spacing: 1px; }
+  .activity-bars { display: flex; align-items: flex-end; justify-content: space-between; height: 100px; gap: 8px; }
+  .activity-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .bar-limit { width: 100%; height: 70px; background: rgba(255, 255, 255, 0.02); border-radius: 2px; display: flex; align-items: flex-end; position: relative; }
+  .bar-fill { width: 100%; border-radius: 1px; transition: height 0.5s ease; }
+  .day-label { font-size: 0.6rem; color: rgba(0, 255, 204, 0.4); font-weight: 600; }
+
+  /* Intensity Levels */
+  .level-0 { background: transparent; }
+  .level-1 { background: rgba(0, 255, 204, 0.2); }
+  .level-2 { background: rgba(0, 255, 204, 0.4); }
+  .level-3 { background: rgba(0, 255, 204, 0.7); box-shadow: 0 0 10px rgba(0, 255, 204, 0.3); }
+  .level-4 { background: #00ffcc; box-shadow: 0 0 15px #00ffcc; }
+
+  .quick-resume {
+    margin-bottom: 2rem;
+    padding: 30px;
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  .objective-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+  .indicator { width: 8px; height: 8px; border-radius: 50%; }
+  .pulse-green { background: #00ffcc; box-shadow: 0 0 10px #00ffcc; animation: pulse-g 1.5s infinite; }
+  @keyframes pulse-g { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+  .resume-content { display: flex; gap: 30px; position: relative; z-index: 2; }
+  .resume-poster { width: 140px; height: 200px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(0, 255, 204, 0.3); }
+  .resume-info { flex: 1; }
+  .anime-title { font-size: 2rem; font-weight: 900; color: #fff; margin: 0 0 10px; line-height: 1.1; }
+  .meta-row { display: flex; align-items: center; gap: 15px; font-size: 0.8rem; margin-bottom: 20px; }
+  .ep-tag { background: rgba(0, 255, 204, 0.1); padding: 4px 12px; border-radius: 20px; font-weight: 700; }
+  .status { color: #00ffcc; font-weight: 700; letter-spacing: 1px; }
+
+  .progress-container { margin-bottom: 30px; max-width: 400px; }
+  .progress-label { font-size: 0.6rem; color: rgba(0, 255, 204, 0.5); margin-bottom: 8px; letter-spacing: 1px; }
+  .progress-bar-large { height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
+  .progress-bar-large .fill { height: 100%; background: linear-gradient(90deg, #00ffcc, #0099ff); box-shadow: 0 0 10px #00ffcc; }
+
+  .resume-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #00ffcc;
+    color: #000;
+    padding: 12px 30px;
+    border-radius: 2px;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .resume-btn:hover { background: #fff; transform: scale(1.05); }
+
+  .decoration-lines { position: absolute; right: -20px; bottom: 20px; display: flex; flex-direction: column; gap: 5px; opacity: 0.3; transform: rotate(-45deg); }
+  .decoration-lines .line { width: 150px; height: 1px; background: #00ffcc; }
+
+  /* TACTICAL SETTINGS */
+  .settings-grid {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .settings-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 15px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .settings-btn:hover { background: rgba(0, 255, 204, 0.05); border-color: rgba(0, 255, 204, 0.3); }
+  .settings-btn.active { color: #fff; border-color: #00ffcc; background: rgba(0, 255, 204, 0.1); }
+  .settings-btn .led { width: 6px; height: 6px; border-radius: 50%; background: #444; }
+  .settings-btn.active .led { background: #00ffcc; box-shadow: 0 0 8px #00ffcc; }
+
+  .language-selector {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .glass-select {
+    background: #111;
+    color: #fff;
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .glass-select:focus { border-color: #00ffcc; }
 
   /* Responsive */
   @media (max-width: 900px) {
@@ -409,5 +663,7 @@
   @media (max-width: 600px) {
     .stats-grid { grid-template-columns: 1fr; }
     .hud-header { flex-direction: column; gap: 10px; text-align: center; }
+    .resume-content { flex-direction: column; align-items: center; text-align: center; }
+    .progress-container { margin: 0 auto 30px; }
   }
 </style>

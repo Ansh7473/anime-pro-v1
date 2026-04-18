@@ -64,4 +64,138 @@ func GetAnilistId(malId int) (int, error) {
 	
 	return int(idFloat), nil
 }
+// GetMultipleMediaMetadata fetches metadata (genres, description, format) for multiple anime IDs
+func GetMultipleMediaMetadata(ids []int) (map[int]map[string]interface{}, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
 
+	query := `query($ids: [Int]) {
+		Page {
+			media(id_in: $ids, type: ANIME) {
+				id
+				idMal
+				title { english romaji }
+				genres
+				description
+				format
+				bannerImage
+				coverImage { large }
+			}
+		}
+	}`
+	vars := map[string]interface{}{"ids": ids}
+	data, err := FetchAnilist(query, vars)
+	if err != nil {
+		return nil, err
+	}
+
+	page, ok := data["Page"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid response structure")
+	}
+
+	mediaList, ok := page["media"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("media list not found")
+	}
+
+	result := make(map[int]map[string]interface{})
+	for _, m := range mediaList {
+		media := m.(map[string]interface{})
+		idMal := int(media["idMal"].(float64))
+		if idMal == 0 {
+			idMal = int(media["id"].(float64))
+		}
+		result[idMal] = media
+	}
+
+	return result, nil
+}
+// GetAniListRecommendations fetches official recommendations for a specific anime ID
+func GetAniListRecommendations(id int) ([]map[string]interface{}, error) {
+	query := `query($id: Int) {
+		Media(id: $id) {
+			recommendations(sort: RATING_DESC, limit: 10) {
+				nodes {
+					mediaRecommendation {
+						id
+						idMal
+						title { english romaji }
+						genres
+						coverImage { large }
+						description
+					}
+				}
+			}
+		}
+	}`
+	vars := map[string]interface{}{"id": id}
+	data, err := FetchAnilist(query, vars)
+	if err != nil {
+		return nil, err
+	}
+
+	media, ok := data["Media"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("media not found")
+	}
+
+	recs, ok := media["recommendations"].(map[string]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	nodes, ok := recs["nodes"].([]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	var results []map[string]interface{}
+	for _, n := range nodes {
+		node := n.(map[string]interface{})
+		if recMedia, ok := node["mediaRecommendation"].(map[string]interface{}); ok {
+			results = append(results, recMedia)
+		}
+	}
+
+	return results, nil
+}
+
+// GetPopularByGenre fetches trending anime for a specific genre, excluding watched IDs
+func GetPopularByGenre(genre string, excludedIDs []int) ([]map[string]interface{}, error) {
+	query := `query($genre: String, $excluded: [Int]) {
+		Page(page: 1, perPage: 10) {
+			media(genre: $genre, type: ANIME, sort: TRENDING_DESC, id_not_in: $excluded) {
+				id
+				idMal
+				title { english romaji }
+				genres
+				coverImage { large }
+				description
+			}
+		}
+	}`
+	vars := map[string]interface{}{"genre": genre, "excluded": excludedIDs}
+	data, err := FetchAnilist(query, vars)
+	if err != nil {
+		return nil, err
+	}
+
+	page, ok := data["Page"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid response structure")
+	}
+
+	mediaList, ok := page["media"].([]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	var results []map[string]interface{}
+	for _, m := range mediaList {
+		results = append(results, m.(map[string]interface{}))
+	}
+
+	return results, nil
+}

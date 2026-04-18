@@ -38,3 +38,8 @@ func GetJWTSecret() []byte {
 func GetDatabaseURL() string {
 	return os.Getenv("DATABASE_URL")
 }
+
+// GetOpenRouterAPIKey returns the API key for OpenRouter
+func GetOpenRouterAPIKey() string {
+	return os.Getenv("OPENROUTER_API_KEY")
+}
