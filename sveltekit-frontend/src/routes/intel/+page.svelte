@@ -62,7 +62,7 @@
   }
 </script>
 
-<s<svelte:head>
+<svelte:head>
   <title>PROFILE | ANIMEPRO</title>
 </svelte:head>
 
