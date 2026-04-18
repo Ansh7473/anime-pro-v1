@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, getProxiedImage } from '$lib/api';
-  import { auth } from '$lib/stores/auth';
+  import { auth, updateProfile } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
   import { 
     Activity, 
@@ -50,11 +50,12 @@
 
   onMount(loadIntel);
 
-  async function togglePref(key: string, value: any) {
-    if (!$auth.currentProfile?.id) return;
+  async function togglePref(key: string, value: string | number | boolean) {
+    if (!$auth.currentProfile?.id || !$auth.token) return;
     try {
-      const updated = await api.updateProfile($auth.currentProfile.id, { [key]: value }, $auth.token);
-      auth.updateProfile(updated); // Update local store
+      // Corrected argument order: (token, id, data)
+      const updated = await api.updateProfile($auth.token, $auth.currentProfile.id, { [key]: value });
+      updateProfile(updated); // Sync with local auth store
     } catch (err) {
       console.error('Failed to sync settings:', err);
     }
@@ -304,7 +305,7 @@
                 <span class="label">COMMS_LANGUAGE:</span>
                 <select 
                   value={$auth.currentProfile?.language || 'sub'} 
-                  onchange={(e) => togglePref('language', e.target.value)}
+                  onchange={(e) => togglePref('language', (e.target as HTMLSelectElement).value)}
                   class="glass-select"
                 >
                   <option value="sub">SUBTITLED</option>
@@ -315,7 +316,6 @@
             </div>
           </section>
         </div>
-      </main>
     </div>
   {/if}
 </div>
