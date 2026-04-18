@@ -3,8 +3,8 @@
   import { auth, switchProfile, logoutUser } from "$lib/stores/auth";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { theme, } from '$lib/stores/theme';
-import {
+  import { themeState, type ThemeSettings } from '$lib/stores/theme';
+  import {
     Shield,
     UserPlus,
     Settings,
@@ -14,6 +14,9 @@ import {
     X,
     AlertCircle,
     Key,
+    Blocks,
+    Sparkles,
+    Palette
   } from "lucide-svelte";
 
   let loading = $state(true);
@@ -153,8 +156,8 @@ import {
             }
           : null,
         currentProfile:
-          state.currentProfile?.id === id
-            ? state.user?.profiles.find((p) => p.id !== id)
+          state.currentProfile?.id?.toString() === id.toString()
+            ? state.user?.profiles.find((p) => p.id?.toString() !== id.toString())
             : state.currentProfile,
       }));
     } catch (e: any) {
@@ -195,33 +198,90 @@ import {
     });
   }
 
-  const themes = [
-    { id: 'minimalist', name: 'Minimalist', bg: '#070708', accent: '#e50914' },
-    { id: 'tactical', name: 'Tactical', bg: '#0a0a0a', accent: '#ff3b30' },
-    { id: 'stealth', name: 'Stealth', bg: '#1a0000', accent: '#b30000' },
-    { id: 'cyberpunk', name: 'Cyberpunk', bg: '#050010', accent: '#d946ef' },
-    { id: 'obsidian', name: 'Obsidian', bg: '#000000', accent: '#ffffff' },
-    { id: 'midnight', name: 'Midnight', bg: '#0f172a', accent: '#38bdf8' },
-    { id: 'emerald', name: 'Emerald', bg: '#064e3b', accent: '#10b981' },
-    { id: 'royal', name: 'Royal', bg: '#1e1b4b', accent: '#818cf8' },
-    { id: 'ruby', name: 'Ruby', bg: '#450a0a', accent: '#ef4444' },
-    { id: 'amber', name: 'Amber', bg: '#451a03', accent: '#f59e0b' },
-    { id: 'slate', name: 'Slate', bg: '#0f172a', accent: '#f8fafc' },
-    { id: 'forest', name: 'Forest', bg: '#022c22', accent: '#34d399' },
-    { id: 'violet', name: 'Violet', bg: '#2e1065', accent: '#a855f7' },
-    { id: 'arctic', name: 'Arctic', bg: '#eff6ff', accent: '#1d4ed8' },
-    { id: 'rose', name: 'Rose', bg: '#fff1f2', accent: '#e11d48' },
-    { id: 'gold', name: 'Gold', bg: '#1c1917', accent: '#fbbf24' },
-    { id: 'ocean', name: 'Ocean', bg: '#082f49', accent: '#0ea5e9' },
-    { id: 'lava', name: 'Lava', bg: '#1c0d0d', accent: '#ff4d4d' },
-    { id: 'matrix', name: 'Matrix', bg: '#000000', accent: '#00ff41' },
-    { id: 'neon', name: 'Neon', bg: '#0a0a0a', accent: '#00ff9f' },
-    { id: 'sunset', name: 'Sunset', bg: '#120c1a', accent: '#ff7e5f' },
-    { id: 'galaxy', name: 'Galaxy', bg: '#0b001a', accent: '#8e2de2' },
-    { id: 'dracula', name: 'Dracula', bg: '#282a36', accent: '#ff79c6' },
-    { id: 'nord', name: 'Nord', bg: '#2e3440', accent: '#88c0d0' },
-    { id: 'monokai', name: 'Monokai', bg: '#272822', accent: '#f92672' }
+  // Theme Categories
+  const themeCategories = [
+    {
+      name: 'Signature Series',
+      themes: [
+        { id: 'minimalist', name: 'Signature Red', bg: '#070708', accent: '#e50914' },
+        { id: 'classic-red', name: 'Original Pro', bg: '#080808', accent: '#e50914' },
+        { id: 'crimson-vivid', name: 'Vivid Crimson', bg: '#0d0000', accent: '#E60000' },
+        { id: 'deep-crimson', name: 'Deep Crimson', bg: '#0a0000', accent: '#800000' },
+        { id: 'blood-moon', name: 'Blood Moon', bg: '#050505', accent: '#660000' }
+      ]
+    },
+    {
+      name: 'Midnight & Shadows',
+      themes: [
+        { id: 'obsidian', name: 'Obsidian', bg: '#000', accent: '#fff' },
+        { id: 'midnight', name: 'Midnight Blue', bg: '#0f172a', accent: '#38bdf8' },
+        { id: 'abyss', name: 'Abyss', bg: '#020617', accent: '#6366f1' },
+        { id: 'onyx', name: 'Onyx', bg: '#0a0a0a', accent: '#444' }
+      ]
+    },
+    {
+      name: 'Cyber & Future',
+      themes: [
+        { id: 'cyberpunk', name: 'Cyberpunk', bg: '#050010', accent: '#d946ef' },
+        { id: 'neon-pulse', name: 'Neon Pulse', bg: '#000', accent: '#00ff9f' },
+        { id: 'matrix', name: 'Matrix', bg: '#000', accent: '#00ff41' },
+        { id: 'nebula', name: 'Nebula', bg: '#0d0221', accent: '#c6426e' },
+        { id: 'stellar', name: 'Stellar', bg: '#050a14', accent: '#00e5ff' }
+      ]
+    },
+    {
+      name: 'Premium Blends',
+      themes: [
+        { id: 'dracula', name: 'Dracula', bg: '#282a36', accent: '#ff79c6' },
+        { id: 'monokai', name: 'Monokai', bg: '#272822', accent: '#f92672' },
+        { id: 'mocha', name: 'Mocha', bg: '#1e1e2e', accent: '#f5e0dc' },
+        { id: 'macchiato', name: 'Macchiato', bg: '#24273a', accent: '#c6a0f6' },
+        { id: 'frappe', name: 'Frappe', bg: '#303446', accent: '#ca9ee6' },
+        { id: 'latte', name: 'Latte', bg: '#eff1f5', accent: '#8839ef' },
+        { id: 'titan', name: 'Titan', bg: '#1a1b1e', accent: '#4fd1c5' },
+        { id: 'storm', name: 'Storm', bg: '#14213d', accent: '#fca311' }
+      ]
+    },
+    {
+      name: 'Nature & Zen',
+      themes: [
+        { id: 'emerald', name: 'Emerald', bg: '#064e3b', accent: '#10b981' },
+        { id: 'forest', name: 'Forest Green', bg: '#022c22', accent: '#34d399' },
+        { id: 'lichen', name: 'Lichen', bg: '#1a1c1a', accent: '#90a955' },
+        { id: 'sakura', name: 'Sakura Soft', bg: '#fff5f7', accent: '#ffb7c5' },
+        { id: 'zen', name: 'Zen Stone', bg: '#f5f5f4', accent: '#57534e' }
+      ]
+    },
+    {
+      name: 'Lux & Metals',
+      themes: [
+        { id: 'platinum', name: 'Platinum', bg: '#e5e4e2', accent: '#333' },
+        { id: 'titanium', name: 'Titanium', bg: '#1c1c1c', accent: '#a0a0a0' },
+        { id: 'gold', name: 'Luxe Gold', bg: '#1c1917', accent: '#fbbf24' },
+        { id: 'copper', name: 'Copper', bg: '#1a0a00', accent: '#b87333' }
+      ]
+    }
   ];
+
+  // Effects Gallery
+  const effects = [
+    { id: 'none', name: 'Clean', icon: X },
+    { id: 'glass', name: 'Glass Armor', icon: Blocks },
+    { id: 'neon', name: 'Neon Glow', icon: Sparkles },
+    { id: 'prismatic', name: 'Prismatic', icon: Palette }
+  ];
+
+  function toggleGradients() {
+    themeState.update(s => ({ ...s, gradients: !s.gradients }));
+  }
+
+  function setEffect(effectId: string) {
+    themeState.update(s => ({ ...s, effect: effectId }));
+  }
+
+  function setTheme(themeId: string) {
+    themeState.update(s => ({ ...s, current: themeId }));
+  }
 </script>
 
 <svelte:head>
@@ -345,26 +405,72 @@ import {
         </div>
 
         <div class="preferences-list">
-  <!-- Theme Selector -->
+  <!-- Theme Customization Engine -->
   <div class="pref-item vertical">
     <div class="pref-info">
-      <span>Interface Theme</span>
-      <p>Custom visual experience for your dashboard</p>
+      <h3>Visual Engine <Sparkles size={16} class="icon-accent" /></h3>
+      <p>Fine-tune your AnimePro interface with premium effects and gradients</p>
     </div>
-    <div class="theme-grid">
-      {#each themes as t}
-        <button 
-          class="theme-swatch" 
-          class:active={$theme === t.id}
-          onclick={() => $theme = t.id}
-          title={t.name}
-        >
-          <div class="swatch-preview" style="background: {t.bg}">
-            <div class="swatch-accent" style="background: {t.accent}"></div>
+
+    <!-- 1. Color Palette categorized -->
+    <div class="custom-section">
+      <div class="section-label">Color Palette</div>
+      <div class="category-stack">
+        {#each themeCategories as category}
+          <div class="theme-category">
+            <span class="cat-name">{category.name}</span>
+            <div class="theme-grid">
+              {#each category.themes as t}
+                <button 
+                  class="theme-swatch" 
+                  class:active={$themeState.current === t.id}
+                  onclick={() => setTheme(t.id)}
+                  title={t.name}
+                >
+                  <div class="swatch-preview" style="background: {t.bg}">
+                    <div class="swatch-accent" style="background: {t.accent}"></div>
+                  </div>
+                  <span class="swatch-label">{t.name}</span>
+                </button>
+              {/each}
+            </div>
           </div>
-          <span class="swatch-label">{t.name}</span>
-        </button>
-      {/each}
+        {/each}
+      </div>
+    </div>
+
+    <div class="custom-row section-margin-top">
+      <!-- 2. Gradient Toggle -->
+      <div class="custom-card glass">
+        <div class="card-info">
+          <span>Gradient Module</span>
+          <p>Apply professional blends to UI elements</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" checked={$themeState.gradients} onchange={toggleGradients} />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- 3. Effects Selection -->
+      <div class="custom-card glass vertical">
+        <div class="card-info">
+          <span>Display Effects</span>
+          <p>Layer visual atmospherics over your theme</p>
+        </div>
+        <div class="effects-grid">
+          {#each effects as effect}
+            <button 
+              class="effect-btn" 
+              class:active={$themeState.effect === effect.id}
+              onclick={() => setEffect(effect.id)}
+            >
+              <effect.icon size={18} />
+              <span>{effect.name}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
     </div>
   </div>
           <div class="pref-item">
@@ -841,6 +947,156 @@ import {
     color: white;
   }
 
+  /* Theme Engine Styles */
+  .custom-section {
+    margin: 2rem 0;
+  }
+  .section-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+    color: var(--net-text-muted);
+    margin-bottom: 1rem;
+    display: block;
+    font-weight: 700;
+  }
+  .category-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  .theme-category {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .cat-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+  }
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 1.2rem;
+  }
+  .theme-swatch {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    transition: var(--transition);
+  }
+  .theme-swatch:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.2);
+    transform: translateY(-4px);
+  }
+  .theme-swatch.active {
+    background: rgba(229, 9, 20, 0.1);
+    border-color: var(--net-red);
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.15);
+  }
+  .swatch-preview {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .swatch-accent {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    transform: skewX(-20deg) translateX(-20%);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+  }
+  .swatch-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--net-text-muted);
+  }
+  .active .swatch-label {
+    color: white;
+  }
+
+  .custom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .custom-card {
+    padding: 1.5rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+  .custom-card.vertical {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .card-info span {
+    display: block;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+  }
+  .card-info p {
+    font-size: 0.85rem;
+    color: var(--net-text-muted);
+  }
+
+  .effects-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.8rem;
+    width: 100%;
+  }
+  .effect-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 0.5rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: var(--transition);
+    color: var(--net-text-muted);
+  }
+  .effect-btn:hover {
+    background: rgba(255,255,255,0.06);
+    color: white;
+  }
+  .effect-btn.active {
+    background: var(--net-red);
+    color: white;
+    border-color: var(--net-red);
+    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+  }
+  .effect-btn span {
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .section-margin-top {
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 1024px) {
+    .custom-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .settings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -975,8 +1231,15 @@ import {
   .modal-backdrop {
     position: fixed;
     inset: 0;
+    [data-effect="glass"] .glass {
+      background: rgba(255, 255, 255, 0.05) !important;
+      -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+      backdrop-filter: blur(25px) saturate(200%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
     background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(180%);
     display: flex;
     align-items: center;
     justify-content: center;

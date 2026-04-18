@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { theme } from "$lib/stores/theme";
+  import { themeState } from "$lib/stores/theme";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { isTV } from "$lib/stores/device";
@@ -29,7 +29,10 @@
   });
 </script>
 
-<div class="app {$theme}" class:tv-mode={$isTV}>
+<div class="app theme-{$themeState.current}" 
+     class:tv-mode={$isTV}
+     data-gradients={$themeState.gradients}
+     data-effect={$themeState.effect}>
   {#if $isTV}
     <TVShell>
       {@render children()}
