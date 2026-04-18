@@ -1,12 +1,14 @@
 <script lang="ts">
-  import "../app.css";
+  import { browser } from "$app/environment";
+  import { theme } from "$lib/stores/theme";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { isTV } from "$lib/stores/device";
   import TVShell from "$lib/components/tv/TVShell.svelte";
   import RegularShell from "$lib/components/RegularShell.svelte";
-
-  import { browser } from "$app/environment";
+  
+  import "../app.css";
+  import "../lib/styles/themes.css";
 
   let { children } = $props();
 
@@ -27,7 +29,7 @@
   });
 </script>
 
-<div class="app" class:tv-mode={$isTV}>
+<div class="app {$theme}" class:tv-mode={$isTV}>
   {#if $isTV}
     <TVShell>
       {@render children()}
@@ -44,6 +46,9 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background: var(--net-bg);
+    color: var(--net-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   .tv-mode {

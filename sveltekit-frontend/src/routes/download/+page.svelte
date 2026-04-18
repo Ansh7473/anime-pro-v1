@@ -129,7 +129,7 @@
 						{@const win = getLatest("windows")}
 						<div class="download-action">
 							<a
-								href="https://anime-pro-v1.anshsoni310.workers.dev/windows"
+								href={win.download_url}
 								class="tactical-btn primary-action {downloading === 'windows' ? 'is-downloading' : ''}"
 								onclick={() => handleDownload("windows")}
 							>
@@ -267,7 +267,7 @@
 						{@const apk = getLatest("android")}
 						<div class="download-action">
 							<a
-								href="https://anime-pro-v1.anshsoni310.workers.dev/android"
+								href={apk.download_url}
 								class="tactical-btn secondary-action {downloading === 'android' ? 'is-downloading' : ''}"
 								onclick={() => handleDownload("android")}
 							>
