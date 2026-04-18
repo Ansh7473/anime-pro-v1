@@ -55,6 +55,7 @@ func SetupRoutes(r *gin.Engine) {
 		streaming.GET("/sources/desidub", handlers.StreamingDesiDub)
 		streaming.GET("/sources/ahd", handlers.StreamingAnimeHindiDubbed)
 		streaming.GET("/sources/toonstream", handlers.StreamingToonstream)
+		streaming.GET("/sources/watchanimeworld", handlers.StreamingWatchAnimeWorld)
 		streaming.GET("/sources", handlers.StreamingSourcesAggregate)
 		streaming.GET("/episode-metadata", handlers.StreamingEpisodeMetadata)
 		streaming.GET("/proxy", handlers.StreamingProxy)

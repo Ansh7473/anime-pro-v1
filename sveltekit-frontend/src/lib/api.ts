@@ -240,6 +240,9 @@ export const api = {
 	getToonstreamSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources/toonstream?animeId=${animeId}&ep=${ep}`),
 
+	getWatchAnimeWorldSources: (animeId: string, ep: number) =>
+		fetchJSON(`${STREAMING_URL}/sources/watchanimeworld?animeId=${animeId}&ep=${ep}`),
+
 	getAggregateSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources?animeId=${animeId}&ep=${ep}`),
 

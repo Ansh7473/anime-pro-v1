@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'AnimePro Ultra',
   webDir: 'build',
   server: {
-    url: 'https://anime-pro-v1-frontend.vercel.app/',
+    url: 'https://anime-pro-v1.anshsoni310.workers.dev/',
     cleartext: true,
     androidScheme: 'https'
   },

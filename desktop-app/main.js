@@ -16,7 +16,7 @@ const path = require('path');
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-const APP_URL = 'https://anime-pro-v1-frontend.vercel.app';
+const APP_URL = 'https://anime-pro-v1.anshsoni310.workers.dev';
 const IS_DEV = process.env.ELECTRON_ENV === 'development';
 
 // ─── User Agent Override ──────────────────────────────────────────────────────

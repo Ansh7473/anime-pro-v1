@@ -39,7 +39,9 @@ func StreamingAnimelok(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
 	ep, _ := strconv.Atoi(epStr)
-	if ep == 0 { ep = 1 }
+	if ep == 0 {
+		ep = 1
+	}
 
 	// Efficiency: Check global sources cache first
 	cacheKey := fmt.Sprintf("animelok:%s:%d", animeId, ep)
@@ -655,6 +657,15 @@ func StreamingSourcesAggregate(c *gin.Context) {
 		}
 	}
 
+	// Track 5: WatchAnimeWorld (Hindi/English/Multi)
+	for _, title := range titles {
+		resWAW := providers.GetWatchAnimeWorldSources([]string{title}, ep)
+		if len(resWAW) > 0 {
+			allSources = append(allSources, resWAW...)
+			break
+		}
+	}
+
 	if len(allSources) > 0 {
 		// Return raw sources, the frontend will handle proxying if needed
 		c.JSON(http.StatusOK, gin.H{
@@ -748,6 +759,9 @@ func StreamingProxy(c *gin.Context) {
 	} else if strings.Contains(targetHost, "owocdn") || strings.Contains(targetHost, "anvod") {
 		headers["Referer"] = "https://animelok.xyz/"
 		headers["Origin"] = "https://animelok.xyz"
+	} else if strings.Contains(targetHost, "zephyrflick.top") || strings.Contains(targetHost, "as-cdn") || strings.Contains(targetHost, "watchanimeworld.in") {
+		headers["Referer"] = "https://watchanimeworld.net/"
+		headers["Origin"] = "https://watchanimeworld.net"
 	} else if headers["Referer"] == "" {
 		headers["Referer"] = referer
 		u, _ := url.Parse(referer)
@@ -1247,4 +1261,32 @@ func ProviderToonstreamSources(c *gin.Context) {
 	ep, _ := strconv.Atoi(epStr)
 	res := providers.GetToonstreamSourcesDirect(slug, ep)
 	c.JSON(http.StatusOK, res)
+}
+func StreamingWatchAnimeWorld(c *gin.Context) {
+	animeId := c.Query("animeId")
+	epStr := c.Query("ep")
+	ep, _ := strconv.Atoi(epStr)
+	if ep == 0 {
+		ep = 1
+	}
+
+	titles, err := providers.GetAnimeTitles(animeId)
+	if err != nil || len(titles) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
+		return
+	}
+
+	sources := providers.GetWatchAnimeWorldSources(titles, ep)
+	if len(sources) > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"status": 200,
+			"data": gin.H{
+				"sources":   sources,
+				"subtitles": []interface{}{},
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusNotFound, gin.H{"error": "Sources not found", "provider": "WatchAnimeWorld"})
 }

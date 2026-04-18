@@ -22,7 +22,7 @@ func AddRelease(c *gin.Context) {
 func GetLatestReleases(c *gin.Context) {
 	// Query GitHub Public API for last 10 releases
 	url := "https://api.github.com/repos/" + GitHubRepo + "/releases?per_page=10"
-	
+
 	resp, err := utils.HttpClient.R().Get(url)
 	if err != nil || resp.IsError() {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Failed to fetch releases from GitHub API"})
@@ -62,7 +62,7 @@ func GetLatestReleases(c *gin.Context) {
 		for _, asset := range release.Assets {
 			platform := ""
 			lowerName := strings.ToLower(asset.Name)
-			
+
 			if strings.HasSuffix(lowerName, ".exe") && !foundPlatforms["windows"] {
 				platform = "windows"
 			} else if strings.HasSuffix(lowerName, ".apk") && !foundPlatforms["android"] {
@@ -81,7 +81,7 @@ func GetLatestReleases(c *gin.Context) {
 				foundPlatforms[platform] = true
 			}
 		}
-		
+
 		// Stop if all supported platforms are already found
 		if foundPlatforms["windows"] && foundPlatforms["android"] {
 			break
