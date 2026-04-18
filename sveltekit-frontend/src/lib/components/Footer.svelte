@@ -7,7 +7,8 @@
     Cpu, 
     Database, 
     Radio,
-    Terminal
+    Terminal,
+    Heart
   } from 'lucide-svelte';
   
   const currentYear = new Date().getFullYear();
@@ -18,7 +19,7 @@
     <!-- Brand / Mission -->
     <div class="footer-section brand-section">
       <div class="footer-logo">
-        <Terminal size={24} class="text-primary" />
+        <Terminal size={24} style="color: var(--net-red)" />
         <span class="logo-text">ANIMEPRO<span class="dot">.</span></span>
       </div>
       <p class="mission-text">
@@ -88,7 +89,7 @@
 <style>
   .tactical-footer {
     background: #050505;
-    border-top: 1px solid rgba(173, 199, 255, 0.1);
+    border-top: 1px solid rgba(229, 9, 20, 0.1);
     padding-top: 4rem;
     margin-top: 2rem;
     position: relative;
@@ -121,7 +122,7 @@
     color: #fff;
   }
 
-  .logo-text .dot { color: #ADC7FF; }
+  .logo-text .dot { color: var(--net-red); }
 
   .mission-text {
     font-size: 0.85rem;
@@ -134,11 +135,11 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(173, 199, 255, 0.05);
+    background: rgba(229, 9, 20, 0.05);
     padding: 6px 12px;
     border-radius: 4px;
     width: fit-content;
-    border: 0.5px solid rgba(173, 199, 255, 0.1);
+    border: 0.5px solid rgba(229, 9, 20, 0.1);
   }
 
   .status-indicator {
@@ -155,7 +156,7 @@
   .status-text {
     font-size: 0.6rem;
     font-weight: 800;
-    color: rgba(173, 199, 255, 0.8);
+    color: var(--net-red);
     letter-spacing: 1px;
   }
 
@@ -175,7 +176,7 @@
     left: 0;
     width: 30px;
     height: 2px;
-    background: #ADC7FF;
+    background: var(--net-red);
   }
 
   .footer-links {
@@ -196,7 +197,7 @@
   }
 
   .footer-links a:hover {
-    color: #ADC7FF;
+    color: var(--net-red);
     transform: translateX(4px);
   }
 

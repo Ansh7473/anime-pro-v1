@@ -49,7 +49,7 @@
 					<div class="profile-name">
 						<span>Ansh Soni</span>
 						<div class="check-container">
-							<Shield size={10} class="text-white fill-blue-400" />
+							<Shield size={10} class="text-white fill-red-500" />
 						</div>
 					</div>
 				</div>
@@ -111,7 +111,7 @@
 				<div class="card-tag">PAYMENT_METHOD // 02</div>
 				<h2 class="method-title">CRYPTO_ASSETS</h2>
 				<div class="placeholder-content">
-					<Zap size={48} class="text-blue-400 opacity-20" />
+					<Zap size={48} class="text-red-500 opacity-20" />
 					<p class="placeholder-text">NODESECURE_CRYPTO_PROTOCOL</p>
 					<span class="coming-soon">INITIALIZING_SOON...</span>
 				</div>
@@ -191,8 +191,8 @@
 		font-weight: 800;
 		letter-spacing: -0.04em;
 		margin-bottom: 1rem;
-		color: var(--tactical-primary);
-		text-shadow: 0 0 15px rgba(26, 115, 232, 0.3);
+		color: var(--net-red);
+		text-shadow: 0 0 15px rgba(229, 9, 20, 0.3);
 	}
 
 	.version-tag {
@@ -232,8 +232,8 @@
 	}
 
 	.donation-card.primary {
-		background: rgba(26, 115, 232, 0.05);
-		border: 1px solid rgba(26, 115, 232, 0.2);
+		background: rgba(229, 9, 20, 0.05);
+		border: 1px solid rgba(229, 9, 20, 0.2);
 	}
 
 	.donation-card.secondary.blur {
@@ -271,7 +271,7 @@
 		height: 70px;
 		border-radius: 50%;
 		padding: 3px;
-		background: linear-gradient(135deg, #00baf2, #1a73e8);
+		background: linear-gradient(135deg, var(--net-red), #7c040a);
 		position: relative;
 		overflow: hidden;
 	}
@@ -299,7 +299,7 @@
 		justify-content: center;
 		width: 16px;
 		height: 16px;
-		background: #00baf2;
+		background: var(--net-red);
 		border-radius: 50%;
 	}
 
@@ -332,8 +332,8 @@
 		left: 0;
 		right: 0;
 		height: 2px;
-		background: #00baf2; /* Paytm Blue */
-		box-shadow: 0 0 15px #00baf2;
+		background: var(--net-red); /* Red Scanner */
+		box-shadow: 0 0 15px var(--net-red);
 		animation: scan 4s linear infinite;
 		z-index: 2;
 	}
@@ -348,7 +348,7 @@
 		position: absolute;
 		width: 15px;
 		height: 15px;
-		border: 3px solid #00baf2;
+		border: 3px solid var(--net-red);
 		opacity: 0.5;
 	}
 	.t-l { top: 1rem; left: 1rem; border-right: 0; border-bottom: 0; }
@@ -384,7 +384,7 @@
 	}
 
 	.addr-label { color: var(--tactical-outline); }
-	.addr-net { color: #00baf2; }
+	.addr-net { color: var(--net-red); }
 
 	.addr-code {
 		font-family: var(--font-mono);
