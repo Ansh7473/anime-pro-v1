@@ -62,251 +62,99 @@
   }
 </script>
 
-<svelte:head>
-  <title>INTEL CENTER | ANIMEPRO</title>
+<s<svelte:head>
+  <title>PROFILE | ANIMEPRO</title>
 </svelte:head>
 
-<div class="intel-page">
+<div class="profile-page">
   {#if loading}
     <div class="loader-container">
-      <div class="tactical-loader">
-        <div class="scan-line"></div>
-        <div class="loading-text">INITIALIZING TACTICAL_HUD...</div>
+      <div class="premium-loader">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
       </div>
+      <div class="loading-text">LOADING PROFILE...</div>
     </div>
   {:else if stats}
-    <div class="hud-container">
-      <!-- HEADER STATUS BAR -->
-      <header class="hud-header">
-        <div class="status-group">
-          <div class="status-item">
-            <span class="label">OPERATOR:</span>
-            <span class="value">{$auth.currentProfile?.name || 'GUEST_01'}</span>
+    <div class="profile-container">
+      <!-- MINIMALIST HEADER -->
+      <header class="profile-header">
+        <div class="user-info">
+          <div class="avatar-placeholder">
+            {($auth.currentProfile?.name || 'A')[0].toUpperCase()}
           </div>
-          <div class="status-item">
-            <span class="label">COMMS:</span>
-            <span class="value online">ENCRYPTED</span>
-          </div>
-          <div class="status-item">
-            <span class="label">INTEL_LEVEL:</span>
-            <span class="value">{recommendations?.intelligence_level || 'ALPHA'}</span>
+          <div class="user-meta">
+            <h1>{$auth.currentProfile?.name || 'User'}</h1>
+            <div class="status-row">
+              <span class="status-badge">ONLINE</span>
+              <span class="level-badge">LEVEL {stats?.progression?.level || '01'}</span>
+            </div>
           </div>
         </div>
-        <div class="header-clock">
-          {new Date().toLocaleTimeString()} [UTC+5:30]
+        <div class="account-actions">
+          <div class="time-stamp">{new Date().toLocaleDateString()}</div>
         </div>
       </header>
 
-        <!-- TACTICAL PROGRESSION (RANK & XP) -->
-        <section class="progression-block stats-grid">
-          <div class="rank-card glass highlight">
-            <div class="rank-header">
-              <span class="rank-title">{recommendations?.intelligence_level || 'GAMMA'} // {stats?.progression?.rank || 'RECRUIT'}</span>
-              <span class="rank-level">LVL_{stats?.progression?.level || '01'}</span>
-            </div>
-            <div class="xp-container">
-              <div class="xp-bar">
-                <div class="xp-fill" style="width: {(stats?.progression?.xp / stats?.progression?.next_rank) * 100}%"></div>
+      <div class="dashboard-grid">
+        <!-- LEFT COLUMN: STATS & SETTINGS -->
+        <div class="sidebar">
+          <section class="premium-card stats-overview">
+            <h2>STATISTICS</h2>
+            <div class="stat-items">
+              <div class="item">
+                <span class="label">WATCH TIME</span>
+                <span class="val">{(stats?.total_hours || 0).toFixed(1)}h</span>
               </div>
-              <div class="xp-meta">
-                <span>XP: {stats?.progression?.xp}</span>
-                <span>NEXT: {stats?.progression?.next_rank}</span>
+              <div class="item highlight">
+                <span class="label">RANK</span>
+                <span class="val">{stats?.progression?.rank || 'RECRUIT'}</span>
               </div>
-            </div>
-          </div>
-
-          <!-- ACTIVITY RADAR (Last 7 Days) -->
-          <div class="activity-card glass">
-            <div class="activity-header">
-              <Activity size={16} />
-              <span>COMBAT_SYNC_ACTIVITY</span>
-            </div>
-            <div class="activity-bars">
-              {#each (stats?.activity || []) as day}
-                <div class="activity-col">
-                  <div class="bar-limit">
-                    <div class="bar-fill level-{day.level}" style="height: {Math.min(day.minutes, 100)}%"></div>
-                  </div>
-                  <span class="day-label">{day.day}</span>
-                </div>
-              {/each}
-            </div>
-          </div>
-        </section>
-
-        <!-- QUICK RESUME / CURRENT OBJECTIVE -->
-...
-        {#if stats?.quick_resume}
-          <section class="quick-resume glass">
-            <div class="objective-header">
-              <div class="indicator pulse-green"></div>
-              <span>CURRENT_OBJECTIVE: ACTIVE</span>
-            </div>
-            <div class="resume-content">
-              <img src={getProxiedImage(stats.quick_resume.animePoster)} alt="" class="resume-poster" />
-              <div class="resume-info">
-                <h2 class="anime-title">{stats.quick_resume.animeTitle}</h2>
-                <div class="meta-row">
-                  <span class="ep-tag">EPISODE {stats.quick_resume.episodeNumber}</span>
-                  <span class="divider">//</span>
-                  <span class="status">IN_PROGRESS</span>
-                </div>
-                <div class="progress-container">
-                  <div class="progress-label">SYNCHRONIZATION</div>
-                  <div class="progress-bar-large">
-                    <div class="fill" style="width: {stats.quick_resume.duration > 0 ? (stats.quick_resume.progress / stats.quick_resume.duration) * 100 : 0}%"></div>
-                  </div>
-                </div>
-                <a href="/watch/{stats.quick_resume.animeId}/{stats.quick_resume.episodeNumber}" class="resume-btn">
-                  <Zap size={18} />
-                  <span>RESUME_MISSION</span>
-                </a>
-              </div>
-              <div class="decoration-lines">
-                <div class="line"></div>
-                <div class="line"></div>
-                <div class="line"></div>
+              <div class="item">
+                <span class="label">RESERVES</span>
+                <span class="val">{stats?.reserves_count || '0'}</span>
               </div>
             </div>
           </section>
-        {/if}
 
-        <!-- TOP STATS ROW -->
-        <section class="stats-grid">
-...
-          <div class="stat-card glass">
-            <div class="stat-icon"><Clock size={24} /></div>
-            <div class="stat-content">
-              <span class="stat-label">COMBAT_HOURS</span>
-              <span class="stat-value">{(stats?.total_hours || 0).toFixed(1)}</span>
-            </div>
-          </div>
-          <div class="stat-card glass highlight">
-            <div class="stat-icon"><Shield size={24} /></div>
-            <div class="stat-content">
-              <span class="stat-label">FAVORITE_GENRE</span>
-              <span class="stat-value">{stats?.favorite_genre || 'Tactical Scifi'}</span>
-            </div>
-          </div>
-          <div class="stat-card glass">
-            <div class="stat-icon"><Bookmark size={24} /></div>
-            <div class="stat-content">
-              <span class="stat-label">RESERVES_COUNT</span>
-              <span class="stat-value">{stats?.reserves_count || '0'}</span>
-            </div>
-          </div>
-          <div class="stat-card glass">
-            <div class="stat-icon"><Zap size={24} /></div>
-            <div class="stat-content">
-              <span class="stat-label">RECENT_ACTIVITY</span>
-              <span class="stat-value">{stats?.recent_active || '0'}</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- CONTENT COLUMNS -->
-        <div class="columns">
-          <!-- LEFT: COMBAT LOG (History) -->
-          <section class="column combat-log glass">
-            <div class="column-header">
-              <History size={18} />
-              <span class="title">COMBAT_LOG</span>
-              <div class="line"></div>
-            </div>
-            
-            <div class="scroll-area">
-              {#if history.length === 0}
-                <div class="empty-state">NO_RECENT_ENGAGEMENTS_DETECTED</div>
-              {:else}
-                {#each history as entry (entry.id)}
-                  <a href="/anime/{entry.animeId}" class="history-item">
-                    <img src={getProxiedImage(entry.animePoster)} alt="" />
-                    <div class="item-info">
-                      <span class="name">{entry.animeTitle}</span>
-                      <span class="meta">EP {entry.episodeNumber} • {new Date(entry.lastWatchedAt).toLocaleDateString()}</span>
-                    </div>
-                    <div class="progress-bar">
-                      <div class="fill" style="width: {entry.duration > 0 ? (entry.progress / entry.duration) * 100 : 0}%"></div>
-                    </div>
-                  </a>
-                {/each}
-              {/if}
-            </div>
-          </section>
-
-          <!-- RIGHT: TACTICAL BRIEFING (Recs) -->
-          <section class="column tactical-briefing">
-            <div class="column-header">
-              <Cpu size={18} />
-              <span class="title">TACTICAL_BRIEFING</span>
-              <div class="line"></div>
-            </div>
-
-            <div class="briefing-card glass">
-              <div class="ai-header">
-                <Radio size={16} class="pulse" />
-                <span>AI_INTEL_OFFICER: ACTIVE</span>
-              </div>
-              <p class="briefing-text">{recommendations?.briefing || 'Intelligence gathering in progress...'}</p>
-              
-              <div class="recs-list">
-                {#each (recommendations?.recommendations || []) as rec (rec.id)}
-                  <a href="/anime/{rec.id}" class="rec-item glass">
-                    <img src={getProxiedImage(rec.poster)} alt="" />
-                    <div class="rec-info">
-                      <span class="rec-title">{rec.title}</span>
-                      <span class="rec-reason">{rec.reason}</span>
-                    </div>
-                    <Target size={18} class="target-icon" />
-                  </a>
-                {/each}
-              </div>
-            </div>
-
-            <!-- RESERVES (Watchlist Shortlist) -->
-            <div class="reserves-preview column-header" style="margin-top: 1.5rem">
-              <Database size={18} />
-              <span class="title">STRATEGIC_RESERVES</span>
-              <div class="line"></div>
-            </div>
-            <div class="reserves-grid">
-              {#each (watchlist || []).slice(0, 4) as item (item.id)}
-                <a href="/anime/{item.animeId}" class="reserve-mini glass">
-                  <img src={getProxiedImage(item.animePoster)} alt="" />
-                </a>
-              {/each}
-              {#if (watchlist || []).length > 4}
-                <a href="/watchlist" class="reserve-more glass">+{(watchlist || []).length - 4}</a>
-              {/if}
-            </div>
-
-            <!-- TACTICAL SETTINGS (Preferences Sync) -->
-            <div class="settings-preview column-header" style="margin-top: 2rem">
-              <Shield size={18} />
-              <span class="title">TACTICAL_LOADOUT_SYNC</span>
-              <div class="line"></div>
-            </div>
-            <div class="settings-grid glass">
+          <section class="premium-card config-sync">
+            <h2>TACTICAL SYNC</h2>
+            <div class="sync-items">
               <button 
-                class="settings-btn {($auth.currentProfile?.autoNext) ? 'active' : ''}"
+                class="sync-btn"
+                class:active={$auth.currentProfile?.autoNext}
                 onclick={() => togglePref('autoNext', !$auth.currentProfile?.autoNext)}
               >
-                <span>AUTO_NEXT_ENGAGEMENT</span>
-                <div class="led"></div>
+                <span>AUTO_NEXT</span>
+                <div class="indicator"></div>
               </button>
               <button 
-                class="settings-btn {($auth.currentProfile?.autoSkip) ? 'active' : ''}"
+                class="sync-btn"
+                class:active={$auth.currentProfile?.autoSkip}
                 onclick={() => togglePref('autoSkip', !$auth.currentProfile?.autoSkip)}
               >
-                <span>AUTO_SKIP_INTRO</span>
-                <div class="led"></div>
+                <span>AUTO_SKIP</span>
+                <div class="indicator"></div>
               </button>
-              <div class="language-selector">
-                <span class="label">VISUAL_PROTOCOL:</span>
+              
+              <div class="select-group">
+                <span class="label">AUDIO_PROTOCOL</span>
+                <select 
+                  value={$auth.currentProfile?.language || 'sub'} 
+                  onchange={(e) => togglePref('language', (e.target as HTMLSelectElement).value)}
+                >
+                  <option value="sub">SUBTITLED</option>
+                  <option value="dub">DUBBED</option>
+                  <option value="multi">MULTI_AUDIO</option>
+                </select>
+              </div>
+
+              <div class="select-group">
+                <span class="label">VISUAL_PROTOCOL</span>
                 <select 
                   value={$auth.currentProfile?.theme || 'intelligence'} 
                   onchange={(e) => togglePref('theme', (e.target as HTMLSelectElement).value)}
-                  class="glass-select"
                 >
                   <option value="intelligence">INTELLIGENCE (BLUE)</option>
                   <option value="stealth">STEALTH (RED)</option>
@@ -316,354 +164,312 @@
             </div>
           </section>
         </div>
+
+        <!-- MAIN COLUMN: ACTIVITY & RECS -->
+        <div class="main-content">
+          <!-- QUICK RESUME -->
+          {#if stats?.quick_resume}
+            <section class="resume-card premium-card">
+              <div class="card-bg" style="background-image: url({getProxiedImage(stats.quick_resume.animePoster)})"></div>
+              <div class="overlay"></div>
+              <div class="resume-info">
+                <span class="tag">ACTIVE OBJECTIVE</span>
+                <h3>{stats.quick_resume.animeTitle}</h3>
+                <div class="meta">
+                  EPISODE {stats.quick_resume.episodeNumber} // {stats.quick_resume.duration > 0 ? Math.round((stats.quick_resume.progress / stats.quick_resume.duration) * 100) : 0}% COMPLETE
+                </div>
+                <a href="/watch/{stats.quick_resume.animeId}/{stats.quick_resume.episodeNumber}" class="btn-resume">
+                  <Zap size={16} /> RESUME_MISSION
+                </a>
+              </div>
+            </section>
+          {/if}
+
+          <!-- RECENT ACTIVITY -->
+          <section class="premium-card">
+            <h2>RECENT_ACTIVITY</h2>
+            <div class="activity-list">
+              {#if history.length === 0}
+                <div class="empty">NO RECENT ACTIVITY RECORDED</div>
+              {:else}
+                {#each history as entry (entry.id)}
+                  <a href="/anime/{entry.animeId}" class="activity-item">
+                    <img src={getProxiedImage(entry.animePoster)} alt="" />
+                    <div class="item-content">
+                      <span class="name">{entry.animeTitle}</span>
+                      <span class="meta">EP {entry.episodeNumber} • {new Date(entry.lastWatchedAt).toLocaleDateString()}</span>
+                    </div>
+                    <div class="mini-progress">
+                      <div class="fill" style="width: {entry.duration > 0 ? (entry.progress / entry.duration) * 100 : 0}%"></div>
+                    </div>
+                  </a>
+                {/each}
+              {/if}
+            </div>
+          </section>
+
+          <!-- TACTICAL BRIEFING (AI Recommendations) -->
+          <section class="premium-card">
+            <div class="section-header">
+              <h2>TACTICAL_BRIEFING</h2>
+              <span class="ai-badge"><Radio size={12} /> AI_CONNECTED</span>
+            </div>
+            <p class="briefing-text">{recommendations?.briefing || 'Gathering intelligence for your next deployment...'}</p>
+            <div class="recs-grid">
+              {#each (recommendations?.recommendations || []) as rec (rec.id)}
+                <a href="/anime/{rec.id}" class="rec-card">
+                  <img src={getProxiedImage(rec.poster)} alt="" />
+                  <div class="rec-blur"></div>
+                  <div class="rec-info">
+                    <span class="title">{rec.title}</span>
+                    <span class="reason">{rec.reason}</span>
+                  </div>
+                </a>
+              {/each}
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
 
-
 <style>
-  .intel-page {
+  .profile-page {
     min-height: 100vh;
-    background: #050505;
-    color: #00ffcc; /* Cyberpunk Green/Cyan */
+    background: #0a0a0b;
+    color: #f2f2f2;
+    padding: 100px 20px 40px;
     font-family: inherit;
-    padding: 80px 20px 20px;
-    background-image: 
-      radial-gradient(circle at 2px 2px, rgba(0, 255, 204, 0.05) 1px, transparent 0);
-    background-size: 40px 40px;
   }
 
-  .loader-container {
-    height: 80vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .tactical-loader {
-    width: 300px;
-    height: 2px;
-    background: rgba(0, 255, 204, 0.1);
-    position: relative;
-    overflow: hidden;
-  }
-  .scan-line {
-    width: 100px;
-    height: 100%;
-    background: #00ffcc;
-    position: absolute;
-    animation: scan 1.5s infinite linear;
-    box-shadow: 0 0 15px #00ffcc;
-  }
-  @keyframes scan {
-    from { left: -100px; }
-    to { left: 400px; }
-  }
-  .loading-text {
-    position: absolute;
-    top: 10px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: 0.7rem;
-    letter-spacing: 2px;
-  }
-
-  .hud-container {
-    max-width: 1400px;
+  .profile-container {
+    max-width: 1200px;
     margin: 0 auto;
   }
 
-  .hud-header {
+  /* LOADING STATE */
+  .loader-container {
+    height: 70vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .premium-loader {
+    display: flex;
+    gap: 8px;
+  }
+  .premium-loader .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--net-primary, #0099ff);
+    border-radius: 50%;
+    animation: bounce 0.6s infinite alternate;
+  }
+  .premium-loader .dot:nth-child(2) { animation-delay: 0.2s; }
+  .premium-loader .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { to { opacity: 0.3; transform: scale(0.8); } }
+  .loading-text { font-size: 0.7rem; letter-spacing: 2px; opacity: 0.5; }
+
+  /* HEADER */
+  .profile-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(0, 255, 204, 0.2);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    font-size: 0.8rem;
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
-  .status-group {
-    display: flex;
-    gap: 20px;
-  }
-  .label { color: rgba(0, 255, 204, 0.5); margin-right: 5px; }
-  .value.online { color: #fff; text-shadow: 0 0 5px #00ffcc; }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-    margin-bottom: 2rem;
-  }
-
-  .stat-card {
+  .user-info { display: flex; align-items: center; gap: 20px; }
+  .avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #0099ff 0%, #0066cc 100%);
+    border-radius: 16px;
     display: flex;
     align-items: center;
-    gap: 15px;
-    padding: 20px;
-    border: 1px solid rgba(0, 255, 204, 0.1);
-    background: rgba(0, 255, 204, 0.02);
-    transition: all 0.3s;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(0, 153, 255, 0.2);
   }
-  .stat-card:hover {
-    border-color: rgba(0, 255, 204, 0.4);
-    background: rgba(0, 255, 204, 0.05);
-    transform: translateY(-2px);
-  }
-  .stat-card.highlight {
-    border-color: rgba(0, 255, 204, 0.3);
-    box-shadow: inset 0 0 10px rgba(0, 255, 204, 0.05);
-  }
-  .stat-label { font-size: 0.65rem; display: block; color: rgba(0, 255, 204, 0.6); margin-bottom: 4px; }
-  .stat-value { font-size: 1.5rem; font-weight: 800; color: #fff; }
+  .user-meta h1 { font-size: 1.8rem; font-weight: 900; margin: 0 0 5px; letter-spacing: -0.02em; }
+  .status-row { display: flex; gap: 10px; }
+  .status-badge { font-size: 0.6rem; font-weight: 800; background: rgba(0, 255, 127, 0.1); color: #00ff7f; padding: 2px 8px; border-radius: 4px; }
+  .level-badge { font-size: 0.6rem; font-weight: 800; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.6); padding: 2px 8px; border-radius: 4px; }
+  .time-stamp { font-size: 0.8rem; opacity: 0.3; font-weight: 600; }
 
-  .columns {
+  /* DASHBOARD GRID */
+  .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr 1.2fr;
-    gap: 20px;
+    grid-template-columns: 320px 1fr;
+    gap: 30px;
   }
 
-  .column-header {
+  .premium-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .premium-card h2 {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0 0 20px;
+    text-transform: uppercase;
+  }
+
+  /* SIDEBAR STATS */
+  .stat-items { display: flex; flex-direction: column; gap: 15px; }
+  .stat-items .item { display: flex; justify-content: space-between; align-items: baseline; }
+  .stat-items .label { font-size: 0.7rem; font-weight: 700; opacity: 0.5; }
+  .stat-items .val { font-size: 1.25rem; font-weight: 800; }
+  .stat-items .item.highlight .val { color: var(--net-primary, #0099ff); }
+
+  /* CONFIG SYNC */
+  .sync-items { display: flex; flex-direction: column; gap: 12px; }
+  .sync-btn {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .sync-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+  .sync-btn.active { color: #fff; border-color: rgba(0, 153, 255, 0.3); background: rgba(0, 153, 255, 0.05); }
+  .indicator { width: 6px; height: 6px; border-radius: 50%; background: #333; transition: all 0.3s; }
+  .active .indicator { background: var(--net-primary, #0099ff); box-shadow: 0 0 8px var(--net-primary, #0099ff); }
+
+  .select-group { margin-top: 10px; }
+  .select-group .label { font-size: 0.6rem; font-weight: 800; opacity: 0.3; display: block; margin-bottom: 8px; }
+  .select-group select {
+    width: 100%;
+    background: #111112;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #fff;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* MAIN CONTENT */
+  /* QUICK RESUME */
+  .resume-card {
+    height: 240px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 30px;
+    border: none;
+  }
+  .card-bg {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-size: cover;
+    background-position: center 20%;
+    filter: brightness(0.6) saturate(1.2);
+    transition: transform 0.8s cubic-bezier(0.2, 0, 0.2, 1);
+  }
+  .resume-card:hover .card-bg { transform: scale(1.05); }
+  .overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(0deg, rgba(10, 10, 11, 0.9) 0%, rgba(10, 10, 11, 0.2) 100%);
+  }
+  .resume-info { position: relative; z-index: 2; }
+  .resume-info .tag { font-size: 0.6rem; font-weight: 900; letter-spacing: 2px; color: var(--net-primary, #0099ff); margin-bottom: 10px; display: block; }
+  .resume-info h3 { font-size: 2rem; font-weight: 900; margin: 0 0 10px; letter-spacing: -0.03em; }
+  .resume-info .meta { font-size: 0.8rem; font-weight: 700; opacity: 0.7; margin-bottom: 20px; }
+  .btn-resume {
+    display: inline-flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 1rem;
-    color: #fff;
+    background: #f2f2f2;
+    color: #000;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.3s;
   }
-  .column-header .title { font-weight: 700; letter-spacing: 1px; font-size: 0.9rem; }
-  .column-header .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0, 255, 204, 0.3), transparent); }
+  .btn-resume:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
 
-  .scroll-area {
-    max-height: 600px;
-    overflow-y: auto;
-    padding-right: 10px;
-  }
-  .scroll-area::-webkit-scrollbar { width: 4px; }
-  .scroll-area::-webkit-scrollbar-thumb { background: rgba(0, 255, 204, 0.2); border-radius: 10px; }
-
-  .history-item {
+  /* RECENT ACTIVITY */
+  .activity-list { display: flex; flex-direction: column; gap: 8px; }
+  .activity-item {
     display: flex;
-    gap: 15px;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 4px;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 14px;
     text-decoration: none;
     color: inherit;
     position: relative;
     overflow: hidden;
     transition: background 0.2s;
   }
-  .history-item:hover { background: rgba(255, 255, 255, 0.07); }
-  .history-item img { width: 50px; height: 70px; object-fit: cover; border-radius: 2px; }
-  .item-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-  .item-info .name { font-weight: 600; color: #fff; margin-bottom: 4px; }
-  .item-info .meta { font-size: 0.7rem; color: rgba(0, 255, 204, 0.6); }
+  .activity-item:hover { background: rgba(255, 255, 255, 0.04); }
+  .activity-item img { width: 40px; height: 56px; object-fit: cover; border-radius: 8px; }
+  .item-content { flex: 1; display: flex; flex-direction: column; }
+  .item-content .name { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .item-content .meta { font-size: 0.7rem; opacity: 0.4; font-weight: 600; }
+  .mini-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: rgba(255, 255, 255, 0.05); }
+  .mini-progress .fill { height: 100%; background: var(--net-primary, #0099ff); }
 
-  .progress-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: rgba(255, 255, 255, 0.1); }
-  .progress-bar .fill { height: 100%; background: #00ffcc; box-shadow: 0 0 5px #00ffcc; }
-
-  .briefing-card {
-    padding: 20px;
-    background: rgba(0, 255, 204, 0.03);
-    border: 1px dashed rgba(0, 255, 204, 0.2);
-  }
-  .ai-header { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; margin-bottom: 10px; color: #fff; }
-  .pulse { animation: pulse 2s infinite; color: #ff3e3e; }
-  @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-  .briefing-text { font-size: 0.85rem; color: rgba(0, 255, 204, 0.8); line-height: 1.6; margin-bottom: 1.5rem; }
-
-  .rec-item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 12px;
-    margin-bottom: 10px;
-    text-decoration: none;
-    color: inherit;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-  .rec-item:hover { border-color: rgba(0, 255, 204, 0.3); background: rgba(0, 255, 204, 0.05); }
-  .rec-item img { width: 44px; height: 60px; object-fit: cover; border-radius: 2px; }
-  .rec-info { flex: 1; }
-  .rec-title { display: block; font-weight: 700; color: #fff; font-size: 0.9rem; }
-  .rec-reason { font-size: 0.7rem; color: #00ffcc; text-transform: uppercase; font-weight: 600; }
-  .target-icon { color: rgba(0, 255, 204, 0.3); transition: color 0.3s; }
-  .rec-item:hover .target-icon { color: #ff3e3e; transform: scale(1.2); }
-
-  .reserves-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
-  }
-  .reserve-mini { height: 100px; border-radius: 4px; overflow: hidden; }
-  .reserve-mini img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-  .reserve-mini:hover img { transform: scale(1.1); }
-  .reserve-more { 
-    display: flex; align-items: center; justify-content: center; 
-    background: rgba(0, 255, 204, 0.1); color: #fff; font-weight: 700; 
-    text-decoration: none; border-radius: 4px; font-size: 0.8rem;
-  }
-
-  .empty-state {
-    padding: 2rem;
-    text-align: center;
-    border: 1px dashed rgba(0, 255, 204, 0.1);
-    color: rgba(0, 255, 204, 0.4);
-    font-size: 0.8rem;
-  }
-
-  /* PROGRESSION & ACTIVITY */
-  .progression-block {
-    margin-bottom: 1.5rem;
-    grid-template-columns: 1fr 1fr;
-  }
-  .rank-card {
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .rank-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 15px;
-  }
-  .rank-title { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: 1px; }
-  .rank-level { font-size: 0.7rem; color: #00ffcc; font-weight: 700; background: rgba(0, 255, 204, 0.1); padding: 2px 8px; border-radius: 4px; }
-  
-  .xp-container { width: 100%; }
-  .xp-bar { height: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 5px; overflow: hidden; margin-bottom: 8px; border: 1px solid rgba(0, 255, 204, 0.1); }
-  .xp-fill { height: 100%; background: linear-gradient(90deg, #00ffcc, #0099ff); box-shadow: 0 0 10px rgba(0, 255, 204, 0.5); border-radius: 5px; transition: width 1s ease-out; }
-  .xp-meta { display: flex; justify-content: space-between; font-size: 0.6rem; color: rgba(0, 255, 204, 0.6); font-weight: 700; }
-
-  .activity-card { padding: 24px; }
-  .activity-header { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #fff; margin-bottom: 20px; font-weight: 700; letter-spacing: 1px; }
-  .activity-bars { display: flex; align-items: flex-end; justify-content: space-between; height: 100px; gap: 8px; }
-  .activity-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .bar-limit { width: 100%; height: 70px; background: rgba(255, 255, 255, 0.02); border-radius: 2px; display: flex; align-items: flex-end; position: relative; }
-  .bar-fill { width: 100%; border-radius: 1px; transition: height 0.5s ease; }
-  .day-label { font-size: 0.6rem; color: rgba(0, 255, 204, 0.4); font-weight: 600; }
-
-  /* Intensity Levels */
-  .level-0 { background: transparent; }
-  .level-1 { background: rgba(0, 255, 204, 0.2); }
-  .level-2 { background: rgba(0, 255, 204, 0.4); }
-  .level-3 { background: rgba(0, 255, 204, 0.7); box-shadow: 0 0 10px rgba(0, 255, 204, 0.3); }
-  .level-4 { background: #00ffcc; box-shadow: 0 0 15px #00ffcc; }
-
-  .quick-resume {
-    margin-bottom: 2rem;
-    padding: 30px;
-    border: 1px solid rgba(0, 255, 204, 0.2);
+  /* AI BRIEFING */
+  .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+  .ai-badge { font-size: 0.6rem; font-weight: 800; color: var(--net-primary, #0099ff); display: flex; align-items: center; gap: 5px; }
+  .briefing-text { font-size: 0.95rem; line-height: 1.6; opacity: 0.7; margin-bottom: 24px; font-weight: 500; }
+  .recs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .rec-card {
+    height: 140px;
+    border-radius: 16px;
     position: relative;
     overflow: hidden;
-  }
-  .objective-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    letter-spacing: 2px;
-  }
-  .indicator { width: 8px; height: 8px; border-radius: 50%; }
-  .pulse-green { background: #00ffcc; box-shadow: 0 0 10px #00ffcc; animation: pulse-g 1.5s infinite; }
-  @keyframes pulse-g { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-
-  .resume-content { display: flex; gap: 30px; position: relative; z-index: 2; }
-  .resume-poster { width: 140px; height: 200px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(0, 255, 204, 0.3); }
-  .resume-info { flex: 1; }
-  .anime-title { font-size: 2rem; font-weight: 900; color: #fff; margin: 0 0 10px; line-height: 1.1; }
-  .meta-row { display: flex; align-items: center; gap: 15px; font-size: 0.8rem; margin-bottom: 20px; }
-  .ep-tag { background: rgba(0, 255, 204, 0.1); padding: 4px 12px; border-radius: 20px; font-weight: 700; }
-  .status { color: #00ffcc; font-weight: 700; letter-spacing: 1px; }
-
-  .progress-container { margin-bottom: 30px; max-width: 400px; }
-  .progress-label { font-size: 0.6rem; color: rgba(0, 255, 204, 0.5); margin-bottom: 8px; letter-spacing: 1px; }
-  .progress-bar-large { height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
-  .progress-bar-large .fill { height: 100%; background: linear-gradient(90deg, #00ffcc, #0099ff); box-shadow: 0 0 10px #00ffcc; }
-
-  .resume-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: #00ffcc;
-    color: #000;
-    padding: 12px 30px;
-    border-radius: 2px;
-    text-decoration: none;
-    font-weight: 800;
-    font-size: 0.9rem;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .resume-btn:hover { background: #fff; transform: scale(1.05); }
-
-  .decoration-lines { position: absolute; right: -20px; bottom: 20px; display: flex; flex-direction: column; gap: 5px; opacity: 0.3; transform: rotate(-45deg); }
-  .decoration-lines .line { width: 150px; height: 1px; background: #00ffcc; }
-
-  /* TACTICAL SETTINGS */
-  .settings-grid {
-    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-  }
-  .settings-btn {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 12px 15px;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-  }
-  .settings-btn:hover { background: rgba(0, 255, 204, 0.05); border-color: rgba(0, 255, 204, 0.3); }
-  .settings-btn.active { color: #fff; border-color: #00ffcc; background: rgba(0, 255, 204, 0.1); }
-  .settings-btn .led { width: 6px; height: 6px; border-radius: 50%; background: #444; }
-  .settings-btn.active .led { background: #00ffcc; box-shadow: 0 0 8px #00ffcc; }
-
-  .language-selector {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.6);
-  }
-  .glass-select {
-    background: #111;
+    justify-content: flex-end;
+    padding: 15px;
+    text-decoration: none;
     color: #fff;
-    border: 1px solid rgba(0, 255, 204, 0.2);
-    padding: 4px 12px;
-    font-size: 0.7rem;
-    border-radius: 2px;
-    outline: none;
-    cursor: pointer;
   }
-  .glass-select:focus { border-color: #00ffcc; }
+  .rec-card img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+  .rec-blur { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); }
+  .rec-info { position: relative; z-index: 2; }
+  .rec-info .title { display: block; font-size: 0.85rem; font-weight: 800; margin-bottom: 4px; }
+  .rec-info .reason { font-size: 0.65rem; opacity: 0.6; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  /* Responsive */
-  @media (max-width: 900px) {
-    .columns { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: 1fr 1fr; }
+  /* RESPONSIVE */
+  @media (max-width: 1024px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .sidebar { order: 2; }
+    .main-content { order: 1; }
   }
-  @media (max-width: 600px) {
-    .stats-grid { grid-template-columns: 1fr; }
-    .hud-header { flex-direction: column; gap: 10px; text-align: center; }
-    .resume-content { flex-direction: column; align-items: center; text-align: center; }
-    .progress-container { margin: 0 auto 30px; }
+  @media (max-width: 640px) {
+    .resume-info h3 { font-size: 1.5rem; }
+    .profile-header { flex-direction: column; text-align: center; gap: 20px; }
+    .user-info { flex-direction: column; }
   }
 </style>
+
