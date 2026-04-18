@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"encoding/base64"
+	"net/url"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/utils"
 	"github.com/PuerkitoBio/goquery"
@@ -87,59 +88,78 @@ func GetWatchAnimeWorldSources(titles []string, ep int) []map[string]interface{}
 		return nil
 	}
 
-	// 3. Extract player data
-	// The player usually calls api/player1.php?data=[base64]
-	// We scan the HTML for this pattern
-	body := resp.String()
-	dataKey := "player1.php?data="
-	startIdx := strings.Index(body, dataKey)
-	if startIdx == -1 {
-		return nil
-	}
-
-	startIdx += len(dataKey)
-	endIdx := strings.IndexAny(body[startIdx:], ` "'`)
-	if endIdx == -1 {
-		return nil
-	}
-	
-	b64Data := body[startIdx : startIdx+endIdx]
-	
-	// 4. Fetch the source JSON from player1.php or decode it directly if it's just the data
-	// Actually, player1.php?data=... IS the endpoint.
-	// We decode the base64 part to see if it's JSON.
-	decoded, err := base64.StdEncoding.DecodeString(b64Data)
+	// 3. Extract player data using goquery
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(resp.String()))
 	if err != nil {
 		return nil
 	}
 
-	var rawSources []map[string]interface{}
-	if err := json.Unmarshal(decoded, &rawSources); err != nil {
-		return nil
-	}
-
 	sources := make([]map[string]interface{}, 0)
-	for _, rs := range rawSources {
-		lang := utils.ToString(rs["language"])
-		link := utils.ToString(rs["link"])
-		
-		category := "sub"
-		if strings.Contains(strings.ToLower(lang), "hindi") {
-			category = "hindi"
-		} else if strings.Contains(strings.ToLower(lang), "english") {
-			category = "dub"
+	doc.Find("iframe").Each(func(i int, s *goquery.Selection) {
+		src, _ := s.Attr("src")
+		dataSrc, _ := s.Attr("data-src")
+
+		fullSrc := src
+		if dataSrc != "" {
+			fullSrc = dataSrc
 		}
 
-		sources = append(sources, map[string]interface{}{
-			"name":     fmt.Sprintf("WatchAnimeWorld - %s", lang),
-			"url":      link,
-			"category": category,
-			"isM3U8":   false, // These are short.icu links usually
-			"isEmbed":  true,
-			"provider": "WatchAnimeWorld",
-			"type":     "iframe",
-		})
-	}
+		if strings.Contains(fullSrc, "player1.php?data=") {
+			dataKey := "player1.php?data="
+			startIdx := strings.Index(fullSrc, dataKey) + len(dataKey)
+			b64Data := fullSrc[startIdx:]
+
+			// URL Unescape padding and characters before decoding
+			// Extract just the base64 part (up to the next quote or space)
+			endIdx := strings.IndexAny(b64Data, ` "'`)
+			if endIdx != -1 {
+				b64Data = b64Data[:endIdx]
+			}
+
+			unescaped, _ := url.QueryUnescape(b64Data)
+			decoded, err := base64.StdEncoding.DecodeString(unescaped)
+			if err != nil {
+				return
+			}
+
+			var rawSources []map[string]interface{}
+			if err := json.Unmarshal(decoded, &rawSources); err != nil {
+				return
+			}
+
+			for _, rs := range rawSources {
+				lang := utils.ToString(rs["language"])
+				link := utils.ToString(rs["link"])
+				
+				category := "sub"
+				if strings.Contains(strings.ToLower(lang), "hindi") {
+					category = "hindi"
+				} else if strings.Contains(strings.ToLower(lang), "english") {
+					category = "dub"
+				}
+
+				sources = append(sources, map[string]interface{}{
+					"name":     fmt.Sprintf("WatchAnimeWorld - %s", lang),
+					"url":      link,
+					"category": category,
+					"isM3U8":   false,
+					"isEmbed":  true,
+					"provider": "WatchAnimeWorld",
+					"type":     "iframe",
+				})
+			}
+		} else if strings.Contains(fullSrc, "zephyrflick") {
+			sources = append(sources, map[string]interface{}{
+				"name":     "WatchAnimeWorld - MultiCloud",
+				"url":      fullSrc,
+				"category": "sub", // Usually multi-audio/sub
+				"isM3U8":   false,
+				"isEmbed":  true,
+				"provider": "WatchAnimeWorld",
+				"type":     "iframe",
+			})
+		}
+	})
 
 	return sources
 }
