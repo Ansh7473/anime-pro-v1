@@ -2,6 +2,7 @@
   import Navbar from "$lib/components/Navbar.svelte";
   import MobileBottomNav from "$lib/components/MobileBottomNav.svelte";
   import PullToRefresh from "$lib/components/PullToRefresh.svelte";
+  import Footer from "$lib/components/Footer.svelte";
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
@@ -70,6 +71,7 @@
           </div>
         {/key}
       </main>
+      <Footer />
     </PullToRefresh>
 
     <MobileBottomNav />
