@@ -1,0 +1,96 @@
+/* Theme definitions */
+:root {
+  /* default (minimalist) */
+  --net-bg: #070708;
+  --net-red: #e50914;
+  --net-text-muted: #9ca3af;
+  --net-accent: #ff1e2b;
+}
+
+.theme-minimalist {
+  --net-bg: #070708;
+  --net-red: #e50914;
+  --net-text-muted: #9ca3af;
+  --net-accent: #ff1e2b;
+}
+
+.theme-tactical {
+  --net-bg: #0a0a0a;
+  --net-red: #ff3b30;
+  --net-text-muted: #6b7280;
+  --net-accent: #ff6f61;
+}
+
+.theme-stealth {
+  --net-bg: #1a0000;
+  --net-red: #b30000;
+  --net-text-muted: #8a8a8a;
+  --net-accent: #ff4d4d;
+}
+
+.theme-cyberpunk {
+  --net-bg: #050010;
+  --net-red: #d946ef;
+  --net-text-muted: #c0c0c0;
+  --net-accent: #ff1e2b;
+}
+
+.theme-classic {
+  --net-bg: #f5f5f5;
+  --net-red: #c0392b;
+  --net-text-muted: #7f8c8d;
+  --net-accent: #e74c3c;
+}
+
+/* Professional Themes Array (50) */
+.theme-obsidian { --net-bg:#000000; --net-red:#ffffff; --net-text-muted:#888888; --net-accent:#333333; }
+.theme-midnight { --net-bg:#0f172a; --net-red:#38bdf8; --net-text-muted:#94a3b8; --net-accent:#0ea5e9; }
+.theme-emerald { --net-bg:#064e3b; --net-red:#10b981; --net-text-muted:#66b2a1; --net-accent:#34d399; }
+.theme-royal { --net-bg:#1e1b4b; --net-red:#818cf8; --net-text-muted:#a5b4fc; --net-accent:#6366f1; }
+.theme-ruby { --net-bg:#450a0a; --net-red:#ef4444; --net-text-muted:#f87171; --net-accent:#dc2626; }
+.theme-amber { --net-bg:#451a03; --net-red:#f59e0b; --net-text-muted:#fbbf24; --net-accent:#d97706; }
+.theme-slate { --net-bg:#0f172a; --net-red:#f8fafc; --net-text-muted:#64748b; --net-accent:#1e293b; }
+.theme-forest { --net-bg:#022c22; --net-red:#34d399; --net-text-muted:#059669; --net-accent:#10b981; }
+.theme-violet { --net-bg:#2e1065; --net-red:#a855f7; --net-text-muted:#c084fc; --net-accent:#8b5cf6; }
+.theme-arctic { --net-bg:#eff6ff; --net-red:#1d4ed8; --net-text-muted:#60a5fa; --net-accent:#2563eb; }
+.theme-rose { --net-bg:#fff1f2; --net-red:#e11d48; --net-text-muted:#fb7185; --net-accent:#f43f5e; }
+.theme-gold { --net-bg:#1c1917; --net-red:#fbbf24; --net-text-muted:#d6d3d1; --net-accent:#a8a29e; }
+.theme-ocean { --net-bg:#082f49; --net-red:#0ea5e9; --net-text-muted:#38bdf8; --net-accent:#0284c7; }
+.theme-lava { --net-bg:#1c0d0d; --net-red:#ff4d4d; --net-text-muted:#ff8080; --net-accent:#cc0000; }
+.theme-matrix { --net-bg:#000000; --net-red:#00ff41; --net-text-muted:#008f11; --net-accent:#003b00; }
+.theme-espresso { --net-bg:#1a0f0e; --net-red:#d2691e; --net-text-muted:#8b4513; --net-accent:#5d2e0e; }
+.theme-graphite { --net-bg:#121212; --net-red:#757575; --net-text-muted:#bdbdbd; --net-accent:#424242; }
+.theme-neon { --net-bg:#0a0a0a; --net-red:#00ff9f; --net-text-muted:#00d1ff; --net-accent:#ff00e8; }
+.theme-sunset { --net-bg:#120c1a; --net-red:#ff7e5f; --net-text-muted:#feb47b; --net-accent:#eb3349; }
+.theme-galaxy { --net-bg:#0b001a; --net-red:#8e2de2; --net-text-muted:#4a00e0; --net-accent:#1a0033; }
+.theme-mint { --net-bg:#f0fff4; --net-red:#38a169; --net-text-muted:#68d391; --net-accent:#2f855a; }
+.theme-coral { --net-bg:#fff5f5; --net-red:#fc8181; --net-text-muted:#f56565; --net-accent:#e53e3e; }
+.theme-sky { --net-bg:#ebf8ff; --net-red:#4299e1; --net-text-muted:#63b3ed; --net-accent:#3182ce; }
+.theme-sand { --net-bg:#fffaf0; --net-red:#d69e2e; --net-text-muted:#ecc94b; --net-accent:#b7791f; }
+.theme-blood { --net-bg:#110000; --net-red:#ff0000; --net-text-muted:#880000; --net-accent:#440000; }
+.theme-void { --net-bg:#020202; --net-red:#222222; --net-text-muted:#111111; --net-accent:#000000; }
+.theme-paper { --net-bg:#fafafa; --net-red:#222222; --net-text-muted:#888888; --net-accent:#eeeeee; }
+.theme-retro { --net-bg:#352e2e; --net-red:#ffac33; --net-text-muted:#d3b8ae; --net-accent:#ff8a65; }
+.theme-frost { --net-bg:#f0f8ff; --net-red:#add8e6; --net-text-muted:#87ceeb; --net-accent:#b0e0e6; }
+.theme-aurora { --net-bg:#010d1a; --net-red:#00ffcc; --net-text-muted:#33ccff; --net-accent:#99ffcc; }
+.theme-copper { --net-bg:#1a0a00; --net-red:#b87333; --net-text-muted:#cd7f32; --net-accent:#8b4513; }
+.theme-titanium { --net-bg:#1c1c1c; --net-red:#a0a0a0; --net-text-muted:#808080; --net-accent:#c0c0c0; }
+.theme-deep-sea { --net-bg:#001219; --net-red:#005f73; --net-text-muted:#0a9396; --net-accent:#94d2bd; }
+.theme-marsh { --net-bg:#1b1b1b; --net-red:#4f772d; --net-text-muted:#31572c; --net-accent:#90a955; }
+.theme-cherry { --net-bg:#2d0312; --net-red:#ff4d6d; --net-text-muted:#c9184a; --net-accent:#800f2f; }
+.theme-bamboo { --net-bg:#f5f5dc; --net-red:#4b5320; --net-text-muted:#8f9779; --net-accent:#3d4e2a; }
+.theme-storm { --net-bg:#14213d; --net-red:#fca311; --net-text-muted:#e5e5e5; --net-accent:#ffffff; }
+.theme-clay { --net-bg:#1b1411; --net-red:#bc6c25; --net-text-muted:#dda15e; --net-accent:#606c38; }
+.theme-ink { --net-bg:#000000; --net-red:#ffffff; --net-text-muted:#4a4a4a; --net-accent:#2d2d2d; }
+.theme-serene { --net-bg:#f8f9fa; --net-red:#6c757d; --net-text-muted:#adb5bd; --net-accent:#e9ecef; }
+.theme-dracula { --net-bg:#282a36; --net-red:#ff79c6; --net-text-muted:#bd93f9; --net-accent:#44475a; }
+.theme-nord { --net-bg:#2e3440; --net-red:#88c0d0; --net-text-muted:#d8dee9; --net-accent:#4c566a; }
+.theme-monokai { --net-bg:#272822; --net-red:#f92672; --net-text-muted:#a6e22e; --net-accent:#66d9ef; }
+.theme-gruvbox { --net-bg:#282828; --net-red:#fb4934; --net-text-muted:#ebdbb2; --net-accent:#d3869b; }
+.theme-solarized { --net-bg:#002b36; --net-red:#268bd2; --net-text-muted:#839496; --net-accent:#073642; }
+.theme-autumn { --net-bg:#2b1b1b; --net-red:#d64d4d; --net-text-muted:#ff7e5f; --net-accent:#feb47b; }
+.theme-spring { --net-bg:#f0fff0; --net-red:#00cc00; --net-text-muted:#99ff99; --net-accent:#006600; }
+.theme-winter { --net-bg:#f0ffff; --net-red:#0000ff; --net-text-muted:#99ffff; --net-accent:#000066; }
+.theme-summer { --net-bg:#fffff0; --net-red:#ffff00; --net-text-muted:#ffff99; --net-accent:#666600; }
+.theme-platinum { --net-bg:#e5e4e2; --net-red:#333333; --net-text-muted:#999999; --net-accent:#666666; }
+/* End of generated themes */

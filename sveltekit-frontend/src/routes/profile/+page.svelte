@@ -3,7 +3,8 @@
   import { auth, switchProfile, logoutUser } from "$lib/stores/auth";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import {
+  import { theme, } from '$lib/stores/theme';
+import {
     Shield,
     UserPlus,
     Settings,
@@ -193,6 +194,34 @@
       year: "numeric",
     });
   }
+
+  const themes = [
+    { id: 'minimalist', name: 'Minimalist', bg: '#070708', accent: '#e50914' },
+    { id: 'tactical', name: 'Tactical', bg: '#0a0a0a', accent: '#ff3b30' },
+    { id: 'stealth', name: 'Stealth', bg: '#1a0000', accent: '#b30000' },
+    { id: 'cyberpunk', name: 'Cyberpunk', bg: '#050010', accent: '#d946ef' },
+    { id: 'obsidian', name: 'Obsidian', bg: '#000000', accent: '#ffffff' },
+    { id: 'midnight', name: 'Midnight', bg: '#0f172a', accent: '#38bdf8' },
+    { id: 'emerald', name: 'Emerald', bg: '#064e3b', accent: '#10b981' },
+    { id: 'royal', name: 'Royal', bg: '#1e1b4b', accent: '#818cf8' },
+    { id: 'ruby', name: 'Ruby', bg: '#450a0a', accent: '#ef4444' },
+    { id: 'amber', name: 'Amber', bg: '#451a03', accent: '#f59e0b' },
+    { id: 'slate', name: 'Slate', bg: '#0f172a', accent: '#f8fafc' },
+    { id: 'forest', name: 'Forest', bg: '#022c22', accent: '#34d399' },
+    { id: 'violet', name: 'Violet', bg: '#2e1065', accent: '#a855f7' },
+    { id: 'arctic', name: 'Arctic', bg: '#eff6ff', accent: '#1d4ed8' },
+    { id: 'rose', name: 'Rose', bg: '#fff1f2', accent: '#e11d48' },
+    { id: 'gold', name: 'Gold', bg: '#1c1917', accent: '#fbbf24' },
+    { id: 'ocean', name: 'Ocean', bg: '#082f49', accent: '#0ea5e9' },
+    { id: 'lava', name: 'Lava', bg: '#1c0d0d', accent: '#ff4d4d' },
+    { id: 'matrix', name: 'Matrix', bg: '#000000', accent: '#00ff41' },
+    { id: 'neon', name: 'Neon', bg: '#0a0a0a', accent: '#00ff9f' },
+    { id: 'sunset', name: 'Sunset', bg: '#120c1a', accent: '#ff7e5f' },
+    { id: 'galaxy', name: 'Galaxy', bg: '#0b001a', accent: '#8e2de2' },
+    { id: 'dracula', name: 'Dracula', bg: '#282a36', accent: '#ff79c6' },
+    { id: 'nord', name: 'Nord', bg: '#2e3440', accent: '#88c0d0' },
+    { id: 'monokai', name: 'Monokai', bg: '#272822', accent: '#f92672' }
+  ];
 </script>
 
 <svelte:head>
@@ -201,8 +230,8 @@
 
 <div class="profile-page container">
   <div class="page-header">
-    <h1 class="page-title">User <span class="accent">Profile</span></h1>
-    <p class="page-subtitle">Manage your account and viewing profiles.</p>
+    <h1 class="page-title">Account <span class="accent">Management</span></h1>
+    <p class="page-subtitle">Control your personal preferences and viewing profiles.</p>
   </div>
 
   {#if loading}
@@ -233,27 +262,26 @@
             <span class="value">#{$auth.user.id}</span>
           </div>
           <div class="info-item">
-            <span class="label">Account Since</span>
+            <span class="label">Member Since</span>
             <span class="value">{formatDate($auth.user.createdAt)}</span>
           </div>
         </div>
 
         <div class="card-footer">
           <button class="btn-logout" onclick={handleLogout}
-            >Logout from Account</button
-          >
+            >Sign Out</button>
         </div>
       </div>
 
       <!-- Profiles Section -->
       <div class="profiles-section">
         <div class="section-header">
-          <h2>Your Profiles</h2>
+          <h2>Viewing Profiles</h2>
           <button
             class="btn-add-profile"
             onclick={() => (showProfileModal = true)}
           >
-            <UserPlus size={16} /> Create New
+            <UserPlus size={16} /> Add Profile
           </button>
         </div>
 
@@ -297,26 +325,48 @@
 
     <!-- Watch Preferences & Privacy -->
     <div class="settings-grid section-margin">
-      <div class="settings-card glass">
+      <div class="settings-card premium-card">
         <div class="card-title-row">
           <Shield size={20} class="icon-accent" />
-          <h3>Privacy & Security</h3>
+          <h3>Security</h3>
         </div>
         <p>
-          Update your password and security settings to keep your account safe.
+          Manage your password and authentication settings.
         </p>
         <button class="btn-outline" onclick={() => (showPasswordModal = true)}>
           <Key size={16} /> Change Password
         </button>
       </div>
 
-      <div class="settings-card glass">
+      <div class="settings-card premium-card">
         <div class="card-title-row">
           <Settings size={20} class="icon-accent" />
-          <h3>Watch Preferences</h3>
+          <h3>Playback Settings</h3>
         </div>
 
         <div class="preferences-list">
+  <!-- Theme Selector -->
+  <div class="pref-item vertical">
+    <div class="pref-info">
+      <span>Interface Theme</span>
+      <p>Custom visual experience for your dashboard</p>
+    </div>
+    <div class="theme-grid">
+      {#each themes as t}
+        <button 
+          class="theme-swatch" 
+          class:active={$theme === t.id}
+          onclick={() => $theme = t.id}
+          title={t.name}
+        >
+          <div class="swatch-preview" style="background: {t.bg}">
+            <div class="swatch-accent" style="background: {t.accent}"></div>
+          </div>
+          <span class="swatch-label">{t.name}</span>
+        </button>
+      {/each}
+    </div>
+  </div>
           <div class="pref-item">
             <div class="pref-info">
               <span>Auto Next Episode</span>
@@ -372,7 +422,7 @@
     <!-- Favorites Gallery -->
     <div class="favorites-container section-margin">
       <div class="section-header">
-        <h2>❤️ My Favorites</h2>
+        <h2>My Favorites</h2>
       </div>
       {#if loadingFavs}
         <div class="loading-favs">
@@ -381,7 +431,7 @@
       {:else if favorites.length > 0}
         <div class="favs-grid">
           {#each favorites as fav}
-            <a href="/anime/{fav.animeId}" class="fav-card glass">
+            <a href="/anime/{fav.animeId}" class="fav-card">
               <div class="fav-poster">
                 <img
                   src={getProxiedImage(fav.animePoster)}
@@ -1106,6 +1156,7 @@
   .fav-title {
     font-size: 0.85rem;
     font-weight: 700;
+    line-clamp: 2;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -1372,5 +1423,91 @@
     .fav-title {
       font-size: 0.7rem;
     }
+  }
+  .pref-item.vertical {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .theme-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .theme-swatch:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .theme-swatch.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--net-red);
+  }
+
+  .swatch-preview {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+  }
+
+  .swatch-accent {
+    position: absolute;
+    bottom: -10%;
+    right: -10%;
+    width: 50%;
+    height: 50%;
+    border-radius: 50%;
+    transform: rotate(45deg);
+  }
+
+  .swatch-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--net-text-muted);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  .theme-swatch.active .swatch-label {
+    color: white;
+  }
+
+  /* Custom scrollbar for theme grid */
+  .theme-grid::-webkit-scrollbar {
+    width: 4px;
+  }
+  .theme-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .theme-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
   }
 </style>
