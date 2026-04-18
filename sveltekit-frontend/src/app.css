@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --net-red: #E50914;
+  --net-red: #E50914; /* AnimePro Signature Red */
   --net-red-hover: #F40612;
   --net-bg: #0a0a0a;
   --net-bg-lite: #141414;
@@ -15,59 +15,54 @@
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
-
-  /* Tactical Interface Tokens */
-  --tactical-bg: #0E0E0E;
-  --tactical-primary: #ADC7FF;
-  --tactical-primary-container: #1A73E8;
-  --tactical-secondary: #C3C7C9;
-  --tactical-surface: #131313;
-  --tactical-outline: #8B909F;
-  --tactical-glow: 0 0 20px rgba(26, 115, 232, 0.2);
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-
-  /* TV App Tokens - High Quality 10-foot UI */
-  --tv-focus-border: #E50914;
-  --tv-focus-glow: 0 0 30px rgba(229, 9, 20, 0.4);
-  --tv-card-scale: 1.15;
-  --tv-overscan-x: 5%; /* 96px on 1080p */
-  --tv-overscan-y: 27px; /* 5% of height approx */
-  --tv-sidebar-width: 100px;
-  --tv-sidebar-expanded: 320px;
+  --net-gradient: linear-gradient(135deg, var(--net-red) 0%, #7c040a 100%);
 }
 
-/* --- THEME PROTOCOLS --- */
+/* --- THEME CUSTOMIZATION ENGINE --- */
 
-/* INTELLIGENCE (Tactical Blue) */
-[data-theme="intelligence"] {
-  --net-red: #3B82F6;
-  --net-red-hover: #2563EB;
-  --tactical-primary: #ADC7FF;
-  --tactical-primary-container: #1A73E8;
-  --tactical-glow: 0 0 20px rgba(26, 115, 232, 0.3);
-  --tv-focus-border: #3B82F6;
+/* Gradient Look */
+[data-gradients="true"] .btn-primary {
+  background: var(--net-gradient);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
 }
 
-/* STEALTH (Operator Crimson) */
-[data-theme="stealth"] {
-  --net-red: #FF0000;
-  --net-red-hover: #CC0000;
-  --tactical-primary: #FFB4AB;
-  --tactical-primary-container: #93000A;
-  --tactical-glow: 0 0 20px rgba(255, 0, 0, 0.3);
-  --tv-focus-border: #FF0000;
+[data-gradients="true"] .btn-secondary {
+  background: linear-gradient(135deg, rgba(109, 109, 110, 0.6) 0%, rgba(50, 50, 50, 0.6) 100%);
 }
 
-/* CYBERPUNK (Neon Purple/Blue) */
-[data-theme="cyberpunk"] {
-  --net-red: #D946EF;
-  --net-red-hover: #C026D3;
-  --tactical-primary: #F0ABFC;
-  --tactical-primary-container: #7E22CE;
-  --tactical-glow: 0 0 25px rgba(217, 70, 239, 0.4);
-  --tv-focus-border: #D946EF;
-  --net-bg: #050010;
-  --net-bg-lite: #0F0025;
+[data-gradients="true"] .card-accent-border {
+  border-image: var(--net-gradient) 1;
+}
+
+/* Special Effects */
+[data-effect="glass"] .glass {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(25px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-effect="neon"] :root {
+  --tactical-glow: 0 0 15px var(--net-red);
+}
+[data-effect="neon"] .btn-primary {
+  box-shadow: 0 0 20px var(--net-red);
+  text-shadow: 0 0 5px rgba(255,255,255,0.5);
+}
+
+[data-effect="prismatic"] .logo-accent {
+  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: prismatic-flow 3s linear infinite;
+}
+
+@keyframes prismatic-flow {
+  to { background-position: 200% center; }
 }
 
 /* Global TV Compatibility & Focus Management */
