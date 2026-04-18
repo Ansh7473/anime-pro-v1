@@ -8,6 +8,7 @@
   import { Download, X } from "lucide-svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { auth } from "$lib/stores/auth";
 
   let { children } = $props();
 
@@ -52,7 +53,7 @@
   let isWatchPage = $derived(page.url.pathname.startsWith('/watch/'));
 </script>
 
-<div class="regular-shell">
+<div class="regular-shell" data-theme={$auth.currentProfile?.theme || 'intelligence'}>
   {#if !isWatchPage}
     <div class="tactical-grid"></div>
     <Navbar />

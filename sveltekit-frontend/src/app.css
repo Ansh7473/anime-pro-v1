@@ -36,6 +36,40 @@
   --tv-sidebar-expanded: 320px;
 }
 
+/* --- THEME PROTOCOLS --- */
+
+/* INTELLIGENCE (Tactical Blue) */
+[data-theme="intelligence"] {
+  --net-red: #3B82F6;
+  --net-red-hover: #2563EB;
+  --tactical-primary: #ADC7FF;
+  --tactical-primary-container: #1A73E8;
+  --tactical-glow: 0 0 20px rgba(26, 115, 232, 0.3);
+  --tv-focus-border: #3B82F6;
+}
+
+/* STEALTH (Operator Crimson) */
+[data-theme="stealth"] {
+  --net-red: #FF0000;
+  --net-red-hover: #CC0000;
+  --tactical-primary: #FFB4AB;
+  --tactical-primary-container: #93000A;
+  --tactical-glow: 0 0 20px rgba(255, 0, 0, 0.3);
+  --tv-focus-border: #FF0000;
+}
+
+/* CYBERPUNK (Neon Purple/Blue) */
+[data-theme="cyberpunk"] {
+  --net-red: #D946EF;
+  --net-red-hover: #C026D3;
+  --tactical-primary: #F0ABFC;
+  --tactical-primary-container: #7E22CE;
+  --tactical-glow: 0 0 25px rgba(217, 70, 239, 0.4);
+  --tv-focus-border: #D946EF;
+  --net-bg: #050010;
+  --net-bg-lite: #0F0025;
+}
+
 /* Global TV Compatibility & Focus Management */
 :focus-visible {
   outline: 4px solid var(--tv-focus-border);

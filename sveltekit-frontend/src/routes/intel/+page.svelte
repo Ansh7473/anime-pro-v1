@@ -302,15 +302,15 @@
                 <div class="led"></div>
               </button>
               <div class="language-selector">
-                <span class="label">COMMS_LANGUAGE:</span>
+                <span class="label">VISUAL_PROTOCOL:</span>
                 <select 
-                  value={$auth.currentProfile?.language || 'sub'} 
-                  onchange={(e) => togglePref('language', (e.target as HTMLSelectElement).value)}
+                  value={$auth.currentProfile?.theme || 'intelligence'} 
+                  onchange={(e) => togglePref('theme', (e.target as HTMLSelectElement).value)}
                   class="glass-select"
                 >
-                  <option value="sub">SUBTITLED</option>
-                  <option value="dub">DUBBED</option>
-                  <option value="multi">MULTI_AUDIO</option>
+                  <option value="intelligence">INTELLIGENCE (BLUE)</option>
+                  <option value="stealth">STEALTH (RED)</option>
+                  <option value="cyberpunk">CYBERPUNK (NEON)</option>
                 </select>
               </div>
             </div>

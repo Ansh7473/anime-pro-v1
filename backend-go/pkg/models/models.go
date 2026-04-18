@@ -27,6 +27,7 @@ type Profile struct {
 	AutoNext bool   `json:"autoNext" firestore:"autoNext"`
 	AutoSkip bool   `json:"autoSkip" firestore:"autoSkip"`
 	Language string `json:"language" firestore:"language"` // sub, dub, multi
+	Theme    string `json:"theme" firestore:"theme"`       // intelligence, stealth, cyberpunk
 }
 
 // WatchHistory model
