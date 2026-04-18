@@ -3,12 +3,13 @@
   import MobileBottomNav from "$lib/components/MobileBottomNav.svelte";
   import PullToRefresh from "$lib/components/PullToRefresh.svelte";
   import Footer from "$lib/components/Footer.svelte";
+  import { themeState } from "$lib/stores/theme";
+  import { auth, logoutUser } from "$lib/stores/auth";
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { auth } from "$lib/stores/auth";
 
   let { children } = $props();
 
@@ -53,7 +54,10 @@
   let isWatchPage = $derived(page.url.pathname.startsWith('/watch/'));
 </script>
 
-<div class="regular-shell" data-theme={$auth.currentProfile?.theme || 'intelligence'}>
+<div class="regular-shell" 
+     class:theme-{$themeState.current}={true}
+     data-gradients={$themeState.gradients}
+     data-effect={$themeState.effect}>
   {#if !isWatchPage}
     <div class="tactical-grid"></div>
     <Navbar />
@@ -79,9 +83,9 @@
 
     {#if showUpdatePopup}
       <div class="update-popup glass" transition:fly={{ y: 50, duration: 400 }}>
-        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+        <div class="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
         <div class="flex justify-between items-start mb-3">
-          <div class="flex items-center gap-2 text-blue-400 font-bold">
+          <div class="flex items-center gap-2 text-red-500 font-bold">
             <Download size={18} /> Update Available
           </div>
           <button onclick={() => showUpdatePopup = false} class="text-gray-500 hover:text-white transition-colors">
@@ -91,7 +95,7 @@
         <p class="text-sm text-gray-400 mb-4 font-medium">
           Version <span class="text-white">v{latestVersion}</span> is now ready.
         </p>
-        <a href="/download" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all">
+        <a href="/download" class="w-full py-2.5 bg-red-600 hover:bg-red-700 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all shadow-lg shadow-red-900/20">
           Get Update
         </a>
       </div>

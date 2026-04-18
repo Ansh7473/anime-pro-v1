@@ -150,16 +150,11 @@
                 </select>
               </div>
 
-              <div class="select-group">
-                <span class="label">VISUAL_PROTOCOL</span>
-                <select 
-                  value={$auth.currentProfile?.theme || 'intelligence'} 
-                  onchange={(e) => togglePref('theme', (e.target as HTMLSelectElement).value)}
-                >
-                  <option value="intelligence">INTELLIGENCE (BLUE)</option>
-                  <option value="stealth">STEALTH (RED)</option>
-                  <option value="cyberpunk">CYBERPUNK (NEON)</option>
-                </select>
+              <div class="visual-engine-link">
+                <span class="label">VISUAL_ENGINE</span>
+                <a href="/profile" class="engine-btn">
+                  <Cpu size={14} /> CONFIGURE_VISUALS
+                </a>
               </div>
             </div>
           </section>
@@ -264,7 +259,7 @@
   .premium-loader .dot {
     width: 6px;
     height: 6px;
-    background: var(--net-primary, #0099ff);
+    background: var(--net-red, #ff1e2b);
     border-radius: 50%;
     animation: bounce 0.6s infinite alternate;
   }
@@ -286,7 +281,7 @@
   .avatar-placeholder {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #0099ff 0%, #0066cc 100%);
+    background: linear-gradient(135deg, var(--net-red) 0%, #7c040a 100%);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -294,7 +289,7 @@
     font-size: 1.5rem;
     font-weight: 800;
     color: #fff;
-    box-shadow: 0 10px 20px rgba(0, 153, 255, 0.2);
+    box-shadow: 0 10px 20px rgba(229, 9, 20, 0.2);
   }
   .user-meta h1 { font-size: 1.8rem; font-weight: 900; margin: 0 0 5px; letter-spacing: -0.02em; }
   .status-row { display: flex; gap: 10px; }
@@ -332,7 +327,7 @@
   .stat-items .item { display: flex; justify-content: space-between; align-items: baseline; }
   .stat-items .label { font-size: 0.7rem; font-weight: 700; opacity: 0.5; }
   .stat-items .val { font-size: 1.25rem; font-weight: 800; }
-  .stat-items .item.highlight .val { color: var(--net-primary, #0099ff); }
+  .stat-items .item.highlight .val { color: var(--net-red); }
 
   /* CONFIG SYNC */
   .sync-items { display: flex; flex-direction: column; gap: 12px; }
@@ -354,21 +349,30 @@
   .sync-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
   .sync-btn.active { color: #fff; border-color: rgba(0, 153, 255, 0.3); background: rgba(0, 153, 255, 0.05); }
   .indicator { width: 6px; height: 6px; border-radius: 50%; background: #333; transition: all 0.3s; }
-  .active .indicator { background: var(--net-primary, #0099ff); box-shadow: 0 0 8px var(--net-primary, #0099ff); }
+  .active .indicator { background: var(--net-red); box-shadow: 0 0 8px var(--net-red); }
 
-  .select-group { margin-top: 10px; }
-  .select-group .label { font-size: 0.6rem; font-weight: 800; opacity: 0.3; display: block; margin-bottom: 8px; }
-  .select-group select {
+  .visual-engine-link { margin-top: 15px; }
+  .visual-engine-link .label { font-size: 0.6rem; font-weight: 800; opacity: 0.3; display: block; margin-bottom: 8px; }
+  .engine-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
-    background: #111112;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #fff;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    outline: none;
-    cursor: pointer;
+    background: rgba(229, 9, 20, 0.1);
+    border: 1px solid rgba(229, 9, 20, 0.3);
+    color: var(--net-red);
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+  .engine-btn:hover {
+    background: var(--net-red);
+    color: white;
+    transform: translateY(-2px);
   }
 
   /* MAIN CONTENT */
@@ -396,7 +400,7 @@
     background: linear-gradient(0deg, rgba(10, 10, 11, 0.9) 0%, rgba(10, 10, 11, 0.2) 100%);
   }
   .resume-info { position: relative; z-index: 2; }
-  .resume-info .tag { font-size: 0.6rem; font-weight: 900; letter-spacing: 2px; color: var(--net-primary, #0099ff); margin-bottom: 10px; display: block; }
+  .resume-info .tag { font-size: 0.6rem; font-weight: 900; letter-spacing: 2px; color: var(--net-red); margin-bottom: 10px; display: block; }
   .resume-info h3 { font-size: 2rem; font-weight: 900; margin: 0 0 10px; letter-spacing: -0.03em; }
   .resume-info .meta { font-size: 0.8rem; font-weight: 700; opacity: 0.7; margin-bottom: 20px; }
   .btn-resume {
@@ -435,11 +439,11 @@
   .item-content .name { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
   .item-content .meta { font-size: 0.7rem; opacity: 0.4; font-weight: 600; }
   .mini-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: rgba(255, 255, 255, 0.05); }
-  .mini-progress .fill { height: 100%; background: var(--net-primary, #0099ff); }
+  .mini-progress .fill { height: 100%; background: var(--net-red); }
 
   /* AI BRIEFING */
   .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
-  .ai-badge { font-size: 0.6rem; font-weight: 800; color: var(--net-primary, #0099ff); display: flex; align-items: center; gap: 5px; }
+  .ai-badge { font-size: 0.6rem; font-weight: 800; color: var(--net-red); display: flex; align-items: center; gap: 5px; }
   .briefing-text { font-size: 0.95rem; line-height: 1.6; opacity: 0.7; margin-bottom: 24px; font-weight: 500; }
   .recs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
   .rec-card {
