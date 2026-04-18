@@ -17,6 +17,8 @@
 
 	let releases = $state<any[]>([]);
 	let loading = $state(true);
+	let downloading = $state<string | null>(null);
+
 	onMount(async () => {
 		try {
 			const res = await api.getLatestReleases();
@@ -38,6 +40,13 @@
 				download_url: "#",
 			}
 		);
+	}
+
+	function handleDownload(platform: string) {
+		downloading = platform;
+		setTimeout(() => {
+			downloading = null;
+		}, 3000);
 	}
 </script>
 
@@ -90,7 +99,7 @@
 						>
 					</div>
 
-					<h2 class="card-title">WINDOWS</h2>
+					<h2 class="card-title">WINDOWS_OS</h2>
 					<p class="card-description">
 						Hyper-threaded desktop architecture with native hardware
 						acceleration and Picture-in-Picture protocol.
@@ -120,19 +129,21 @@
 						{@const win = getLatest("windows")}
 						<div class="download-action">
 							<a
-								href={win?.download_url || "#"}
-								class="tactical-btn primary-action"
+								href="https://anime-pro-v1.anshsoni310.workers.dev/windows"
+								class="tactical-btn primary-action {downloading === 'windows' ? 'is-downloading' : ''}"
+								onclick={() => handleDownload("windows")}
 							>
-								<Download size={20} />
-								<span>DOWNLOAD FOR WINDOWS</span>
+								{#if downloading === "windows"}
+									<Terminal size={20} class="spinning" />
+									<span>INITIALIZING_X64...</span>
+								{:else}
+									<Download size={20} />
+									<span>DOWNLOAD FOR WINDOWS</span>
+								{/if}
 							</a>
 							<div class="file-meta">
-								<span class="meta-item"
-									>VER: {win?.version || "2.0.4"}</span
-								>
-								<span class="meta-item"
-									>SIZE: {win?.size || "412.8MB"}</span
-								>
+								<span class="meta-item">VER: {win?.version || "2.0.4"}</span>
+								<span class="meta-item">SIZE: {win?.size || "412.8MB"}</span>
 								<span class="meta-item">PROTO: AES_256</span>
 							</div>
 						</div>
@@ -156,7 +167,7 @@
 						>
 					</div>
 
-					<h2 class="card-title">TV</h2>
+					<h2 class="card-title">TV_OS</h2>
 					<p class="card-description">
 						Android TV optimized streaming client with leanback UI
 						and remote control support.
@@ -187,19 +198,21 @@
 						<div class="download-action">
 							<a
 								href="https://drive.google.com/uc?export=download&id=1cAOt75WCIvy7WTwW7sSFgZKgRxMMGrUa"
-								class="tactical-btn accent-action"
+								class="tactical-btn accent-action {downloading === 'tv' ? 'is-downloading' : ''}"
 								download
+								onclick={() => handleDownload("tv")}
 							>
-								<Download size={20} />
-								<span>DOWNLOAD FOR TV</span>
+								{#if downloading === "tv"}
+									<Activity size={20} class="spinning" />
+									<span>SYNCING_CORE...</span>
+								{:else}
+									<Download size={20} />
+									<span>DOWNLOAD FOR TV</span>
+								{/if}
 							</a>
 							<div class="file-meta">
-								<span class="meta-item"
-									>VER: {tv?.version || "1.0.0"}</span
-								>
-								<span class="meta-item"
-									>SIZE: {tv?.size || "50MB"}</span
-								>
+								<span class="meta-item">VER: {tv?.version || "1.0.0"}</span>
+								<span class="meta-item">SIZE: {tv?.size || "50MB"}</span>
 								<span class="meta-item">ENGINE: LEANBACK</span>
 							</div>
 						</div>
@@ -224,7 +237,7 @@
 						>
 					</div>
 
-					<h2 class="card-title">ANDROID</h2>
+					<h2 class="card-title">ANDROID_OS</h2>
 					<p class="card-description">
 						Streamlined mobile interface optimized for low-latency
 						data streaming and tactile synchronization.
@@ -254,19 +267,21 @@
 						{@const apk = getLatest("android")}
 						<div class="download-action">
 							<a
-								href={apk?.download_url || "#"}
-								class="tactical-btn secondary-action"
+								href="https://anime-pro-v1.anshsoni310.workers.dev/android"
+								class="tactical-btn secondary-action {downloading === 'android' ? 'is-downloading' : ''}"
+								onclick={() => handleDownload("android")}
 							>
-								<Zap size={20} />
-								<span>DOWNLOAD FOR ANDROID</span>
+								{#if downloading === "android"}
+									<Zap size={20} class="spinning" />
+									<span>ARM64_UPLOADING...</span>
+								{:else}
+									<Zap size={20} />
+									<span>DOWNLOAD FOR ANDROID</span>
+								{/if}
 							</a>
 							<div class="file-meta">
-								<span class="meta-item"
-									>VER: {apk?.version || "1.9.2"}</span
-								>
-								<span class="meta-item"
-									>SIZE: {apk?.size || "84.5MB"}</span
-								>
+								<span class="meta-item">VER: {apk?.version || "1.9.2"}</span>
+								<span class="meta-item">SIZE: {apk?.size || "84.5MB"}</span>
 								<span class="meta-item">ENGINE: V5_CORE</span>
 							</div>
 						</div>
@@ -542,6 +557,13 @@
 		height: 4rem;
 		border-radius: 0.75rem;
 		box-shadow: 0 0 20px rgba(26, 115, 232, 0.3);
+		transition: all 0.3s ease;
+	}
+
+	.primary-action:hover {
+		background: var(--tactical-primary);
+		box-shadow: 0 0 30px var(--tactical-primary);
+		transform: translateY(-2px);
 	}
 
 	.secondary-action {
@@ -550,6 +572,58 @@
 		height: 4rem;
 		border: 1px solid rgba(173, 199, 255, 0.2);
 		border-radius: 0.75rem;
+		transition: all 0.3s ease;
+	}
+
+	.secondary-action:hover {
+		background: rgba(173, 199, 255, 0.1);
+		box-shadow: 0 0 20px rgba(26, 115, 232, 0.2);
+		transform: translateY(-2px);
+		border-color: var(--tactical-primary);
+	}
+
+	.accent-action {
+		background: rgba(255, 152, 0, 0.15);
+		color: #ff9800;
+		height: 4rem;
+		border: 1px solid rgba(255, 152, 0, 0.3);
+		border-radius: 0.75rem;
+		transition: all 0.3s ease;
+	}
+
+	.accent-action:hover {
+		background: rgba(255, 152, 0, 0.25);
+		box-shadow: 0 0 25px rgba(255, 152, 0, 0.4);
+		transform: translateY(-2px);
+	}
+
+	.is-downloading {
+		pointer-events: none;
+		opacity: 0.8;
+		filter: brightness(1.2);
+		animation: pulse-glow 1s infinite alternate;
+	}
+
+	@keyframes pulse-glow {
+		from {
+			box-shadow: 0 0 10px currentColor;
+		}
+		to {
+			box-shadow: 0 0 40px currentColor;
+		}
+	}
+
+	.spinning {
+		animation: rotate 2s linear infinite;
+	}
+
+	@keyframes rotate {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.file-meta {
