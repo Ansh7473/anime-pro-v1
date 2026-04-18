@@ -12,7 +12,15 @@ interface User {
 interface AuthState {
     user: User | null;
     token: string | null;
-    currentProfile: any | null;
+    currentProfile: {
+        id: string;
+        name: string;
+        avatar: string;
+        autoNext: boolean;
+        autoSkip: boolean;
+        language: string;
+        theme: string;
+    } | null;
 }
 
 const initial: AuthState = {

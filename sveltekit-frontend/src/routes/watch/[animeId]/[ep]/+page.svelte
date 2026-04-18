@@ -130,6 +130,11 @@
   let autoNext = $state($auth.currentProfile?.autoNext ?? true);
   let autoSkip = $state($auth.currentProfile?.autoSkip ?? false);
   let lastSavedTime = 0;
+  
+  // HEURISTIC TRACKING (For Iframes/Embeds)
+  let timeSpentInEpisode = $state(0);
+  let sessionStartTime = Date.now();
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
   // Auto-next countdown
   let showCountdown = $state(false);
@@ -240,24 +245,47 @@
     }
   }
 
-  async function saveProgress() {
-    if (!videoElement || !$auth.token || !videoElement.currentTime) return;
-    if (videoElement.currentTime - lastSavedTime < 30 && !videoElement.ended)
+  async function saveProgress(force = false) {
+    const isEmbed = isEmbedPlayer;
+    const token = $auth.token;
+    if (!token) return;
+
+    let currentPos = 0;
+    let totalDur = 0;
+    let isCompleted = false;
+
+    if (!isEmbed && videoElement) {
+      if (!videoElement.currentTime) return;
+      currentPos = videoElement.currentTime;
+      totalDur = videoElement.duration || 1440;
+      isCompleted = videoElement.ended || (currentPos / totalDur > 0.9);
+      
+      // Throttling for native video
+      if (!force && !videoElement.ended && currentPos - lastSavedTime < 30) return;
+    } else if (isEmbed) {
+      // Heuristic tracking for embeds
+      currentPos = timeSpentInEpisode;
+      totalDur = 1440; // Estimated 24 mins
+      isCompleted = currentPos > 1200; // Completed after 20 mins of active watching
+      
+      // Throttling for embeds
+      if (!force && !isCompleted && currentPos - lastSavedTime < 60) return;
+    } else {
       return;
+    }
 
     try {
-      await api.updateHistory($auth.token, {
+      await api.updateHistory(token, {
         animeId: String(animeId),
         animeTitle: anime?.title || "",
         animePoster: anime?.image || anime?.poster || "",
         episodeNumber: ep,
-        progress: videoElement.currentTime,
-        duration: videoElement.duration,
-        completed:
-          videoElement.ended ||
-          videoElement.currentTime / videoElement.duration > 0.9,
+        progress: currentPos,
+        duration: totalDur,
+        completed: isCompleted,
       });
-      lastSavedTime = videoElement.currentTime;
+      lastSavedTime = currentPos;
+      console.log(`[Monitor] Progress synced: ${currentPos}s / ${totalDur}s (Completed: ${isCompleted})`);
     } catch (e) {
       console.error("Failed to save progress:", e);
     }
@@ -397,6 +425,7 @@
 
   onDestroy(() => {
     if (hls) hls.destroy();
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
     cancelCountdown();
   });
 
@@ -633,6 +662,33 @@
   function handleSourceChange(src: any) {
     selectedSource = src;
   }
+
+  // Tactical Monitoring Heartbeat
+  $effect(() => {
+    if (selectedSource && isEmbedPlayer) {
+      console.log("[Monitor] Activating Heuristic Monitoring for embed.");
+      // Start heartbeat
+      heartbeatInterval = setInterval(() => {
+        // Only count if window is focused to be "professional"
+        if (document.hasFocus()) {
+          timeSpentInEpisode += 1;
+          saveProgress();
+        }
+      }, 1000);
+    } else {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+    }
+
+    return () => {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+    };
+  });
 </script>
 
 <svelte:head>
@@ -724,8 +780,8 @@
                 controls
                 class="video-element"
                 poster={getProxiedImage(anime?.banner || anime?.image)}
-                onended={handleVideoEnded}
-                ontimeupdate={saveProgress}
+                onended={() => saveProgress(true)}
+                ontimeupdate={() => saveProgress()}
               >
                 <track kind="captions" />
               </video>
