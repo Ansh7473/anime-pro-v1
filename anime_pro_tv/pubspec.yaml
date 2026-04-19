@@ -1,0 +1,48 @@
+name: anime_pro_tv
+description: A native Flutter Android TV streaming app for AnimePro.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.2
+  
+  # Networking
+  dio: ^5.4.1
+  
+  
+  # Images
+  cached_network_image: ^3.3.1
+  
+  # UI & Fonts
+  google_fonts: ^6.2.1
+  flutter_blurhash: ^0.8.2
+  shimmer: ^3.0.0
+  glassmorphism: ^3.0.0
+  
+  # Web Player Support (for Embeds/Iframes)
+  webview_flutter: ^4.7.0
+  webview_flutter_android: ^4.0.0
+  webview_windows: ^0.4.0
+  
+  # Icons
+  lucide_icons: ^0.257.0
+  
+  # Voice & Permissions
+  speech_to_text: ^7.3.0
+  permission_handler: ^11.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true

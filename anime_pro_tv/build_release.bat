@@ -1,0 +1,19 @@
+@echo off
+echo Starting Production Build (APK)...
+echo Killing all Java processes to unlock files...
+taskkill /F /IM java.exe /T >nul 2>&1
+echo Stopping background Gradle processes...
+cd android && call gradlew.bat --stop && cd ..
+echo Automatically clearing corrupted Netty caches to fix Prolog errors...
+if exist "D:\flutterbuilftvnatoive\cache\gradle\caches\modules-2\files-2.1\io.netty" rd /s /q "D:\flutterbuilftvnatoive\cache\gradle\caches\modules-2\files-2.1\io.netty"
+echo Checking for corrupted Android SDK (34)...
+if exist "C:\Users\anshs\AppData\Local\Android\Sdk\platforms\android-34" rd /s /q "C:\Users\anshs\AppData\Local\Android\Sdk\platforms\android-34"
+call "D:\flutter\bin\flutter.bat" clean
+call "D:\flutter\bin\flutter.bat" pub get
+call "D:\flutter\bin\flutter.bat" build apk --release
+echo.
+echo Build finished! Check build\app\outputs\flutter-apk\app-release.apk
+echo.
+echo [AUTO] Launching One-Click Installer...
+call install_apk.bat
+
