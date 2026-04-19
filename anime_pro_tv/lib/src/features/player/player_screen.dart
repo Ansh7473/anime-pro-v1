@@ -1,0 +1,1308 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
+import 'package:provider/provider.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_windows/webview_windows.dart' as win;
+import 'package:glassmorphism/glassmorphism.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/image_utils.dart';
+import '../../core/tv_focusable.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_provider.dart';
+// details_screen.dart import removed (unused)
+
+class PlayerScreen extends StatefulWidget {
+  final String animeId;
+  final int episode;
+  final String title;
+  final String? posterUrl;
+
+  const PlayerScreen({
+    super.key,
+    required this.animeId,
+    required this.episode,
+    required this.title,
+    this.posterUrl,
+  });
+
+  @override
+  State<PlayerScreen> createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends State<PlayerScreen> {
+  // Mobile Controller
+  WebViewController? _webController;
+  // Windows Controller
+  win.WebviewController? _winController;
+  
+  bool _isLoading = true;
+  bool _isSelectingSource = true;
+  // ignore: unused_field
+  List<dynamic> _allSources = [];
+  // ignore: unused_field
+  dynamic _selectedSource;
+  String _error = '';
+  String? _playerDomain; 
+  String? _allowedHost;
+  
+  // Virtual Cursor State
+  double _cursorX = 0.5;
+  double _cursorY = 0.5;
+  bool _isCursorActive = false;
+  int _pointerCounter = 100;
+  final FocusNode _focusNode = FocusNode();
+
+  // Cursor Speed Presets
+  static const List<double> _speedValues = [0.02, 0.05, 0.10, 0.18];
+  static const List<String> _speedLabels = ['SLOW', 'NORMAL', 'FAST', 'ULTRA'];
+  int _speedIndex = 1; // Default: NORMAL
+  double get _cursorSensivity => _speedValues[_speedIndex];
+
+  // Overlay auto-hide
+  bool _showOverlay = true;
+  Timer? _overlayTimer;
+
+  // Image for background
+  String? _bannerUrl;
+
+  // FIX: Throttle mousemove injection to prevent jank (max once per 100ms)
+  DateTime _lastMouseMoveInject = DateTime(0);
+
+  @override
+  void initState() {
+    super.initState();
+    _initPlayer();
+    _fetchSources();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  Future<void> _initPlayer() async {
+    if (Platform.isWindows) {
+      await _initWindowsWebview();
+    } else {
+      _webController = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setBackgroundColor(Colors.black)
+        ..setUserAgent(_desktopUserAgent)
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onWebResourceError: (error) => print('WebView Resource Error: ${error.description}'),
+            onNavigationRequest: (request) => NavigationDecision.navigate,
+          ),
+        );
+
+      if (_webController!.platform is AndroidWebViewController) {
+        AndroidWebViewController.enableDebugging(true);
+        (_webController!.platform as AndroidWebViewController)
+            .setMediaPlaybackRequiresUserGesture(false);
+      }
+    }
+  }
+
+  static const String _desktopUserAgent = 
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+  Future<void> _initWindowsWebview() async {
+    _winController = win.WebviewController();
+    await _winController!.initialize();
+    await _winController!.setBackgroundColor(Colors.black);
+    await _winController!.setUserAgent(_desktopUserAgent); // Force Desktop mode
+    
+    _winController!.loadingState.listen((state) {
+      if (state == win.LoadingState.navigationCompleted) {
+        setState(() => _isLoading = false);
+        _injectAbyssFix();
+      }
+    });
+  }
+
+  Future<void> _injectAbyssFix() async {
+    // 1. Anti-framing trick
+    // 2. Window.open override to stop popup hijack (common on Vidhide/Bysewihe)
+    // 3. Aggressive CSS to hide common ad-overlay patterns
+    const String script = '''
+      (function() {
+        try {
+          // Fix frame-busting
+          Object.defineProperty(window, 'top', { get: function() { return window.self; } });
+          
+          // Stop all popup-like methods
+          window.open = function() { return null; };
+          window.alert = function() { return null; };
+          window.confirm = function() { return true; };
+          window.prompt = function() { return null; };
+          
+          // Aggressive CSS to hide common ad-overlay patterns
+          var applyStyle = function() {
+            if (document.getElementById('anti-ad-style')) return;
+            var style = document.createElement('style');
+            style.id = 'anti-ad-style';
+            style.innerHTML = `
+              * { cursor: none !important; } 
+              div[class*="overlay"], div[class*="popup"], div[class*="ads"], 
+              iframe[src*="doubleclick"], .play-button-overlay, .adbov,
+              .ad-banner, .pop-overlay, #pop-overlay, .mgbox {
+                display: none !important; 
+                opacity: 0 !important; 
+                pointer-events: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                width: 0 !important;
+              }
+            `;
+            document.head.appendChild(style);
+          };
+          applyStyle();
+
+          // Repeatedly re-apply to catch late-loading ads
+          setInterval(applyStyle, 2000);
+          
+          // Auto-click "Play" if stuck (for known embed types)
+          setTimeout(function() {
+            var playBtn = document.querySelector('.play-btn, #play, .vjs-big-play-button');
+            if (playBtn) playBtn.click();
+          }, 1500);
+          
+        } catch(e) {}
+      })();
+    ''';
+
+    if (Platform.isWindows && _winController != null) {
+      await _winController!.executeScript(script);
+    } else if (_webController != null) {
+      await _webController!.runJavaScript(script);
+    }
+  }
+
+  // State for categorized sources
+  Map<String, List<dynamic>> _categorizedSources = {
+    'SUBBED': [],
+    'ENGLISH DUB': [],
+    'HINDI DUB': [],
+    'RAW': [],
+  };
+  String _activeCategory = 'SUBBED';
+
+  Future<void> _fetchSources() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+      _allSources = [];
+      _categorizedSources = {
+        'SUBBED': [],
+        'ENGLISH DUB': [],
+        'HINDI DUB': [],
+        'RAW': [],
+      };
+    });
+
+    try {
+      final api = context.read<ApiService>();
+      
+      // Background Asset Management
+      if (widget.posterUrl != null) {
+        _bannerUrl = widget.posterUrl;
+      } else {
+        api.getAnimeDetails(widget.animeId).then((res) {
+          if (mounted) setState(() => _bannerUrl = res['bannerImage'] ?? res['image'] ?? res['poster']);
+        }).catchError((e) {
+          debugPrint('Error fetching details: $e');
+        });
+      }
+
+      // Parallel Fetching
+      final results = await Future.wait([
+        api.getSources(widget.animeId, widget.episode).catchError((e) => null),
+        api.getNineAnimeSources(widget.animeId, widget.episode).catchError((e) => null),
+        api.getAnimelokSources(widget.animeId, widget.episode).catchError((e) => null),
+        api.getDesiDubSources(widget.animeId, widget.episode).catchError((e) => null),
+        api.getAHDSources(widget.animeId, widget.episode).catchError((e) => null),
+        api.getToonstreamSources(widget.animeId, widget.episode).catchError((e) => null),
+      ]);
+
+      List<dynamic> consolidated = [];
+      
+      for (var i = 0; i < results.length; i++) {
+        final res = results[i];
+        if (res != null && res['data'] != null && res['data']['sources'] != null) {
+          final String providerName = i == 0 ? 'Primary' : 
+                                     i == 1 ? '9Anime' : 
+                                     i == 2 ? 'Animelok' : 
+                                     i == 3 ? 'DesiDub' : 
+                                     i == 4 ? 'AHD' : 'Toonstream';
+          
+          for (var s in res['data']['sources']) {
+            final source = {
+              ...s,
+              'providerName': s['provider'] ?? providerName,
+              'serverName': s['name'] ?? s['label'] ?? 'Server',
+            };
+            
+            // Deduplicate by URL
+            if (!consolidated.any((existing) => existing['url'] == source['url'])) {
+              consolidated.add(source);
+              _categorizeSource(source);
+            }
+          }
+        }
+      }
+
+      if (consolidated.isEmpty) throw Exception('No streaming sources found.');
+
+      if (!mounted) return;
+      setState(() {
+        _allSources = consolidated;
+        _isLoading = false;
+        _isSelectingSource = true;
+        
+        // Auto-switch to a category that has items if SUBBED is empty
+        if (_categorizedSources['SUBBED']!.isEmpty) {
+          if (_categorizedSources['HINDI DUB']!.isNotEmpty) _activeCategory = 'HINDI DUB';
+          else if (_categorizedSources['ENGLISH DUB']!.isNotEmpty) _activeCategory = 'ENGLISH DUB';
+          else if (_categorizedSources['RAW']!.isNotEmpty) _activeCategory = 'RAW';
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _categorizeSource(dynamic s) {
+    final String lang = (s['language'] ?? s['lang'] ?? '').toString().toLowerCase();
+    final String cat = (s['category'] ?? '').toString().toLowerCase();
+    final String type = (s['type'] ?? '').toString().toLowerCase();
+    final String prov = (s['providerName'] ?? '').toString().toLowerCase();
+
+    if (lang.contains('hindi') || cat == 'hindi' || (prov.contains('desidub') && (lang.contains('multi') || lang == 'hindi'))) {
+      _categorizedSources['HINDI DUB']!.add(s);
+    } else if (lang.contains('english') || cat == 'dub' || type == 'dub') {
+      _categorizedSources['ENGLISH DUB']!.add(s);
+    } else if (cat == 'raw' || type == 'raw') {
+      _categorizedSources['RAW']!.add(s);
+    } else {
+      _categorizedSources['SUBBED']!.add(s);
+    }
+  }
+
+  String _wrapAbyss(String url) {
+    // The <base> tag is critical: it allows JWPlayer to find its CDN scripts while being framed.
+    // We use referrerpolicy="origin" to match the frontend's stable behavior.
+    final String html = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <base href="$url">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body>
+    <iframe 
+        src="$url" 
+        referrerpolicy="origin"
+        allow="autoplay; fullscreen; encrypted-media; picture-in-picture" 
+        allowfullscreen>
+    </iframe>
+</body>
+</html>
+''';
+    return Uri.dataFromString(html, mimeType: 'text/html', encoding: utf8).toString();
+  }
+
+  String _wrapHls(String url) {
+    final html = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.1, maximum-scale=10.0, user-scalable=yes">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body, html { margin: 0; padding: 0; background: black; overflow: hidden; width: 100%; height: 100%; }
+        #video { width: 100vw; height: 100vh; background: black; outline: none; }
+    </style>
+</head>
+<body>
+    <video id="video" controls autoplay playsinline></video>
+    <script>
+        var video = document.getElementById('video');
+        var videoSrc = '$url';
+        if (Hls.isSupported()) {
+            var hls = new Hls({ 
+                enableWorker: true, 
+                lowLatencyMode: true,
+                backBufferLength: 90
+            });
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() { 
+                video.play().catch(function(e) { console.log("Autoplay blocked"); }); 
+            });
+            hls.on(Hls.Events.ERROR, function(event, data) {
+                if (data.fatal) {
+                    switch(data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
+                        case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
+                        default: hls.destroy(); break;
+                    }
+                }
+            });
+            window.hls = hls;
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = videoSrc;
+            video.addEventListener('loadedmetadata', function() { video.play(); });
+        }
+    </script>
+</body>
+</html>
+''';
+    return Uri.dataFromString(html, mimeType: 'text/html', encoding: utf8).toString();
+  }
+
+  String _getProxiedUrl(String target) {
+    final String targetLow = target.toLowerCase();
+    String referer = '';
+
+    // Only proxy raw streams from these hosts (matching Svelte xhrSetup)
+    const restrictedOrigins = ['anvod.pro', 'uwucdn.top', 'anivid.icu', 'pahe.win', 'bysewihe.com', 'short.icu'];
+    final bool isRestricted = restrictedOrigins.any((origin) => targetLow.contains(origin));
+
+    if (!isRestricted) return target;
+
+    // Referer Mapping from frontend logic at xhrSetup
+    if (targetLow.contains('desidub')) {
+      referer = 'https://www.desidubanime.me/';
+    } else if (targetLow.contains('animehindidubbed')) {
+      referer = 'https://animehindidubbed.in/';
+    } else {
+      referer = 'https://animelok.xyz/';
+    }
+
+    const String proxyBase = 'https://anime-pro-v1-backend-go.vercel.app/api/v1/streaming/proxy';
+    return '$proxyBase?url=${Uri.encodeComponent(target)}&referer=${Uri.encodeComponent(referer)}';
+  }
+
+  Future<void> _recordHistory() async {
+    try {
+      final auth = context.read<AuthProvider>();
+      if (!auth.isAuthenticated) return;
+      
+      final api = context.read<ApiService>();
+      await api.updateWatchHistory(auth.token!, {
+        'animeId': widget.animeId,
+        'animeTitle': widget.title,
+        'episodeNumber': widget.episode,
+        'profileId': 0, // Default profile
+        'progress': 0,  // Start of episode
+        'completed': false,
+      });
+      debugPrint('HISTORY RECORDED: Ep ${widget.episode}');
+    } catch (e) {
+      debugPrint('History error: $e');
+    }
+  }
+
+  /// Detects whether a URL is a web-page embed (iframe, HTML page)
+  /// vs. a direct playable stream (.m3u8, .mp4, .ts, etc.).
+  /// FIX: Extended to correctly catch embed pages like toonstream, vidhide, etc.
+  bool _isEmbedUrl(dynamic source, String url) {
+    final String type = (source['type'] ?? '').toString().toLowerCase();
+    final bool flaggedByApi = source['isEmbed'] == true;
+    final bool isDirectStream = url.contains('.m3u8') ||
+        url.contains('.mp4') ||
+        url.contains('.ts') ||
+        url.contains('.mkv') ||
+        url.contains('playlist') && url.contains('m3u8');
+    // A URL is an embed if the API flags it, the type is iframe,
+    // or it is not a recognised direct stream format.
+    return flaggedByApi || type == 'iframe' || !isDirectStream;
+  }
+
+  Future<void> _startPlayback(dynamic source) async {
+    final String url = source['url'].toString();
+    final bool isEmbed = _isEmbedUrl(source, url);
+    
+    final String urlLow = url.toLowerCase();
+    String referer = 'https://animelok.xyz/';
+    if (urlLow.contains('short.icu') || urlLow.contains('desidub')) {
+      referer = 'https://www.desidubanime.me/';
+    } else if (urlLow.contains('animehindidubbed') || source['providerName'] == 'AHD') {
+      referer = 'https://animehindidubbed.in/';
+    } else if (source['providerName'] == '9Anime') {
+      referer = 'https://aniwave.to/';
+    }
+
+    debugPrint('EMBED DETECTION: url=$url | isEmbed=$isEmbed');
+    
+    // Extract domain for navigation guarding
+    try {
+      _allowedHost = Uri.parse(url).host.toLowerCase().replaceAll('www.', '');
+    } catch (e) {
+      _allowedHost = null;
+    }
+
+    // NEW LOGIC: Determine the loading strategy based on the provider domain.
+    // 1. RAW STREAM: Use HLS.js wrapper.
+    // 2. STRICT EMBED: (Bysewihe, Vidhide) must load DIRECTLY in the main frame.
+    // 3. LEGACY EMBED: (Abyss/short.icu) behaves best inside _wrapAbyss() iframe.
+
+    final bool isDirectHls = !isEmbed;
+    final bool isStrictEmbed = urlLow.contains('bysewihe.com') || 
+                               urlLow.contains('vidhide') || 
+                               urlLow.contains('streamwish') ||
+                               urlLow.contains('playerp2p') ||
+                               urlLow.contains('desidub') ||
+                               urlLow.contains('as-cdn21.top');
+                               
+    String finalUrl = url;
+    if (isDirectHls) {
+      finalUrl = _wrapHls(url);
+    } else if (!isStrictEmbed) {
+      // It's a legacy embed like Abyss (short.icu)
+      finalUrl = _wrapAbyss(url);
+    }
+
+    // Windows mirroring
+    final String winFinalUrl = isDirectHls ? _wrapHls(_getProxiedUrl(url)) : (isStrictEmbed ? url : _wrapAbyss(url));
+
+    debugPrint('LOAD MODE: ${isDirectHls ? "HLS" : (isStrictEmbed ? "DIRECT" : "IFRAME WRAP")} → $finalUrl');
+
+    debugPrint('STARTING PLAYBACK: $url');
+    _recordHistory();
+
+    // STEP 1: Set non-visual state but KEEP the source picker visible.
+    // We do NOT set _isSelectingSource = false yet so the picker stays on screen
+    // while we kill the old audio/video session in the background.
+    // This prevents the UI rebuild + WebView page-load from racing on the same frame.
+    setState(() {
+      _selectedSource = source;
+      _isLoading = true;
+      _error = '';
+      try { _playerDomain = Uri.parse(url).host; } catch(_) { _playerDomain = null; }
+    });
+
+    if (Platform.isWindows) {
+      if (_winController != null) {
+        // STEP 2 (Windows): Kill session, then transition UI and load.
+        await _winController!.loadUrl('about:blank');
+        await Future.delayed(const Duration(milliseconds: 200)); // WebView2 has no onPageFinished
+        if (!mounted) return;
+        setState(() {
+          _isSelectingSource = false;
+          _isCursorActive = true;
+        });
+        await _winController!.loadUrl(winFinalUrl);
+      }
+    } else if (_webController != null) {
+      try {
+        // STEP 2 (Android): Kill old audio/video session first while picker is still showing.
+        // The WebView is navigating to about:blank in the background, source picker remains
+        // visible — no jank from a UI rebuild coinciding with a WebView navigation.
+        await _killAudioSession();
+
+        // STEP 3: NOW dismiss the source picker — WebView is blank and silent.
+        if (!mounted) return;
+        setState(() {
+          _isSelectingSource = false;
+          _isCursorActive = true;
+        });
+
+        _webController!.setNavigationDelegate(
+          NavigationDelegate(
+            onPageFinished: (pageUrl) {
+              if (pageUrl == 'about:blank') return;
+              setState(() => _isLoading = false);
+              _injectAbyssFix();
+              _resetOverlayTimer();
+            },
+            onNavigationRequest: (request) {
+              if (!request.isMainFrame) return NavigationDecision.navigate;
+
+              final reqUrl = request.url.toLowerCase();
+
+              // Always allow blank/data/blob navigations.
+              if (reqUrl.startsWith('about:') ||
+                  reqUrl.startsWith('data:') ||
+                  reqUrl.startsWith('blob:')) {
+                return NavigationDecision.navigate;
+              }
+
+              if (isEmbed) {
+                // EMBED MODE: Strict Host Guard
+                final reqHost = Uri.tryParse(request.url)?.host.toLowerCase().replaceAll('www.', '') ?? '';
+                final String allowed = _allowedHost ?? '';
+                
+                // 1. Always block known malicious ad domains from taking over the main frame.
+                if (reqUrl.contains('google.com') || 
+                    reqUrl.contains('decafeligiblyhad.com') || 
+                    reqUrl.contains('holahupa.com') ||
+                    reqUrl.contains('jnbhi.com') ||
+                    reqUrl.contains('abyss.to') ||
+                    reqUrl.contains('search?q=')) {
+                   debugPrint('NAV STOP (ads/hijack): ${request.url}');
+                   return NavigationDecision.prevent;
+                }
+
+                // 2. Allow if same host or same base name (e.g. vidmoly.biz -> vidmoly.me)
+                final String baseName = allowed.split('.').first;
+                if (allowed.isNotEmpty && (reqHost.contains(allowed) || (baseName.length > 3 && reqHost.contains(baseName)))) {
+                  debugPrint('NAV ALLOW (safe host): ${request.url}');
+                  return NavigationDecision.navigate;
+                }
+
+                // 3. Block other main-frame navigations in embed mode to prevent escapes
+                debugPrint('NAV STOP (external escape): ${request.url}');
+                return NavigationDecision.prevent;
+              } else {
+                // HLS WRAPPER MODE: The page is a data: URI we generated.
+                // Only allow same-origin or blob navigations from our HLS player.
+                if (reqUrl.startsWith('data:') ||
+                    reqUrl.contains('blob:') ||
+                    (_playerDomain != null && reqUrl.contains(_playerDomain!))) {
+                  return NavigationDecision.navigate;
+                }
+                debugPrint('NAV BLOCK (hls mode): ${request.url}');
+                return NavigationDecision.prevent;
+              }
+            },
+            onWebResourceError: (error) {
+              // Only surface fatal main-frame errors, not sub-resource 4xx/5xx
+              if (error.isForMainFrame == true && mounted) {
+                setState(() => _error = 'Player Error: ${error.description}');
+              }
+            },
+          ),
+        );
+
+        _webController!.loadRequest(
+          Uri.parse(finalUrl),
+          headers: {
+            'Referer': referer,
+            'Origin': referer.replaceAll(RegExp(r'/$'), ''),
+          },
+        );
+      } catch (e) {
+        debugPrint('PLAYBACK CRASH CAUGHT: $e');
+        if (mounted) {
+          setState(() {
+            _error = 'Playback failed. Try another source.';
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _simulateClick() async {
+    final size = MediaQuery.of(context).size;
+    final position = Offset(size.width * _cursorX, size.height * _cursorY);
+
+    // 1. Inject REAL Flutter pointer events at cursor position.
+    //    This activates ANY Flutter widget under the cursor:
+    //    buttons, GestureDetectors, TVFocusable, WebView platform view, etc.
+    _pointerCounter++;
+    final pointerId = _pointerCounter;
+
+    WidgetsBinding.instance.handlePointerEvent(
+      PointerDownEvent(
+        pointer: pointerId,
+        position: position,
+        kind: PointerDeviceKind.touch,
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 60));
+
+    WidgetsBinding.instance.handlePointerEvent(
+      PointerUpEvent(
+        pointer: pointerId,
+        position: position,
+        kind: PointerDeviceKind.touch,
+      ),
+    );
+
+    // 2. ALSO inject JS click into WebView as backup for embedded players.
+    //    Some embedded players don't respond to native touch — they need JS mouse events.
+    if (_webController == null && _winController == null) return;
+
+    final String script = '''
+      (function() {
+        var x = window.innerWidth * ${_cursorX};
+        var y = window.innerHeight * ${_cursorY};
+
+        // Click on top-level document element
+        var el = document.elementFromPoint(x, y);
+        if (el) {
+          el.dispatchEvent(new MouseEvent('mouseover', {bubbles:true, cancelable:true, view:window, clientX:x, clientY:y}));
+          el.dispatchEvent(new MouseEvent('mousedown', {bubbles:true, cancelable:true, view:window, clientX:x, clientY:y}));
+          el.dispatchEvent(new MouseEvent('mouseup',   {bubbles:true, cancelable:true, view:window, clientX:x, clientY:y}));
+          el.click();
+          el.focus();
+        }
+
+        // CRITICAL: Also click inside iframes — embedded player controls
+        // (quality selector, subtitle toggle, play/pause, settings menu)
+        // live inside nested iframes that the top document can't reach.
+        try {
+          var iframes = document.querySelectorAll('iframe');
+          for (var i = 0; i < iframes.length; i++) {
+            try {
+              var iDoc = iframes[i].contentDocument || iframes[i].contentWindow.document;
+              var iRect = iframes[i].getBoundingClientRect();
+              var ix = x - iRect.left;
+              var iy = y - iRect.top;
+              if (ix >= 0 && iy >= 0 && ix <= iRect.width && iy <= iRect.height) {
+                var iEl = iDoc.elementFromPoint(ix, iy);
+                if (iEl) {
+                  iEl.dispatchEvent(new MouseEvent('mouseover',  {bubbles:true, cancelable:true, view:iframes[i].contentWindow, clientX:ix, clientY:iy}));
+                  iEl.dispatchEvent(new MouseEvent('mousedown',  {bubbles:true, cancelable:true, view:iframes[i].contentWindow, clientX:ix, clientY:iy}));
+                  iEl.dispatchEvent(new MouseEvent('mouseup',    {bubbles:true, cancelable:true, view:iframes[i].contentWindow, clientX:ix, clientY:iy}));
+                  iEl.click();
+                  iEl.focus();
+                }
+              }
+            } catch(e) {} // Cross-origin iframes will throw — that's OK
+          }
+        } catch(e) {}
+      })();
+    ''';
+
+    if (Platform.isWindows && _winController != null) {
+      await _winController!.executeScript(script);
+    } else if (_webController != null) {
+      await _webController!.runJavaScript(script);
+    }
+  }
+
+  void _onDirectionalInput(Offset delta) {
+    _resetOverlayTimer();
+    setState(() {
+      _cursorX = (_cursorX + delta.dx * _cursorSensivity).clamp(0.01, 0.99);
+      _cursorY = (_cursorY + delta.dy * _cursorSensivity).clamp(0.01, 0.99);
+    });
+
+    // Inject mousemove into WebView so embedded players reveal their controls
+    // (play/pause bar, quality selector, settings gear only appear on mouse activity)
+    _injectMouseMove();
+  }
+
+  Future<void> _injectMouseMove() async {
+    if (_webController == null && _winController == null) return;
+
+    // FIX: Throttle to max once per 100ms — prevents skipped frames when D-pad
+    // is held down (was causing 96-133 frame skips and 2.6s Davey jank).
+    final now = DateTime.now();
+    if (now.difference(_lastMouseMoveInject).inMilliseconds < 100) return;
+    _lastMouseMoveInject = now;
+
+    final String script = '''
+      (function() {
+        var x = window.innerWidth * ${_cursorX};
+        var y = window.innerHeight * ${_cursorY};
+        var el = document.elementFromPoint(x, y);
+        if (el) {
+          el.dispatchEvent(new MouseEvent('mousemove', {bubbles:true, cancelable:true, view:window, clientX:x, clientY:y}));
+        }
+        try {
+          var iframes = document.querySelectorAll('iframe');
+          for (var i = 0; i < iframes.length; i++) {
+            try {
+              var iDoc = iframes[i].contentDocument || iframes[i].contentWindow.document;
+              var iRect = iframes[i].getBoundingClientRect();
+              var ix = x - iRect.left;
+              var iy = y - iRect.top;
+              if (ix >= 0 && iy >= 0 && ix <= iRect.width && iy <= iRect.height) {
+                var iEl = iDoc.elementFromPoint(ix, iy);
+                if (iEl) {
+                  iEl.dispatchEvent(new MouseEvent('mousemove', {bubbles:true, cancelable:true, view:iframes[i].contentWindow, clientX:ix, clientY:iy}));
+                }
+              }
+            } catch(e) {}
+          }
+        } catch(e) {}
+      })();
+    ''';
+
+    if (Platform.isWindows && _winController != null) {
+      await _winController!.executeScript(script);
+    } else if (_webController != null) {
+      await _webController!.runJavaScript(script);
+    }
+  }
+
+  /// Loads about:blank and waits for the WebView to confirm the page finished.
+  /// This kills Chromium's audio pipeline cleanly before a new stream is loaded.
+  Future<void> _killAudioSession() async {
+    if (_webController == null) return;
+
+    final completer = Completer<void>();
+
+    // 1. Explicitly stop and release all current media via JS before navigating.
+    // This is CRITICAL to prevent "CCodecConfig CORRUPTED" on Android TV.
+    const String teardownScript = '''
+      (function() {
+        try {
+          var mediaEls = document.querySelectorAll('video, audio');
+          for (var i = 0; i < mediaEls.length; i++) {
+            try {
+              mediaEls[i].pause();
+              mediaEls[i].src = "";
+              mediaEls[i].load(); 
+              mediaEls[i].remove();
+            } catch(e) {}
+          }
+          if (window.hls) { try { window.hls.destroy(); } catch(e) {} window.hls = null; }
+          var iframes = document.querySelectorAll('iframe');
+          for (var i = 0; i < iframes.length; i++) {
+            try { iframes[i].src = 'about:blank'; iframes[i].remove(); } catch(e) {}
+          }
+        } catch(e) {}
+      })();
+    ''';
+    
+    await _webController!.runJavaScript(teardownScript).catchError((_) {});
+
+    // 2. Set special delegate for blank page loading
+    _webController!.setNavigationDelegate(
+      NavigationDelegate(
+        onPageFinished: (pageUrl) {
+          if (pageUrl.contains('about:blank') || pageUrl.isEmpty) {
+            if (!completer.isCompleted) completer.complete();
+          }
+        },
+        onWebResourceError: (_) {
+          if (!completer.isCompleted) completer.complete();
+        },
+      ),
+    );
+
+    await _webController!.loadRequest(Uri.parse('about:blank'));
+
+    // 3. Wait for cleanup to finish
+    await completer.future.timeout(
+      const Duration(milliseconds: 800),
+      onTimeout: () {
+        debugPrint('AUDIO KILL: about:blank timeout — proceeding anyway');
+      },
+    );
+
+    debugPrint('AUDIO KILL: Session cleared, safe to load new stream.');
+  }
+
+  @override
+  void dispose() {
+    _overlayTimer?.cancel();
+    _focusNode.dispose();
+    _destroyAllMedia();
+    _winController?.dispose();
+    super.dispose();
+  }
+
+  /// Fully tears down all media when the player is closed or a source is switched.
+  ///
+  /// Execution order:
+  ///  1. JS: pause + remove src from every <video>/<audio> → releases MediaCodec
+  ///  2. JS: destroy HLS.js instance → stops segment fetching & SourceBuffer
+  ///  3. JS: remove all <iframe>s → kills embed player pipelines
+  ///  4. Navigate to about:blank → final WebView process cleanup
+  ///
+  /// This stops c2.goldfish.h264.decoder (and audio AAudio streams) immediately
+  /// instead of leaving them running after the user presses Back.
+  void _destroyAllMedia() {
+    if (_webController == null) return;
+
+    const String teardownScript = '''
+      (function() {
+        try {
+          // 1. Kill every <video> and <audio> element on the page.
+          var mediaEls = document.querySelectorAll('video, audio');
+          for (var i = 0; i < mediaEls.length; i++) {
+            try {
+              mediaEls[i].pause();
+              mediaEls[i].removeAttribute('src');
+              mediaEls[i].load(); // Forces the media engine to release buffers
+            } catch(e) {}
+          }
+
+          // 2. Destroy HLS.js if it was used (direct .m3u8 streams).
+          if (window._hlsInstance) {
+            try { window._hlsInstance.destroy(); } catch(e) {}
+            window._hlsInstance = null;
+          }
+          // Also hit the global 'hls' variable our _wrapHls() creates.
+          if (window.hls) {
+            try { window.hls.destroy(); } catch(e) {}
+            window.hls = null;
+          }
+
+          // 3. Kill embed players inside iframes — remove the iframe entirely
+          //    so the browser drops any cross-origin media pipelines.
+          var iframes = document.querySelectorAll('iframe');
+          for (var i = 0; i < iframes.length; i++) {
+            try {
+              // Blank the iframe src first to stop network activity
+              iframes[i].src = 'about:blank';
+              iframes[i].parentNode.removeChild(iframes[i]);
+            } catch(e) {}
+          }
+        } catch(e) {}
+      })();
+    ''';
+
+    // Fire-and-forget: inject teardown JS, then immediately load about:blank.
+    // We don't await here because dispose() is synchronous.
+    _webController!.runJavaScript(teardownScript).catchError((_) {}).then((_) {
+      _webController?.loadRequest(Uri.parse('about:blank')).catchError((_) {});
+    });
+
+    debugPrint('MEDIA TEARDOWN: All video/audio/iframe elements destroyed.');
+  }
+
+  void _resetOverlayTimer() {
+    _overlayTimer?.cancel();
+    if (!_showOverlay) {
+      if (mounted) setState(() => _showOverlay = true);
+    }
+    _overlayTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && _isCursorActive && !_isSelectingSource) {
+        setState(() => _showOverlay = false);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (event) {
+        if (!_isCursorActive || _isSelectingSource) return;
+        if (event is! KeyDownEvent) return;
+
+        // Any key press shows overlay and resets hide timer
+        _resetOverlayTimer();
+
+        final key = event.logicalKey;
+
+        // D-pad: move cursor (separate from Enter)
+        if (key == LogicalKeyboardKey.arrowUp) _onDirectionalInput(const Offset(0, -1));
+        if (key == LogicalKeyboardKey.arrowDown) _onDirectionalInput(const Offset(0, 1));
+        if (key == LogicalKeyboardKey.arrowLeft) _onDirectionalInput(const Offset(-1, 0));
+        if (key == LogicalKeyboardKey.arrowRight) _onDirectionalInput(const Offset(1, 0));
+
+        // Enter / Select: click at cursor position (handled separately)
+        if (key == LogicalKeyboardKey.select ||
+            key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter ||
+            key == LogicalKeyboardKey.gameButtonA) {
+          _simulateClick();
+        }
+
+        // Back: exit cursor mode or go back
+        if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.backspace) {
+          if (_isCursorActive) {
+            setState(() => _isCursorActive = false);
+          } else {
+            Navigator.maybePop(context);
+          }
+        }
+
+        // S key or Menu key: cycle cursor speed
+        if (key == LogicalKeyboardKey.keyS || key == LogicalKeyboardKey.contextMenu) {
+          _cycleCursorSpeed();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            _buildWebViewContainer(),
+            if (_isLoading) 
+              const IgnorePointer(
+                child: Center(child: CircularProgressIndicator(color: Colors.red)),
+              ),
+            
+            // Virtual Cursor Layer
+            if (_isCursorActive && !_isSelectingSource) 
+              _buildCursorPointer(),
+  
+            if (_isSelectingSource) _buildSourceHub(),
+          
+            if (!_isSelectingSource && !_isLoading) 
+              _buildNavigationOverlay(),
+        ],
+      ),
+    ),
+  );
+}
+
+  Widget _buildCursorPointer() {
+    final size = MediaQuery.of(context).size;
+    final double cx = size.width * _cursorX;
+    final double cy = size.height * _cursorY;
+
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          // Subtle glow under cursor for visibility on dark backgrounds
+          Positioned(
+            left: cx - 12,
+            top: cy - 12,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    blurRadius: 18,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Small arrow cursor pointer
+          Positioned(
+            left: cx,
+            top: cy,
+            child: CustomPaint(
+              size: const Size(18, 22),
+              painter: _CursorArrowPainter(),
+            ),
+          ),
+          // Speed label badge (Always visible with cursor)
+          Positioned(
+            left: cx + 22,
+            top: cy + 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.white24, width: 0.5),
+              ),
+              child: Text(
+                _speedLabels[_speedIndex],
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebViewContainer() {
+    if (_isSelectingSource || _error.isNotEmpty) return const SizedBox.shrink();
+    if (Platform.isWindows && _winController != null) {
+      return win.Webview(_winController!);
+    }
+    if (_webController != null) {
+      return WebViewWidget(controller: _webController!);
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildNavigationOverlay() {
+    return Positioned(
+      top: 30,
+      left: 30,
+      right: 30,
+      child: AnimatedOpacity(
+        opacity: _showOverlay ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 300),
+        child: IgnorePointer(
+          ignoring: !_showOverlay,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildOverlayItem(
+                icon: Icons.arrow_back,
+                label: 'BACK',
+                onTap: () => Navigator.pop(context),
+              ),
+              _buildOverlayItem(
+                icon: Icons.dns,
+                label: 'CHANGE SERVER',
+                onTap: () => setState(() => _isSelectingSource = true),
+              ),
+              _buildOverlayItem(
+                icon: Icons.speed,
+                label: 'SPEED: ${_speedLabels[_speedIndex]}',
+                onTap: _cycleCursorSpeed,
+                iconColor: Colors.amber,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverlayItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color iconColor = Colors.black,
+  }) {
+    return TVFocusable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white, // THEME IS NOW WHITE AS REQUESTED
+          borderRadius: BorderRadius.circular(50),
+          boxShadow: [
+            BoxShadow(color: Colors.black26, blurRadius: 10, spreadRadius: 1),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 24),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black, // TEXT IS NOW BLACK AS REQUESTED
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _cycleCursorSpeed() {
+    setState(() {
+      _speedIndex = (_speedIndex + 1) % _speedValues.length;
+    });
+  }
+
+  Widget _buildSourceHub() {
+    return Stack(
+      children: [
+        // Cinematic Background (Anime Poster - Matched to Details)
+        if (_bannerUrl != null)
+          Positioned.fill(
+            child: CachedNetworkImage(
+              imageUrl: ImageUtils.getProxiedUrl(_bannerUrl!),
+              fit: BoxFit.cover,
+              color: Colors.black.withValues(alpha: 0.7),
+              colorBlendMode: BlendMode.darken,
+              errorWidget: (context, url, error) => Container(color: Colors.black),
+            ),
+          ),
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.8),
+                  Colors.black,
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        Row(
+          children: [
+            // Left Navigation Rail for Categories
+            Container(
+              width: 250,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              decoration: BoxDecoration(border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.05)))),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('SERVER', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 32, letterSpacing: 2)),
+                  Text('PICKER', style: TextStyle(color: Colors.white30, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 4)),
+                  const SizedBox(height: 60),
+                  ..._categorizedSources.keys.map((cat) {
+                    final bool isActive = _activeCategory == cat;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TVFocusable(
+                        onTap: _categorizedSources[cat]!.isEmpty ? null : () => setState(() => _activeCategory = cat),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: isActive ? Colors.red.withValues(alpha: 0.9) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(cat, style: TextStyle(fontWeight: FontWeight.bold, color: isActive ? Colors.white : Colors.white38)),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  const Spacer(),
+                  TVFocusable(onTap: () => Navigator.pop(context), child: Text('EXIT PLAYER', style: TextStyle(color: Colors.white24, fontSize: 12, fontWeight: FontWeight.bold))),
+                ],
+              ),
+            ),
+            
+            // Right Side Content
+            Expanded(
+              child: SingleChildScrollView( // Allow scrolling to prevent any overflow
+                padding: const EdgeInsets.all(60),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(widget.title.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                              Text('EPISODE ${widget.episode} • $_activeCategory', style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        if (_isLoading) ...[
+                          const SizedBox(width: 20),
+                          const CircularProgressIndicator(color: Colors.red),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 48),
+                    if (_error.isNotEmpty) Text('ERROR: $_error', style: const TextStyle(color: Colors.red)),
+                    
+                    _categorizedSources[_activeCategory]!.isEmpty
+                      ? const SizedBox(
+                          height: 300,
+                          child: Center(child: Text('SEARCHING FOR SOURCES...', style: TextStyle(color: Colors.white24))),
+                        )
+                      : GridView.builder(
+                          shrinkWrap: true, // Allow it to follow SingleChildScrollView
+                          physics: const NeverScrollableScrollPhysics(), // SingleChildScrollView handles it
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 1.4, // Balanced for visual and space
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                          ),
+                            itemCount: _categorizedSources[_activeCategory]!.length,
+                            itemBuilder: (context, index) {
+                              final s = _categorizedSources[_activeCategory]![index];
+                              return TVFocusable(
+                                onTap: () => _startPlayback(s),
+                                child: GlassmorphicContainer(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  borderRadius: 16,
+                                  blur: 20,
+                                  alignment: Alignment.center,
+                                  border: 1,
+                                  linearGradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [Colors.white.withValues(alpha: 0.1), Colors.white.withValues(alpha: 0.05)],
+                                  ),
+                                  borderGradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [Colors.white.withValues(alpha: 0.2), Colors.white.withValues(alpha: 0.05)],
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(minHeight: 40),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.bolt, color: Colors.amber, size: 14),
+                                                const SizedBox(width: 8),
+                                                Text(s['serverName'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(s['providerName'].toString().toUpperCase(), style: const TextStyle(fontSize: 9, color: Colors.white38, letterSpacing: 1)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                    const SizedBox(height: 100), // Bottom padding for scroll room
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Small mouse-arrow cursor drawn via CustomPaint.
+/// White fill with dark outline — visible on any background.
+class _CursorArrowPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fillPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    final strokePaint = Paint()
+      ..color = Colors.black87
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    // Classic arrow cursor shape
+    final path = Path()
+      ..moveTo(0, 0)                           // Tip (top-left)
+      ..lineTo(0, size.height)                  // Down left edge
+      ..lineTo(size.width * 0.35, size.height * 0.7) // Notch
+      ..lineTo(size.width * 0.55, size.height)  // Bottom-right leg
+      ..lineTo(size.width * 0.7, size.height * 0.78) // Inner leg
+      ..lineTo(size.width * 0.45, size.height * 0.58) // Back to body
+      ..lineTo(size.width, size.height * 0.45)  // Right wing
+      ..close();
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
