@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { clearAuth } from '$lib/stores/auth';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://anime-pro-v1-backend-go.vercel.app';
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
@@ -12,7 +13,7 @@ async function fetchJSON(url: string, options?: RequestInit) {
 	const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } });
 	if (!res.ok) {
 		if (res.status === 401 && browser) {
-			localStorage.removeItem('auth');
+			clearAuth();
 		}
 		throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 	}
