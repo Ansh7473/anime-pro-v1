@@ -8,7 +8,14 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=sveltekit-frontend",
-    "dev:backend": "go run .",
-    "build:tv": "npm run build --workspace=tv-app"
+    "check": "npm run check --workspace=sveltekit-frontend",
+    "build": "npm run build --workspace=sveltekit-frontend",
+    "dev:backend": "go run ./backend-go/cmd/server",
+    "test:backend": "cd backend-go && go test ./...",
+    "build:backend": "cd backend-go && go build ./cmd/server",
+    "tv:analyze": "cd anime_pro_tv && flutter analyze",
+    "tv:test": "cd anime_pro_tv && flutter test",
+    "tv:run": "cd anime_pro_tv && flutter run",
+    "tv:build:apk": "cd anime_pro_tv && flutter build apk"
   }
 }

@@ -124,6 +124,7 @@ func SetupRoutes(r *gin.Engine) {
 		user.POST("/watchlist", handlers.AddToWatchlist)
 		user.DELETE("/watchlist/:animeId", handlers.RemoveFromWatchlist)
 		user.GET("/watchlist/:animeId", handlers.GetWatchlistStatus)
+		user.GET("/watchlist/:animeId/status", handlers.GetWatchlistStatus)
 
 		// 7. Profile Management
 		user.POST("/profiles", handlers.CreateProfile)
@@ -135,6 +136,7 @@ func SetupRoutes(r *gin.Engine) {
 		user.POST("/favorites", handlers.AddToFavorite)
 		user.DELETE("/favorites/:animeId", handlers.RemoveFromFavorite)
 		user.GET("/favorites/:animeId", handlers.GetFavoriteStatus)
+		user.GET("/favorites/:animeId/status", handlers.GetFavoriteStatus)
 
 		// 10. Social & Community
 		user.POST("/comments", handlers.CreateComment)

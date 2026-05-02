@@ -32,7 +32,80 @@ var (
 	// Key format: provider:animeId:ep
 	sourceCache      = make(map[string]map[string]interface{})
 	sourceCacheMutex sync.RWMutex
+
+	titleCache      = make(map[string][]string)
+	titleCacheMutex sync.RWMutex
 )
+
+func getCachedTitles(animeId string) ([]string, error) {
+	titleCacheMutex.RLock()
+	if titles, ok := titleCache[animeId]; ok {
+		titleCacheMutex.RUnlock()
+		return titles, nil
+	}
+	titleCacheMutex.RUnlock()
+
+	titles, err := providers.GetAnimeTitles(animeId)
+	if err != nil || len(titles) == 0 {
+		return titles, err
+	}
+
+	titleCacheMutex.Lock()
+	titleCache[animeId] = titles
+	titleCacheMutex.Unlock()
+	return titles, nil
+}
+
+func getCachedSources(cacheKey string) (map[string]interface{}, bool) {
+	sourceCacheMutex.RLock()
+	cached, ok := sourceCache[cacheKey]
+	sourceCacheMutex.RUnlock()
+	return cached, ok
+}
+
+func setCachedSources(cacheKey string, data map[string]interface{}) {
+	sourceCacheMutex.Lock()
+	sourceCache[cacheKey] = data
+	sourceCacheMutex.Unlock()
+}
+
+func normalizeSources(providerName string, sources []map[string]interface{}) []map[string]interface{} {
+	seen := make(map[string]bool)
+	normalized := make([]map[string]interface{}, 0, len(sources))
+
+	for _, source := range sources {
+		url := utils.ToString(source["url"])
+		if url == "" || seen[url] {
+			continue
+		}
+		seen[url] = true
+
+		if utils.ToString(source["provider"]) == "" {
+			source["provider"] = providerName
+		}
+		if utils.ToString(source["providerName"]) == "" {
+			source["providerName"] = providerName
+		}
+		if utils.ToString(source["serverName"]) == "" {
+			serverName := utils.ToString(source["name"])
+			if serverName == "" {
+				serverName = utils.ToString(source["label"])
+			}
+			if serverName == "" {
+				serverName = "Server"
+			}
+			source["serverName"] = serverName
+		}
+
+		normalized = append(normalized, source)
+	}
+
+	return normalized
+}
+
+func sourcesResponse(providerName string, sources []map[string]interface{}) gin.H {
+	return gin.H{"sources": normalizeSources(providerName, sources), "subtitles": []interface{}{}}
+}
 
 // StreamingAnimelok handles fetching sources from Animelok with slug resolution
 func StreamingAnimelok(c *gin.Context) {
@@ -43,18 +116,14 @@ func StreamingAnimelok(c *gin.Context) {
 		ep = 1
 	}
 
-	// Efficiency: Check global sources cache first
 	cacheKey := fmt.Sprintf("animelok:%s:%d", animeId, ep)
-	sourceCacheMutex.RLock()
-	if cached, ok := sourceCache[cacheKey]; ok {
-		sourceCacheMutex.RUnlock()
+	if cached, ok := getCachedSources(cacheKey); ok {
 		c.JSON(http.StatusOK, gin.H{"provider": "Animelok", "status": 200, "data": cached, "cached": true})
 		return
 	}
-	sourceCacheMutex.RUnlock()
 
 	// 1. Resolve titles for the animeId (MAL ID)
-	titles, err := providers.GetAnimeTitles(animeId)
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "Animelok"})
 		return
@@ -75,12 +144,9 @@ func StreamingAnimelok(c *gin.Context) {
 	for _, slug := range candidates {
 		res := providers.GetAnimelokSources(slug, ep)
 		if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
-			// Update Cache
-			sourceCacheMutex.Lock()
-			sourceCache[cacheKey] = res
-			sourceCacheMutex.Unlock()
-
-			c.JSON(http.StatusOK, gin.H{"provider": "Animelok", "status": 200, "data": res})
+			data := sourcesResponse("Animelok", src)
+			setCachedSources(cacheKey, data)
+			c.JSON(http.StatusOK, gin.H{"provider": "Animelok", "status": 200, "data": data})
 			return
 		}
 	}
@@ -97,9 +163,15 @@ func StreamingNineAnime(c *gin.Context) {
 		ep = 1
 	}
 
+	cacheKey := fmt.Sprintf("nineanime:%s:%d", animeId, ep)
+	if cached, ok := getCachedSources(cacheKey); ok {
+		c.JSON(http.StatusOK, gin.H{"provider": "9anime", "status": 200, "data": cached, "cached": true})
+		return
+	}
+
 	log.Printf("[9anime Handler] Request: animeId=%s ep=%d", animeId, ep)
 
-	titles, err := providers.GetAnimeTitles(animeId)
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		log.Printf("[9anime Handler] FAILED: Could not resolve titles for animeId=%s err=%v", animeId, err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "9anime"})
@@ -118,10 +190,12 @@ func StreamingNineAnime(c *gin.Context) {
 		res := providers.GetNineAnimeSources(baseSlug, ep)
 		if src, ok := res["sources"].([]map[string]interface{}); ok && len(src) > 0 {
 			log.Printf("[9anime Handler] SUCCESS: Found %d sources for slug='%s'", len(src), baseSlug)
+			data := sourcesResponse("9anime", src)
+			setCachedSources(cacheKey, data)
 			c.JSON(http.StatusOK, gin.H{
 				"provider": "9anime",
 				"status":   200,
-				"data":     res,
+				"data":     data,
 			})
 			return
 		}
@@ -140,7 +214,7 @@ func StreamingNineAnime(c *gin.Context) {
 // StreamingAnimelokSlug returns potential slug candidates for client-side fetching
 func StreamingAnimelokSlug(c *gin.Context) {
 	animeId := c.Query("animeId")
-	titles, err := providers.GetAnimeTitles(animeId)
+	titles, err := getCachedTitles(animeId)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
@@ -181,7 +255,7 @@ func StreamingEpisodeMetadata(c *gin.Context) {
 	// cacheMutex.RUnlock()
 
 	malId, _ := strconv.Atoi(animeId)
-	titles, err := providers.GetAnimeTitles(animeId)
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		c.JSON(http.StatusOK, gin.H{"provider": "None", "data": gin.H{"episodes": []interface{}{}, "totalEpisodes": 0}})
 		return
@@ -318,7 +392,13 @@ func StreamingDesiDub(c *gin.Context) {
 		ep = 1
 	}
 
-	titles, err := providers.GetAnimeTitles(animeId)
+	cacheKey := fmt.Sprintf("desidub:%s:%d", animeId, ep)
+	if cached, ok := getCachedSources(cacheKey); ok {
+		c.JSON(http.StatusOK, gin.H{"provider": "DesiDubAnime", "status": 200, "data": cached, "cached": true})
+		return
+	}
+
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
@@ -391,11 +471,12 @@ func StreamingDesiDub(c *gin.Context) {
 	}
 
 	if len(sources) > 0 {
-		// Return raw sources, the frontend will handle proxying if needed
+		data := sourcesResponse("DesiDubAnime", sources)
+		setCachedSources(cacheKey, data)
 		c.JSON(http.StatusOK, gin.H{
 			"provider": "DesiDubAnime",
 			"status":   200,
-			"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
+			"data":     data,
 		})
 		return
 	}
@@ -406,8 +487,18 @@ func StreamingDesiDub(c *gin.Context) {
 func StreamingAnimeHindiDubbed(c *gin.Context) {
 	animeId := c.Query("animeId")
 	epStr := c.Query("ep")
+	ep, _ := strconv.Atoi(epStr)
+	if ep == 0 {
+		ep = 1
+	}
 
-	titles, err := providers.GetAnimeTitles(animeId)
+	cacheKey := fmt.Sprintf("ahd:%s:%d", animeId, ep)
+	if cached, ok := getCachedSources(cacheKey); ok {
+		c.JSON(http.StatusOK, gin.H{"provider": "AnimeHindiDubbed-WP", "status": 200, "data": cached, "cached": true})
+		return
+	}
+
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
@@ -436,11 +527,12 @@ func StreamingAnimeHindiDubbed(c *gin.Context) {
 	}
 
 	if len(sources) > 0 {
-		// Return raw sources, the frontend will handle proxying if needed
+		data := sourcesResponse("AnimeHindiDubbed-WP", sources)
+		setCachedSources(cacheKey, data)
 		c.JSON(http.StatusOK, gin.H{
 			"provider": "AnimeHindiDubbed-WP",
 			"status":   200,
-			"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
+			"data":     data,
 		})
 		return
 	}
@@ -457,7 +549,13 @@ func StreamingToonstream(c *gin.Context) {
 		ep = 1
 	}
 
-	titles, err := providers.GetAnimeTitles(animeId)
+	cacheKey := fmt.Sprintf("toonstream:%s:%d", animeId, ep)
+	if cached, ok := getCachedSources(cacheKey); ok {
+		c.JSON(http.StatusOK, gin.H{"provider": "Toonstream", "status": 200, "data": cached, "cached": true})
+		return
+	}
+
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
@@ -490,10 +588,12 @@ func StreamingToonstream(c *gin.Context) {
 	}
 
 	if len(sources) > 0 {
+		data := sourcesResponse("Toonstream", sources)
+		setCachedSources(cacheKey, data)
 		c.JSON(http.StatusOK, gin.H{
 			"provider": "Toonstream",
 			"status":   200,
-			"data":     gin.H{"sources": sources, "subtitles": []interface{}{}},
+			"data":     data,
 		})
 		return
 	}
@@ -509,7 +609,7 @@ func StreamingSourcesAggregate(c *gin.Context) {
 		ep = 1
 	}
 
-	titles, err := providers.GetAnimeTitles(animeId)
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
 		return
@@ -1270,20 +1370,26 @@ func StreamingWatchAnimeWorld(c *gin.Context) {
 		ep = 1
 	}
 
-	titles, err := providers.GetAnimeTitles(animeId)
+	cacheKey := fmt.Sprintf("watchanimeworld:%s:%d", animeId, ep)
+	if cached, ok := getCachedSources(cacheKey); ok {
+		c.JSON(http.StatusOK, gin.H{"provider": "WatchAnimeWorld", "status": 200, "data": cached, "cached": true})
+		return
+	}
+
+	titles, err := getCachedTitles(animeId)
 	if err != nil || len(titles) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Title not found", "provider": "WatchAnimeWorld"})
 		return
 	}
 
 	sources := providers.GetWatchAnimeWorldSources(titles, ep)
 	if len(sources) > 0 {
+		data := sourcesResponse("WatchAnimeWorld", sources)
+		setCachedSources(cacheKey, data)
 		c.JSON(http.StatusOK, gin.H{
-			"status": 200,
-			"data": gin.H{
-				"sources":   sources,
-				"subtitles": []interface{}{},
-			},
+			"provider": "WatchAnimeWorld",
+			"status":   200,
+			"data":     data,
 		})
 		return
 	}

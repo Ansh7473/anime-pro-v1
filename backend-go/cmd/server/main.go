@@ -4,16 +4,19 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/config"
 	"github.com/Ansh7473/anime-pro/backend-go/pkg/database"
-	"github.com/Ansh7473/anime-pro/backend-go/pkg/routes"
-	"github.com/gin-contrib/cors"
+	"github.com/Ansh7473/anime-pro/backend-go/pkg/server"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
-var app *gin.Engine
+var (
+	app  *gin.Engine
+	once sync.Once
+)
 
 // For local development
 func main() {
@@ -23,65 +26,7 @@ func main() {
 		log.Println("No .env file found or failed to load, proceeding with environment variables")
 	}
 
-	// Initialize JWT secret AFTER loading .env
-	_ = config.GetJWTSecret()
-
-	// Initialize Database
-	database.InitDB()
-
-	// Set Gin to release mode for production
-	gin.SetMode(gin.ReleaseMode)
-
-	app = gin.New()
-
-	// Recovery middleware
-	app.Use(gin.Recovery())
-
-	// Configure CORS to match working example (Allows Credentials for session/auth)
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://localhost:5173",
-			"http://localhost:5174",
-		},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-Cache-Status"},
-		AllowCredentials: true,
-	}))
-
-
-
-	// Favicon - Return 204 No Content to stop 404 noise
-	app.GET("/favicon.ico", func(c *gin.Context) {
-		c.Status(204)
-	})
-
-	// Health check
-	app.GET("/health", func(c *gin.Context) {
-		dbStatus := "disconnected"
-		if database.DB != nil {
-			dbStatus = "connected"
-		}
-		c.JSON(200, gin.H{
-			"status":   "healthy",
-			"service":  "backend-go",
-			"version":  "1.1.0",
-			"database": dbStatus,
-		})
-	})
-
-	// API Info
-	app.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"name":          "Anime Pro Backend API (Go)",
-			"version":       "1.1.0",
-			"description":   "High-performance Go backend for anime streaming platform",
-			"documentation": "See /api/v1/jikan for available endpoints",
-		})
-	})
-
-	// Initialize routes
-	routes.SetupRoutes(app)
+	initializeApp(false)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -94,12 +39,19 @@ func main() {
 	}
 }
 
+func initializeApp(enableLogger bool) {
+	once.Do(func() {
+		_ = config.GetJWTSecret()
+		database.InitDB()
+		app = server.NewRouter(server.Options{
+			ServiceName: "backend-go",
+			Logger:      enableLogger,
+		})
+	})
+}
+
 // Handler is the main entry point for Vercel serverless functions
 func Handler(w http.ResponseWriter, r *http.Request) {
-	if app == nil {
-		// Just in case it's called as a serverless function without main() running
-		// but typically we should have handled this elsewhere.
-		// For now, let's keep it simple.
-	}
+	initializeApp(true)
 	app.ServeHTTP(w, r)
 }

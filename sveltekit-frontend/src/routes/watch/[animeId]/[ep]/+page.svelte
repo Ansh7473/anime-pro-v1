@@ -454,107 +454,89 @@
     let autoStarted = false;
     let providersFinished = 0;
 
-    // Sequential fetching to avoid state race conditions and overwriting
-    for (const config of providerConfigs) {
-      try {
-        console.log(`[Player] Fetching sources from ${config.name}...`);
-        const res = await config.fetcher(animeId, ep);
-        
-        // Guard: If a new load request started while we were awaiting, discard these results
-        if (loadId !== currentLoadId) {
-          console.warn(`[Player] Discarding ${config.name} results (stale load)`);
-          return;
-        }
+    const choosePreferredSource = (providerSources: any[]) => {
+      const preferredLang = ($auth.currentProfile?.language || "multi").toLowerCase();
 
-        if (res?.data?.sources) {
-          const providerSources = res.data.sources.map((s: any) => ({
-            ...s,
-            provider: s.provider || config.name,
-          }));
-
-          console.log(`[Player] ${config.name} returned ${providerSources.length} sources`);
-
-          // Deduplicate: Don't add if URL already exists
-          const uniqueNewSources = providerSources.filter(
-            (ns: any) => !sources.some((s) => s.url === ns.url),
-          );
-
-          // Add to global sources list reactively
-          if (uniqueNewSources.length > 0) {
-            sources = [...sources, ...uniqueNewSources];
-          }
-
-          // Auto-select logic if we haven't started anything yet
-          if (!autoStarted && providerSources.length > 0) {
-            const preferredLang = (
-              $auth.currentProfile?.language || "multi"
-            ).toLowerCase();
-
-            let bestMatch = null;
-            if (preferredLang === "hindi") {
-              bestMatch = providerSources.find(
-                (s: any) =>
-                  (s.language || "").toLowerCase().includes("hindi") ||
-                  (s.category || "").toLowerCase() === "hindi",
-              );
-            } else if (preferredLang === "english" || preferredLang === "dub") {
-              bestMatch = providerSources.find(
-                (s: any) =>
-                  (s.language || "").toLowerCase().includes("english") ||
-                  (s.type || "").toLowerCase() === "dub",
-              );
-            }
-
-            // Start player with the best match from this batch, or just the first available source
-            const candidate = bestMatch || providerSources[0];
-            if (candidate && !autoStarted) {
-              selectedSource = candidate;
-              autoStarted = true;
-
-              // Top blocking the UI if we have a valid source to play
-              sourceLoading = false;
-
-              const isEmbed =
-                selectedSource.isEmbed ||
-                selectedSource.type === "iframe" ||
-                selectedSource.url.includes("embed") ||
-                !selectedSource.url.includes(".m3u8");
-
-              if (!isEmbed) {
-                initPlayer(selectedSource.url);
-              } else {
-                if (videoElement) {
-                  videoElement.pause();
-                  videoElement.src = "";
-                }
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.warn(`[Player] Provider ${config.name} failed:`, err);
-      } finally {
-        providersFinished++;
+      if (preferredLang === "hindi") {
+        return providerSources.find(
+          (s: any) =>
+            (s.language || "").toLowerCase().includes("hindi") ||
+            (s.category || "").toLowerCase() === "hindi",
+        );
       }
-    }
 
-    // All finished
+      if (preferredLang === "english" || preferredLang === "dub") {
+        return providerSources.find(
+          (s: any) =>
+            (s.language || "").toLowerCase().includes("english") ||
+            (s.type || "").toLowerCase() === "dub",
+        );
+      }
+
+      return null;
+    };
+
+    const addProviderSources = (config: (typeof providerConfigs)[number], res: any) => {
+      if (loadId !== currentLoadId || !res?.data?.sources) return;
+
+      const providerSources = res.data.sources.map((s: any) => ({
+        ...s,
+        provider: s.provider || config.name,
+      }));
+
+      console.log(`[Player] ${config.name} returned ${providerSources.length} sources`);
+
+      const uniqueNewSources = providerSources.filter(
+        (ns: any) => ns.url && !sources.some((s) => s.url === ns.url),
+      );
+
+      if (uniqueNewSources.length === 0) return;
+
+      sources = [...sources, ...uniqueNewSources];
+
+      if (!autoStarted) {
+        const candidate = choosePreferredSource(uniqueNewSources) || uniqueNewSources[0];
+        if (candidate) {
+          selectedSource = candidate;
+          autoStarted = true;
+          sourceLoading = false;
+
+          const isEmbed =
+            selectedSource.isEmbed ||
+            selectedSource.type === "iframe" ||
+            selectedSource.url.includes("embed") ||
+            !selectedSource.url.includes(".m3u8");
+
+          if (!isEmbed) {
+            initPlayer(selectedSource.url);
+          } else if (videoElement) {
+            videoElement.pause();
+            videoElement.src = "";
+          }
+        }
+      }
+    };
+
+    await Promise.allSettled(
+      providerConfigs.map(async (config) => {
+        try {
+          console.log(`[Player] Fetching sources from ${config.name}...`);
+          const res = await config.fetcher(animeId, ep);
+          addProviderSources(config, res);
+        } catch (err) {
+          console.warn(`[Player] Provider ${config.name} failed:`, err);
+        } finally {
+          providersFinished++;
+        }
+      }),
+    );
+
+    if (loadId !== currentLoadId) return;
+
     sourceLoading = false;
     if (sources.length === 0) {
       error = "No sources found for this episode on any provider.";
     }
-
-    // Fallback: If after 8 seconds we have nothing, stop loading
-    setTimeout(() => {
-      if (
-        sourceLoading &&
-        sources.length === 0 &&
-        providersFinished < providerConfigs.length
-      ) {
-        // We don't force stop, but we set a flag or log
-        console.log("Still waiting for some slow providers...");
-      }
-    }, 8000);
   }
 
   function initPlayer(url: string) {
