@@ -29,6 +29,15 @@ const initial: AuthState = {
     currentProfile: null
 };
 
+function isExpiredToken(token: string): boolean {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1] || ''));
+        return typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now();
+    } catch {
+        return true;
+    }
+}
+
 function getStoredAuth(): AuthState {
     if (!browser) return initial;
 
@@ -37,7 +46,11 @@ function getStoredAuth(): AuthState {
 
     try {
         const parsed = JSON.parse(stored) as AuthState;
-        return parsed?.token && parsed?.user ? parsed : initial;
+        if (!parsed?.token || !parsed?.user || isExpiredToken(parsed.token)) {
+            localStorage.removeItem('auth');
+            return initial;
+        }
+        return parsed;
     } catch {
         localStorage.removeItem('auth');
         return initial;
@@ -46,9 +59,18 @@ function getStoredAuth(): AuthState {
 
 export const auth = writable<AuthState>(getStoredAuth());
 
+export const clearAuth = () => {
+    auth.set(initial);
+    if (browser) localStorage.removeItem('auth');
+};
+
 if (browser) {
     auth.subscribe((value) => {
-        localStorage.setItem('auth', JSON.stringify(value));
+        if (value.token && value.user) {
+            localStorage.setItem('auth', JSON.stringify(value));
+        } else {
+            localStorage.removeItem('auth');
+        }
     });
 }
 
@@ -62,8 +84,7 @@ export const loginUser = (user: User, token: string) => {
 };
 
 export const logoutUser = () => {
-    auth.set(initial);
-    if (browser) localStorage.removeItem('auth');
+    clearAuth();
 };
 
 export const switchProfile = (profile: any) => {
