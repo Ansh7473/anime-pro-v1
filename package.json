@@ -17,5 +17,8 @@
     "tv:test": "cd anime_pro_tv && flutter test",
     "tv:run": "cd anime_pro_tv && flutter run",
     "tv:build:apk": "cd anime_pro_tv && flutter build apk"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.60.1"
   }
 }
