@@ -217,58 +217,66 @@ class _PlayerScreenState extends State<PlayerScreen> {
         });
       }
 
-      // Parallel Fetching
-      final results = await Future.wait([
-        api.getSources(widget.animeId, widget.episode).catchError((e) => null),
-        api.getNineAnimeSources(widget.animeId, widget.episode).catchError((e) => null),
-        api.getAnimelokSources(widget.animeId, widget.episode).catchError((e) => null),
-        api.getDesiDubSources(widget.animeId, widget.episode).catchError((e) => null),
-        api.getAHDSources(widget.animeId, widget.episode).catchError((e) => null),
-        api.getToonstreamSources(widget.animeId, widget.episode).catchError((e) => null),
-      ]);
+      final providerFetches = <MapEntry<String, Future<dynamic>>>[
+        MapEntry('9Anime', api.getNineAnimeSources(widget.animeId, widget.episode)),
+        MapEntry('Animelok', api.getAnimelokSources(widget.animeId, widget.episode)),
+        MapEntry('DesiDub', api.getDesiDubSources(widget.animeId, widget.episode)),
+        MapEntry('AHD', api.getAHDSources(widget.animeId, widget.episode)),
+        MapEntry('Toonstream', api.getToonstreamSources(widget.animeId, widget.episode)),
+        MapEntry('WatchAnimeWorld', api.getWatchAnimeWorldSources(widget.animeId, widget.episode)),
+      ];
 
-      List<dynamic> consolidated = [];
-      
-      for (var i = 0; i < results.length; i++) {
-        final res = results[i];
-        if (res != null && res['data'] != null && res['data']['sources'] != null) {
-          final String providerName = i == 0 ? 'Primary' : 
-                                     i == 1 ? '9Anime' : 
-                                     i == 2 ? 'Animelok' : 
-                                     i == 3 ? 'DesiDub' : 
-                                     i == 4 ? 'AHD' : 'Toonstream';
-          
-          for (var s in res['data']['sources']) {
+      var completedProviders = 0;
+
+      await Future.wait(providerFetches.map((entry) async {
+        try {
+          final res = await entry.value;
+          final rawSources = res?['data']?['sources'];
+          if (rawSources is! List || rawSources.isEmpty || !mounted) return;
+
+          final newSources = <dynamic>[];
+          for (final s in rawSources) {
             final source = {
-              ...s,
-              'providerName': s['provider'] ?? providerName,
-              'serverName': s['name'] ?? s['label'] ?? 'Server',
+              ...Map<String, dynamic>.from(s as Map),
+              'providerName': s['provider'] ?? s['providerName'] ?? entry.key,
+              'serverName': s['serverName'] ?? s['name'] ?? s['label'] ?? 'Server',
             };
-            
-            // Deduplicate by URL
-            if (!consolidated.any((existing) => existing['url'] == source['url'])) {
-              consolidated.add(source);
-              _categorizeSource(source);
+
+            if (source['url'] != null && !_allSources.any((existing) => existing['url'] == source['url'])) {
+              newSources.add(source);
             }
           }
-        }
-      }
 
-      if (consolidated.isEmpty) throw Exception('No streaming sources found.');
+          if (newSources.isEmpty || !mounted) return;
+
+          setState(() {
+            for (final source in newSources) {
+              _allSources.add(source);
+              _categorizeSource(source);
+            }
+
+            _isLoading = false;
+            _isSelectingSource = true;
+
+            if (_categorizedSources['SUBBED']!.isEmpty) {
+              if (_categorizedSources['HINDI DUB']!.isNotEmpty) _activeCategory = 'HINDI DUB';
+              else if (_categorizedSources['ENGLISH DUB']!.isNotEmpty) _activeCategory = 'ENGLISH DUB';
+              else if (_categorizedSources['RAW']!.isNotEmpty) _activeCategory = 'RAW';
+            }
+          });
+        } catch (e) {
+          debugPrint('Provider ${entry.key} failed: $e');
+        } finally {
+          completedProviders++;
+        }
+      }));
 
       if (!mounted) return;
-      setState(() {
-        _allSources = consolidated;
-        _isLoading = false;
-        _isSelectingSource = true;
-        
-        // Auto-switch to a category that has items if SUBBED is empty
-        if (_categorizedSources['SUBBED']!.isEmpty) {
-          if (_categorizedSources['HINDI DUB']!.isNotEmpty) _activeCategory = 'HINDI DUB';
-          else if (_categorizedSources['ENGLISH DUB']!.isNotEmpty) _activeCategory = 'ENGLISH DUB';
-          else if (_categorizedSources['RAW']!.isNotEmpty) _activeCategory = 'RAW';
-        }
-      });
+      if (_allSources.isEmpty && completedProviders == providerFetches.length) {
+        throw Exception('No streaming sources found.');
+      }
+
+      setState(() => _isLoading = false);
     } catch (e) {
       if (!mounted) return;
       setState(() {

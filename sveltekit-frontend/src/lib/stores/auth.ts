@@ -29,11 +29,22 @@ const initial: AuthState = {
     currentProfile: null
 };
 
-// Load from localStorage if in browser
-const stored = browser ? localStorage.getItem('auth') : null;
-const parsed = stored ? JSON.parse(stored) : initial;
+function getStoredAuth(): AuthState {
+    if (!browser) return initial;
 
-export const auth = writable<AuthState>(parsed);
+    const stored = localStorage.getItem('auth');
+    if (!stored) return initial;
+
+    try {
+        const parsed = JSON.parse(stored) as AuthState;
+        return parsed?.token && parsed?.user ? parsed : initial;
+    } catch {
+        localStorage.removeItem('auth');
+        return initial;
+    }
+}
+
+export const auth = writable<AuthState>(getStoredAuth());
 
 if (browser) {
     auth.subscribe((value) => {

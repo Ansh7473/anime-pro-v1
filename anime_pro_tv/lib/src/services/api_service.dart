@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 
 class ApiService {
+  static const String _baseUrl = 'https://anime-pro-v1-backend-go.vercel.app/api/v1';
+
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://anime-pro-v1-backend-go.vercel.app/api/v1',
+    baseUrl: _baseUrl,
     connectTimeout: const Duration(seconds: 30),
     receiveTimeout: const Duration(seconds: 30),
   ));
@@ -18,7 +20,10 @@ class ApiService {
   }
 
   Future<dynamic> getEpisodes(String animeId) async {
-    final response = await _dio.get('/streaming/episode-metadata?animeId=$animeId');
+    final response = await _dio.get(
+      '/streaming/episode-metadata',
+      queryParameters: {'animeId': animeId},
+    );
     final data = response.data['data'] ?? response.data;
     if (data is Map && data.containsKey('episodes')) {
       return data['episodes'];
@@ -27,32 +32,58 @@ class ApiService {
   }
 
   Future<dynamic> getSources(String animeId, int ep) async {
-    final response = await _dio.get('/streaming/sources?animeId=$animeId&ep=$ep');
+    final response = await _dio.get(
+      '/streaming/sources',
+      queryParameters: {'animeId': animeId, 'ep': ep},
+    );
     return response.data;
   }
 
   Future<dynamic> getNineAnimeSources(String animeId, int ep) async {
-    final response = await _dio.get('/streaming/sources/nineanime?animeId=$animeId&ep=$ep');
+    final response = await _dio.get(
+      '/streaming/sources/nineanime',
+      queryParameters: {'animeId': animeId, 'ep': ep},
+    );
     return response.data;
   }
 
   Future<dynamic> getAnimelokSources(String animeId, int ep) async {
-    final response = await _dio.get('/streaming/sources/animelok?animeId=$animeId&ep=$ep');
+    final response = await _dio.get(
+      '/streaming/sources/animelok',
+      queryParameters: {'animeId': animeId, 'ep': ep},
+    );
     return response.data;
   }
 
   Future<dynamic> getDesiDubSources(String animeId, int ep) async {
-    final response = await _dio.get('/streaming/sources/desidub?animeId=$animeId&ep=$ep');
+    final response = await _dio.get(
+      '/streaming/sources/desidub',
+      queryParameters: {'animeId': animeId, 'ep': ep},
+    );
     return response.data;
   }
 
   Future<dynamic> getAHDSources(String animeId, int ep) async {
-    final response = await _dio.get('/streaming/sources/ahd?animeId=$animeId&ep=$ep');
+    final response = await _dio.get(
+      '/streaming/sources/ahd',
+      queryParameters: {'animeId': animeId, 'ep': ep},
+    );
     return response.data;
   }
 
   Future<dynamic> getToonstreamSources(String animeId, int ep) async {
-    final response = await _dio.get('/streaming/sources/toonstream?animeId=$animeId&ep=$ep');
+    final response = await _dio.get(
+      '/streaming/sources/toonstream',
+      queryParameters: {'animeId': animeId, 'ep': ep},
+    );
+    return response.data;
+  }
+
+  Future<dynamic> getWatchAnimeWorldSources(String animeId, int ep) async {
+    final response = await _dio.get(
+      '/streaming/sources/watchanimeworld',
+      queryParameters: {'animeId': animeId, 'ep': ep},
+    );
     return response.data;
   }
 
@@ -84,7 +115,7 @@ class ApiService {
 
   Future<bool> getFavoriteStatus(String token, String animeId, {int? profileId}) async {
     try {
-      final response = await _dio.get('/user/favorites/$animeId/status', 
+      final response = await _dio.get('/user/favorites/$animeId',
         queryParameters: profileId != null ? {'profileId': profileId} : null,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
@@ -117,7 +148,7 @@ class ApiService {
 
   Future<dynamic> getWatchlistStatus(String token, String animeId) async {
     try {
-      final response = await _dio.get('/user/watchlist/$animeId/status', 
+      final response = await _dio.get('/user/watchlist/$animeId',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       return response.data;

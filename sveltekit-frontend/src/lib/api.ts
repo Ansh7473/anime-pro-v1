@@ -1,3 +1,5 @@
+import { browser } from '$app/environment';
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://anime-pro-v1-backend-go.vercel.app';
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
@@ -8,7 +10,12 @@ const GENERAL_PROXY = `${STREAMING_URL}/proxy`;
 
 async function fetchJSON(url: string, options?: RequestInit) {
 	const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } });
-	if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+	if (!res.ok) {
+		if (res.status === 401 && browser) {
+			localStorage.removeItem('auth');
+		}
+		throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+	}
 	return res.json();
 }
 
