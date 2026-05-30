@@ -14,11 +14,11 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// generateToken creates a JWT token for the given userId, valid for 7 days.
+// generateToken creates a JWT token for the given userId, valid for 60 days.
 func generateToken(userId string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userId": userId,
-		"exp":    time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
+		"exp":    time.Now().Add(time.Hour * 24 * 60).Unix(), // 60 days
 	})
 	return token.SignedString(config.GetJWTSecret())
 }
