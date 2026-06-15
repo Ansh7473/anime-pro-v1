@@ -100,3 +100,36 @@ jobs:
         with:
           name: animepro-android-apk
           path: android-app/android/app/build/outputs/apk/debug/app-debug.apk
+
+  build-tv:
+    name: Build Flutter TV App (APK)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        working-directory: anime_pro_tv
+        run: flutter pub get
+
+      - name: Build TV APK
+        working-directory: anime_pro_tv
+        run: flutter build apk --debug
+
+      - name: Upload TV APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: animepro-tv-apk
+          path: anime_pro_tv/build/app/outputs/flutter-apk/app-debug.apk
