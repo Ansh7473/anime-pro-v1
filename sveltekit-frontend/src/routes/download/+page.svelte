@@ -33,11 +33,18 @@
 	});
 
 	function getLatest(platform: string) {
+		const fallbacks: Record<string, string> = {
+			windows: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+			mac: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+			linux: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+			android: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+			tv: "https://drive.google.com/uc?export=download&id=1cAOt75WCIvy7WTwW7sSFgZKgRxMMGrUa",
+		};
 		return (
 			releases.find((r) => r.platform === platform) || {
-				version: "N/A",
-				size: "N/A",
-				download_url: "#",
+				version: "2.0.4",
+				size: "PENDING",
+				download_url: fallbacks[platform] || "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
 			}
 		);
 	}
@@ -72,7 +79,7 @@
 				<span class="status-label">SYSTEM_READY // UPTIME_100%</span>
 			</div>
 			<h1 class="tactical-title">
-				ANIME_PRO <span class="version-tag">v2.0 // CORE</span>
+				WATCHANIMEZ <span class="version-tag">v2.0 // CORE</span>
 			</h1>
 			<p class="tactical-subtitle">
 				Initialize high-performance streaming protocol on your primary
@@ -85,7 +92,7 @@
 			<!-- Windows OS -->
 			<section
 				class="tactical-glass tactical-card group"
-				in:fly={{ y: 40, duration: 800, delay: 200 }}
+				in:fly={{ y: 40, duration: 800, delay: 100 }}
 			>
 				<div class="card-icon-overlay">
 					<Monitor size={80} strokeWidth={1} />
@@ -142,8 +149,8 @@
 								{/if}
 							</a>
 							<div class="file-meta">
-								<span class="meta-item">VER: {win?.version || "2.0.4"}</span>
-								<span class="meta-item">SIZE: {win?.size || "412.8MB"}</span>
+								<span class="meta-item">VER: {win?.version}</span>
+								<span class="meta-item">SIZE: {win?.size}</span>
 								<span class="meta-item">PROTO: AES_256</span>
 							</div>
 						</div>
@@ -151,36 +158,37 @@
 				</div>
 			</section>
 
-			<!-- TV OS -->
+			<!-- macOS -->
 			<section
 				class="tactical-glass tactical-card group"
-				in:fly={{ y: 40, duration: 800, delay: 600 }}
+				in:fly={{ y: 40, duration: 800, delay: 200 }}
 			>
 				<div class="card-icon-overlay">
-					<Tv size={80} strokeWidth={1} />
+					<Cpu size={80} strokeWidth={1} />
 				</div>
 
 				<div class="card-content">
 					<div class="release-indicator">
-						<span class="indicator-dot accent"></span>
-						<span class="indicator-label accent">TV_CORE_ARM64</span
+						<span class="indicator-dot primary"></span>
+						<span class="indicator-label primary"
+							>STABLE_RELEASE_DMG</span
 						>
 					</div>
 
-					<h2 class="card-title">TV_OS</h2>
+					<h2 class="card-title">MACOS</h2>
 					<p class="card-description">
-						Android TV optimized streaming client with leanback UI
-						and remote control support.
+						Optimized Metal rendering pipeline with universal binary support
+						for Apple Silicon and Intel chipsets.
 					</p>
 
 					<div class="tech-specs">
 						<div class="spec-item">
 							<span class="spec-label">ARCHITECTURE</span>
-							<span class="spec-value">ARM64_TV</span>
+							<span class="spec-value">UNIVERSAL_BIN</span>
 						</div>
 						<div class="spec-item">
-							<span class="spec-label">API_LEVEL</span>
-							<span class="spec-value">30+ (TV)</span>
+							<span class="spec-label">SYSTEM_REQ</span>
+							<span class="spec-value">macOS 11.0+</span>
 						</div>
 					</div>
 
@@ -189,31 +197,99 @@
 							<div class="progress-bar">
 								<div
 									class="progress-fill shimmer"
-									style="width: 75%;"
+									style="width: 55%;"
 								></div>
 							</div>
 						</div>
 					{:else}
-						{@const tv = getLatest("tv")}
+						{@const mac = getLatest("mac")}
 						<div class="download-action">
 							<a
-								href="https://drive.google.com/uc?export=download&id=1cAOt75WCIvy7WTwW7sSFgZKgRxMMGrUa"
-								class="tactical-btn accent-action {downloading === 'tv' ? 'is-downloading' : ''}"
-								download
-								onclick={() => handleDownload("tv")}
+								href={mac.download_url}
+								class="tactical-btn primary-action {downloading === 'mac' ? 'is-downloading' : ''}"
+								onclick={() => handleDownload("mac")}
 							>
-								{#if downloading === "tv"}
-									<Activity size={20} class="spinning" />
-									<span>SYNCING_CORE...</span>
+								{#if downloading === "mac"}
+									<Terminal size={20} class="spinning" />
+									<span>PREPARING_DMG...</span>
 								{:else}
 									<Download size={20} />
-									<span>DOWNLOAD FOR TV</span>
+									<span>DOWNLOAD FOR MACOS</span>
 								{/if}
 							</a>
 							<div class="file-meta">
-								<span class="meta-item">VER: {tv?.version || "1.0.0"}</span>
-								<span class="meta-item">SIZE: {tv?.size || "50MB"}</span>
-								<span class="meta-item">ENGINE: LEANBACK</span>
+								<span class="meta-item">VER: {mac?.version}</span>
+								<span class="meta-item">SIZE: {mac?.size}</span>
+								<span class="meta-item">PROTO: SECURE_DMG</span>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</section>
+
+			<!-- Linux OS -->
+			<section
+				class="tactical-glass tactical-card group"
+				in:fly={{ y: 40, duration: 800, delay: 300 }}
+			>
+				<div class="card-icon-overlay">
+					<Terminal size={80} strokeWidth={1} />
+				</div>
+
+				<div class="card-content">
+					<div class="release-indicator">
+						<span class="indicator-dot secondary"></span>
+						<span class="indicator-label secondary"
+							>APPIMAGE_DEB_CORE</span
+						>
+					</div>
+
+					<h2 class="card-title">LINUX_OS</h2>
+					<p class="card-description">
+						Sandboxed AppImage and native Debian packages designed for 
+						maximum desktop environment compatibility.
+					</p>
+
+					<div class="tech-specs">
+						<div class="spec-item">
+							<span class="spec-label">ARCHITECTURE</span>
+							<span class="spec-value">X86_64_LINUX</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">PACKAGE_TYPE</span>
+							<span class="spec-value">APPIMAGE / DEB</span>
+						</div>
+					</div>
+
+					{#if loading}
+						<div class="loading-placeholder">
+							<div class="progress-bar">
+								<div
+									class="progress-fill shimmer"
+									style="width: 50%;"
+								></div>
+							</div>
+						</div>
+					{:else}
+						{@const linux = getLatest("linux")}
+						<div class="download-action">
+							<a
+								href={linux.download_url}
+								class="tactical-btn secondary-action {downloading === 'linux' ? 'is-downloading' : ''}"
+								onclick={() => handleDownload("linux")}
+							>
+								{#if downloading === "linux"}
+									<Terminal size={20} class="spinning" />
+									<span>EXTRACTING_PKG...</span>
+								{:else}
+									<Download size={20} />
+									<span>DOWNLOAD FOR LINUX</span>
+								{/if}
+							</a>
+							<div class="file-meta">
+								<span class="meta-item">VER: {linux?.version}</span>
+								<span class="meta-item">SIZE: {linux?.size}</span>
+								<span class="meta-item">PROTO: ELF_EXEC</span>
 							</div>
 						</div>
 					{/if}
@@ -280,9 +356,76 @@
 								{/if}
 							</a>
 							<div class="file-meta">
-								<span class="meta-item">VER: {apk?.version || "1.9.2"}</span>
-								<span class="meta-item">SIZE: {apk?.size || "84.5MB"}</span>
+								<span class="meta-item">VER: {apk?.version}</span>
+								<span class="meta-item">SIZE: {apk?.size}</span>
 								<span class="meta-item">ENGINE: V5_CORE</span>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</section>
+
+			<!-- TV OS -->
+			<section
+				class="tactical-glass tactical-card group"
+				in:fly={{ y: 40, duration: 800, delay: 500 }}
+			>
+				<div class="card-icon-overlay">
+					<Tv size={80} strokeWidth={1} />
+				</div>
+
+				<div class="card-content">
+					<div class="release-indicator">
+						<span class="indicator-dot accent"></span>
+						<span class="indicator-label accent">TV_CORE_ARM64</span>
+					</div>
+
+					<h2 class="card-title">TV_OS</h2>
+					<p class="card-description">
+						Android TV optimized streaming client with leanback UI
+						and remote control support.
+					</p>
+
+					<div class="tech-specs">
+						<div class="spec-item">
+							<span class="spec-label">ARCHITECTURE</span>
+							<span class="spec-value">ARM64_TV</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">API_LEVEL</span>
+							<span class="spec-value">30+ (TV)</span>
+						</div>
+					</div>
+
+					{#if loading}
+						<div class="loading-placeholder">
+							<div class="progress-bar">
+								<div
+									class="progress-fill shimmer"
+									style="width: 75%;"
+								></div>
+							</div>
+						</div>
+					{:else}
+						{@const tv = getLatest("tv")}
+						<div class="download-action">
+							<a
+								href={tv.download_url}
+								class="tactical-btn accent-action {downloading === 'tv' ? 'is-downloading' : ''}"
+								onclick={() => handleDownload("tv")}
+							>
+								{#if downloading === "tv"}
+									<Activity size={20} class="spinning" />
+									<span>SYNCING_CORE...</span>
+								{:else}
+									<Download size={20} />
+									<span>DOWNLOAD FOR TV</span>
+								{/if}
+							</a>
+							<div class="file-meta">
+								<span class="meta-item">VER: {tv?.version}</span>
+								<span class="meta-item">SIZE: {tv?.size}</span>
+								<span class="meta-item">ENGINE: LEANBACK</span>
 							</div>
 						</div>
 					{/if}

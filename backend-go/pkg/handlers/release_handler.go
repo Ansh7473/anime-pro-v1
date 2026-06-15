@@ -65,8 +65,16 @@ func GetLatestReleases(c *gin.Context) {
 
 			if strings.HasSuffix(lowerName, ".exe") && !foundPlatforms["windows"] {
 				platform = "windows"
-			} else if strings.HasSuffix(lowerName, ".apk") && !foundPlatforms["android"] {
-				platform = "android"
+			} else if (strings.HasSuffix(lowerName, ".dmg") || (strings.Contains(lowerName, "mac") && strings.HasSuffix(lowerName, ".zip"))) && !foundPlatforms["mac"] {
+				platform = "mac"
+			} else if (strings.HasSuffix(lowerName, ".appimage") || strings.HasSuffix(lowerName, ".deb")) && !foundPlatforms["linux"] {
+				platform = "linux"
+			} else if strings.Contains(lowerName, "android") && strings.HasSuffix(lowerName, ".apk") && !foundPlatforms["android"] {
+				if !strings.Contains(lowerName, "tv") {
+					platform = "android"
+				}
+			} else if strings.Contains(lowerName, "tv") && strings.HasSuffix(lowerName, ".apk") && !foundPlatforms["tv"] {
+				platform = "tv"
 			}
 
 			if platform != "" {
@@ -83,7 +91,7 @@ func GetLatestReleases(c *gin.Context) {
 		}
 
 		// Stop if all supported platforms are already found
-		if foundPlatforms["windows"] && foundPlatforms["android"] {
+		if foundPlatforms["windows"] && foundPlatforms["mac"] && foundPlatforms["linux"] && foundPlatforms["android"] && foundPlatforms["tv"] {
 			break
 		}
 	}
