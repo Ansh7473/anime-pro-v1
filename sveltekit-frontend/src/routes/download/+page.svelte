@@ -42,7 +42,7 @@
 		};
 		return (
 			releases.find((r) => r.platform === platform) || {
-				version: "2.0.4",
+				version: "0.0.1",
 				size: "PENDING",
 				download_url: fallbacks[platform] || "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
 			}
