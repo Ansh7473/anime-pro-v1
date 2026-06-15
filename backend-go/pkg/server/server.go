@@ -83,6 +83,8 @@ func allowOrigin(origin string) bool {
 		"http://localhost:5173":                        true,
 		"http://localhost:5174":                        true,
 		"https://anime-pro-v1.anshsoni310.workers.dev": true,
+		"https://watchanimez.me":                        true,
+		"https://www.watchanimez.me":                    true,
 		"https://anime-pro-v1-frontend.vercel.app":     true,
 	}
 	if allowedOrigins[origin] {
