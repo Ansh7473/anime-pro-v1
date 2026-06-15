@@ -9,6 +9,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   deploy-frontend:
     name: Deploy SvelteKit Frontend to Cloudflare
@@ -133,3 +136,53 @@ jobs:
         with:
           name: animepro-tv-apk
           path: anime_pro_tv/build/app/outputs/flutter-apk/app-debug.apk
+
+  release:
+    name: Create GitHub Release
+    needs: [build-desktop, build-android, build-tv]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Download Desktop Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: animepro-windows-installer
+          path: desktop-build
+
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: animepro-android-apk
+          path: android-build
+
+      - name: Download TV Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: animepro-tv-apk
+          path: tv-build
+
+      - name: Prepare Release Files
+        run: |
+          mkdir release-assets
+          cp desktop-build/*.exe release-assets/ || true
+          cp android-build/*.apk release-assets/AnimePro-Android.apk || true
+          cp tv-build/*.apk release-assets/AnimePro-TV.apk || true
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "AnimePro Latest Builds"
+          body: |
+            ### Automated Pre-release Builds
+            This release contains the latest automated builds compiled from the `main` branch.
+            
+            * **Windows Desktop**: `AnimePro-Setup-*.exe`
+            * **Android Mobile**: `AnimePro-Android.apk`
+            * **Android TV**: `AnimePro-TV.apk`
+          draft: false
+          prerelease: true
+          files: |
+            release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
