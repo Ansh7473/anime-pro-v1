@@ -20,7 +20,7 @@
     <div class="footer-section brand-section">
       <div class="footer-logo">
         <Terminal size={24} style="color: var(--net-red)" />
-        <span class="logo-text">ANIMEPRO<span class="dot">.</span></span>
+        <span class="logo-text">WATCHANIMEZ<span class="dot">.</span></span>
       </div>
       <p class="mission-text">
         High-fidelity tactical interface for strategic anime distribution. 
@@ -76,7 +76,7 @@
 
   <div class="footer-bottom">
     <div class="container bottom-content">
-      <p class="copyright">&copy; {currentYear} ANIMEPRO COMMAND. All operational data encrypted and distributed via secure channels.</p>
+      <p class="copyright">&copy; {currentYear} WATCHANIMEZ COMMAND. All operational data encrypted and distributed via secure channels.</p>
       <div class="legal-links">
         <a href="/tos">TERMS_OF_SERVICE</a>
         <span class="divider">//</span>

@@ -52,7 +52,7 @@
 </script>
 
 <svelte:head>
-  <title>Cinematic Sector — AnimePro</title>
+  <title>Cinematic Sector — WatchAnimez</title>
 </svelte:head>
 
 <div class="movies-page">

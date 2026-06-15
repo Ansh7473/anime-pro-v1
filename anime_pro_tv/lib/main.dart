@@ -16,18 +16,18 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         Provider(create: (_) => ApiService()),
       ],
-      child: const AnimeProApp(),
+      child: const WatchAnimezApp(),
     ),
   );
 }
 
-class AnimeProApp extends StatelessWidget {
-  const AnimeProApp({super.key});
+class WatchAnimezApp extends StatelessWidget {
+  const WatchAnimezApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AnimePro TV',
+      title: 'WatchAnimez TV',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const HomeScreen(),

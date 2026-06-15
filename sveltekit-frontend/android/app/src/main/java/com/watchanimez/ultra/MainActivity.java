@@ -1,4 +1,4 @@
-package com.animepro.ultra;
+package com.watchanimez.ultra;
 
 import com.getcapacitor.BridgeActivity;
 

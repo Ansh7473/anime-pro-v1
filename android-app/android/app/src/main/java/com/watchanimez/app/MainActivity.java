@@ -1,4 +1,4 @@
-package com.animepro.app;
+package com.watchanimez.app;
 
 import android.app.DownloadManager;
 import android.content.pm.ActivityInfo;

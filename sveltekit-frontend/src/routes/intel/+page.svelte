@@ -63,7 +63,7 @@
 </script>
 
 <svelte:head>
-  <title>PROFILE | ANIMEPRO</title>
+  <title>PROFILE | WATCHANIMEZ</title>
 </svelte:head>
 
 <div class="profile-page">

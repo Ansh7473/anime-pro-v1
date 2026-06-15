@@ -1,9 +1,9 @@
 {
-  "name": "animepro-desktop",
+  "name": "watchanimez-desktop",
   "version": "2.0.4",
-  "description": "AnimePro - Premium Anime Streaming Desktop App",
+  "description": "WatchAnimez - Premium Anime Streaming Desktop App",
   "main": "main.js",
-  "author": "AnimePro Team",
+  "author": "WatchAnimez Team",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -15,9 +15,9 @@
     "build:linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "com.animepro.desktop",
-    "productName": "AnimePro",
-    "copyright": "Copyright © 2026 AnimePro",
+    "appId": "com.watchanimez.desktop",
+    "productName": "WatchAnimez",
+    "copyright": "Copyright © 2026 WatchAnimez",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
@@ -37,18 +37,18 @@
         }
       ],
       "icon": "assets/icon.png",
-      "artifactName": "AnimePro-Setup-${version}.${ext}"
+      "artifactName": "WatchAnimez-Setup-${version}.${ext}"
     },
     "mac": {
       "target": ["dmg", "zip"],
       "icon": "assets/icon.png",
-      "artifactName": "AnimePro-Mac-${version}.${ext}"
+      "artifactName": "WatchAnimez-Mac-${version}.${ext}"
     },
     "linux": {
       "target": ["AppImage", "deb"],
       "category": "Video",
       "icon": "assets/icon.png",
-      "artifactName": "AnimePro-Linux-${version}.${ext}"
+      "artifactName": "WatchAnimez-Linux-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -56,10 +56,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "AnimePro"
+      "shortcutName": "WatchAnimez"
     },
     "portable": {
-      "artifactName": "AnimePro-Portable-${version}.${ext}"
+      "artifactName": "WatchAnimez-Portable-${version}.${ext}"
     }
   },
   "devDependencies": {

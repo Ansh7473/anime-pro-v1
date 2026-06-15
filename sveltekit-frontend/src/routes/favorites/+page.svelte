@@ -38,7 +38,7 @@
 </script>
 
 <svelte:head>
-    <title>My Favorites — AnimePro</title>
+    <title>My Favorites — WatchAnimez</title>
 </svelte:head>
 
 <div class="favorites-page container">

@@ -82,7 +82,7 @@
 </script>
 
 <svelte:head>
-  <title>AnimePro — Your Premium Anime Destination</title>
+  <title>WatchAnimez — Your Premium Anime Destination</title>
   <meta
     name="description"
     content="Discover trending, popular, and top-rated anime all in one place."
@@ -94,7 +94,7 @@
     <div class="loading-content">
       <div class="spinner-ring">
         <div class="ring"></div>
-        <span class="logo-mini">AP</span>
+        <span class="logo-mini">WA</span>
       </div>
       <p>Loading your anime...</p>
     </div>

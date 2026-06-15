@@ -36,7 +36,7 @@
 </script>
 
 <svelte:head>
-  <title>Login / AnimePro</title>
+  <title>Login / WatchAnimez</title>
 </svelte:head>
 
 <div class="netflix-page" class:ready={mounted}>
@@ -50,7 +50,7 @@
     <div class="login-card glass">
       <header class="login-header">
         <h1>Welcome Back</h1>
-        <p class="subtitle">Access your AnimePro operator profile</p>
+        <p class="subtitle">Access your WatchAnimez operator profile</p>
       </header>
 
       {#if error}

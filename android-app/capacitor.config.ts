@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.animepro.app',
-  appName: 'AnimePro',
+  appId: 'com.watchanimez.app',
+  appName: 'WatchAnimez',
   webDir: 'www',
   
   // Load the remote Vercel-hosted frontend

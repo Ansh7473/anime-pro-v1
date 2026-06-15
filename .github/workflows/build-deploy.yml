@@ -63,7 +63,7 @@ jobs:
       - name: Upload Desktop Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: animepro-windows-installer
+          name: watchanimez-windows-installer
           path: desktop-app/dist/*.exe
 
   build-desktop-mac:
@@ -89,7 +89,7 @@ jobs:
       - name: Upload Mac Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: animepro-mac-installer
+          name: watchanimez-mac-installer
           path: |
             desktop-app/dist/*.dmg
             desktop-app/dist/*.zip
@@ -107,6 +107,11 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libarchive-tools
+
       - name: Install Dependencies
         run: npm ci
 
@@ -117,7 +122,7 @@ jobs:
       - name: Upload Linux Installer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: animepro-linux-installer
+          name: watchanimez-linux-installer
           path: |
             desktop-app/dist/*.AppImage
             desktop-app/dist/*.deb
@@ -157,7 +162,7 @@ jobs:
       - name: Upload Android APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: animepro-android-apk
+          name: watchanimez-android-apk
           path: android-app/android/app/build/outputs/apk/debug/app-debug.apk
 
   build-tv:
@@ -185,12 +190,12 @@ jobs:
 
       - name: Build TV APK
         working-directory: anime_pro_tv
-        run: flutter build apk --debug
+        run: flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload TV APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: animepro-tv-apk
+          name: watchanimez-tv-apk
           path: anime_pro_tv/build/app/outputs/flutter-apk/app-debug.apk
 
   release:
@@ -202,31 +207,31 @@ jobs:
       - name: Download Desktop Artifact
         uses: actions/download-artifact@v4
         with:
-          name: animepro-windows-installer
+          name: watchanimez-windows-installer
           path: desktop-build
 
       - name: Download Mac Artifact
         uses: actions/download-artifact@v4
         with:
-          name: animepro-mac-installer
+          name: watchanimez-mac-installer
           path: mac-build
 
       - name: Download Linux Artifact
         uses: actions/download-artifact@v4
         with:
-          name: animepro-linux-installer
+          name: watchanimez-linux-installer
           path: linux-build
 
       - name: Download Android Artifact
         uses: actions/download-artifact@v4
         with:
-          name: animepro-android-apk
+          name: watchanimez-android-apk
           path: android-build
 
       - name: Download TV Artifact
         uses: actions/download-artifact@v4
         with:
-          name: animepro-tv-apk
+          name: watchanimez-tv-apk
           path: tv-build
 
       - name: Prepare Release Files
@@ -237,23 +242,23 @@ jobs:
           cp mac-build/*.zip release-assets/ || true
           cp linux-build/*.AppImage release-assets/ || true
           cp linux-build/*.deb release-assets/ || true
-          cp android-build/*.apk release-assets/AnimePro-Android.apk || true
-          cp tv-build/*.apk release-assets/AnimePro-TV.apk || true
+          cp android-build/*.apk release-assets/WatchAnimez-Android.apk || true
+          cp tv-build/*.apk release-assets/WatchAnimez-TV.apk || true
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "AnimePro Latest Builds"
+          name: "WatchAnimez Latest Builds"
           body: |
             ### Automated Pre-release Builds
             This release contains the latest automated builds compiled from the `main` branch.
             
-            * **Windows Desktop**: `AnimePro-Setup-*.exe`
-            * **macOS Desktop**: `AnimePro-Mac-*.dmg` / `*.zip`
-            * **Linux Desktop**: `AnimePro-Linux-*.AppImage` / `*.deb`
-            * **Android Mobile**: `AnimePro-Android.apk`
-            * **Android TV**: `AnimePro-TV.apk`
+            * **Windows Desktop**: `WatchAnimez-Setup-*.exe`
+            * **macOS Desktop**: `WatchAnimez-Mac-*.dmg` / `*.zip`
+            * **Linux Desktop**: `WatchAnimez-Linux-*.AppImage` / `*.deb`
+            * **Android Mobile**: `WatchAnimez-Android.apk`
+            * **Android TV**: `WatchAnimez-TV.apk`
           draft: false
           prerelease: true
           files: |

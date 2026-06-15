@@ -52,7 +52,7 @@
 </script>
 
 <svelte:head>
-  <title>Broadcast Sector — AnimePro</title>
+  <title>Broadcast Sector — WatchAnimez</title>
 </svelte:head>
 
 <div class="tv-series-page">

@@ -71,7 +71,7 @@
 </script>
 
 <svelte:head>
-  <title>Timeline Protocol — AnimePro</title>
+  <title>Timeline Protocol — WatchAnimez</title>
 </svelte:head>
 
 <div class="schedule-page">

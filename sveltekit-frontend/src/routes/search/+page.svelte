@@ -41,7 +41,7 @@
   }
 </script>
 
-<svelte:head><title>Search — AnimePro</title></svelte:head>
+<svelte:head><title>Search — WatchAnimez</title></svelte:head>
 
 <div class="search-page container">
   <h1 class="page-title">Search Anime</h1>
