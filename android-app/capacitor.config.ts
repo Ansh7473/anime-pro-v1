@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   
   // Load the remote Vercel-hosted frontend
   server: {
-    url: 'https://anime-pro-v1.anshsoni310.workers.dev',
+    url: 'https://watchanimez.me',
     cleartext: true,
     androidScheme: 'https',
     allowNavigation: ['*'],

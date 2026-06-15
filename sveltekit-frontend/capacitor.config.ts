@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'AnimePro Ultra',
   webDir: 'build',
   server: {
-    url: 'https://anime-pro-v1.anshsoni310.workers.dev/',
+    url: 'https://watchanimez.me/',
     cleartext: true,
     androidScheme: 'https'
   },

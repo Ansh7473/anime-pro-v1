@@ -12,5 +12,17 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "routes": [
+    {
+      "pattern": "watchanimez.me",
+      "custom_domain": true,
+      "zone_name": "watchanimez.me"
+    },
+    {
+      "pattern": "www.watchanimez.me",
+      "custom_domain": true,
+      "zone_name": "watchanimez.me"
+    }
   ]
 }
