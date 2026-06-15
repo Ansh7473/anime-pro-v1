@@ -702,7 +702,7 @@
         tabindex="0"
         onkeydown={(e) => e.key === "Enter" && goto("/")}
       >
-        <span class="logo-text">ANIME<span class="logo-accent">AP</span></span>
+        <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
       </div>
     </div>
     <div class="top-nav-meta">

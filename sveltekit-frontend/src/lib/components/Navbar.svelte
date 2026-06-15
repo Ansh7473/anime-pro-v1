@@ -103,7 +103,7 @@
 <nav class="navbar" class:scrolled>
   <div class="nav-inner">
     <a href="/" class="logo">
-      <span class="logo-text">ANIME<span class="logo-accent">PRO</span></span>
+      <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
     </a>
 
     <div class="nav-links hide-mobile">
