@@ -10,7 +10,8 @@
     "dev": "set ELECTRON_ENV=development && electron .",
     "build": "electron-builder --win",
     "build:portable": "electron-builder --win portable",
-    "build:all": "electron-builder --win nsis portable"
+    "build:all": "electron-builder --win nsis portable",
+    "build:mac": "electron-builder --mac"
   },
   "build": {
     "appId": "com.animepro.desktop",
@@ -36,6 +37,11 @@
       ],
       "icon": "assets/icon.png",
       "artifactName": "AnimePro-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "assets/icon.png",
+      "artifactName": "AnimePro-Mac-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
