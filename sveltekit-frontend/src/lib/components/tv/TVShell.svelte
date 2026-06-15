@@ -134,7 +134,7 @@
     transition:fly={{ x: -100, duration: 400 }}
   >
     <div class="tv-logo-container">
-       <div class="tv-logo-box">AP</div>
+       <div class="tv-logo-box">WA</div>
     </div>
 
     <div class="tv-menu-items">
