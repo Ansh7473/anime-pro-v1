@@ -29,6 +29,9 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Run Svelte-Check
+        run: npm run check
+
       - name: Build Frontend
         run: npm run build
 
@@ -39,6 +42,35 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: 'sveltekit-frontend'
           command: deploy
+
+  check-go:
+    name: Check Go Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Dependencies
+        working-directory: backend-go
+        run: go mod download
+
+      - name: Run Go Vet
+        working-directory: backend-go
+        run: go vet ./...
+
+      - name: Run Go Tests
+        working-directory: backend-go
+        run: go test -v ./...
+        continue-on-error: true
+
+      - name: Check Go Compilation
+        working-directory: backend-go
+        run: go build -v -o /dev/null cmd/server/main.go
 
   build-desktop:
     name: Build Desktop App (Windows)
@@ -188,6 +220,11 @@ jobs:
         working-directory: anime_pro_tv
         run: flutter pub get
 
+      - name: Run Flutter Analyzer
+        working-directory: anime_pro_tv
+        run: flutter analyze
+        continue-on-error: true
+
       - name: Build TV APK
         working-directory: anime_pro_tv
         run: flutter build apk --debug --android-skip-build-dependency-validation
@@ -200,7 +237,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: [build-desktop, build-desktop-mac, build-desktop-linux, build-android, build-tv]
+    needs: [build-desktop, build-desktop-mac, build-desktop-linux, build-android, build-tv, check-go, deploy-frontend]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
