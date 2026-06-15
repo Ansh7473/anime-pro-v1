@@ -111,7 +111,7 @@
         </div>
       {/if}
       <div class="system-info">
-        <p>App Version: 2.0.4-TV</p>
+        <p>App Version: 0.0.1-TV</p>
         <p>Device ID: WATCHANIMEZ-TV-WRAPPER</p>
         <p>Server Status: <span class="text-green-500">Operational</span></p>
       </div>
