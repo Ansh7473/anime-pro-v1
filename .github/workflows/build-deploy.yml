@@ -94,6 +94,34 @@ jobs:
             desktop-app/dist/*.dmg
             desktop-app/dist/*.zip
 
+  build-desktop-linux:
+    name: Build Desktop App (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Desktop App
+        working-directory: desktop-app
+        run: npm run build:linux
+
+      - name: Upload Linux Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: animepro-linux-installer
+          path: |
+            desktop-app/dist/*.AppImage
+            desktop-app/dist/*.deb
+
   build-android:
     name: Build Android App (APK)
     runs-on: ubuntu-latest
@@ -167,7 +195,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: [build-desktop, build-desktop-mac, build-android, build-tv]
+    needs: [build-desktop, build-desktop-mac, build-desktop-linux, build-android, build-tv]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
@@ -182,6 +210,12 @@ jobs:
         with:
           name: animepro-mac-installer
           path: mac-build
+
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: animepro-linux-installer
+          path: linux-build
 
       - name: Download Android Artifact
         uses: actions/download-artifact@v4
@@ -201,6 +235,8 @@ jobs:
           cp desktop-build/*.exe release-assets/ || true
           cp mac-build/*.dmg release-assets/ || true
           cp mac-build/*.zip release-assets/ || true
+          cp linux-build/*.AppImage release-assets/ || true
+          cp linux-build/*.deb release-assets/ || true
           cp android-build/*.apk release-assets/AnimePro-Android.apk || true
           cp tv-build/*.apk release-assets/AnimePro-TV.apk || true
 
@@ -215,6 +251,7 @@ jobs:
             
             * **Windows Desktop**: `AnimePro-Setup-*.exe`
             * **macOS Desktop**: `AnimePro-Mac-*.dmg` / `*.zip`
+            * **Linux Desktop**: `AnimePro-Linux-*.AppImage` / `*.deb`
             * **Android Mobile**: `AnimePro-Android.apk`
             * **Android TV**: `AnimePro-TV.apk`
           draft: false
