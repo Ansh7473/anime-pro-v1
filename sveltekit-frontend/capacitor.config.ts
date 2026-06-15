@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.animepro.ultra',
-  appName: 'AnimePro Ultra',
+  appId: 'com.watchanimez.ultra',
+  appName: 'WatchAnimez',
   webDir: 'build',
   server: {
     url: 'https://watchanimez.me/',

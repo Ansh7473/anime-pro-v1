@@ -1,7 +1,7 @@
 /**
- * AnimePro Desktop — Main Process
+ * WatchAnimez Desktop — Main Process
  * 
- * Professional Electron wrapper for the AnimePro streaming platform.
+ * Professional Electron wrapper for the WatchAnimez streaming platform.
  * 
  * Architecture:
  *   - Loads the deployed Vercel frontend URL
@@ -56,7 +56,7 @@ function createWindow() {
     height: 820,
     minWidth: 940,
     minHeight: 600,
-    title: 'AnimePro',
+    title: 'WatchAnimez',
     backgroundColor: '#0a0a0f',
     show: false, // Don't show until ready (prevents white flash)
     fullscreenable: true, // Allow embedded player fullscreen to work
@@ -181,7 +181,7 @@ function createWindow() {
       // Show a notification the first time (windows behavior hint)
       if (tray && !app._trayNotified) {
         tray.displayBalloon({
-          title: 'AnimePro',
+          title: 'WatchAnimez',
           content: 'App minimized to system tray. Right-click tray icon for options.',
           iconType: 'info',
         });
@@ -230,7 +230,7 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Open AnimePro',
+      label: 'Open WatchAnimez',
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -259,7 +259,7 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: 'Quit AnimePro',
+      label: 'Quit WatchAnimez',
       click: () => {
         isQuitting = true;
         app.quit();
@@ -267,7 +267,7 @@ function createTray() {
     },
   ]);
 
-  tray.setToolTip('AnimePro — Anime Streaming');
+  tray.setToolTip('WatchAnimez — Anime Streaming');
   tray.setContextMenu(contextMenu);
 
   // Double-click tray icon to show window

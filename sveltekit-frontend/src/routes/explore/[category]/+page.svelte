@@ -44,7 +44,7 @@
 </script>
 
 <svelte:head
-  ><title>{titleMap[category] || category} — AnimePro</title></svelte:head
+  ><title>{titleMap[category] || category} — WatchAnimez</title></svelte:head
 >
 
 <div class="page container">

@@ -285,7 +285,7 @@
 </script>
 
 <svelte:head>
-  <title>My Profile — AnimePro</title>
+  <title>My Profile — WatchAnimez</title>
 </svelte:head>
 
 <div class="profile-page container">
@@ -409,7 +409,7 @@
   <div class="pref-item vertical">
     <div class="pref-info">
       <h3>Visual Engine <Sparkles size={16} class="icon-accent" /></h3>
-      <p>Fine-tune your AnimePro interface with premium effects and gradients</p>
+      <p>Fine-tune your WatchAnimez interface with premium effects and gradients</p>
     </div>
 
     <!-- 1. Color Palette categorized -->

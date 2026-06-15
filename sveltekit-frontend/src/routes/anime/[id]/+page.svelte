@@ -127,7 +127,7 @@
 </script>
 
 <svelte:head>
-  <title>{anime?.title || "Anime Details"} — AnimePro</title>
+  <title>{anime?.title || "Anime Details"} — WatchAnimez</title>
 </svelte:head>
 
 {#if loading}

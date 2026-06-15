@@ -531,7 +531,7 @@ func GetAIRecommendations(c *gin.Context) {
 	// 3. Try AI Mode
 	apiKey := config.GetOpenRouterAPIKey()
 	if apiKey != "" {
-		systemPrompt := `You are the AI Intel Officer for ANIMEPRO... JSON format...`
+		systemPrompt := `You are the AI Intel Officer for WatchAnimez... JSON format...`
 		userPrompt := fmt.Sprintf(`Analyze logs: %v. Metadata: %s`, historyContext, userPreferences)
 		
 		aiResponse, err := CallOpenRouter(userPrompt, systemPrompt)

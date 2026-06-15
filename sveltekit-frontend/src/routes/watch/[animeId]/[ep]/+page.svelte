@@ -674,7 +674,7 @@
 </script>
 
 <svelte:head>
-  <title>{anime?.title || "Player"} — Episode {ep} — AnimePro</title>
+  <title>{anime?.title || "Player"} — Episode {ep} — WatchAnimez</title>
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />

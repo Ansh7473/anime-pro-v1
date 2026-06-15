@@ -46,8 +46,8 @@ func CallOpenRouter(prompt string, systemPrompt string) (string, error) {
 
 	resp, err := utils.HttpClient.R().
 		SetHeader("Authorization", "Bearer "+apiKey).
-		SetHeader("HTTP-Referer", "https://animepro.vercel.app"). // For OpenRouter rankings
-		SetHeader("X-Title", "AnimePro").
+		SetHeader("HTTP-Referer", "https://watchanimez.me"). // For OpenRouter rankings
+		SetHeader("X-Title", "WatchAnimez").
 		SetBody(reqBody).
 		Post("https://openrouter.ai/api/v1/chat/completions")
 

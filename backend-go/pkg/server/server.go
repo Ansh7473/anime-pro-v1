@@ -61,9 +61,9 @@ func NewRouter(options Options) *gin.Engine {
 
 	app.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"name":          "AnimePro Backend API",
+			"name":          "WatchAnimez Backend API",
 			"version":       Version,
-			"description":   "Shared API and streaming proxy layer for AnimePro clients",
+			"description":   "Shared API and streaming proxy layer for WatchAnimez clients",
 			"documentation": "See /api/v1/jikan for available endpoints",
 		})
 	})

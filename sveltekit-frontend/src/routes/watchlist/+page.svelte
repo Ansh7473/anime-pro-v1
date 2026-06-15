@@ -38,7 +38,7 @@
 </script>
 
 <svelte:head>
-  <title>My Watchlist — AnimePro</title>
+  <title>My Watchlist — WatchAnimez</title>
 </svelte:head>
 
 <div class="watchlist-page container">

@@ -54,7 +54,7 @@
 </script>
 
 <svelte:head>
-  <title>Latest Episodes — AnimePro</title>
+  <title>Latest Episodes — WatchAnimez</title>
 </svelte:head>
 
 <div class="latest-page">

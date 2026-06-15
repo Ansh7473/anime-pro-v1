@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'AnimePro',
+                    'WatchAnimez',
                     style: TextStyle(
                       fontSize: 56,
                       fontWeight: FontWeight.w900,

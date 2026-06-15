@@ -7,7 +7,7 @@ const getInitialTVState = () => {
   const ua = navigator.userAgent.toLowerCase();
   
   // High-priority native wrapper detection
-  if (ua.includes('animeprotv')) return true;
+  if (ua.includes('watchanimeztv') || ua.includes('animeprotv')) return true;
   
   // Saved preference
   const saved = localStorage.getItem('tv-mode-enabled');
@@ -41,7 +41,7 @@ if (browser) {
     const ua = navigator.userAgent.toLowerCase();
     
     // Always keep forced if native wrapper
-    if (ua.includes('animeprotv')) {
+    if (ua.includes('watchanimeztv') || ua.includes('animeprotv')) {
       isTV.set(true);
       return;
     }

@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-  <title>Sign Up / AnimePro</title>
+  <title>Sign Up / WatchAnimez</title>
 </svelte:head>
 
 <div class="netflix-page" class:ready={mounted}>
@@ -51,7 +51,7 @@
     <div class="login-card glass">
       <header class="login-header">
         <h1>Join the Unit</h1>
-        <p class="subtitle">Initialize your AnimePro operator profile</p>
+        <p class="subtitle">Initialize your WatchAnimez operator profile</p>
       </header>
 
       {#if error}

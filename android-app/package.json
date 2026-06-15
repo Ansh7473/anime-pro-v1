@@ -1,8 +1,8 @@
 {
-  "name": "animepro-android",
+  "name": "watchanimez-android",
   "version": "2.0.4",
-  "description": "AnimePro - Premium Anime Streaming Android App",
-  "author": "AnimePro Team",
+  "description": "WatchAnimez - Premium Anime Streaming Android App",
+  "author": "WatchAnimez Team",
   "license": "MIT",
   "scripts": {
     "build": "npx cap sync android && cd android && ./gradlew assembleDebug"

@@ -1,5 +1,5 @@
 /**
- * AnimePro Desktop — Preload Script
+ * WatchAnimez Desktop — Preload Script
  * 
  * Securely exposes limited Node.js/Electron APIs to the renderer process
  * via contextBridge. This follows Electron security best practices:
