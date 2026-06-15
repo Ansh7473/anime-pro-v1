@@ -3,7 +3,11 @@
   "version": "2.0.4",
   "description": "WatchAnimez - Premium Anime Streaming Desktop App",
   "main": "main.js",
-  "author": "WatchAnimez Team",
+  "author": {
+    "name": "WatchAnimez Team",
+    "email": "support@watchanimez.me"
+  },
+  "homepage": "https://watchanimez.me",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -48,6 +52,7 @@
       "target": ["AppImage", "deb"],
       "category": "Video",
       "icon": "assets/icon.png",
+      "maintainer": "WatchAnimez Team <support@watchanimez.me>",
       "artifactName": "WatchAnimez-Linux-${version}.${ext}"
     },
     "nsis": {
