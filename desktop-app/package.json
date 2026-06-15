@@ -11,7 +11,8 @@
     "build": "electron-builder --win",
     "build:portable": "electron-builder --win portable",
     "build:all": "electron-builder --win nsis portable",
-    "build:mac": "electron-builder --mac"
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
   },
   "build": {
     "appId": "com.animepro.desktop",
@@ -42,6 +43,12 @@
       "target": ["dmg", "zip"],
       "icon": "assets/icon.png",
       "artifactName": "AnimePro-Mac-${version}.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Video",
+      "icon": "assets/icon.png",
+      "artifactName": "AnimePro-Linux-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
