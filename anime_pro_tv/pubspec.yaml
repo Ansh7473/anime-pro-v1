@@ -1,5 +1,5 @@
 name: anime_pro_tv
-description: A native Flutter Android TV streaming app for WatchAnimez.
+description: WatchAnimez TV is a native Flutter Android TV app for anime discovery, watchlists, and remote-friendly streaming.
 version: 0.0.1+1
 
 environment:

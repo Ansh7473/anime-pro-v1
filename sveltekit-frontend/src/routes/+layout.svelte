@@ -6,11 +6,15 @@
   import { isTV } from "$lib/stores/device";
   import TVShell from "$lib/components/tv/TVShell.svelte";
   import RegularShell from "$lib/components/RegularShell.svelte";
+  import JsonLd from "$lib/components/JsonLd.svelte";
+  import { getSiteJsonLd, SITE_DESCRIPTION, SITE_NAME } from "$lib/seo";
+  import { SEARCH_ENGINE_META_VERIFICATIONS } from "$lib/seo-verification";
   
   import "../app.css";
   import "../lib/styles/themes.css";
 
-  let { children } = $props();
+  let { children, data } = $props();
+  const siteJsonLd = $derived(getSiteJsonLd(data.canonicalUrl));
 
   // TV Mode Redirection Logic
   $effect(() => {
@@ -28,6 +32,21 @@
     }
   });
 </script>
+
+<svelte:head>
+  <link rel="canonical" href={data.canonicalUrl} />
+  <meta name="robots" content={data.robotsContent} />
+  <meta property="og:site_name" content={SITE_NAME} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={data.canonicalUrl} />
+  <meta property="og:description" content={SITE_DESCRIPTION} />
+  <meta name="twitter:card" content="summary_large_image" />
+  {#each SEARCH_ENGINE_META_VERIFICATIONS as verification}
+    <meta name={verification.name} content={verification.content} />
+  {/each}
+</svelte:head>
+
+<JsonLd data={siteJsonLd} />
 
 <div class="app theme-{$themeState.current}" 
      class:tv-mode={$isTV}

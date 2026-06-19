@@ -11,6 +11,14 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Support WatchAnimez</title>
+	<meta
+		name="description"
+		content="Support WatchAnimez development, hosting, anime discovery features, and multi-platform apps."
+	/>
+</svelte:head>
+
 <div class="tactical-page-container">
 	<!-- Background HUD Elements -->
 	<div class="tactical-hud-overlay">

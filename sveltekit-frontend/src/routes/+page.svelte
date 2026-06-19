@@ -17,16 +17,19 @@
     Users
   } from 'lucide-svelte';
 
-  let homeData: any = $state(null);
-  let loading = $state(true);
+  let { data } = $props();
+
+  let homeData: any = $state(data.homeData);
+  let loading = $state(!data.homeData);
   let continueWatching: any[] = $state([]);
   let favorites: any[] = $state([]);
 
   onMount(async () => {
     try {
-      const data = await api.getHome();
-      if (!data) throw new Error("No data received");
-      homeData = data;
+      if (homeData?.trending?.length || homeData?.popular?.length) return;
+      const freshData = await api.getHome();
+      if (!freshData) throw new Error("No data received");
+      homeData = freshData;
     } catch (e) {
       console.error("Failed to load home data:", e);
       homeData = { trending: [], popular: [], topRated: [] };
@@ -85,7 +88,12 @@
   <title>WatchAnimez — Your Premium Anime Destination</title>
   <meta
     name="description"
-    content="Discover trending, popular, and top-rated anime all in one place."
+    content="Discover trending, popular, top-rated, seasonal, action, romance, and movie anime on WatchAnimez."
+  />
+  <meta property="og:title" content="WatchAnimez — Premium Anime Hub" />
+  <meta
+    property="og:description"
+    content="Discover trending, popular, top-rated, seasonal, action, romance, and movie anime on WatchAnimez."
   />
 </svelte:head>
 

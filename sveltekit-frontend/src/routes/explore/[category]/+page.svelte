@@ -1,6 +1,8 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import JsonLd from "$lib/components/JsonLd.svelte";
+  import { getCollectionJsonLd } from "$lib/seo";
   import { onMount } from "svelte";
 
   let { data } = $props();
@@ -21,12 +23,19 @@
     romance: "💕 Romance",
   };
 
-  let items: any[] = $state([]);
-  let loading = $state(true);
-  let hasNext = $state(false);
+  let items: any[] = $state(data.items || []);
+  let loading = $state(!data.items?.length);
+  let hasNext = $state(data.hasNext || false);
   let currentPage = $state(1);
+  const pageTitle = $derived(titleMap[category] || category);
+  const pageDescription = $derived(
+    `Browse ${pageTitle.replace(/[^\w\s&-]/g, "").trim()} anime on WatchAnimez with posters, ratings, genres, and detailed watch pages.`
+  );
+  const collectionJsonLd = $derived(getCollectionJsonLd(`${pageTitle} — WatchAnimez`, pageDescription, data.canonicalUrl, items));
 
-  onMount(() => loadPage(1));
+  onMount(() => {
+    if (items.length === 0) loadPage(1);
+  });
 
   async function loadPage(p: number) {
     loading = true;
@@ -44,8 +53,13 @@
 </script>
 
 <svelte:head
-  ><title>{titleMap[category] || category} — WatchAnimez</title></svelte:head
+  ><title>{pageTitle} — WatchAnimez</title>
+  <meta name="description" content={pageDescription} />
+  <meta property="og:title" content={`${pageTitle} — WatchAnimez`} />
+  <meta property="og:description" content={pageDescription} /></svelte:head
 >
+
+<JsonLd data={collectionJsonLd} />
 
 <div class="page container">
   <h1 class="page-title">{titleMap[category] || category}</h1>
