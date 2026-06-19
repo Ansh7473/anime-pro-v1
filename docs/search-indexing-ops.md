@@ -1,6 +1,6 @@
 # Search Indexing Operations
 
-Use this checklist after deploying the latest WatchAnimez SEO changes.
+Use this checklist after deploying the latest WatchAnimez SEO changes. 
 
 ## 1. Deploy and Configure
 
