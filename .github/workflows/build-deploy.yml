@@ -49,22 +49,41 @@ jobs:
       - name: Submit IndexNow URLs
         if: success()
         run: |
-          echo "Waiting for deploy propagation..."
+          LOG_FILE="indexnow-log.txt"
+          TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+          echo "====================================================" >> "$LOG_FILE"
+          echo "IndexNow Submission Log" >> "$LOG_FILE"
+          echo "====================================================" >> "$LOG_FILE"
+          echo "Timestamp : $TIMESTAMP" >> "$LOG_FILE"
+          echo "Commit    : ${{ github.sha }}" >> "$LOG_FILE"
+          echo "Branch    : ${{ github.ref_name }}" >> "$LOG_FILE"
+          echo "Run ID    : ${{ github.run_id }}" >> "$LOG_FILE"
+          echo "----------------------------------------------------" >> "$LOG_FILE"
+          echo "" >> "$LOG_FILE"
+
+          echo "Waiting 12s for deploy propagation..."
           sleep 12
 
           # Fetch sitemap and extract <loc> URLs
+          echo "[1/3] Fetching sitemap..." >> "$LOG_FILE"
           SITEMAP_URLS=$(curl -sf --retry 3 --retry-delay 5 https://watchanimez.me/sitemap.xml \
             | grep -oP '(?<=<loc>)[^<]+' | head -200)
 
           if [ -z "$SITEMAP_URLS" ]; then
-            echo "Could not fetch sitemap, submitting static pages only"
+            echo "  Could not fetch sitemap, using static fallback" >> "$LOG_FILE"
             URLS='["https://watchanimez.me/","https://watchanimez.me/latest/","https://watchanimez.me/tv-series/","https://watchanimez.me/movies/","https://watchanimez.me/schedule/","https://watchanimez.me/search/","https://watchanimez.me/intel/","https://watchanimez.me/download/","https://watchanimez.me/donate/"]'
+            URL_COUNT=9
+            echo "  Source   : fallback (static pages)" >> "$LOG_FILE"
           else
-            # Convert newline-separated to JSON array
             URLS=$(echo "$SITEMAP_URLS" | jq -R -s 'split("\n") | map(select(length > 0))')
+            URL_COUNT=$(echo "$SITEMAP_URLS" | wc -l)
+            echo "  Source   : sitemap.xml" >> "$LOG_FILE"
           fi
+          echo "  URLs     : $URL_COUNT" >> "$LOG_FILE"
+          echo "" >> "$LOG_FILE"
 
-          echo "Submitting URLs to IndexNow..."
+          echo "[2/3] POSTing to /api/indexnow..." >> "$LOG_FILE"
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
             "https://watchanimez.me/api/indexnow" \
             -H "content-type: application/json" \
@@ -73,12 +92,31 @@ jobs:
           HTTP_STATUS=$(echo "$RESPONSE" | grep -oP 'HTTP_STATUS:\K\d+')
           BODY=$(echo "$RESPONSE" | sed 's/HTTP_STATUS:.*//')
 
-          echo "IndexNow response ($HTTP_STATUS): $BODY"
-          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "429" ]; then
-            echo "IndexNow submission successful (429 = already submitted recently)"
+          echo "  Status   : $HTTP_STATUS" >> "$LOG_FILE"
+          echo "  Response : $BODY" >> "$LOG_FILE"
+          echo "" >> "$LOG_FILE"
+
+          echo "[3/3] Result" >> "$LOG_FILE"
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "  PASS — URLs submitted successfully" >> "$LOG_FILE"
+          elif [ "$HTTP_STATUS" = "429" ]; then
+            echo "  PASS — Already submitted recently (rate-limited)" >> "$LOG_FILE"
           else
-            echo "IndexNow submission returned unexpected status $HTTP_STATUS"
+            echo "  FAIL — Unexpected status $HTTP_STATUS" >> "$LOG_FILE"
           fi
+          echo "" >> "$LOG_FILE"
+          echo "====================================================" >> "$LOG_FILE"
+
+          echo "IndexNow response ($HTTP_STATUS): $BODY"
+          cat "$LOG_FILE"
+
+      - name: Upload IndexNow Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: indexnow-log
+          path: indexnow-log.txt
+          retention-days: 90
 
   check-go:
     name: Check Go Backend
@@ -311,6 +349,12 @@ jobs:
           name: watchanimez-tv-apk
           path: tv-build
 
+      - name: Download IndexNow Log
+        uses: actions/download-artifact@v4
+        with:
+          name: indexnow-log
+          path: indexnow-log
+
       - name: Prepare Release Files
         run: |
           mkdir release-assets
@@ -321,6 +365,7 @@ jobs:
           cp linux-build/*.deb release-assets/ || true
           cp android-build/*.apk release-assets/WatchAnimez-Android.apk || true
           cp tv-build/*.apk release-assets/WatchAnimez-TV.apk || true
+          cp indexnow-log/indexnow-log.txt release-assets/ || true
 
       - name: Generate Release Body
         run: |
