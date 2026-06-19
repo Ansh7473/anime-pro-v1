@@ -63,7 +63,11 @@
 </script>
 
 <svelte:head>
-  <title>PROFILE | WATCHANIMEZ</title>
+  <title>WatchAnimez Profile and Recommendations</title>
+  <meta
+    name="description"
+    content="Manage your WatchAnimez profile, watch history, watchlist, viewing statistics, and anime recommendations."
+  />
 </svelte:head>
 
 <div class="profile-page">

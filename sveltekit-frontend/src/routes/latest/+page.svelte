@@ -1,8 +1,10 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import JsonLd from "$lib/components/JsonLd.svelte";
+  import { getCollectionJsonLd } from "$lib/seo";
   import { onMount } from "svelte";
-  import { fade, fly } from "svelte/transition";
+  import { fly } from "svelte/transition";
   import { Clock, Zap, ChevronLeft, ChevronRight } from "lucide-svelte";
 
   const TABS = [
@@ -11,11 +13,21 @@
     { id: "dubbed-anime", label: "Dubbed", icon: "🎙" },
   ];
 
+  let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
+
+  const pageTitle = "Latest Anime Episodes - WatchAnimez";
+  const pageDescription =
+    "Find recently updated anime, current seasonal shows, subbed anime, and dubbed picks with direct detail pages on WatchAnimez.";
+
   let tab = $state("recently-updated");
   let page = $state(1);
-  let animes: any[] = $state([]);
-  let loading = $state(true);
-  let hasNextPage = $state(false);
+  let animes: any[] = $state(data.initialItems || []);
+  let loading = $state(animes.length === 0);
+  let hasNextPage = $state(data.hasNext || false);
+  let ready = $state(false);
+  const collectionJsonLd = $derived(
+    getCollectionJsonLd(pageTitle, pageDescription, data.canonicalUrl, animes)
+  );
 
   async function fetchEpisodes() {
     loading = true;
@@ -37,10 +49,12 @@
     }
   }
 
-  onMount(fetchEpisodes);
+  onMount(() => {
+    ready = true;
+  });
 
   $effect(() => {
-    if (tab || page) {
+    if (ready && (tab || page)) {
       fetchEpisodes();
       if (typeof window !== "undefined")
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -54,8 +68,14 @@
 </script>
 
 <svelte:head>
-  <title>Latest Episodes — WatchAnimez</title>
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDescription} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={pageDescription} />
+  <meta property="og:url" content={data.canonicalUrl} />
 </svelte:head>
+
+<JsonLd data={collectionJsonLd} />
 
 <div class="latest-page">
   <!-- Tactical Header -->
@@ -67,8 +87,8 @@
           <Clock size={24} />
           <div class="hex-border"></div>
         </div>
-        <h1 class="tactical-title">LATEST_EPISODES</h1>
-        <p class="tactical-sub">STREAMING_LIVE_NOW // UPDATED_REAL_TIME</p>
+        <h1 class="tactical-title">Latest Anime Episodes</h1>
+        <p class="tactical-sub">Recently updated anime, seasonal shows, subbed picks, and dubbed picks</p>
       </div>
 
       <!-- Tactical Tabs -->
@@ -97,7 +117,7 @@
       <div class="loading-state">
         <div class="tactical-loader">
           <div class="loader-circle"></div>
-          <span class="loader-text">SYNCING_DATABASE...</span>
+          <span class="loader-text">Loading latest anime...</span>
         </div>
       </div>
     {:else if animes.length > 0}
@@ -113,23 +133,23 @@
       <div class="tactical-pagination">
         <button class="p-btn" disabled={page === 1} onclick={() => page--}>
           <ChevronLeft size={18} />
-          <span>PREV_PAGE</span>
+          <span>Previous</span>
         </button>
 
         <div class="p-info">
-          <span class="p-label">SECTOR</span>
+          <span class="p-label">Page</span>
           <span class="p-value">{page.toString().padStart(2, '0')}</span>
         </div>
 
         <button class="p-btn next" disabled={!hasNextPage} onclick={() => page++}>
-          <span>NEXT_PAGE</span>
+          <span>Next</span>
           <ChevronRight size={18} />
         </button>
       </div>
     {:else if !loading}
       <div class="empty-state">
         <div class="empty-icon"><Clock size={40} /></div>
-        <p class="empty-msg">NO_RECORDS_FOUND_IN_CACHE</p>
+        <p class="empty-msg">No anime found for this filter.</p>
       </div>
     {/if}
   </div>

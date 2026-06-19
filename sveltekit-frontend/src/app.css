@@ -130,6 +130,7 @@ button {
 }
 
 img {
+  display: block;
   max-width: 100%;
   height: auto;
 }
@@ -359,14 +360,13 @@ img {
   }
 }
 
-@media (max-width: 768px) {
-
-  /* Disable hover effects on touch devices */
+@media (hover: none) and (pointer: coarse) {
   *:hover {
     transform: none !important;
   }
+}
 
-  /* Better touch targets */
+@media (max-width: 768px) {
   button,
   a {
     min-height: 44px;

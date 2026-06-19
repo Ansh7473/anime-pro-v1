@@ -71,7 +71,11 @@
 </script>
 
 <svelte:head>
-  <title>Timeline Protocol — WatchAnimez</title>
+  <title>Anime Release Schedule - WatchAnimez</title>
+  <meta
+    name="description"
+    content="Check the WatchAnimez anime release schedule for upcoming episodes, airing times, formats, ratings, and direct anime detail pages."
+  />
 </svelte:head>
 
 <div class="schedule-page">
@@ -83,23 +87,23 @@
           <div class="scanline"></div>
           <div class="status-top">
             <div class="pulse-indicator"></div>
-            <span class="status-text">MISSION_TIMELINE_ACTIVE</span>
-            <span class="system-id">ID: PRO-SC01</span>
+            <span class="status-text">RELEASE SCHEDULE</span>
+            <span class="system-id">AIRING CALENDAR</span>
           </div>
           <div class="status-content">
-            <h1 class="tactical-title">TIMELINE PROTOCOL</h1>
+            <h1 class="tactical-title">Anime Release Schedule</h1>
             <div class="telemetry-grid">
               <div class="tel-item">
                 <span class="tel-label">SECTOR</span>
-                <span class="tel-val">RELEASE_CALENDAR</span>
+                <span class="tel-val">CALENDAR</span>
               </div>
               <div class="tel-item">
                 <span class="tel-label">STATE</span>
-                <span class="tel-val text-primary">REAL_TIME_SYNC</span>
+                <span class="tel-val text-primary">UPDATED</span>
               </div>
               <div class="tel-item hide-mobile">
-                <span class="tel-label">UPLINK</span>
-                <span class="tel-val">ENCRYPTED</span>
+                <span class="tel-label">SOURCE</span>
+                <span class="tel-val">ANIME DATA</span>
               </div>
             </div>
           </div>
@@ -108,11 +112,11 @@
         <div class="action-badges hide-tablet">
           <div class="badge-item">
             <Radio size={14} class="text-primary" />
-            <span>LIVE_FEED</span>
+            <span>LIVE FEED</span>
           </div>
           <div class="badge-item">
             <Activity size={14} class="text-secondary" />
-            <span>SYNC_OK</span>
+            <span>UPDATED</span>
           </div>
         </div>
       </div>
@@ -146,14 +150,14 @@
       <div class="loading-state" out:fade>
         <div class="tactical-spinner">
           <Cpu size={40} class="spinning text-primary" />
-          <p class="mono">DECRYPTING_DATA...</p>
+          <p class="mono">Loading schedule...</p>
         </div>
       </div>
     {:else if scheduledAnimes.length === 0}
       <div class="empty-state" in:fade>
         <ShieldAlert size={48} class="text-muted" />
-        <h2 class="mono">NO_DATA_DETECTED</h2>
-        <p class="mono-sub">Zero deployments scheduled for this timestamp.</p>
+        <h2 class="mono">No episodes scheduled</h2>
+        <p class="mono-sub">No anime releases were found for this date.</p>
       </div>
     {:else}
       <div class="deployment-grid">
@@ -195,7 +199,7 @@
                     {#if anime.score > 0}
                       <div class="meta-item">
                         <Activity size={12} class="text-secondary" />
-                        <span>{anime.score.toFixed(1)}_RTG</span>
+                      <span>{anime.score.toFixed(1)} rating</span>
                       </div>
                     {/if}
                   </div>
@@ -203,13 +207,13 @@
                     <div class="status-bar">
                       <div class="status-fill" style="width: 85%"></div>
                     </div>
-                    <span class="status-label">READY_FOR_UPLINK</span>
+                    <span class="status-label">Episode details available</span>
                   </div>
                 </div>
               </div>
 
               <div class="module-footer">
-                <span class="footer-text">ACCESS_MANIFEST</span>
+                <span class="footer-text">View anime details</span>
                 <Play size={12} fill="currentColor" />
               </div>
             </a>

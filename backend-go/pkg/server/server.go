@@ -28,6 +28,12 @@ func NewRouter(options Options) *gin.Engine {
 	if options.Logger {
 		app.Use(gin.Logger())
 	}
+	app.Use(func(c *gin.Context) {
+		c.Header("X-Robots-Tag", "noindex, nofollow")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Next()
+	})
 
 	app.Use(cors.New(cors.Config{
 		AllowOriginFunc:  allowOrigin,

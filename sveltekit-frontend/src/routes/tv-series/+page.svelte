@@ -1,19 +1,32 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import JsonLd from "$lib/components/JsonLd.svelte";
+  import { getCollectionJsonLd } from "$lib/seo";
   import { onMount } from "svelte";
-  import { Tv, Radio, Activity, Cpu, ShieldCheck, ChevronDown } from "lucide-svelte";
-  import { fade, fly } from "svelte/transition";
+  import { Radio, Activity, Cpu, ShieldCheck, ChevronDown } from "lucide-svelte";
+  import { fly } from "svelte/transition";
 
-  let items: any[] = $state([]);
-  let loading = $state(true);
-  let hasNext = $state(false);
+  let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
+
+  const pageTitle = "Anime TV Series - WatchAnimez";
+  const pageDescription =
+    "Browse popular, airing, upcoming, and top-rated anime TV series with descriptions, ratings, episode pages, and recommendations on WatchAnimez.";
+
+  let items: any[] = $state(data.initialItems || []);
+  let loading = $state(items.length === 0);
+  let hasNext = $state(data.hasNext || false);
   let currentPage = $state(1);
   let activeFilter = $state("POPULAR");
+  const collectionJsonLd = $derived(
+    getCollectionJsonLd(pageTitle, pageDescription, data.canonicalUrl, items)
+  );
 
   const filters = ["POPULAR", "AIRING", "UPCOMING", "TOP_RATED"];
 
-  onMount(() => loadPage(1));
+  onMount(() => {
+    if (items.length === 0) loadPage(1);
+  });
 
   async function loadPage(p: number) {
     loading = true;
@@ -52,8 +65,14 @@
 </script>
 
 <svelte:head>
-  <title>Broadcast Sector — WatchAnimez</title>
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDescription} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={pageDescription} />
+  <meta property="og:url" content={data.canonicalUrl} />
 </svelte:head>
+
+<JsonLd data={collectionJsonLd} />
 
 <div class="tv-series-page">
   <!-- Tactical HUD Header -->
@@ -64,29 +83,29 @@
         <div class="board-header">
           <div class="status-pill">
             <Radio size={12} class="pulse text-primary" />
-            <span>BROADCAST_OPS_ACTIVE</span>
+            <span>TV SERIES BROWSE</span>
           </div>
-          <span class="system-id">SYS_REF: PRO-TV01</span>
+          <span class="system-id">ANIME SERIES LIBRARY</span>
         </div>
         
         <div class="board-body">
           <div class="title-group">
             <h1 class="tactical-title">TV SERIES</h1>
-            <p class="tactical-subtitle">LONG_TERM_ENGAGEMENT_MANIFESTS</p>
+            <p class="tactical-subtitle">Popular, airing, upcoming, and top-rated anime series</p>
           </div>
           
           <div class="telemetry hide-mobile">
             <div class="tel-box">
               <span class="label">SECTOR</span>
-              <span class="val">LONG_TERM</span>
+              <span class="val">SERIES</span>
             </div>
             <div class="tel-box">
               <span class="label">UPLINK</span>
-              <span class="val text-primary">STABLE</span>
+              <span class="val text-primary">UPDATED</span>
             </div>
             <div class="tel-box">
-              <span class="label">ENCRYPT</span>
-              <span class="val">AES_256</span>
+              <span class="label">SOURCE</span>
+              <span class="val">ANIME DATA</span>
             </div>
           </div>
         </div>
@@ -96,7 +115,7 @@
       <nav class="tactical-nav">
         <div class="nav-label">
           <Activity size={14} class="text-primary" />
-          <span>FILTER_MODULES</span>
+          <span>Filters</span>
         </div>
         <div class="filter-group">
           {#each filters as f}
@@ -119,7 +138,7 @@
     <div class="grid-header">
       <div class="results-count">
         <ShieldCheck size={14} class="text-secondary" />
-        <span>ENGAGEMENTS_LOADED: {items.length}</span>
+        <span>{items.length} series found</span>
       </div>
       <div class="grid-line"></div>
     </div>
@@ -127,7 +146,7 @@
     {#if loading && items.length === 0}
       <div class="loading-state">
         <Cpu size={40} class="spinning text-primary" />
-        <p class="mono">DECODING_MANIFEST...</p>
+        <p class="mono">Loading anime series...</p>
       </div>
     {:else}
       <div class="anime-grid">
@@ -146,7 +165,7 @@
             disabled={loading}
           >
             <div class="load-scanline"></div>
-            <span class="btn-text">{loading ? "SYNCING..." : "EXPAND_OPERATIONS"}</span>
+            <span class="btn-text">{loading ? "Loading..." : "Load more series"}</span>
             <ChevronDown size={16} />
           </button>
         </div>

@@ -57,6 +57,14 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Download WatchAnimez Apps - Android, TV, Windows, macOS, Linux</title>
+	<meta
+		name="description"
+		content="Download WatchAnimez apps for Android, Android TV, Windows, macOS, and Linux with native wrappers for mobile, desktop, and television viewing."
+	/>
+</svelte:head>
+
 <div class="tactical-page-container">
 	<!-- Background HUD Elements -->
 	<div class="tactical-hud-overlay">

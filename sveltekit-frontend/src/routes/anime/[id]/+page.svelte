@@ -1,28 +1,42 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import { auth } from "$lib/stores/auth";
+  import JsonLd from "$lib/components/JsonLd.svelte";
   import Row from "$lib/components/Row.svelte";
+  import { getAnimeJsonLd, truncateDescription } from "$lib/seo";
   import { onMount } from "svelte";
 
-  let anime: any = $state(null);
+  let { data } = $props();
+
+  let anime: any = $state(data.anime);
   let characters: any[] = $state([]);
   let recommendations: any[] = $state([]);
   let relations: any[] = $state([]);
-  let loading = $state(true);
+  let loading = $state(!data.anime);
   let inWatchlist = $state(false);
   let isFavorite = $state(false);
   let watchlistStatus = $state("");
   let processingWatchlist = $state(false);
   let processingFavorite = $state(false);
 
-  let { data } = $props();
   // Use a derived state for ID to ensure total reactivity across navigations
   const id = $derived(data.id);
+  const pageDescription = $derived(
+    anime
+      ? truncateDescription(
+          anime.synopsis || anime.description,
+          `Watch details, episodes, and recommendations for ${anime.title} on WatchAnimez.`
+        )
+      : "Explore anime details, episodes, characters, and recommendations on WatchAnimez."
+  );
+  const animeJsonLd = $derived(anime ? getAnimeJsonLd(anime, data.canonicalUrl) : null);
 
   onMount(async () => {
     try {
-      const res = await api.getAnime(id);
-      anime = res;
+      if (!anime) {
+        const res = await api.getAnime(id);
+        anime = res;
+      }
 
       // Check watchlist and favorite status if logged in
       if ($auth.token) {
@@ -128,7 +142,19 @@
 
 <svelte:head>
   <title>{anime?.title || "Anime Details"} — WatchAnimez</title>
+  {#if anime}
+    <meta name="description" content={pageDescription} />
+    <meta property="og:title" content={`${anime.title} — WatchAnimez`} />
+    <meta property="og:description" content={pageDescription} />
+    {#if anime.poster || anime.image}
+      <meta property="og:image" content={anime.poster || anime.image} />
+    {/if}
+  {/if}
 </svelte:head>
+
+{#if animeJsonLd}
+  <JsonLd data={animeJsonLd} />
+{/if}
 
 {#if loading}
   <div class="center"><div class="spinner"></div></div>

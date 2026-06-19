@@ -41,7 +41,13 @@
   }
 </script>
 
-<svelte:head><title>Search — WatchAnimez</title></svelte:head>
+<svelte:head>
+  <title>Search Anime - WatchAnimez</title>
+  <meta
+    name="description"
+    content="Search anime by title on WatchAnimez and discover details, ratings, posters, recommendations, and episode pages."
+  />
+</svelte:head>
 
 <div class="search-page container">
   <h1 class="page-title">Search Anime</h1>

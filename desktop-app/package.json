@@ -1,7 +1,7 @@
 {
   "name": "watchanimez-desktop",
   "version": "0.0.1",
-  "description": "WatchAnimez - Premium Anime Streaming Desktop App",
+  "description": "WatchAnimez desktop app for anime discovery, watchlists, recommendations, and streaming.",
   "main": "main.js",
   "author": {
     "name": "WatchAnimez Team",
