@@ -46,6 +46,40 @@ jobs:
           workingDirectory: 'sveltekit-frontend'
           command: deploy
 
+      - name: Submit IndexNow URLs
+        if: success()
+        run: |
+          echo "Waiting for deploy propagation..."
+          sleep 12
+
+          # Fetch sitemap and extract <loc> URLs
+          SITEMAP_URLS=$(curl -sf --retry 3 --retry-delay 5 https://watchanimez.me/sitemap.xml \
+            | grep -oP '(?<=<loc>)[^<]+' | head -200)
+
+          if [ -z "$SITEMAP_URLS" ]; then
+            echo "Could not fetch sitemap, submitting static pages only"
+            URLS='["https://watchanimez.me/","https://watchanimez.me/latest/","https://watchanimez.me/tv-series/","https://watchanimez.me/movies/","https://watchanimez.me/schedule/","https://watchanimez.me/search/","https://watchanimez.me/intel/","https://watchanimez.me/download/","https://watchanimez.me/donate/"]'
+          else
+            # Convert newline-separated to JSON array
+            URLS=$(echo "$SITEMAP_URLS" | jq -R -s 'split("\n") | map(select(length > 0))')
+          fi
+
+          echo "Submitting URLs to IndexNow..."
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            "https://watchanimez.me/api/indexnow" \
+            -H "content-type: application/json" \
+            -d "{\"urls\": $URLS}")
+
+          HTTP_STATUS=$(echo "$RESPONSE" | grep -oP 'HTTP_STATUS:\K\d+')
+          BODY=$(echo "$RESPONSE" | sed 's/HTTP_STATUS:.*//')
+
+          echo "IndexNow response ($HTTP_STATUS): $BODY"
+          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "429" ]; then
+            echo "IndexNow submission successful (429 = already submitted recently)"
+          else
+            echo "IndexNow submission returned unexpected status $HTTP_STATUS"
+          fi
+
   check-go:
     name: Check Go Backend
     runs-on: ubuntu-latest
