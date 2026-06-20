@@ -2,7 +2,7 @@
 
 <div align="center">
 
-# 🌌 **AnimePro — The Universal Hindi + Mulit Lang Streaming Platform**
+# 🌌 **WatchAnimez.me— The Universal Hindi + Mulit Lang Streaming Platform**
 ### **Next-Gen Anime Streaming. Tactical UI Universal Streaming servers support .**
 
 [![Svelte](https://img.shields.io/badge/Svelte%205-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev)
