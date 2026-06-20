@@ -2,8 +2,8 @@
 
 <div align="center">
 
-# 🌌 **AnimePro — The Ultimate Hindi Anime HUD**
-### **Next-Gen Anime Streaming. Tactical UI. Universal Streaming servers support .**
+# 🌌 **AnimePro — The Universal Hindi + Mulit Lang Streaming Platform**
+### **Next-Gen Anime Streaming. Tactical UI Universal Streaming servers support .**
 
 [![Svelte](https://img.shields.io/badge/Svelte%205-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev)
 [![Go](https://img.shields.io/badge/Go%201.21-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
