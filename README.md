@@ -16,7 +16,7 @@
 
 ## 🚀 **Overview**
 
-**AnimePro** is a high-performance, open-source anime streaming ecosystem built for speed, aesthetics, and cross-platform mastery. Designed with a **Tactical HUD** philosophy, it provides a cinematic experience whether you are on a mobile device, a desktop, or a browser. 
+**WatchAnimez** is a high-performance, open-source anime streaming ecosystem built for speed, aesthetics, and cross-platform mastery. Designed with a **Tactical HUD** philosophy, it provides a cinematic experience whether you are on a mobile device, a desktop, or a browser. 
 
 Featuring **Incremental Parallel Loading**, AnimePro starts your video faster than any other application by racing multiple providers and launching the first available stream instantly.
 
