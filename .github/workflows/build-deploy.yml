@@ -376,7 +376,7 @@ jobs:
               echo -e "### WatchAnimez ${{ github.ref_name }}\n\nProfessional release of WatchAnimez." > release_body.txt
             fi
           else
-            echo -e "### Automated Pre-release Builds\nThis release contains the latest automated builds compiled from the \`main\` branch.\n\n* **Windows Desktop**: \`WatchAnimez-Setup-*.exe\`\n* **macOS Desktop**: \`WatchAnimez-Mac-*.dmg\` / \`*.zip\`\n* **Linux Desktop**: \`WatchAnimez-Linux-*.AppImage\` / \`*.deb\`\n* **Android Mobile**: \`WatchAnimez-Android.apk\`\n* **Android TV**: \`WatchAnimez-TV.apk\`" > release_body.txt
+            echo -e "### Automated Latest Builds\nThis release contains the latest automated builds compiled from the \`main\` branch.\n\n* **Windows Desktop**: \`WatchAnimez-Setup-*.exe\`\n* **macOS Desktop**: \`WatchAnimez-Mac-*.dmg\` / \`*.zip\`\n* **Linux Desktop**: \`WatchAnimez-Linux-*.AppImage\` / \`*.deb\`\n* **Android Mobile**: \`WatchAnimez-Android.apk\`\n* **Android TV**: \`WatchAnimez-TV.apk\`" > release_body.txt
           fi
         shell: bash
 
@@ -387,7 +387,8 @@ jobs:
           name: ${{ startsWith(github.ref, 'refs/tags/v') && format('WatchAnimez {0}', github.ref_name) || 'WatchAnimez Latest Builds' }}
           body_path: release_body.txt
           draft: false
-          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          prerelease: false
+          make_latest: true
           files: |
             release-assets/*
         env:
