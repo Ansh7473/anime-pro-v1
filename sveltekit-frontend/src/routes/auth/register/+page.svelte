@@ -50,8 +50,8 @@
   <main class="login-wrapper">
     <div class="login-card glass">
       <header class="login-header">
-        <h1>Join the Unit</h1>
-        <p class="subtitle">Initialize your WatchAnimez operator profile</p>
+        <h1>Create Account</h1>
+        <p class="subtitle">Join WatchAnimez and start your anime journey</p>
       </header>
 
       {#if error}
@@ -70,7 +70,7 @@
               required
               autocomplete="name"
             />
-            <label for="name" class:active={name}>Operator Alias / Name</label>
+            <label for="name" class:active={name}>Full Name</label>
             <div class="focus-border"></div>
           </div>
         </div>
@@ -84,7 +84,7 @@
               required
               autocomplete="email"
             />
-            <label for="email" class:active={email}>Operator ID / Email</label>
+            <label for="email" class:active={email}>Email Address</label>
             <div class="focus-border"></div>
           </div>
         </div>
@@ -99,9 +99,7 @@
               minlength="6"
               autocomplete="new-password"
             />
-            <label for="password" class:active={password}
-              >Access Key / Password</label
-            >
+            <label for="password" class:active={password}>Password</label>
             <div class="focus-border"></div>
           </div>
         </div>
@@ -109,17 +107,17 @@
         <button type="submit" class="submit-btn" disabled={loading}>
           {#if loading}
             <span class="loader"></span>
-            INITIALIZING...
+            Creating account...
           {:else}
-            CREATE ACCOUNT
+            Create Account
           {/if}
         </button>
       </form>
 
       <footer class="login-footer">
         <div class="footer-links">
-          <span class="new-text">Already an Operator?</span>
-          <a href="/auth/login" class="signup-link">Login Here</a>
+          <span class="new-text">Already have an account?</span>
+          <a href="/auth/login" class="signup-link">Sign In</a>
         </div>
       </footer>
     </div>
@@ -169,7 +167,7 @@
   .poster-overlay {
     position: absolute;
     inset: 0;
-    background: url("https://images.unsplash.com/photo-1541562232579-512a21359920?auto=format&fit=crop&q=60&w=1200")
+    background: url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200")
       center/cover;
     filter: blur(20px) brightness(0.3);
     transform: scale(1.1);

@@ -2,6 +2,19 @@
 <html lang="en">
 
 <head>
+	<script>
+		// Suppress SvelteKit router warning about history.pushState / history.replaceState conflict
+		// triggered by third-party tracking scripts like Google Analytics (gtag.js)
+		(function() {
+			const originalWarn = console.warn;
+			console.warn = function(...args) {
+				if (args[0] && typeof args[0] === 'string' && args[0].includes('history.pushState') && args[0].includes('history.replaceState')) {
+					return;
+				}
+				originalWarn.apply(console, args);
+			};
+		})();
+	</script>
 	<!-- Google tag (gtag.js) -->
 	<script async src="https://www.googletagmanager.com/gtag/js?id=G-34LBR99BLW"></script>
 	<script>

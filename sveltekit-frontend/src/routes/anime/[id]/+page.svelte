@@ -4,14 +4,15 @@
   import JsonLd from "$lib/components/JsonLd.svelte";
   import Row from "$lib/components/Row.svelte";
   import { getAnimeJsonLd, truncateDescription } from "$lib/seo";
-  import { onMount } from "svelte";
 
   let { data } = $props();
 
+  // svelte-ignore state_referenced_locally
   let anime: any = $state(data.anime);
   let characters: any[] = $state([]);
   let recommendations: any[] = $state([]);
   let relations: any[] = $state([]);
+  // svelte-ignore state_referenced_locally
   let loading = $state(!data.anime);
   let inWatchlist = $state(false);
   let isFavorite = $state(false);
@@ -20,7 +21,7 @@
   let processingFavorite = $state(false);
 
   // Use a derived state for ID to ensure total reactivity across navigations
-  const id = $derived(data.id);
+  const id = $derived(Number(data.id));
   const pageDescription = $derived(
     anime
       ? truncateDescription(
@@ -31,10 +32,27 @@
   );
   const animeJsonLd = $derived(anime ? getAnimeJsonLd(anime, data.canonicalUrl) : null);
 
-  onMount(async () => {
+  $effect(() => {
+    // Run whenever `id` changes
+    loadAnimeData(id);
+  });
+
+  async function loadAnimeData(currentId: number) {
+    loading = true;
     try {
-      if (!anime) {
-        const res = await api.getAnime(id);
+      // Reset details when ID changes to prevent showing old data during fetch
+      characters = [];
+      recommendations = [];
+      relations = [];
+      inWatchlist = false;
+      isFavorite = false;
+      watchlistStatus = "";
+
+      // Hydrate anime from server data if available and matches, else fetch
+      if (data.anime && data.anime.id === currentId) {
+        anime = data.anime;
+      } else {
+        const res = await api.getAnime(currentId);
         anime = res;
       }
 
@@ -43,36 +61,43 @@
         Promise.all([
           api.getWatchlistStatus(
             $auth.token,
-            id.toString(),
+            currentId.toString(),
             $auth.currentProfile?.id,
           ),
           api.getFavoriteStatus(
             $auth.token,
-            id.toString(),
+            currentId.toString(),
             $auth.currentProfile?.id,
           ),
         ]).then(([wl, fav]) => {
-          inWatchlist = wl.inWatchlist;
-          watchlistStatus = wl.status;
-          isFavorite = fav.isFavorite;
+          if (currentId === id) {
+            inWatchlist = wl.inWatchlist;
+            watchlistStatus = wl.status;
+            isFavorite = fav.isFavorite;
+          }
         });
       }
 
-      // Parallel fetch
+      // Parallel fetch extra details
       const [chars, recs, rels] = await Promise.all([
-        api.getCharacters(id),
-        api.getRecommendations(id),
-        api.getRelations(id),
+        api.getCharacters(currentId),
+        api.getRecommendations(currentId),
+        api.getRelations(currentId),
       ]);
-      characters = chars;
-      recommendations = recs;
-      relations = rels;
+
+      if (currentId === id) {
+        characters = chars;
+        recommendations = recs;
+        relations = rels;
+      }
     } catch (e) {
       console.error(e);
     } finally {
-      loading = false;
+      if (currentId === id) {
+        loading = false;
+      }
     }
-  });
+  }
 
   async function toggleWatchlist() {
     if (!$auth.token) {

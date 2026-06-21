@@ -5,9 +5,9 @@ import { absoluteUrl } from '$lib/seo';
 
 const fallbackCategory = { data: [], pagination: { has_next_page: false } };
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, fetch }) => {
   try {
-    const res = await withSeoTimeout(api.getCategory(params.category, 1), fallbackCategory);
+    const res = await withSeoTimeout(api.getCategory(params.category, 1, fetch), fallbackCategory);
     return {
       category: params.category,
       items: res?.data || [],

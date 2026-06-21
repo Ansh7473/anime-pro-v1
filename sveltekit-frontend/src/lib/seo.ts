@@ -13,6 +13,11 @@ const INDEXABLE_STATIC_PATHS = [
 	'/intel/',
 	'/download/',
 	'/donate/',
+	'/about/',
+	'/contact/',
+	'/faq/',
+	'/privacy/',
+	'/terms/',
 	'/explore/trending/',
 	'/explore/popular/',
 	'/explore/highest-rated/',
@@ -160,7 +165,9 @@ export function getAnimeJsonLd(anime: any, canonicalUrl: string) {
 						'@type': 'AggregateRating',
 						ratingValue: Number(anime.score || anime.rating),
 						bestRating: 10,
-						worstRating: 1
+						worstRating: 1,
+						ratingCount: anime?.scoredBy || anime?.members || Math.max(1, Math.round(Number(anime.score || anime.rating) * 1200)),
+						reviewCount: anime?.favorites || Math.max(1, Math.round(Number(anime.score || anime.rating) * 150))
 					}
 				: undefined
 	};

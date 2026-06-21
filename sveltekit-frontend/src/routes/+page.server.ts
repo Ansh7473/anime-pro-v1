@@ -4,10 +4,10 @@ import type { PageServerLoad } from './$types';
 
 const fallbackHomeData = { trending: [], popular: [], topRated: [], action: [], romance: [], movies: [] };
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ fetch }) => {
 	try {
 		return {
-			homeData: await withSeoTimeout(api.getHome(), fallbackHomeData)
+			homeData: await withSeoTimeout(api.getHome(false, fetch), fallbackHomeData)
 		};
 	} catch (error) {
 		console.error('Failed to load home data for SSR:', error);

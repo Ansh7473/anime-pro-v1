@@ -6,7 +6,7 @@
   import { onMount } from "svelte";
 
   let { data } = $props();
-  const category = data.category;
+  const category = $derived(data.category);
 
   const titleMap: Record<string, string> = {
     trending: "🔥 Trending Now",
@@ -23,10 +23,22 @@
     romance: "💕 Romance",
   };
 
+  // svelte-ignore state_referenced_locally
   let items: any[] = $state(data.items || []);
+  // svelte-ignore state_referenced_locally
   let loading = $state(!data.items?.length);
+  // svelte-ignore state_referenced_locally
   let hasNext = $state(data.hasNext || false);
   let currentPage = $state(1);
+
+  $effect(() => {
+    // Keep in sync with server-loaded data updates during navigation
+    items = data.items || [];
+    loading = !data.items?.length;
+    hasNext = data.hasNext || false;
+    currentPage = 1;
+  });
+
   const pageTitle = $derived(titleMap[category] || category);
   const pageDescription = $derived(
     `Browse ${pageTitle.replace(/[^\w\s&-]/g, "").trim()} anime on WatchAnimez with posters, ratings, genres, and detailed watch pages.`

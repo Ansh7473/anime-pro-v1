@@ -4,8 +4,7 @@
   import JsonLd from "$lib/components/JsonLd.svelte";
   import { getCollectionJsonLd } from "$lib/seo";
   import { onMount } from "svelte";
-  import { Film, Activity, Cpu, ShieldCheck, ChevronDown } from "lucide-svelte";
-  import { fly } from "svelte/transition";
+  import { Film, ChevronDown } from "lucide-svelte";
 
   let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
 
@@ -13,16 +12,24 @@
   const pageDescription =
     "Browse popular, trending, top-rated, and upcoming anime movies with poster art, ratings, details, and episode links on WatchAnimez.";
 
+  // svelte-ignore state_referenced_locally
   let items: any[] = $state(data.initialItems || []);
+  // svelte-ignore state_referenced_locally
   let loading = $state(items.length === 0);
+  // svelte-ignore state_referenced_locally
   let hasNext = $state(data.hasNext || false);
+
+  $effect(() => {
+    items = data.initialItems || [];
+    hasNext = data.hasNext || false;
+  });
   let currentPage = $state(1);
-  let activeFilter = $state("POPULAR");
+  let activeFilter = $state("Popular");
   const collectionJsonLd = $derived(
     getCollectionJsonLd(pageTitle, pageDescription, data.canonicalUrl, items)
   );
 
-  const filters = ["POPULAR", "TRENDING", "TOP_RATED", "UPCOMING"];
+  const filters = ["Popular", "Trending", "Top Rated", "Upcoming"];
 
   onMount(() => {
     if (items.length === 0) loadPage(1);
@@ -33,16 +40,16 @@
     try {
       let res;
       switch (activeFilter) {
-        case "TRENDING":
+        case "Trending":
           res = await api.getTopAnime("MOVIE", p, 20, "TRENDING_DESC");
           break;
-        case "UPCOMING":
+        case "Upcoming":
           res = await api.getTopAnime("MOVIE", p, 20, "START_DATE_DESC");
           break;
-        case "TOP_RATED":
+        case "Top Rated":
           res = await api.getTopAnime("MOVIE", p, 20, "SCORE_DESC");
           break;
-        case "POPULAR":
+        case "Popular":
         default:
           res = await api.getTopAnime("MOVIE", p);
           break;
@@ -74,387 +81,227 @@
 
 <JsonLd data={collectionJsonLd} />
 
-<div class="movies-page">
-  <!-- Tactical HUD Header -->
-  <header class="tactical-header">
-    <div class="container" in:fly={{ y: -20, duration: 800 }}>
-      <div class="status-board">
-        <div class="board-scanline"></div>
-        <div class="board-header">
-          <div class="status-pill">
-            <Film size={12} class="pulse text-secondary" />
-            <span>MOVIE BROWSE</span>
-          </div>
-          <span class="system-id">CURATED ANIME FILMS</span>
-        </div>
-        
-        <div class="board-body">
-          <div class="title-group">
-            <h1 class="tactical-title">ANIME MOVIES</h1>
-            <p class="tactical-subtitle">Popular, trending, top-rated, and upcoming anime films</p>
-          </div>
-          
-          <div class="telemetry hide-mobile">
-            <div class="tel-box">
-              <span class="label">SECTOR</span>
-              <span class="val">MOVIES</span>
-            </div>
-            <div class="tel-box">
-              <span class="label">UPLINK</span>
-              <span class="val text-primary">UPDATED</span>
-            </div>
-            <div class="tel-box">
-              <span class="label">SOURCE</span>
-              <span class="val">ANIME DATA</span>
-            </div>
-          </div>
-        </div>
+<div class="page container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-top">
+      <div>
+        <h1 class="page-title">Anime Movies</h1>
+        <p class="page-subtitle">Popular, trending, top-rated, and upcoming anime films</p>
       </div>
-
-      <!-- Tactical Filters -->
-      <nav class="tactical-nav">
-        <div class="nav-label">
-          <Activity size={14} class="text-primary" />
-          <span>Filters</span>
-        </div>
-        <div class="filter-group">
-          {#each filters as f}
-            <button 
-              class="filter-btn" 
-              class:active={activeFilter === f}
-              onclick={() => setFilter(f)}
-            >
-              <div class="btn-hex"></div>
-              <span>{f}</span>
-            </button>
-          {/each}
-        </div>
-      </nav>
+      <div class="header-badge">
+        <Film size={16} />
+        <span>Movies</span>
+      </div>
     </div>
-  </header>
+  </div>
 
-  <!-- Content Grid -->
-  <main class="container content-grid">
-    <div class="grid-header">
-      <div class="results-count">
-        <ShieldCheck size={14} class="text-secondary" />
-        <span>{items.length} movies found</span>
-      </div>
-      <div class="grid-line"></div>
+  <!-- Filters -->
+  <div class="filter-bar">
+    {#each filters as f}
+      <button
+        class="filter-btn"
+        class:active={activeFilter === f}
+        onclick={() => setFilter(f)}
+      >
+        {f}
+      </button>
+    {/each}
+  </div>
+
+  <!-- Results count -->
+  {#if items.length > 0}
+    <div class="results-count">
+      <span>{items.length} movies found</span>
+    </div>
+  {/if}
+
+  <!-- Content -->
+  {#if loading && items.length === 0}
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading anime movies...</p>
+    </div>
+  {:else}
+    <div class="anime-grid">
+      {#each items as anime (anime.id)}
+        <AnimeCard {anime} />
+      {/each}
     </div>
 
-    {#if loading && items.length === 0}
-      <div class="loading-state">
-        <Cpu size={40} class="spinning text-primary" />
-        <p class="mono">Loading anime movies...</p>
+    {#if hasNext}
+      <div class="load-more-wrapper">
+        <button
+          class="load-more-btn"
+          onclick={() => loadPage(currentPage + 1)}
+          disabled={loading}
+        >
+          {loading ? "Loading..." : "Load more movies"}
+          <ChevronDown size={16} />
+        </button>
       </div>
-    {:else}
-      <div class="anime-grid">
-        {#each items as anime (anime.id)}
-          <div in:fly={{ y: 20, duration: 500 }}>
-            <AnimeCard {anime} />
-          </div>
-        {/each}
-      </div>
-
-      {#if hasNext}
-        <div class="pagination-footer">
-          <button
-            class="load-more-btn"
-            onclick={() => loadPage(currentPage + 1)}
-            disabled={loading}
-          >
-            <div class="load-scanline"></div>
-            <span class="btn-text">{loading ? "Loading..." : "Load more movies"}</span>
-            <ChevronDown size={16} />
-          </button>
-        </div>
-      {/if}
     {/if}
-  </main>
+  {/if}
 </div>
 
 <style>
-  .movies-page {
-    padding-top: 100px;
-    padding-bottom: 80px;
-    min-height: 100vh;
+  .page {
+    padding-top: 2rem;
+    padding-bottom: 4rem;
   }
 
-  /* --- Tactical Header --- */
-  .tactical-header {
-    margin-bottom: 3rem;
-  }
-
-  .status-board {
-    position: relative;
-    background: var(--tactical-glass);
-    border: 1px solid var(--tactical-border);
-    padding: 1.5rem;
-    border-radius: 4px;
-    overflow: hidden;
+  .page-header {
     margin-bottom: 2rem;
   }
-
-  .board-scanline {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(rgba(20, 184, 166, 0.05) 50%, transparent 50%);
-    background-size: 100% 4px;
-    pointer-events: none;
-    animation: scroll 40s linear infinite;
-  }
-
-  @keyframes scroll {
-    from { background-position: 0 0; }
-    to { background-position: 0 100%; }
-  }
-
-  .board-header {
+  .header-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
+    align-items: flex-start;
+    gap: 1rem;
   }
-
-  .status-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--tactical-secondary);
-  }
-
-  .pulse {
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; }
-  }
-
-  .board-body {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
-
-  .tactical-title {
-    font-size: 2.5rem;
+  .page-title {
+    font-size: 2rem;
     font-weight: 800;
-    line-height: 1;
-    margin: 0;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.3rem;
   }
-
-  .tactical-subtitle {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin: 5px 0 0 0;
-    letter-spacing: 0.1em;
+  .page-subtitle {
+    color: var(--net-text-muted);
+    font-size: 1rem;
   }
-
-  .telemetry {
+  .header-badge {
     display: flex;
-    gap: 2rem;
-  }
-
-  .tel-box {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    text-align: right;
-  }
-
-  .tel-box .label {
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.3);
-  }
-
-  .tel-box .val {
-    font-family: var(--font-mono);
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(229, 9, 20, 0.1);
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
     font-size: 0.8rem;
     font-weight: 600;
-  }
-
-  /* --- Tactical Navigation --- */
-  .tactical-nav {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-  }
-
-  .nav-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--net-red);
     white-space: nowrap;
   }
 
-  .filter-group {
+  /* Filter Bar */
+  .filter-bar {
     display: flex;
-    gap: 10px;
+    gap: 0.5rem;
     overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
     scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-
-  .filter-group::-webkit-scrollbar { display: none; }
+  .filter-bar::-webkit-scrollbar { display: none; }
 
   .filter-btn {
-    position: relative;
-    background: none;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
-    padding: 6px 16px;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
+    flex-shrink: 0;
+    padding: 0.6rem 1.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: var(--net-text-muted);
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
-    border-radius: 2px;
-    white-space: nowrap;
+    transition: all 0.2s;
+    font-family: inherit;
   }
-
   .filter-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
   }
-
   .filter-btn.active {
-    background: var(--tactical-primary);
-    border-color: var(--tactical-primary);
-    color: #000;
-    box-shadow: 0 0 15px rgba(20, 184, 166, 0.3);
-  }
-
-  /* --- Content Grid --- */
-  .grid-header {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    background: var(--net-red);
+    border-color: var(--net-red);
+    color: white;
   }
 
   .results-count {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.4);
-    white-space: nowrap;
+    margin-bottom: 1.5rem;
+    font-size: 0.88rem;
+    color: var(--net-text-muted);
+    font-weight: 500;
   }
 
-  .grid-line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent);
-  }
-
+  /* Grid */
   .anime-grid {
     display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    margin-bottom: 4rem;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    margin-bottom: 3rem;
   }
 
-  /* --- Pagination --- */
-  .pagination-footer {
-    display: flex;
-    justify-content: center;
-  }
-
-  .load-more-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--tactical-glass);
-    border: 1px solid var(--tactical-border);
-    color: #fff;
-    padding: 1rem 2.5rem;
-    border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    overflow: hidden;
-    transition: all 0.3s;
-  }
-
-  .load-more-btn:hover:not(:disabled) {
-    border-color: var(--tactical-primary);
-    background: rgba(20, 184, 166, 0.05);
-  }
-
-  .load-scanline {
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.1), transparent);
-    animation: sync 2s infinite;
-  }
-
-  @keyframes sync {
-    0% { left: -100%; }
-    100% { left: 100%; }
-  }
-
-  .load-more-btn:disabled {
-    opacity: 0.5;
-    cursor: wait;
-  }
-
-  /* --- States --- */
+  /* Loading */
   .loading-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6rem 0;
-    gap: 1.5rem;
+    padding: 4rem 1rem;
+    gap: 1rem;
+    color: var(--net-text-muted);
+  }
+  .loading-state p {
+    font-size: 0.9rem;
   }
 
-  .spinning {
-    animation: rotate 2s linear infinite;
+  /* Load More */
+  .load-more-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0 2rem;
+  }
+  .load-more-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 2rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .load-more-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--net-red);
+  }
+  .load-more-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
-  @keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .mono { font-family: var(--font-mono); letter-spacing: 0.1em; font-size: 0.9rem; }
-
-  /* --- Responsive --- */
   @media (max-width: 768px) {
-    .tactical-title { font-size: 1.8rem; }
-    .tactical-nav { gap: 1rem; padding: 0.5rem 1rem; }
-    .nav-label { display: none; }
+    .page-title { font-size: 1.6rem; }
+    .page-subtitle { font-size: 0.9rem; }
+    .header-badge { display: none; }
     .anime-grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
     }
   }
 
   @media (max-width: 480px) {
-    .board-body { align-items: flex-start; }
-    .telemetry { display: none; }
+    .page-title { font-size: 1.4rem; }
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+    }
     .anime-grid {
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    }
+  }
+
+  @media (max-width: 360px) {
+    .anime-grid {
+      grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
     }
   }
 </style>

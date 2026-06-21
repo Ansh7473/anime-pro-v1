@@ -25,7 +25,7 @@
     { href: "/schedule", label: "Schedule" },
     { href: "/tv-series", label: "TV Series" },
     { href: "/movies", label: "Movies" },
-    { href: "/intel", label: "Intel Center" },
+    { href: "/intel", label: "Blog" },
   ];
 
   function handleScroll() {

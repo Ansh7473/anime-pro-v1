@@ -3,11 +3,11 @@ import { api } from '$lib/api';
 import { withSeoTimeout } from '$lib/server/seo-load';
 import { absoluteUrl } from '$lib/seo';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, fetch }) => {
   try {
     return {
       id: params.id,
-      anime: await withSeoTimeout(api.getAnime(params.id), null),
+      anime: await withSeoTimeout(api.getAnime(params.id, fetch), null),
       canonicalUrl: absoluteUrl(`/anime/${params.id}/`)
     };
   } catch (error) {

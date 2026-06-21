@@ -4,7 +4,6 @@
   import PullToRefresh from "$lib/components/PullToRefresh.svelte";
   import Footer from "$lib/components/Footer.svelte";
   import { themeState } from "$lib/stores/theme";
-  import { auth, logoutUser } from "$lib/stores/auth";
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
@@ -54,7 +53,7 @@
   let isWatchPage = $derived(page.url.pathname.startsWith('/watch/'));
 </script>
 
-<div class="regular-shell" 
+<div class="regular-shell"
      class:theme-{$themeState.current}={true}
      data-gradients={$themeState.gradients}
      data-effect={$themeState.effect}>

@@ -6,12 +6,12 @@
   import ContinueCard from "$lib/components/ContinueCard.svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { 
-    Cpu, 
-    ShieldCheck, 
-    Smartphone, 
-    Monitor, 
-    Globe, 
+  import {
+    Cpu,
+    ShieldCheck,
+    Smartphone,
+    Monitor,
+    Globe,
     MessageSquare,
     Zap,
     Users
@@ -19,8 +19,16 @@
 
   let { data } = $props();
 
+  // svelte-ignore state_referenced_locally
   let homeData: any = $state(data.homeData);
+  // svelte-ignore state_referenced_locally
   let loading = $state(!data.homeData);
+
+  $effect(() => {
+    // Keep in sync with server-loaded data updates during navigation
+    homeData = data.homeData;
+    loading = !data.homeData;
+  });
   let continueWatching: any[] = $state([]);
   let favorites: any[] = $state([]);
 
@@ -165,80 +173,80 @@
 
     <!-- --- PROFESSIONAL CONTENT BLOCKS --- -->
 
-    <!-- Phase 3: Tactical Analytics -->
-    <section class="tactical-analytics container">
+    <!-- Platform Stats -->
+    <section class="platform-stats container">
       <div class="analytics-grid">
         <div class="stat-card">
           <div class="stat-icon"><Cpu size={24} /></div>
           <div class="stat-info">
-            <span class="stat-val">1.2ms</span>
-            <span class="stat-label">LATENCY_CORE</span>
-          </div>
+                <span class="stat-val">1.2ms</span>
+                <span class="stat-label">Response Time</span>
+              </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon"><ShieldCheck size={24} /></div>
           <div class="stat-info">
-            <span class="stat-val">ENCRYPTED</span>
-            <span class="stat-label">SESSION_PROTOCOL</span>
-          </div>
+                <span class="stat-val">SSL Secured</span>
+                <span class="stat-label">Secure Connection</span>
+              </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon"><Users size={24} /></div>
           <div class="stat-info">
-            <span class="stat-val">12.5k+</span>
-            <span class="stat-label">ACTIVE_OPERATIVES</span>
-          </div>
+                <span class="stat-val">12.5k+</span>
+                <span class="stat-label">Active Users</span>
+              </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon"><Zap size={24} /></div>
           <div class="stat-info">
-            <span class="stat-val">99.9%</span>
-            <span class="stat-label">NETWORK_UPTIME</span>
-          </div>
+                <span class="stat-val">99.9%</span>
+                <span class="stat-label">Uptime</span>
+              </div>
         </div>
       </div>
     </section>
 
-    <!-- Phase 3: Cross-Platform Deployment -->
+    <!-- Cross-Platform Apps -->
     <section class="deployment-hub container">
       <div class="section-header">
-        <h2 class="section-title">DEPLOYMENT_CHANNELS</h2>
-        <p class="section-subtitle">Access intelligence across all tactical hardware</p>
+        <h2 class="section-title">Available on Every Device</h2>
+        <p class="section-subtitle">Watch your favorite anime anywhere, anytime</p>
       </div>
       <div class="deployment-grid">
         <a href="/download" class="deploy-card glass">
           <Smartphone size={32} class="text-primary" />
-          <h3>ANDROID_MOBILE</h3>
-          <p>Native APK for mobile reconnaissance.</p>
-          <span class="ver-badge">V1.2.4</span>
+          <h3>Android</h3>
+          <p>Native app optimized for mobile viewing on the go.</p>
+          <span class="ver-badge">v1.2.4</span>
         </a>
         <a href="/download" class="deploy-card glass">
           <Monitor size={32} class="text-primary" />
-          <h3>WINDOWS_DESKTOP</h3>
-          <p>Operative-grade desktop interface.</p>
-          <span class="ver-badge">V1.0.8</span>
+          <h3>Windows Desktop</h3>
+          <p>Full-featured desktop experience with offline support.</p>
+          <span class="ver-badge">v1.0.8</span>
         </a>
         <a href="/" class="deploy-card glass active">
           <Globe size={32} class="text-primary" />
-          <h3>WEB_STATION</h3>
-          <p>Browser-based command center.</p>
-          <span class="ver-badge">STABLE</span>
+          <h3>Web Browser</h3>
+          <p>Stream instantly — no download required.</p>
+          <span class="ver-badge">Stable</span>
         </a>
       </div>
     </section>
 
-    <!-- Phase 3: Community CTA -->
+    <!-- Community CTA -->
     <section class="community-signal container">
       <div class="signal-box glass">
         <div class="signal-content">
-          <h2 class="signal-title">ESTABLISH_COMMS</h2>
-          <p>Join the secure Discord channel to relay intelligence, report bugs, and coordinate with other operatives.</p>
+          <h2 class="signal-title">Join Our Community</h2>
+          <p>Connect with thousands of anime fans. Share recommendations, report bugs, and be part of something amazing.</p>
           <div class="signal-actions">
             <a href="https://discord.com" target="_blank" class="btn-primary">
-              <MessageSquare size={18} /> JOIN_DISCORD
+              <MessageSquare size={18} /> Join Discord
             </a>
             <button class="btn-secondary" onclick={() => goto('/explore')}>
-              START_MISSION
+              Start Watching
             </button>
           </div>
         </div>
@@ -246,6 +254,20 @@
           <div class="pulse-ring"></div>
           <div class="pulse-ring delay-1"></div>
           <MessageSquare size={120} class="signal-icon" />
+        </div>
+      </div>
+    </section>
+    <!-- SEO Content Section -->
+    <section class="seo-content container">
+      <div class="seo-content-inner">
+        <h2 class="seo-heading">WatchAnimez — Your Ultimate Anime Streaming Platform</h2>
+        <div class="seo-text">
+          <p>Welcome to <strong>WatchAnimez</strong>, the premier destination for anime enthusiasts around the globe. Whether you are a seasoned otaku who has watched hundreds of series or a newcomer just beginning your anime journey, WatchAnimez is designed to deliver the most comprehensive, fast, and enjoyable streaming experience available online today. Our platform aggregates anime data from multiple trusted sources, ensuring you always have access to the latest episodes, trending titles, seasonal releases, and all-time classics — all in one beautifully organized interface.</p>
+          <p>At WatchAnimez, we believe that great anime deserves a great platform. That is why we have built a service that prioritizes speed, reliability, and user experience above everything else. Our lightning-fast search engine lets you find any anime title in milliseconds, complete with detailed information including episode counts, ratings, genres, synopsis, and airing schedules. The intelligent recommendation system learns your preferences over time, surfacing personalized suggestions that match your unique taste — from action-packed shounen adventures and heartwarming slice-of-life stories to mind-bending psychological thrillers and breathtaking animated films.</p>
+          <p>One of the standout features of WatchAnimez is our cross-platform availability. You can start watching on your web browser at home, pick up exactly where you left off on our Android mobile app during your commute, and finish the episode on our Windows desktop application when you return. Your watchlist, favorites, and viewing history are seamlessly synchronized across all devices through your account, so you never lose your place. The platform supports multiple user profiles, making it easy for families and friends to share a single account while maintaining their own personalized experiences.</p>
+          <p>Our catalog is continuously updated with the latest seasonal anime, ensuring you never miss a new episode of your favorite ongoing series. The built-in release schedule feature lets you plan your week by showing exactly when new episodes air. For movie lovers, we maintain a curated collection of the highest-rated anime films, from Studio Ghibli masterpieces to the latest theatrical releases. The explore section allows you to browse anime by genre, popularity, rating, season, and format — whether you prefer TV series, OVAs, specials, or feature films.</p>
+          <p>WatchAnimez is more than just a streaming platform — it is a community. Join thousands of active users who share recommendations, discuss their favorite series, and discover hidden gems together through our integrated Discord community. The platform also features a robust favorites system, detailed watch history tracking with progress indicators, and the ability to create and manage custom watchlists for different moods and occasions.</p>
+          <p>Built with modern web technologies including SvelteKit, our platform delivers exceptional performance with minimal load times. The responsive design ensures a perfect viewing experience on any device — from large desktop monitors to tablets and smartphones. With SSL-encrypted connections, secure authentication, and a commitment to user privacy, you can enjoy your anime with complete peace of mind. Experience the future of anime streaming today with WatchAnimez — where every frame is a masterpiece.</p>
         </div>
       </div>
     </section>
@@ -441,8 +463,8 @@
       padding: 0.25rem 0.4rem;
     }
   }
-  /* Professional Content Blocks Styling */
-  .tactical-analytics {
+  /* Platform Stats */
+  .platform-stats {
     margin: 4rem auto;
     padding: 0 1rem;
   }
@@ -585,7 +607,7 @@
     align-items: center;
     justify-content: center;
   }
-  .signal-icon {
+  :global(.signal-icon) {
     color: var(--net-red);
     opacity: 0.15;
     z-index: 1;
@@ -624,8 +646,34 @@
     }
   }
 
+  /* SEO Content */
+  .seo-content {
+    margin: 4rem auto 6rem;
+    padding: 0 1rem;
+  }
+  .seo-content-inner {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 3rem;
+  }
+  .seo-heading {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    color: white;
+  }
+  .seo-text p {
+    color: var(--net-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.75;
+    margin-bottom: 1.25rem;
+  }
+  .seo-text p:last-child { margin-bottom: 0; }
+  .seo-text strong { color: white; font-weight: 600; }
+
   @media (max-width: 768px) {
-    .tactical-analytics {
+    .platform-stats {
       margin: 3rem auto;
     }
     .deployment-hub {

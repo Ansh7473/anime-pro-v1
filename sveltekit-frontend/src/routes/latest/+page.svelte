@@ -4,26 +4,33 @@
   import JsonLd from "$lib/components/JsonLd.svelte";
   import { getCollectionJsonLd } from "$lib/seo";
   import { onMount } from "svelte";
-  import { fly } from "svelte/transition";
-  import { Clock, Zap, ChevronLeft, ChevronRight } from "lucide-svelte";
+  import { Clock, ChevronLeft, ChevronRight } from "lucide-svelte";
 
   const TABS = [
-    { id: "recently-updated", label: "All Episodes", icon: "🌐" },
-    { id: "subbed-anime", label: "Subbed", icon: "🇯🇵" },
-    { id: "dubbed-anime", label: "Dubbed", icon: "🎙" },
+    { id: "recently-updated", label: "All Episodes" },
+    { id: "subbed-anime", label: "Subbed" },
+    { id: "dubbed-anime", label: "Dubbed" },
   ];
 
   let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
 
-  const pageTitle = "Latest Anime Episodes - WatchAnimez";
+  const pageTitle = "Latest Anime - WatchAnimez";
   const pageDescription =
-    "Find recently updated anime, current seasonal shows, subbed anime, and dubbed picks with direct detail pages on WatchAnimez.";
+    "Find recently updated anime, current seasonal shows, subbed anime, and dubbed picks on WatchAnimez.";
 
   let tab = $state("recently-updated");
   let page = $state(1);
+  // svelte-ignore state_referenced_locally
   let animes: any[] = $state(data.initialItems || []);
+  // svelte-ignore state_referenced_locally
   let loading = $state(animes.length === 0);
+  // svelte-ignore state_referenced_locally
   let hasNextPage = $state(data.hasNext || false);
+
+  $effect(() => {
+    animes = data.initialItems || [];
+    hasNextPage = data.hasNext || false;
+  });
   let ready = $state(false);
   const collectionJsonLd = $derived(
     getCollectionJsonLd(pageTitle, pageDescription, data.canonicalUrl, animes)
@@ -78,78 +85,67 @@
 <JsonLd data={collectionJsonLd} />
 
 <div class="latest-page">
-  <!-- Tactical Header -->
-  <div class="tactical-header">
-    <div class="header-main-content container">
-
-      <div class="title-section">
-        <div class="hex-icon">
-          <Clock size={24} />
-          <div class="hex-border"></div>
-        </div>
-        <h1 class="tactical-title">Latest Anime Episodes</h1>
-        <p class="tactical-sub">Recently updated anime, seasonal shows, subbed picks, and dubbed picks</p>
+  <!-- Page Header -->
+  <div class="page-header container">
+    <div class="header-top">
+      <div>
+        <h1 class="page-title">Latest Anime</h1>
+        <p class="page-subtitle">Recently updated anime, seasonal shows, subbed picks, and dubbed picks</p>
       </div>
-
-      <!-- Tactical Tabs -->
-      <div class="tactical-tabs">
-        <div class="tabs-container">
-          {#each TABS as t}
-            <button
-              class="t-tab"
-              class:active={tab === t.id}
-              onclick={() => changeTab(t.id)}
-            >
-              <span class="t-tab-label">{t.label}</span>
-              {#if tab === t.id}
-                <div class="t-tab-indicator" in:fly={{ y: 2, duration: 200 }}></div>
-              {/if}
-            </button>
-          {/each}
-        </div>
+      <div class="header-badge">
+        <Clock size={16} />
+        <span>Latest</span>
       </div>
     </div>
   </div>
 
-  <!-- Content Section -->
+  <!-- Tabs -->
+  <div class="tabs-bar container">
+    {#each TABS as t}
+      <button
+        class="tab-btn"
+        class:active={tab === t.id}
+        onclick={() => changeTab(t.id)}
+      >
+        {t.label}
+      </button>
+    {/each}
+  </div>
+
+  <!-- Content -->
   <div class="content-section container">
     {#if loading && animes.length === 0}
       <div class="loading-state">
-        <div class="tactical-loader">
-          <div class="loader-circle"></div>
-          <span class="loader-text">Loading latest anime...</span>
-        </div>
+        <div class="spinner"></div>
+        <span>Loading latest anime...</span>
       </div>
     {:else if animes.length > 0}
       <div class="anime-grid">
         {#each animes as anime (anime.id)}
-          <div class="card-entry" in:fly={{ y: 10, duration: 400 }}>
-            <AnimeCard {anime} />
-          </div>
+          <AnimeCard {anime} />
         {/each}
       </div>
 
-      <!-- Tactical Pagination -->
-      <div class="tactical-pagination">
-        <button class="p-btn" disabled={page === 1} onclick={() => page--}>
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="page-btn" disabled={page === 1} onclick={() => page--}>
           <ChevronLeft size={18} />
           <span>Previous</span>
         </button>
 
-        <div class="p-info">
-          <span class="p-label">Page</span>
-          <span class="p-value">{page.toString().padStart(2, '0')}</span>
+        <div class="page-info">
+          <span>Page {page}</span>
         </div>
 
-        <button class="p-btn next" disabled={!hasNextPage} onclick={() => page++}>
+        <button class="page-btn next" disabled={!hasNextPage} onclick={() => page++}>
           <span>Next</span>
           <ChevronRight size={18} />
         </button>
       </div>
     {:else if !loading}
       <div class="empty-state">
-        <div class="empty-icon"><Clock size={40} /></div>
-        <p class="empty-msg">No anime found for this filter.</p>
+        <Clock size={40} class="empty-icon" />
+        <p>No anime found for this filter.</p>
       </div>
     {/if}
   </div>
@@ -160,230 +156,183 @@
     position: relative;
     z-index: 1;
     min-height: 100vh;
-    padding-bottom: 5rem;
+    padding-bottom: 4rem;
   }
 
-  .tactical-header {
-    padding: 120px 0 60px;
-    position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    background: linear-gradient(to bottom, rgba(229, 9, 20, 0.05), transparent);
+  .page-header {
+    padding-top: 2rem;
+    margin-bottom: 1.5rem;
   }
-
-  .status-board {
+  .header-top {
     display: flex;
-    justify-content: center;
-    gap: 30px;
-    margin-bottom: 40px;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
   }
-  .status-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-family: var(--font-mono);
+  .page-title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.3rem;
   }
-  .status-item .label {
-    font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 0.1em;
+  .page-subtitle {
+    color: var(--net-text-muted);
+    font-size: 1rem;
   }
-  .status-item .value {
-    font-size: 0.75rem;
-    color: var(--net-red);
-    font-weight: 700;
-  }
-  .status-divider {
-    width: 1px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .title-section {
-    text-align: center;
-    margin-bottom: 50px;
-  }
-  .hex-icon {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 20px;
+  .header-badge {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: var(--net-red);
-  }
-  .hex-border {
-    position: absolute;
-    inset: 0;
-    border: 2px solid var(--net-red);
-    border-radius: 12px;
-    transform: rotate(45deg);
-    opacity: 0.3;
-  }
-  .tactical-title {
-    font-size: 2.5rem;
-    font-weight: 900;
-    letter-spacing: -0.02em;
-    font-family: var(--font-mono);
-    margin: 0;
-    background: linear-gradient(to bottom, #fff, rgba(255,255,255,0.7));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .tactical-sub {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-    letter-spacing: 0.2em;
-    margin-top: 10px;
-  }
-
-  .tactical-tabs {
-    display: flex;
-    justify-content: center;
-    margin-top: 40px;
-  }
-  .tabs-container {
-    display: flex;
-    gap: 8px;
-    padding: 6px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-  }
-  .t-tab {
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-family: var(--font-mono);
+    gap: 0.5rem;
+    background: rgba(229, 9, 20, 0.1);
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-    transition: all 0.3s;
-    position: relative;
-  }
-  .t-tab.active {
-    color: #fff;
-    background: rgba(229, 9, 20, 0.15);
-  }
-  .t-tab-indicator {
-    position: absolute;
-    bottom: 0;
-    left: 20%;
-    right: 20%;
-    height: 2px;
-    background: var(--net-red);
-    box-shadow: 0 0 10px var(--net-red);
+    color: var(--net-red);
+    white-space: nowrap;
   }
 
+  /* Tabs */
+  .tabs-bar {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 2rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    flex-shrink: 0;
+    padding: 0.6rem 1.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: var(--net-text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .tab-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+  }
+  .tab-btn.active {
+    background: var(--net-red);
+    border-color: var(--net-red);
+    color: white;
+  }
+
+  /* Grid */
   .anime-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 30px;
-    margin-top: 60px;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    margin-bottom: 3rem;
   }
 
-  .tactical-pagination {
+  /* Pagination */
+  .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 30px;
-    margin-top: 80px;
+    gap: 1.5rem;
+    padding: 1rem 0 2rem;
   }
-  .p-btn {
+  .page-btn {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 24px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    color: #fff;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    transition: all 0.3s;
+    gap: 0.5rem;
+    padding: 0.7rem 1.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
   }
-  .p-btn:not(:disabled):hover {
+  .page-btn:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--net-red);
   }
-  .p-btn:disabled {
-    opacity: 0.2;
+  .page-btn:disabled {
+    opacity: 0.3;
     cursor: not-allowed;
   }
-  .p-btn.next {
-    background: rgba(229, 9, 20, 0.1);
+  .page-btn.next {
+    background: rgba(229, 9, 20, 0.08);
     border-color: rgba(229, 9, 20, 0.2);
     color: var(--net-red);
   }
-  .p-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-family: var(--font-mono);
+  .page-info {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--net-text-muted);
   }
-  .p-label { font-size: 0.55rem; color: rgba(255,255,255,0.4); }
-  .p-value { font-size: 1.1rem; font-weight: 800; color: #fff; }
 
+  /* Loading */
   .loading-state {
     display: flex;
-    justify-content: center;
-    padding: 100px 0;
-  }
-  .tactical-loader {
-    display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    justify-content: center;
+    padding: 4rem 1rem;
+    gap: 1rem;
+    color: var(--net-text-muted);
   }
-  .loader-circle {
-    width: 40px;
-    height: 40px;
-    border: 2px solid rgba(229, 9, 20, 0.2);
-    border-top-color: var(--net-red);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  .loader-text {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--net-red);
-    letter-spacing: 0.1em;
+  .loading-state span {
+    font-size: 0.9rem;
   }
 
+  /* Empty */
   .empty-state {
     text-align: center;
-    padding: 100px 0;
-    opacity: 0.5;
+    padding: 4rem 1rem;
+    color: var(--net-text-muted);
   }
-  .empty-msg {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    margin-top: 15px;
+  .empty-icon {
+    opacity: 0.4;
+    margin-bottom: 1rem;
   }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+  .empty-state p {
+    font-size: 0.95rem;
   }
 
   @media (max-width: 768px) {
-    .tactical-header { padding: 80px 0 40px; }
-    .tactical-title { font-size: 1.8rem; }
+    .page-title { font-size: 1.6rem; }
+    .page-subtitle { font-size: 0.9rem; }
+    .header-badge { display: none; }
     .anime-grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 20px;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
     }
-    .status-board { gap: 15px; margin-bottom: 30px; }
-    .t-tab { padding: 8px 16px; font-size: 0.7rem; }
+    .pagination { gap: 1rem; }
+    .page-btn { padding: 0.6rem 1rem; font-size: 0.8rem; }
   }
 
   @media (max-width: 480px) {
-    .anime-grid {
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 15px;
+    .page-title { font-size: 1.4rem; }
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
     }
-    .tactical-pagination { gap: 15px; flex-wrap: wrap; }
-    .p-btn { padding: 10px 18px; font-size: 0.7rem; }
+    .anime-grid {
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    }
+  }
+
+  @media (max-width: 360px) {
+    .anime-grid {
+      grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    }
   }
 </style>
