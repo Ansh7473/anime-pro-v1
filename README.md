@@ -1,96 +1,133 @@
-# ![AnimePro Banner](banner.png)
+# WatchAnimez — Premium Anime Streaming Platform
 
 <div align="center">
-
-# 🌌 **WatchAnimez.me  The Universal Hindi + Mulit Lang Streaming Platform**
-### **Next-Gen Anime Streaming. Tactical UI Universal Streaming servers support .**
 
 [![Svelte](https://img.shields.io/badge/Svelte%205-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev)
 [![Go](https://img.shields.io/badge/Go%201.21-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
 [![Capacitor](https://img.shields.io/badge/Capacitor%206-119EFF?style=for-the-badge&logo=capacitor&logoColor=white)](https://capacitorjs.com)
-[![Electron](https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://electronjs.org)
+[![Electron](https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://electronjs.com)
+
+**[Live Site →](https://watchanimez.me)** · **[Report Bug](https://github.com/Ansh7473/anime-pro-v1/issues)** · **[Request Feature](https://github.com/Ansh7473/anime-pro-v1/issues)**
 
 </div>
 
 ---
 
-## 🚀 **Overview**
+## Overview
 
-**WatchAnimez** is a high-performance, open-source anime streaming ecosystem built for speed, aesthetics, and cross-platform mastery. Designed with a **Tactical HUD** philosophy, it provides a cinematic experience whether you are on a mobile device, a desktop, or a browser. 
-
-Featuring **Incremental Parallel Loading**, AnimePro starts your video faster than any other application by racing multiple providers and launching the first available stream instantly.
+**WatchAnimez** is a modern, open-source anime streaming platform built for speed, accessibility, and a seamless experience across web, mobile, and desktop. Featuring parallel streaming, cross-device sync, and a clean responsive design, it delivers a premium viewing experience on any device.
 
 ---
 
-## 🔥 **Elite Features**
+## Features
 
-### ⚡ **Hyper-Fast Streaming**
-*   **Parallel Source Racing**: Queries multiple providers simultaneously and starts playback the *nanosecond* the first source arrives.
-*   **0-Wait Logic**: Background sources continue to populate without interrupting your current stream.
-*   **Smart Auto-Selection**: Automatically picks your preferred language (Hindi/English/Sub) from the fastest provider.
+### ⚡ Fast Streaming
+- **Parallel Source Loading**: Queries multiple providers simultaneously and starts playback from the fastest available source
+- **Smart Auto-Selection**: Automatically picks your preferred language (Sub/Dub/Multi) from the best provider
+- **Background Loading**: Additional sources load in the background without interrupting playback
 
-### 📱 **Native Android Supremacy**
-*   **Java-Native Bridge**: Deep integration with Android for orientation locking and system-level performance.
-*   **Background Downloads**: Native `DownloadManager` support to save your favorite episodes for offline viewing.
-*   **Responsive Scaling**: Perfect adaptation for Android TVs, Tablets, and Foldables.
+### 📱 Cross-Platform Apps
+- **Web**: Full-featured responsive web app built with SvelteKit
+- **Android**: Native app with offline downloads and background playback
+- **Windows Desktop**: Electron-based desktop app with system tray support
+- **Android TV**: Leanback UI optimized for TV screens and remote control navigation
 
-### 🛰️ **Tactical HUD Interface**
-*   **Glassmorphism Design**: A stunning, semi-transparent UI that feels futuristic and premium.
-*   **Micro-Animations**: Smooth Svelte-powered transitions that make every interaction satisfying.
-*   **Theater Mode & Fullscreen Mastery**: Optimized layouts for focused, cinematic viewing.
+### 🎨 Modern UI
+- **Clean Design**: Professional, accessible interface with smooth animations
+- **Theme System**: 80+ customizable color themes
+- **Responsive**: Optimized for mobile, tablet, desktop, and TV screens
+- **Dark Mode**: Full dark theme with smooth transitions
 
-### ☁️ **Universal Ecosystem**
-*   **Synchronized History**: Start watching on your phone and resume exactly where you left off on your PC.
-*   **Multi-Profile Management**: Create unique identities with custom avatars and individual watchlists.
-*   **Live Reactions & Comments**: Engage with the community in real-time on every episode.
+### 👤 Account Management
+- **Multi-Profile**: Create multiple profiles under one account with custom avatars
+- **Cross-Device Sync**: Watchlist, favorites, and viewing history sync across all devices
+- **Watch History**: Detailed viewing history with progress tracking
+- **Personalized Recommendations**: AI-powered anime suggestions based on your taste
+
+### 📊 Browse & Discover
+- **Smart Search**: Instant search with autocomplete and poster previews
+- **Categories**: Browse by trending, popular, top-rated, seasonal, upcoming, and genre
+- **Release Schedule**: Weekly airing schedule with day-by-day view
+- **Anime Details**: Rich detail pages with synopsis, ratings, episodes, and recommendations
 
 ---
 
-## 🛠️ **Tech Stack**
+## Tech Stack
 
 | Layer | Technology |
 | :--- | :--- |
-| **Frontend** | Svelte 5 (Runes), Vite, Vanilla CSS (Tactical Framework) |
-| **Backend** | Go (Gin Gonic), PostgreSQL, JWT Auth |
-| **Mobile** | Capacitor 6, Java (Native Android), XML Layouts |
-| **Desktop** | Electron JS (Sandbox-free High Performance) |
-| **TV** | FLUTTER  |
-| **Streaming** | HLS.js, Video.js, Tactical Segments Proxy |
+| **Frontend** | SvelteKit (Svelte 5), Vite, CSS |
+| **Backend** | Go (Gin), PostgreSQL, JWT Auth |
+| **Mobile** | Capacitor 6 (Android), Java (Native Bridge) |
+| **Desktop** | Electron JS |
+| **TV** | Flutter |
+| **Streaming** | HLS.js, Video.js |
+| **Hosting** | Cloudflare Workers, Vercel |
 
 ---
 
-## 📦 **Quick Start Guide**
+## Quick Start
 
-### **1. Backend (Go)**
+### Prerequisites
+- [Node.js](https://nodejs.org/) 18+
+- [Go](https://go.dev/) 1.21+
+
+### 1. Backend
 ```bash
-cd backend
+cd backend-go
 go mod download
 go run main.go
 ```
 
-### **2. Frontend (SvelteKit)**
+### 2. Frontend
 ```bash
 cd sveltekit-frontend
 npm install
 npm run dev
 ```
 
-### **3. Mobile (Android)**
-1. Install [Android Studio](https://developer.android.com/studio).
-2. Open the `android-app` folder.
-3. Build and Run the APK on your device.
+### 3. Mobile (Android)
+1. Install [Android Studio](https://developer.android.com/studio)
+2. Open the `android-app` directory
+3. Build and run on your device or emulator
 
 ---
 
-## 🤝 **Contribute**
+## Project Structure
 
-We believe in making the best anime app for free. Contributions are welcome! 
-1. **Fork** the repo.
-2. Create a **Branch** for your feature.
-3. Submit a **Pull Request**.
+```
+anime-pro-v1/
+├── sveltekit-frontend/   # Web frontend (SvelteKit)
+├── backend-go/           # API backend (Go)
+├── android-app/          # Native Android app
+├── desktop-app/          # Electron desktop app
+├── anime_pro_tv/         # TV app (Flutter)
+└── docs/                 # Documentation
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. **Fork** the repository
+2. Create a **feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'feat: add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. Open a **Pull Request**
+
+Please make sure your code follows the existing style and includes appropriate tests.
+
+---
+
+## License
+
+This project is open source. See the [LICENSE](LICENSE) file for details.
 
 ---
 
 <p align="center">
-  <b>Developed with ❤️ for the Anime Community.</b>
+  <b>Made with ❤️ for the anime community</b><br>
+  <a href="https://watchanimez.me">watchanimez.me</a>
 </p>

@@ -5,7 +5,7 @@
   import { goto } from "$app/navigation";
   import { themeState, type ThemeSettings } from '$lib/stores/theme';
   import {
-    Shield,
+    User,
     UserPlus,
     Settings,
     Trash2,
@@ -14,9 +14,10 @@
     X,
     AlertCircle,
     Key,
-    Blocks,
-    Sparkles,
-    Palette
+    Palette,
+    Heart,
+    LogOut,
+    ChevronRight
   } from "lucide-svelte";
 
   let loading = $state(true);
@@ -33,7 +34,7 @@
   let profileForm = $state({ name: "", avatar: "" });
   let processing = $state(false);
 
-  // Avatar presets (Dicebear)
+  // Avatar presets
   const avatars = [
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
@@ -48,7 +49,6 @@
       goto("/auth/login?redirect=/profile");
       return;
     }
-    // Refresh user data to get latest profiles/dates
     try {
       const userData = await api.getCurrentUser($auth.token);
       auth.update((state) => ({ ...state, user: userData }));
@@ -58,7 +58,7 @@
     loading = false;
   });
 
-  // Favorites state for current profile
+  // Favorites
   let favorites: any[] = $state([]);
   let loadingFavs = $state(false);
 
@@ -71,10 +71,7 @@
   async function fetchFavorites() {
     loadingFavs = true;
     try {
-      favorites = await api.getFavorites(
-        $auth.token!,
-        $auth.currentProfile?.id,
-      );
+      favorites = await api.getFavorites($auth.token!, $auth.currentProfile?.id);
     } catch (e) {
       console.error("Failed to fetch favorites:", e);
     } finally {
@@ -118,14 +115,12 @@
       auth.update((state) => ({
         ...state,
         user: state.user
-          ? {
-              ...state.user,
-              profiles: [...(state.user.profiles || []), newProfile],
-            }
+          ? { ...state.user, profiles: [...(state.user.profiles || []), newProfile] }
           : null,
       }));
       showProfileModal = false;
       profileForm = { name: "", avatar: "" };
+      success = "Profile created successfully!";
     } catch (e: any) {
       error = e.message || "Failed to create profile";
     } finally {
@@ -135,54 +130,38 @@
 
   async function deleteProfile(id: number) {
     if ($auth.user?.profiles.length === 1) {
-      alert("You cannot delete your only profile.");
+      error = "You cannot delete your only profile.";
       return;
     }
-    if (
-      !confirm(
-        "Are you sure you want to delete this profile? All history will be lost.",
-      )
-    )
-      return;
+    if (!confirm("Are you sure you want to delete this profile? All watch history will be lost.")) return;
 
     try {
       await api.deleteProfile($auth.token!, id);
       auth.update((state) => ({
         ...state,
         user: state.user
-          ? {
-              ...state.user,
-              profiles: state.user.profiles.filter((p) => p.id !== id),
-            }
+          ? { ...state.user, profiles: state.user.profiles.filter((p) => p.id !== id) }
           : null,
         currentProfile:
           state.currentProfile?.id?.toString() === id.toString()
             ? state.user?.profiles.find((p) => p.id?.toString() !== id.toString())
             : state.currentProfile,
       }));
+      success = "Profile deleted.";
     } catch (e: any) {
-      alert(e.message || "Failed to delete profile");
+      error = e.message || "Failed to delete profile";
     }
   }
 
   async function updatePref(key: string, value: any) {
     if (!$auth.currentProfile) return;
     try {
-      const updated = await api.updateProfile(
-        $auth.token!,
-        $auth.currentProfile.id,
-        { [key]: value },
-      );
+      const updated = await api.updateProfile($auth.token!, $auth.currentProfile.id, { [key]: value });
       auth.update((state) => ({
         ...state,
         currentProfile: updated,
         user: state.user
-          ? {
-              ...state.user,
-              profiles: state.user.profiles.map((p) =>
-                p.id === updated.id ? updated : p,
-              ),
-            }
+          ? { ...state.user, profiles: state.user.profiles.map((p) => p.id === updated.id ? updated : p) }
           : null,
       }));
     } catch (e) {
@@ -192,1585 +171,856 @@
 
   function formatDate(dateStr: string | undefined) {
     if (!dateStr) return "Member";
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }
 
-  // Theme Categories
-  const themeCategories = [
-    {
-      name: 'Signature Series',
-      themes: [
-        { id: 'minimalist', name: 'Signature Red', bg: '#070708', accent: '#e50914' },
-        { id: 'classic-red', name: 'Original Pro', bg: '#080808', accent: '#e50914' },
-        { id: 'crimson-vivid', name: 'Vivid Crimson', bg: '#0d0000', accent: '#E60000' },
-        { id: 'deep-crimson', name: 'Deep Crimson', bg: '#0a0000', accent: '#800000' },
-        { id: 'blood-moon', name: 'Blood Moon', bg: '#050505', accent: '#660000' }
-      ]
-    },
-    {
-      name: 'Midnight & Shadows',
-      themes: [
-        { id: 'obsidian', name: 'Obsidian', bg: '#000', accent: '#fff' },
-        { id: 'midnight', name: 'Midnight Blue', bg: '#0f172a', accent: '#38bdf8' },
-        { id: 'abyss', name: 'Abyss', bg: '#020617', accent: '#6366f1' },
-        { id: 'onyx', name: 'Onyx', bg: '#0a0a0a', accent: '#444' }
-      ]
-    },
-    {
-      name: 'Cyber & Future',
-      themes: [
-        { id: 'cyberpunk', name: 'Cyberpunk', bg: '#050010', accent: '#d946ef' },
-        { id: 'neon-pulse', name: 'Neon Pulse', bg: '#000', accent: '#00ff9f' },
-        { id: 'matrix', name: 'Matrix', bg: '#000', accent: '#00ff41' },
-        { id: 'nebula', name: 'Nebula', bg: '#0d0221', accent: '#c6426e' },
-        { id: 'stellar', name: 'Stellar', bg: '#050a14', accent: '#00e5ff' }
-      ]
-    },
-    {
-      name: 'Premium Blends',
-      themes: [
-        { id: 'dracula', name: 'Dracula', bg: '#282a36', accent: '#ff79c6' },
-        { id: 'monokai', name: 'Monokai', bg: '#272822', accent: '#f92672' },
-        { id: 'mocha', name: 'Mocha', bg: '#1e1e2e', accent: '#f5e0dc' },
-        { id: 'macchiato', name: 'Macchiato', bg: '#24273a', accent: '#c6a0f6' },
-        { id: 'frappe', name: 'Frappe', bg: '#303446', accent: '#ca9ee6' },
-        { id: 'latte', name: 'Latte', bg: '#eff1f5', accent: '#8839ef' },
-        { id: 'titan', name: 'Titan', bg: '#1a1b1e', accent: '#4fd1c5' },
-        { id: 'storm', name: 'Storm', bg: '#14213d', accent: '#fca311' }
-      ]
-    },
-    {
-      name: 'Nature & Zen',
-      themes: [
-        { id: 'emerald', name: 'Emerald', bg: '#064e3b', accent: '#10b981' },
-        { id: 'forest', name: 'Forest Green', bg: '#022c22', accent: '#34d399' },
-        { id: 'lichen', name: 'Lichen', bg: '#1a1c1a', accent: '#90a955' },
-        { id: 'sakura', name: 'Sakura Soft', bg: '#fff5f7', accent: '#ffb7c5' },
-        { id: 'zen', name: 'Zen Stone', bg: '#f5f5f4', accent: '#57534e' }
-      ]
-    },
-    {
-      name: 'Lux & Metals',
-      themes: [
-        { id: 'platinum', name: 'Platinum', bg: '#e5e4e2', accent: '#333' },
-        { id: 'titanium', name: 'Titanium', bg: '#1c1c1c', accent: '#a0a0a0' },
-        { id: 'gold', name: 'Luxe Gold', bg: '#1c1917', accent: '#fbbf24' },
-        { id: 'copper', name: 'Copper', bg: '#1a0a00', accent: '#b87333' }
-      ]
-    }
-  ];
-
-  // Effects Gallery
-  const effects = [
-    { id: 'none', name: 'Clean', icon: X },
-    { id: 'glass', name: 'Glass Armor', icon: Blocks },
-    { id: 'neon', name: 'Neon Glow', icon: Sparkles },
-    { id: 'prismatic', name: 'Prismatic', icon: Palette }
-  ];
-
-  function toggleGradients() {
-    themeState.update(s => ({ ...s, gradients: !s.gradients }));
-  }
-
-  function setEffect(effectId: string) {
-    themeState.update(s => ({ ...s, effect: effectId }));
-  }
-
-  function setTheme(themeId: string) {
-    themeState.update(s => ({ ...s, current: themeId }));
+  function closeModals() {
+    showPasswordModal = false;
+    showProfileModal = false;
+    showPreferencesModal = false;
+    error = "";
   }
 </script>
 
 <svelte:head>
   <title>My Profile — WatchAnimez</title>
+  <meta name="description" content="Manage your WatchAnimez profiles, preferences, security settings, and view your favorite anime." />
 </svelte:head>
 
-<div class="profile-page container">
-  <div class="page-header">
-    <h1 class="page-title">Account <span class="accent">Management</span></h1>
-    <p class="page-subtitle">Control your personal preferences and viewing profiles.</p>
+{#if loading}
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading your profile...</p>
   </div>
-
-  {#if loading}
-    <div class="center"><div class="spinner"></div></div>
-  {:else if $auth.user}
-    <div class="profile-grid">
-      <!-- User Info Card -->
-      <div class="info-card glass">
-        <div class="card-header">
-          <div class="avatar-large">
-            <img
-              src={getProxiedImage(
-                $auth.currentProfile?.avatar ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user.email}`,
-              )}
-              alt="Avatar"
-            />
-          </div>
-          <div class="header-text">
-            <h2>Account Details</h2>
-            <p class="email">{$auth.user.email}</p>
-          </div>
+{:else}
+  <div class="profile-page container">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-top">
+        <div>
+          <h1 class="page-title">Account Settings</h1>
+          <p class="page-subtitle">Manage your profiles, preferences, and security</p>
         </div>
-
-        <div class="card-body">
-          <div class="info-item">
-            <span class="label">User ID</span>
-            <span class="value">#{$auth.user.id}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">Member Since</span>
-            <span class="value">{formatDate($auth.user.createdAt)}</span>
-          </div>
-        </div>
-
-        <div class="card-footer">
-          <button class="btn-logout" onclick={handleLogout}
-            >Sign Out</button>
+        <div class="header-badge">
+          <User size={16} />
+          <span>Profile</span>
         </div>
       </div>
+    </div>
 
-      <!-- Profiles Section -->
-      <div class="profiles-section">
-        <div class="section-header">
-          <h2>Viewing Profiles</h2>
-          <button
-            class="btn-add-profile"
-            onclick={() => (showProfileModal = true)}
-          >
-            <UserPlus size={16} /> Add Profile
-          </button>
+    <!-- Alerts -->
+    {#if error}
+      <div class="alert alert-error">
+        <AlertCircle size={16} />
+        <span>{error}</span>
+        <button onclick={() => error = ""} class="alert-close"><X size={14} /></button>
+      </div>
+    {/if}
+    {#if success}
+      <div class="alert alert-success">
+        <Check size={16} />
+        <span>{success}</span>
+        <button onclick={() => success = ""} class="alert-close"><X size={14} /></button>
+      </div>
+    {/if}
+
+    <!-- User Info Card -->
+    <div class="user-card">
+      <div class="user-card-left">
+        <div class="user-avatar">
+          {($auth.currentProfile?.name || 'A')[0].toUpperCase()}
         </div>
+        <div class="user-details">
+          <h2 class="user-name">{$auth.currentProfile?.name || 'User'}</h2>
+          <p class="user-email">{$auth.user?.email || ''}</p>
+          <span class="user-date">Member since {formatDate($auth.currentProfile?.createdAt)}</span>
+        </div>
+      </div>
+      <button class="btn-outline logout-btn" onclick={handleLogout}>
+        <LogOut size={16} /> Sign Out
+      </button>
+    </div>
 
-        <div class="profiles-grid">
-          {#each $auth.user.profiles || [] as profile}
-            <div class="profile-wrapper">
-              <button
-                class="profile-card glass"
-                class:active={$auth.currentProfile?.id === profile.id}
-                onclick={() => switchProfile(profile)}
-              >
-                <div class="profile-avatar">
+    <div class="settings-grid">
+      <!-- Left: Profiles -->
+      <div class="settings-col">
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">Profiles</h2>
+            <button class="btn-small" onclick={() => showProfileModal = true}>
+              <UserPlus size={14} /> New Profile
+            </button>
+          </div>
+          <div class="profiles-list">
+            {#each ($auth.user?.profiles || []) as profile}
+              <div class="profile-item" class:active={profile.id === $auth.currentProfile?.id}>
+                <div class="profile-item-left">
                   <img
-                    src={getProxiedImage(
-                      profile.avatar ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`,
-                    )}
-                    alt={profile.name}
+                    src={getProxiedImage(profile.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`}
+                    alt=""
+                    class="profile-avatar-img"
                   />
-                  {#if $auth.currentProfile?.id === profile.id}
-                    <div class="active-badge"><Check size={12} /></div>
-                  {/if}
-                </div>
-                <span class="profile-name">{profile.name}</span>
-              </button>
-
-              {#if $auth.user.profiles.length > 1}
-                <button
-                  class="btn-delete-profile"
-                  onclick={() => deleteProfile(profile.id)}
-                  title="Delete Profile"
-                >
-                  <Trash2 size={14} />
-                </button>
-              {/if}
-            </div>
-          {/each}
-        </div>
-      </div>
-    </div>
-
-    <!-- Watch Preferences & Privacy -->
-    <div class="settings-grid section-margin">
-      <div class="settings-card premium-card">
-        <div class="card-title-row">
-          <Shield size={20} class="icon-accent" />
-          <h3>Security</h3>
-        </div>
-        <p>
-          Manage your password and authentication settings.
-        </p>
-        <button class="btn-outline" onclick={() => (showPasswordModal = true)}>
-          <Key size={16} /> Change Password
-        </button>
-      </div>
-
-      <div class="settings-card premium-card">
-        <div class="card-title-row">
-          <Settings size={20} class="icon-accent" />
-          <h3>Playback Settings</h3>
-        </div>
-
-        <div class="preferences-list">
-  <!-- Theme Customization Engine -->
-  <div class="pref-item vertical">
-    <div class="pref-info">
-      <h3>Visual Engine <Sparkles size={16} class="icon-accent" /></h3>
-      <p>Fine-tune your WatchAnimez interface with premium effects and gradients</p>
-    </div>
-
-    <!-- 1. Color Palette categorized -->
-    <div class="custom-section">
-      <div class="section-label">Color Palette</div>
-      <div class="category-stack">
-        {#each themeCategories as category}
-          <div class="theme-category">
-            <span class="cat-name">{category.name}</span>
-            <div class="theme-grid">
-              {#each category.themes as t}
-                <button 
-                  class="theme-swatch" 
-                  class:active={$themeState.current === t.id}
-                  onclick={() => setTheme(t.id)}
-                  title={t.name}
-                >
-                  <div class="swatch-preview" style="background: {t.bg}">
-                    <div class="swatch-accent" style="background: {t.accent}"></div>
+                  <div>
+                    <span class="profile-item-name">{profile.name}</span>
+                    {#if profile.id === $auth.currentProfile?.id}
+                      <span class="active-tag">Active</span>
+                    {/if}
                   </div>
-                  <span class="swatch-label">{t.name}</span>
-                </button>
+                </div>
+                <div class="profile-item-actions">
+                  {#if profile.id !== $auth.currentProfile?.id}
+                    <button class="btn-text" onclick={() => switchProfile(profile)}>Switch</button>
+                  {/if}
+                  <button class="btn-icon danger" onclick={() => deleteProfile(profile.id)} title="Delete profile">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </section>
+
+        <!-- Security -->
+        <section class="card">
+          <h2 class="card-title">Security</h2>
+          <button class="settings-action" onclick={() => showPasswordModal = true}>
+            <div class="settings-action-left">
+              <Key size={18} />
+              <div>
+                <span class="action-label">Change Password</span>
+                <span class="action-desc">Update your account password</span>
+              </div>
+            </div>
+            <ChevronRight size={16} class="chevron" />
+          </button>
+        </section>
+      </div>
+
+      <!-- Right: Preferences + Favorites -->
+      <div class="settings-col">
+        <!-- Preferences -->
+        <section class="card">
+          <h2 class="card-title">Playback Preferences</h2>
+          <div class="pref-list">
+            <div class="pref-row">
+              <span class="pref-label">Auto-Play Next Episode</span>
+              <button
+                class="toggle"
+                class:on={$auth.currentProfile?.autoNext}
+                onclick={() => updatePref('autoNext', !$auth.currentProfile?.autoNext)}
+              >
+                <div class="toggle-knob"></div>
+              </button>
+            </div>
+            <div class="pref-row">
+              <span class="pref-label">Skip Intros</span>
+              <button
+                class="toggle"
+                class:on={$auth.currentProfile?.autoSkip}
+                onclick={() => updatePref('autoSkip', !$auth.currentProfile?.autoSkip)}
+              >
+                <div class="toggle-knob"></div>
+              </button>
+            </div>
+            <div class="pref-row">
+              <span class="pref-label">Audio Preference</span>
+              <select
+                class="pref-select"
+                value={$auth.currentProfile?.language || 'sub'}
+                onchange={(e) => updatePref('language', (e.target as HTMLSelectElement).value)}
+              >
+                <option value="sub">Subtitled</option>
+                <option value="dub">Dubbed</option>
+                <option value="multi">Multi-Audio</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Theme -->
+        <section class="card">
+          <h2 class="card-title">Appearance</h2>
+          <a href="/intel" class="settings-action">
+            <div class="settings-action-left">
+              <Palette size={18} />
+              <div>
+                <span class="action-label">Customize Theme</span>
+                <span class="action-desc">Choose from 80+ color themes</span>
+              </div>
+            </div>
+            <ChevronRight size={16} class="chevron" />
+          </a>
+        </section>
+
+        <!-- Favorites -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">Favorites</h2>
+            <a href="/favorites" class="btn-text">View All</a>
+          </div>
+          {#if loadingFavs}
+            <div class="fav-loading">
+              <div class="spinner small"></div>
+            </div>
+          {:else if favorites.length === 0}
+            <div class="fav-empty">
+              <Heart size={24} />
+              <p>No favorites yet. Heart an anime to add it here!</p>
+            </div>
+          {:else}
+            <div class="fav-grid">
+              {#each favorites.slice(0, 6) as anime}
+                <a href="/anime/{anime.id}" class="fav-card">
+                  <img src={getProxiedImage(anime.poster)} alt={anime.title} class="fav-poster" />
+                  <span class="fav-title">{anime.title}</span>
+                </a>
               {/each}
             </div>
-          </div>
-        {/each}
-      </div>
-    </div>
-
-    <div class="custom-row section-margin-top">
-      <!-- 2. Gradient Toggle -->
-      <div class="custom-card glass">
-        <div class="card-info">
-          <span>Gradient Module</span>
-          <p>Apply professional blends to UI elements</p>
-        </div>
-        <label class="switch">
-          <input type="checkbox" checked={$themeState.gradients} onchange={toggleGradients} />
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <!-- 3. Effects Selection -->
-      <div class="custom-card glass vertical">
-        <div class="card-info">
-          <span>Display Effects</span>
-          <p>Layer visual atmospherics over your theme</p>
-        </div>
-        <div class="effects-grid">
-          {#each effects as effect}
-            <button 
-              class="effect-btn" 
-              class:active={$themeState.effect === effect.id}
-              onclick={() => setEffect(effect.id)}
-            >
-              <effect.icon size={18} />
-              <span>{effect.name}</span>
-            </button>
-          {/each}
-        </div>
+          {/if}
+        </section>
       </div>
     </div>
   </div>
-          <div class="pref-item">
-            <div class="pref-info">
-              <span>Auto Next Episode</span>
-              <p>Play next episode automatically</p>
-            </div>
-            <label class="switch">
-              <input
-                type="checkbox"
-                checked={$auth.currentProfile?.autoNext}
-                onchange={(e) =>
-                  updatePref("autoNext", e.currentTarget.checked)}
-              />
-              <span class="slider"></span>
-            </label>
-          </div>
+{/if}
 
-          <div class="pref-item">
-            <div class="pref-info">
-              <span>Auto Skip Intro</span>
-              <p>Skip opening themes if detected</p>
-            </div>
-            <label class="switch">
-              <input
-                type="checkbox"
-                checked={$auth.currentProfile?.autoSkip}
-                onchange={(e) =>
-                  updatePref("autoSkip", e.currentTarget.checked)}
-              />
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="pref-item">
-            <div class="pref-info">
-              <span>Default Audio</span>
-              <p>Preferred language for playback</p>
-            </div>
-            <select
-              class="input-dark"
-              value={$auth.currentProfile?.language || "multi"}
-              onchange={(e) => updatePref("language", e.currentTarget.value)}
-            >
-              <option value="multi">Auto / Multi</option>
-              <option value="hindi">Hindi Dub</option>
-              <option value="english">English Dub</option>
-              <option value="sub">Subtitles</option>
-            </select>
-          </div>
-        </div>
+<!-- Password Modal -->
+{#if showPasswordModal}
+  <div class="modal-overlay" onclick={closeModals} role="dialog" aria-modal="true">
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Change Password</h3>
+        <button class="modal-close" onclick={closeModals}><X size={18} /></button>
       </div>
+      <form onsubmit={(e) => { e.preventDefault(); handlePasswordChange(); }} class="modal-body">
+        {#if error}
+          <div class="alert alert-error small">
+            <AlertCircle size={14} />
+            <span>{error}</span>
+          </div>
+        {/if}
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" bind:value={passwordForm.current} required placeholder="Enter current password" />
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" bind:value={passwordForm.new} required minlength={6} placeholder="At least 6 characters" />
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" bind:value={passwordForm.confirm} required placeholder="Re-enter new password" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick={closeModals}>Cancel</button>
+          <button type="submit" class="btn-primary" disabled={processing}>
+            {processing ? 'Updating...' : 'Update Password'}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
+{/if}
 
-    <!-- Favorites Gallery -->
-    <div class="favorites-container section-margin">
-      <div class="section-header">
-        <h2>My Favorites</h2>
+<!-- Create Profile Modal -->
+{#if showProfileModal}
+  <div class="modal-overlay" onclick={closeModals} role="dialog" aria-modal="true">
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h3>Create New Profile</h3>
+        <button class="modal-close" onclick={closeModals}><X size={18} /></button>
       </div>
-      {#if loadingFavs}
-        <div class="loading-favs">
-          <span class="spinner-small"></span> Loading favorites...
+      <form onsubmit={(e) => { e.preventDefault(); handleCreateProfile(); }} class="modal-body">
+        {#if error}
+          <div class="alert alert-error small">
+            <AlertCircle size={14} />
+            <span>{error}</span>
+          </div>
+        {/if}
+        <div class="form-group">
+          <label>Profile Name</label>
+          <input type="text" bind:value={profileForm.name} required maxlength={20} placeholder="Enter a name for this profile" />
         </div>
-      {:else if favorites.length > 0}
-        <div class="favs-grid">
-          {#each favorites as fav}
-            <a href="/anime/{fav.animeId}" class="fav-card">
-              <div class="fav-poster">
-                <img
-                  src={getProxiedImage(fav.animePoster)}
-                  alt={fav.animeTitle}
-                />
-              </div>
-              <div class="fav-info">
-                <p class="fav-title">{fav.animeTitle}</p>
-              </div>
-            </a>
-          {/each}
+        <div class="form-group">
+          <label>Choose Avatar</label>
+          <div class="avatar-grid">
+            {#each avatars as av}
+              <button
+                type="button"
+                class="avatar-option"
+                class:selected={profileForm.avatar === av}
+                onclick={() => profileForm.avatar = av}
+              >
+                <img src={av} alt="" />
+              </button>
+            {/each}
+          </div>
         </div>
-      {:else}
-        <div class="empty-favs glass">
-          <p>You haven't favorited any anime yet.</p>
-          <a href="/" class="btn-primary mini">Explore Anime</a>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick={closeModals}>Cancel</button>
+          <button type="submit" class="btn-primary" disabled={processing || !profileForm.name}>
+            {processing ? 'Creating...' : 'Create Profile'}
+          </button>
         </div>
-      {/if}
+      </form>
     </div>
-
-    <!-- Modals -->
-    {#if showPasswordModal}
-      <div
-        class="modal-backdrop"
-        role="button"
-        tabindex="0"
-        onclick={() => (showPasswordModal = false)}
-        onkeydown={(e) => e.key === "Escape" && (showPasswordModal = false)}
-      >
-        <div
-          class="modal glass"
-          role="dialog"
-          aria-modal="true"
-          tabindex="-1"
-          onclick={(e) => e.stopPropagation()}
-          onkeydown={(e) => e.stopPropagation()}
-        >
-          <div class="modal-header">
-            <h3>Change Password</h3>
-            <button
-              class="close-btn"
-              onclick={() => (showPasswordModal = false)}
-              ><X size={20} /></button
-            >
-          </div>
-          <div class="modal-body">
-            {#if error}<div class="alert error">
-                <AlertCircle size={16} />
-                {error}
-              </div>{/if}
-            <div class="form-group">
-              <label for="current-password">Current Password</label>
-              <input
-                id="current-password"
-                type="password"
-                class="input-dark"
-                bind:value={passwordForm.current}
-              />
-            </div>
-            <div class="form-group">
-              <label for="new-password">New Password</label>
-              <input
-                id="new-password"
-                type="password"
-                class="input-dark"
-                bind:value={passwordForm.new}
-              />
-            </div>
-            <div class="form-group">
-              <label for="confirm-password">Confirm New Password</label>
-              <input
-                id="confirm-password"
-                type="password"
-                class="input-dark"
-                bind:value={passwordForm.confirm}
-              />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              class="btn-secondary"
-              onclick={() => (showPasswordModal = false)}>Cancel</button
-            >
-            <button
-              class="btn-primary"
-              onclick={handlePasswordChange}
-              disabled={processing}
-            >
-              {processing ? "Updating..." : "Update Password"}
-            </button>
-          </div>
-        </div>
-      </div>
-    {/if}
-
-    {#if showProfileModal}
-      <div
-        class="modal-backdrop"
-        role="button"
-        tabindex="0"
-        onclick={() => (showProfileModal = false)}
-        onkeydown={(e) => e.key === "Escape" && (showProfileModal = false)}
-      >
-        <div
-          class="modal glass"
-          role="dialog"
-          aria-modal="true"
-          tabindex="-1"
-          onclick={(e) => e.stopPropagation()}
-          onkeydown={(e) => e.stopPropagation()}
-        >
-          <div class="modal-header">
-            <h3>Create New Profile</h3>
-            <button class="close-btn" onclick={() => (showProfileModal = true)}
-              ><X size={20} /></button
-            >
-          </div>
-          <div class="modal-body">
-            {#if error}<div class="alert error">
-                <AlertCircle size={16} />
-                {error}
-              </div>{/if}
-            <div class="form-group">
-              <label for="profile-name">Profile Name</label>
-              <input
-                id="profile-name"
-                type="text"
-                class="input-dark"
-                bind:value={profileForm.name}
-                placeholder="e.g. My Anime"
-              />
-            </div>
-            <div class="form-group">
-              <label for="profile-avatar">Select Avatar</label>
-              <div id="profile-avatar" class="avatar-picker">
-                {#each avatars as avatar}
-                  <button
-                    class="avatar-option"
-                    class:selected={profileForm.avatar === avatar}
-                    onclick={() => (profileForm.avatar = avatar)}
-                  >
-                    <img src={avatar} alt="Avatar option" />
-                    {#if profileForm.avatar === avatar}<div
-                        class="selected-mark"
-                      >
-                        <Check size={12} />
-                      </div>{/if}
-                  </button>
-                {/each}
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button
-              class="btn-secondary"
-              onclick={() => (showProfileModal = false)}>Cancel</button
-            >
-            <button
-              class="btn-primary"
-              onclick={handleCreateProfile}
-              disabled={processing}
-            >
-              {processing ? "Creating..." : "Create Profile"}
-            </button>
-          </div>
-        </div>
-      </div>
-    {/if}
-
-    {#if success}
-      <div class="toast success">
-        <Check size={18} />
-        {success}
-      </div>
-      {(setTimeout(() => (success = ""), 3000), "")}
-    {/if}
-  {/if}
-</div>
+  </div>
+{/if}
 
 <style>
   .profile-page {
-    padding: 3rem 0 6rem;
-    min-height: 90vh;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+    max-width: 960px;
   }
-  .page-header {
-    margin-bottom: 3rem;
+
+  /* Loading */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 1rem;
+    gap: 1rem;
+    color: var(--net-text-muted);
+    min-height: 60vh;
+  }
+
+  /* Page Header */
+  .page-header { margin-bottom: 2rem; }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
   }
   .page-title {
-    font-size: 2.5rem;
+    font-size: 1.8rem;
     font-weight: 800;
     letter-spacing: -0.03em;
-  }
-  .page-title .accent {
-    color: var(--net-red);
+    margin-bottom: 0.2rem;
   }
   .page-subtitle {
     color: var(--net-text-muted);
-    margin-top: 0.5rem;
+    font-size: 0.92rem;
   }
-
-  .profile-grid {
-    display: grid;
-    grid-template-columns: 350px 1fr;
-    gap: 2.5rem;
-    align-items: start;
-  }
-
-  .info-card {
-    padding: 2.5rem;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(20, 20, 20, 0.4);
-  }
-  .card-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 2.5rem;
-    text-align: center;
-  }
-  .avatar-large {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 4px solid var(--net-red);
-    padding: 5px;
-    background: var(--net-bg);
-  }
-  .avatar-large img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-  }
-  .header-text h2 {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: white;
-    margin-bottom: 0.2rem;
-  }
-  .email {
-    color: var(--net-text-muted);
-    font-size: 0.95rem;
-  }
-
-  .card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 2rem;
-  }
-  .info-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .label {
-    color: var(--net-text-muted);
-    font-size: 0.9rem;
-  }
-  .value {
-    color: white;
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
-
-  .btn-logout {
-    width: 100%;
-    margin-top: 2.5rem;
-    background: rgba(229, 9, 20, 0.1);
-    color: #f87171;
-    border: 1px solid rgba(229, 9, 20, 0.2);
-    padding: 0.9rem;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: 0.2s;
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
-  .btn-logout:hover {
-    background: var(--net-red);
-    color: white;
-    border-color: var(--net-red);
-  }
-
-  .profiles-section {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .section-header h2 {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: white;
-  }
-  .btn-add-profile {
-    background: var(--net-red);
-    color: white;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
+  .header-badge {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: 0.2s;
-  }
-  .btn-add-profile:hover {
-    transform: scale(1.05);
-    background: #ff1e2b;
-  }
-
-  .profiles-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 1.5rem;
-  }
-  .profile-wrapper {
-    position: relative;
-  }
-  .profile-card {
-    width: 100%;
-    padding: 1.5rem 1rem;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    cursor: pointer;
-    transition: 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
-  }
-  .profile-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.03);
-  }
-  .profile-card.active {
-    border-color: var(--net-red);
-    background: rgba(229, 9, 20, 0.08);
-  }
-
-  .profile-avatar {
-    width: 75px;
-    height: 75px;
-    border-radius: 16px;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  }
-  .profile-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .active-badge {
-    position: absolute;
-    bottom: -6px;
-    right: -6px;
-    background: var(--net-red);
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid var(--net-bg);
-  }
-  .profile-name {
-    color: white;
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
-
-  .btn-delete-profile {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: rgba(255, 255, 255, 0.1);
-    color: #f87171;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    opacity: 0;
-    transition: 0.2s;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .profile-wrapper:hover .btn-delete-profile {
-    opacity: 1;
-  }
-  .btn-delete-profile:hover {
-    background: #e50914;
-    color: white;
-  }
-
-  /* Theme Engine Styles */
-  .custom-section {
-    margin: 2rem 0;
-  }
-  .section-label {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1rem;
-    color: var(--net-text-muted);
-    margin-bottom: 1rem;
-    display: block;
-    font-weight: 700;
-  }
-  .category-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
-  }
-  .theme-category {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .cat-name {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.9);
-  }
-  .theme-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 1.2rem;
-  }
-  .theme-swatch {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 0.8rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.8rem;
-    transition: var(--transition);
-  }
-  .theme-swatch:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(255,255,255,0.2);
-    transform: translateY(-4px);
-  }
-  .theme-swatch.active {
     background: rgba(229, 9, 20, 0.1);
-    border-color: var(--net-red);
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.15);
-  }
-  .swatch-preview {
-    width: 100%;
-    aspect-ratio: 16/9;
-    border-radius: 8px;
-    position: relative;
-    overflow: hidden;
-  }
-  .swatch-accent {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 40%;
-    height: 100%;
-    transform: skewX(-20deg) translateX(-20%);
-    box-shadow: 4px 0 15px rgba(0,0,0,0.3);
-  }
-  .swatch-label {
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--net-text-muted);
-  }
-  .active .swatch-label {
-    color: white;
-  }
-
-  .custom-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-  }
-  .custom-card {
-    padding: 1.5rem;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-  }
-  .custom-card.vertical {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .card-info span {
-    display: block;
-    font-weight: 700;
-    font-size: 1rem;
-    margin-bottom: 0.3rem;
-  }
-  .card-info p {
-    font-size: 0.85rem;
-    color: var(--net-text-muted);
-  }
-
-  .effects-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.8rem;
-    width: 100%;
-  }
-  .effect-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 1rem 0.5rem;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.05);
-    transition: var(--transition);
-    color: var(--net-text-muted);
-  }
-  .effect-btn:hover {
-    background: rgba(255,255,255,0.06);
-    color: white;
-  }
-  .effect-btn.active {
-    background: var(--net-red);
-    color: white;
-    border-color: var(--net-red);
-    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
-  }
-  .effect-btn span {
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .section-margin-top {
-    margin-top: 3rem;
-  }
-
-  @media (max-width: 1024px) {
-    .custom-row {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .settings-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
-  }
-  .settings-card {
-    padding: 2rem;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .card-title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .card-title-row h3 {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: white;
-  }
-  .icon-accent {
     color: var(--net-red);
-  }
-  .settings-card p {
-    color: var(--net-text-muted);
-    font-size: 0.9rem;
-    line-height: 1.6;
+    white-space: nowrap;
   }
 
-  .preferences-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    margin-top: 1rem;
-  }
-  .pref-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1.5rem;
-  }
-  .pref-info span {
-    display: block;
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: white;
-    margin-bottom: 0.2rem;
-  }
-  .pref-info p {
-    font-size: 0.8rem;
-    color: var(--net-text-muted);
-    margin: 0;
-  }
-
-  /* Switch Toggle */
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-  }
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background-color: rgba(255, 255, 255, 0.1);
-    transition: 0.3s;
-    border-radius: 24px;
-  }
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-  }
-  input:checked + .slider {
-    background-color: var(--net-red);
-  }
-  input:checked + .slider:before {
-    transform: translateX(20px);
-  }
-
-  .input-dark {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    padding: 0.6rem 0.8rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    width: 100%;
-    outline: none;
-    transition: 0.2s;
-  }
-  .input-dark:focus {
-    border-color: var(--net-red);
-  }
-
-  .btn-outline {
-    background: none;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: white;
-    padding: 0.7rem 1.2rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: 0.2s;
+  /* Alerts */
+  .alert {
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    width: fit-content;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    line-height: 1.4;
   }
-  .btn-outline:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: white;
+  .alert.small { padding: 0.65rem 0.85rem; font-size: 0.82rem; margin-bottom: 1rem; }
+  .alert-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
   }
+  .alert-success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+  }
+  .alert-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 0.25rem;
+  }
+  .alert-close:hover { opacity: 1; }
 
-  /* Modals */
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    [data-effect="glass"] .glass {
-      background: rgba(255, 255, 255, 0.05) !important;
-      -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
-      backdrop-filter: blur(25px) saturate(200%) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-    background: rgba(0, 0, 0, 0.7);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-    backdrop-filter: blur(12px) saturate(180%);
+  /* User Card */
+  .user-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .user-card-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+  .user-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--net-red), #7c040a);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
-    padding: 1rem;
-    outline: none;
-  }
-  .modal {
-    width: 100%;
-    max-width: 450px;
-    padding: 2.5rem;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  @keyframes modalIn {
-    from {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-  }
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .modal-header h3 {
     font-size: 1.4rem;
     font-weight: 800;
     color: white;
+    flex-shrink: 0;
   }
-  .close-btn {
+  .user-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
+  }
+  .user-email {
+    font-size: 0.85rem;
+    color: var(--net-text-muted);
+    margin-bottom: 0.2rem;
+  }
+  .user-date {
+    font-size: 0.75rem;
+    color: var(--net-text-muted);
+    opacity: 0.7;
+  }
+
+  /* Settings Grid */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+  }
+  .card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .card-header .card-title { margin-bottom: 0; }
+
+  /* Profiles List */
+  .profiles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .profile-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .profile-item:hover { background: rgba(255, 255, 255, 0.03); }
+  .profile-item.active {
+    background: rgba(229, 9, 20, 0.06);
+    border-color: rgba(229, 9, 20, 0.15);
+  }
+  .profile-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .profile-avatar-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .profile-item-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .active-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--net-red);
+    background: rgba(229, 9, 20, 0.1);
+    padding: 0.15rem 0.5rem;
+    border-radius: 50px;
+    margin-left: 0.5rem;
+  }
+  .profile-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Settings Action */
+  .settings-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.85rem;
+    border-radius: 10px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-decoration: none;
+    font-family: inherit;
+  }
+  .settings-action:hover { background: rgba(255, 255, 255, 0.04); }
+  .settings-action-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--net-text-muted);
+  }
+  .action-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+  }
+  .action-desc {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--net-text-muted);
+    margin-top: 0.1rem;
+  }
+  .chevron { color: var(--net-text-muted); opacity: 0.5; }
+
+  /* Preferences */
+  .pref-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .pref-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .pref-row:last-child { border-bottom: none; }
+  .pref-label {
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+  .pref-select {
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+  }
+  .pref-select:focus { border-color: var(--net-red); }
+
+  /* Toggle */
+  .toggle {
+    width: 42px;
+    height: 24px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .toggle-knob {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s;
+  }
+  .toggle.on {
+    background: var(--net-red);
+  }
+  .toggle.on .toggle-knob {
+    transform: translateX(18px);
+  }
+
+  /* Favorites */
+  .fav-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+  .fav-card {
+    text-decoration: none;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .fav-card:hover { transform: translateY(-3px); }
+  .fav-poster {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  .fav-title {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: white;
+    margin-top: 0.4rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fav-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    gap: 0.75rem;
+    text-align: center;
+    color: var(--net-text-muted);
+  }
+  .fav-empty svg { opacity: 0.3; }
+  .fav-empty p { font-size: 0.85rem; }
+  .fav-loading {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    padding: 0.7rem 1.5rem;
+    background: var(--net-red);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.15); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-outline {
+    padding: 0.6rem 1.25rem;
+    background: none;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: inherit;
+  }
+  .btn-outline:hover { border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.04); }
+
+  .btn-small {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    background: rgba(229, 9, 20, 0.1);
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    color: var(--net-red);
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn-small:hover { background: rgba(229, 9, 20, 0.15); }
+
+  .btn-text {
+    background: none;
+    border: none;
+    color: var(--net-red);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+  }
+  .btn-text:hover { text-decoration: underline; }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--net-text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-icon:hover { background: rgba(255, 255, 255, 0.05); }
+  .btn-icon.danger:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
+
+  /* Modals */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+  }
+  .modal {
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .modal-close {
     background: none;
     border: none;
     color: var(--net-text-muted);
     cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 6px;
   }
-  .modal-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-  }
-  .form-group label {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--net-text-muted);
-  }
-  .avatar-picker {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
-  .avatar-option {
-    position: relative;
-    aspect-ratio: 1;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 2px solid transparent;
-    background: var(--net-card-bg);
-    cursor: pointer;
-    padding: 0;
-    transition: 0.2s;
-  }
-  .avatar-option img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .avatar-option.selected {
-    border-color: var(--net-red);
-    transform: scale(1.05);
-  }
-  .selected-mark {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    background: var(--net-red);
-    color: white;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-footer {
+  .modal-close:hover { background: rgba(255, 255, 255, 0.05); color: white; }
+  .modal-body { padding: 1.5rem; }
+  .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .alert {
-    padding: 0.8rem 1rem;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
     gap: 0.75rem;
-  }
-  .alert.error {
-    background: rgba(229, 9, 20, 0.1);
-    color: #f87171;
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    margin-top: 1.5rem;
   }
 
-  .toast {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    padding: 1rem 2rem;
-    border-radius: 12px;
-    background: #22c55e;
-    color: white;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    z-index: 5000;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-weight: 700;
+  /* Forms */
+  .form-group {
+    margin-bottom: 1.25rem;
   }
-
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 6rem 0;
+  .form-group label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--net-text-muted);
+    margin-bottom: 0.4rem;
   }
-
-  .section-margin {
-    margin-top: 4rem;
-  }
-  .favorites-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  .favs-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1.25rem;
-  }
-  .fav-card {
-    display: flex;
-    flex-direction: column;
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    transition: 0.3s;
-    text-decoration: none;
-    color: white;
-  }
-  .fav-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--net-red);
-  }
-  .fav-poster {
-    aspect-ratio: 2/3;
-    overflow: hidden;
-  }
-  .fav-poster img {
+  .form-group input {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: white;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
   }
-  .fav-info {
-    padding: 0.75rem;
-    background: rgba(0, 0, 0, 0.4);
-  }
-  .fav-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    line-clamp: 2;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin: 0;
-  }
+  .form-group input:focus { border-color: var(--net-red); }
+  .form-group input::placeholder { color: rgba(255, 255, 255, 0.25); }
 
-  .loading-favs {
-    padding: 3rem;
-    text-align: center;
-    color: var(--net-text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
   }
-  .empty-favs {
-    padding: 4rem 2rem;
-    text-align: center;
-    border-radius: 20px;
-    border: 1px dashed rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.02);
-  }
-  .empty-favs p {
-    color: var(--net-text-muted);
-    margin-bottom: 1.5rem;
-  }
-  .btn-primary.mini {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-  }
-
-  .spinner-small {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top-color: white;
+  .avatar-option {
+    width: 100%;
+    aspect-ratio: 1;
     border-radius: 50%;
-    animation: spin 0.6s linear infinite;
+    border: 2px solid transparent;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.05);
   }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+  .avatar-option img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar-option:hover { border-color: rgba(255, 255, 255, 0.2); }
+  .avatar-option.selected { border-color: var(--net-red); box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.3); }
+
+  .spinner.small {
+    width: 20px;
+    height: 20px;
   }
 
-  @media (max-width: 800px) {
-    .profile-grid {
-      grid-template-columns: 1fr;
-    }
-    .settings-grid {
-      grid-template-columns: 1fr;
-    }
-    .page-title {
-      font-size: 2rem;
-    }
-  }
-
+  /* Responsive */
   @media (max-width: 768px) {
-    .profile-page {
-      padding: 1.5rem 0 4rem;
-    }
-    .page-title {
-      font-size: 1.8rem;
-    }
-    .profile-header {
-      padding: 1.5rem;
-    }
-    .profile-info {
+    .page-title { font-size: 1.5rem; }
+    .header-badge { display: none; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .user-card {
+      flex-direction: column;
+      align-items: flex-start;
       gap: 1rem;
     }
-    .profile-avatar {
-      width: 80px;
-      height: 80px;
-    }
-    .profile-name {
-      font-size: 1.3rem;
-    }
-    .profile-email {
-      font-size: 0.85rem;
-    }
-    .profile-grid {
-      gap: 1.5rem;
-    }
-    .section-title {
-      font-size: 1.1rem;
-    }
-    .settings-grid {
-      gap: 1rem;
-    }
-    .setting-card {
-      padding: 1rem;
-    }
-    .setting-label {
-      font-size: 0.9rem;
-    }
-    .setting-value {
-      font-size: 0.85rem;
-    }
-    .modal {
-      padding: 2rem;
-    }
-    .modal-header h3 {
-      font-size: 1.2rem;
-    }
-    .avatar-picker {
-      gap: 0.8rem;
-    }
-    .toast {
-      bottom: 1.5rem;
-      right: 1.5rem;
-      padding: 0.85rem 1.5rem;
-      font-size: 0.9rem;
-    }
-    .center {
-      padding: 5rem 0;
-    }
-    .section-margin {
-      margin-top: 3rem;
-    }
-    .favs-grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 1rem;
-    }
-    .fav-info {
-      padding: 0.65rem;
-    }
-    .fav-title {
-      font-size: 0.8rem;
-    }
-    .empty-favs {
-      padding: 3rem 1.5rem;
-    }
+    .logout-btn { width: 100%; justify-content: center; }
+    .fav-grid { grid-template-columns: repeat(3, 1fr); }
   }
 
   @media (max-width: 480px) {
-    .profile-page {
-      padding: 1rem 0 3rem;
-    }
-    .page-title {
-      font-size: 1.5rem;
-    }
-    .profile-header {
-      padding: 1.25rem;
-    }
-    .profile-info {
-      gap: 0.85rem;
-    }
-    .profile-avatar {
-      width: 70px;
-      height: 70px;
-    }
-    .profile-name {
-      font-size: 1.15rem;
-    }
-    .profile-email {
-      font-size: 0.8rem;
-    }
-    .profile-grid {
-      gap: 1.25rem;
-    }
-    .section-title {
-      font-size: 1rem;
-    }
-    .settings-grid {
-      gap: 0.85rem;
-    }
-    .setting-card {
-      padding: 0.85rem;
-    }
-    .setting-label {
-      font-size: 0.85rem;
-    }
-    .setting-value {
-      font-size: 0.8rem;
-    }
-    .modal {
-      padding: 1.5rem;
-    }
-    .modal-header h3 {
-      font-size: 1.1rem;
-    }
-    .avatar-picker {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.7rem;
-    }
-    .modal-footer {
-      flex-direction: column;
-    }
-    .modal-footer button {
-      width: 100%;
-    }
-    .toast {
-      bottom: 1rem;
-      right: 1rem;
-      left: 1rem;
-      padding: 0.75rem 1.25rem;
-      font-size: 0.85rem;
-    }
-    .center {
-      padding: 4rem 0;
-    }
-    .section-margin {
-      margin-top: 2.5rem;
-    }
-    .favs-grid {
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 0.85rem;
-    }
-    .fav-info {
-      padding: 0.6rem;
-    }
-    .fav-title {
-      font-size: 0.75rem;
-    }
-    .empty-favs {
-      padding: 2.5rem 1rem;
-    }
-    .btn-primary.mini {
-      padding: 0.45rem 0.85rem;
-      font-size: 0.8rem;
-    }
-  }
-
-  @media (max-width: 360px) {
-    .page-title {
-      font-size: 1.3rem;
-    }
-    .profile-header {
-      padding: 1rem;
-    }
-    .profile-avatar {
-      width: 60px;
-      height: 60px;
-    }
-    .profile-name {
-      font-size: 1rem;
-    }
-    .profile-email {
-      font-size: 0.75rem;
-    }
-    .section-title {
-      font-size: 0.95rem;
-    }
-    .setting-card {
-      padding: 0.75rem;
-    }
-    .setting-label {
-      font-size: 0.8rem;
-    }
-    .setting-value {
-      font-size: 0.75rem;
-    }
-    .modal {
-      padding: 1.25rem;
-    }
-    .modal-header h3 {
-      font-size: 1rem;
-    }
-    .favs-grid {
-      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-      gap: 0.7rem;
-    }
-    .fav-title {
-      font-size: 0.7rem;
-    }
-  }
-  .pref-item.vertical {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .theme-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 0.75rem;
-    width: 100%;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 0.5rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .theme-swatch {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 10px;
-    border: 1px solid transparent;
-    background: none;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-
-  .theme-swatch:hover {
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .theme-swatch.active {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--net-red);
-  }
-
-  .swatch-preview {
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 8px;
-    position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    overflow: hidden;
-  }
-
-  .swatch-accent {
-    position: absolute;
-    bottom: -10%;
-    right: -10%;
-    width: 50%;
-    height: 50%;
-    border-radius: 50%;
-    transform: rotate(45deg);
-  }
-
-  .swatch-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--net-text-muted);
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-  }
-
-  .theme-swatch.active .swatch-label {
-    color: white;
-  }
-
-  /* Custom scrollbar for theme grid */
-  .theme-grid::-webkit-scrollbar {
-    width: 4px;
-  }
-  .theme-grid::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .theme-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
+    .page-title { font-size: 1.3rem; }
+    .user-card-left { gap: 0.85rem; }
+    .user-avatar { width: 46px; height: 46px; font-size: 1.2rem; }
+    .user-name { font-size: 1.05rem; }
+    .card { padding: 1.25rem; }
+    .fav-grid { grid-template-columns: repeat(2, 1fr); }
+    .avatar-grid { grid-template-columns: repeat(3, 1fr); }
+    .modal { border-radius: 12px; }
+    .modal-body { padding: 1.25rem; }
   }
 </style>
