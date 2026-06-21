@@ -233,7 +233,7 @@
         <div class="user-details">
           <h2 class="user-name">{$auth.currentProfile?.name || 'User'}</h2>
           <p class="user-email">{$auth.user?.email || ''}</p>
-          <span class="user-date">Member since {formatDate($auth.currentProfile?.createdAt)}</span>
+          <span class="user-date">WatchAnimez Member</span>
         </div>
       </div>
       <button class="btn-outline logout-btn" onclick={handleLogout}>
