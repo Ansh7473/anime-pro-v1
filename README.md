@@ -2,8 +2,8 @@
 
 <div align="center">
 
-# 🌌 **AnimePro — The Ultimate Hindi Anime HUD**
-### **Next-Gen Anime Streaming. Tactical UI. Universal Sync.**
+# 🌌 **WatchAnimez.me  The Universal Hindi + Mulit Lang Streaming Platform**
+### **Next-Gen Anime Streaming. Tactical UI Universal Streaming servers support .**
 
 [![Svelte](https://img.shields.io/badge/Svelte%205-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev)
 [![Go](https://img.shields.io/badge/Go%201.21-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://go.dev)
@@ -16,7 +16,7 @@
 
 ## 🚀 **Overview**
 
-**AnimePro** is a high-performance, open-source anime streaming ecosystem built for speed, aesthetics, and cross-platform mastery. Designed with a **Tactical HUD** philosophy, it provides a cinematic experience whether you are on a mobile device, a desktop, or a browser. 
+**WatchAnimez** is a high-performance, open-source anime streaming ecosystem built for speed, aesthetics, and cross-platform mastery. Designed with a **Tactical HUD** philosophy, it provides a cinematic experience whether you are on a mobile device, a desktop, or a browser. 
 
 Featuring **Incremental Parallel Loading**, AnimePro starts your video faster than any other application by racing multiple providers and launching the first available stream instantly.
 
