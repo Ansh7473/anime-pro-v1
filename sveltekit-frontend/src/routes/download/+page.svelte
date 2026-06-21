@@ -1,913 +1,499 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import {
-		Monitor,
-		Smartphone,
-		Tv,
-		Download,
-		Info,
-		Terminal,
-		Cpu,
-		Activity,
-		ShieldCheck,
-		Zap,
-	} from "lucide-svelte";
-	import { fade, fly } from "svelte/transition";
-	import { api } from "$lib/api";
+  import { onMount } from "svelte";
+  import { Monitor, Smartphone, Tv, Download, Cpu, HardDrive } from "lucide-svelte";
+  import { api } from "$lib/api";
 
-	let releases = $state<any[]>([]);
-	let loading = $state(true);
-	let downloading = $state<string | null>(null);
+  let releases = $state<any[]>([]);
+  let loading = $state(true);
+  let downloading = $state<string | null>(null);
 
-	onMount(async () => {
-		try {
-			const res = await api.getLatestReleases();
-			if (res) {
-				releases = res;
-			}
-		} catch (error) {
-			console.error("Failed to fetch releases:", error);
-		} finally {
-			loading = false;
-		}
-	});
+  onMount(async () => {
+    try {
+      const res = await api.getLatestReleases();
+      if (res) {
+        releases = res;
+      }
+    } catch (error) {
+      console.error("Failed to fetch releases:", error);
+    } finally {
+      loading = false;
+    }
+  });
 
-	function getLatest(platform: string) {
-		const fallbacks: Record<string, string> = {
-			windows: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-			mac: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-			linux: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-			android: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-			tv: "https://drive.google.com/uc?export=download&id=1cAOt75WCIvy7WTwW7sSFgZKgRxMMGrUa",
-		};
-		return (
-			releases.find((r) => r.platform === platform) || {
-				version: "0.0.1",
-				size: "PENDING",
-				download_url: fallbacks[platform] || "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-			}
-		);
-	}
+  function getLatest(platform: string) {
+    const fallbacks: Record<string, string> = {
+      windows: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+      mac: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+      linux: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+      android: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+      tv: "https://drive.google.com/uc?export=download&id=1cAOt75WCIvy7WTwW7sSFgZKgRxMMGrUa",
+    };
+    return (
+      releases.find((r) => r.platform === platform) || {
+        version: "0.0.1",
+        size: "N/A",
+        download_url: fallbacks[platform] || "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
+      }
+    );
+  }
 
-	function handleDownload(platform: string) {
-		downloading = platform;
-		setTimeout(() => {
-			downloading = null;
-		}, 3000);
-	}
+  function handleDownload(platform: string) {
+    downloading = platform;
+    setTimeout(() => {
+      downloading = null;
+    }, 3000);
+  }
 </script>
 
 <svelte:head>
-	<title>Download WatchAnimez Apps - Android, TV, Windows, macOS, Linux</title>
-	<meta
-		name="description"
-		content="Download WatchAnimez apps for Android, Android TV, Windows, macOS, and Linux with native wrappers for mobile, desktop, and television viewing."
-	/>
+  <title>Download Apps — WatchAnimez</title>
+  <meta name="description" content="Download WatchAnimez apps for Android, Windows, macOS, Linux, and Android TV. Native apps with offline support and seamless sync." />
 </svelte:head>
 
-<div class="tactical-page-container">
-	<!-- Background HUD Elements -->
-	<div class="tactical-hud-overlay">
-		<div
-			class="tactical-hud-circle dashed large"
-			style="top: -10%; right: -5%; width: 600px; height: 600px;"
-		></div>
-		<div
-			class="tactical-hud-circle dashed medium"
-			style="bottom: 10%; left: -5%; width: 400px; height: 400px; animation-direction: reverse;"
-		></div>
-		<div class="tactical-grid absolute inset-0 opacity-40"></div>
-	</div>
+<div class="download-page container">
+  <div class="page-header">
+    <div class="header-badge">
+      <Download size={16} />
+      <span>Available for all platforms</span>
+    </div>
+    <h1 class="page-title">Download WatchAnimez</h1>
+    <p class="page-subtitle">
+      Get the native app for your device. Enjoy fast, ad-free anime streaming with offline support and cross-device sync.
+    </p>
+  </div>
 
-	<main class="tactical-content">
-		<!-- Header -->
-		<header class="tactical-header" in:fade={{ duration: 600 }}>
-			<div class="status-badge">
-				<span class="status-dot pulse"></span>
-				<span class="status-label">SYSTEM_READY // UPTIME_100%</span>
-			</div>
-			<h1 class="tactical-title">
-				WATCHANIMEZ <span class="version-tag">v2.0 // CORE</span>
-			</h1>
-			<p class="tactical-subtitle">
-				Initialize high-performance streaming protocol on your primary
-				devices. Low-latency, ad-free, encrypted anime synchronization.
-			</p>
-		</header>
+  <div class="platforms-grid">
+    <!-- Windows -->
+    <section class="platform-card">
+      <div class="platform-icon"><Monitor size={36} /></div>
+      <div class="platform-info">
+        <div class="platform-badge-row">
+          <span class="platform-badge stable">Stable</span>
+        </div>
+        <h2>Windows</h2>
+        <p>Full-featured desktop app with hardware acceleration and Picture-in-Picture support.</p>
+        <div class="specs">
+          <span>x86_64</span>
+          <span>4GB+ RAM</span>
+          <span>Windows 10+</span>
+        </div>
+      </div>
+      <div class="platform-action">
+        {#if loading}
+          <div class="skeleton-btn"></div>
+        {:else}
+          {@const win = getLatest("windows")}
+          <a href={win.download_url} class="download-btn" onclick={() => handleDownload("windows")}>
+            {#if downloading === "windows"}
+              <span class="spinner-small"></span> Downloading...
+            {:else}
+              <Download size={18} /> Download
+            {/if}
+          </a>
+          <div class="file-meta">
+            <span>v{win.version}</span>
+            <span>{win.size}</span>
+          </div>
+        {/if}
+      </div>
+    </section>
 
-		<!-- Cards Grid -->
-		<div class="tactical-grid-system">
-			<!-- Windows OS -->
-			<section
-				class="tactical-glass tactical-card group"
-				in:fly={{ y: 40, duration: 800, delay: 100 }}
-			>
-				<div class="card-icon-overlay">
-					<Monitor size={80} strokeWidth={1} />
-				</div>
+    <!-- macOS -->
+    <section class="platform-card">
+      <div class="platform-icon"><Cpu size={36} /></div>
+      <div class="platform-info">
+        <div class="platform-badge-row">
+          <span class="platform-badge stable">Stable</span>
+        </div>
+        <h2>macOS</h2>
+        <p>Optimized for Apple Silicon and Intel Macs with native Metal rendering.</p>
+        <div class="specs">
+          <span>Universal Binary</span>
+          <span>macOS 11.0+</span>
+        </div>
+      </div>
+      <div class="platform-action">
+        {#if loading}
+          <div class="skeleton-btn"></div>
+        {:else}
+          {@const mac = getLatest("mac")}
+          <a href={mac.download_url} class="download-btn" onclick={() => handleDownload("mac")}>
+            {#if downloading === "mac"}
+              <span class="spinner-small"></span> Downloading...
+            {:else}
+              <Download size={18} /> Download
+            {/if}
+          </a>
+          <div class="file-meta">
+            <span>v{mac.version}</span>
+            <span>{mac.size}</span>
+          </div>
+        {/if}
+      </div>
+    </section>
 
-				<div class="card-content">
-					<div class="release-indicator">
-						<span class="indicator-dot primary"></span>
-						<span class="indicator-label primary"
-							>STABLE_RELEASE_X64</span
-						>
-					</div>
+    <!-- Linux -->
+    <section class="platform-card">
+      <div class="platform-icon"><HardDrive size={36} /></div>
+      <div class="platform-info">
+        <div class="platform-badge-row">
+          <span class="platform-badge beta">Beta</span>
+        </div>
+        <h2>Linux</h2>
+        <p>AppImage and Debian packages for maximum desktop environment compatibility.</p>
+        <div class="specs">
+          <span>x86_64</span>
+          <span>AppImage / .deb</span>
+        </div>
+      </div>
+      <div class="platform-action">
+        {#if loading}
+          <div class="skeleton-btn"></div>
+        {:else}
+          {@const linux = getLatest("linux")}
+          <a href={linux.download_url} class="download-btn" onclick={() => handleDownload("linux")}>
+            {#if downloading === "linux"}
+              <span class="spinner-small"></span> Downloading...
+            {:else}
+              <Download size={18} /> Download
+            {/if}
+          </a>
+          <div class="file-meta">
+            <span>v{linux.version}</span>
+            <span>{linux.size}</span>
+          </div>
+        {/if}
+      </div>
+    </section>
 
-					<h2 class="card-title">WINDOWS_OS</h2>
-					<p class="card-description">
-						Hyper-threaded desktop architecture with native hardware
-						acceleration and Picture-in-Picture protocol.
-					</p>
+    <!-- Android -->
+    <section class="platform-card">
+      <div class="platform-icon"><Smartphone size={36} /></div>
+      <div class="platform-info">
+        <div class="platform-badge-row">
+          <span class="platform-badge stable">Stable</span>
+        </div>
+        <h2>Android</h2>
+        <p>Native mobile app optimized for smooth streaming and offline viewing on the go.</p>
+        <div class="specs">
+          <span>ARM64</span>
+          <span>Android 11+</span>
+        </div>
+      </div>
+      <div class="platform-action">
+        {#if loading}
+          <div class="skeleton-btn"></div>
+        {:else}
+          {@const android = getLatest("android")}
+          <a href={android.download_url} class="download-btn" onclick={() => handleDownload("android")}>
+            {#if downloading === "android"}
+              <span class="spinner-small"></span> Downloading...
+            {:else}
+              <Download size={18} /> Download
+            {/if}
+          </a>
+          <div class="file-meta">
+            <span>v{android.version}</span>
+            <span>{android.size}</span>
+          </div>
+        {/if}
+      </div>
+    </section>
 
-					<div class="tech-specs">
-						<div class="spec-item">
-							<span class="spec-label">ARCHITECTURE</span>
-							<span class="spec-value">X86_64_HYPER</span>
-						</div>
-						<div class="spec-item">
-							<span class="spec-label">MEMORY_REQ</span>
-							<span class="spec-value">4.0GB_VRAM</span>
-						</div>
-					</div>
+    <!-- Android TV -->
+    <section class="platform-card">
+      <div class="platform-icon"><Tv size={36} /></div>
+      <div class="platform-info">
+        <div class="platform-badge-row">
+          <span class="platform-badge stable">Stable</span>
+        </div>
+        <h2>Android TV</h2>
+        <p>Leanback UI optimized for TV screens with remote control navigation support.</p>
+        <div class="specs">
+          <span>ARM64</span>
+          <span>Android TV 11+</span>
+        </div>
+      </div>
+      <div class="platform-action">
+        {#if loading}
+          <div class="skeleton-btn"></div>
+        {:else}
+          {@const tv = getLatest("tv")}
+          <a href={tv.download_url} class="download-btn" onclick={() => handleDownload("tv")}>
+            {#if downloading === "tv"}
+              <span class="spinner-small"></span> Downloading...
+            {:else}
+              <Download size={18} /> Download
+            {/if}
+          </a>
+          <div class="file-meta">
+            <span>v{tv.version}</span>
+            <span>{tv.size}</span>
+          </div>
+        {/if}
+      </div>
+    </section>
+  </div>
 
-					{#if loading}
-						<div class="loading-placeholder">
-							<div class="progress-bar">
-								<div
-									class="progress-fill shimmer"
-									style="width: 65%;"
-								></div>
-							</div>
-						</div>
-					{:else}
-						{@const win = getLatest("windows")}
-						<div class="download-action">
-							<a
-								href={win.download_url}
-								class="tactical-btn primary-action {downloading === 'windows' ? 'is-downloading' : ''}"
-								onclick={() => handleDownload("windows")}
-							>
-								{#if downloading === "windows"}
-									<Terminal size={20} class="spinning" />
-									<span>INITIALIZING_X64...</span>
-								{:else}
-									<Download size={20} />
-									<span>DOWNLOAD FOR WINDOWS</span>
-								{/if}
-							</a>
-							<div class="file-meta">
-								<span class="meta-item">VER: {win?.version}</span>
-								<span class="meta-item">SIZE: {win?.size}</span>
-								<span class="meta-item">PROTO: AES_256</span>
-							</div>
-						</div>
-					{/if}
-				</div>
-			</section>
-
-			<!-- macOS -->
-			<section
-				class="tactical-glass tactical-card group"
-				in:fly={{ y: 40, duration: 800, delay: 200 }}
-			>
-				<div class="card-icon-overlay">
-					<Cpu size={80} strokeWidth={1} />
-				</div>
-
-				<div class="card-content">
-					<div class="release-indicator">
-						<span class="indicator-dot primary"></span>
-						<span class="indicator-label primary"
-							>STABLE_RELEASE_DMG</span
-						>
-					</div>
-
-					<h2 class="card-title">MACOS</h2>
-					<p class="card-description">
-						Optimized Metal rendering pipeline with universal binary support
-						for Apple Silicon and Intel chipsets.
-					</p>
-
-					<div class="tech-specs">
-						<div class="spec-item">
-							<span class="spec-label">ARCHITECTURE</span>
-							<span class="spec-value">UNIVERSAL_BIN</span>
-						</div>
-						<div class="spec-item">
-							<span class="spec-label">SYSTEM_REQ</span>
-							<span class="spec-value">macOS 11.0+</span>
-						</div>
-					</div>
-
-					{#if loading}
-						<div class="loading-placeholder">
-							<div class="progress-bar">
-								<div
-									class="progress-fill shimmer"
-									style="width: 55%;"
-								></div>
-							</div>
-						</div>
-					{:else}
-						{@const mac = getLatest("mac")}
-						<div class="download-action">
-							<a
-								href={mac.download_url}
-								class="tactical-btn primary-action {downloading === 'mac' ? 'is-downloading' : ''}"
-								onclick={() => handleDownload("mac")}
-							>
-								{#if downloading === "mac"}
-									<Terminal size={20} class="spinning" />
-									<span>PREPARING_DMG...</span>
-								{:else}
-									<Download size={20} />
-									<span>DOWNLOAD FOR MACOS</span>
-								{/if}
-							</a>
-							<div class="file-meta">
-								<span class="meta-item">VER: {mac?.version}</span>
-								<span class="meta-item">SIZE: {mac?.size}</span>
-								<span class="meta-item">PROTO: SECURE_DMG</span>
-							</div>
-						</div>
-					{/if}
-				</div>
-			</section>
-
-			<!-- Linux OS -->
-			<section
-				class="tactical-glass tactical-card group"
-				in:fly={{ y: 40, duration: 800, delay: 300 }}
-			>
-				<div class="card-icon-overlay">
-					<Terminal size={80} strokeWidth={1} />
-				</div>
-
-				<div class="card-content">
-					<div class="release-indicator">
-						<span class="indicator-dot secondary"></span>
-						<span class="indicator-label secondary"
-							>APPIMAGE_DEB_CORE</span
-						>
-					</div>
-
-					<h2 class="card-title">LINUX_OS</h2>
-					<p class="card-description">
-						Sandboxed AppImage and native Debian packages designed for 
-						maximum desktop environment compatibility.
-					</p>
-
-					<div class="tech-specs">
-						<div class="spec-item">
-							<span class="spec-label">ARCHITECTURE</span>
-							<span class="spec-value">X86_64_LINUX</span>
-						</div>
-						<div class="spec-item">
-							<span class="spec-label">PACKAGE_TYPE</span>
-							<span class="spec-value">APPIMAGE / DEB</span>
-						</div>
-					</div>
-
-					{#if loading}
-						<div class="loading-placeholder">
-							<div class="progress-bar">
-								<div
-									class="progress-fill shimmer"
-									style="width: 50%;"
-								></div>
-							</div>
-						</div>
-					{:else}
-						{@const linux = getLatest("linux")}
-						<div class="download-action">
-							<a
-								href={linux.download_url}
-								class="tactical-btn secondary-action {downloading === 'linux' ? 'is-downloading' : ''}"
-								onclick={() => handleDownload("linux")}
-							>
-								{#if downloading === "linux"}
-									<Terminal size={20} class="spinning" />
-									<span>EXTRACTING_PKG...</span>
-								{:else}
-									<Download size={20} />
-									<span>DOWNLOAD FOR LINUX</span>
-								{/if}
-							</a>
-							<div class="file-meta">
-								<span class="meta-item">VER: {linux?.version}</span>
-								<span class="meta-item">SIZE: {linux?.size}</span>
-								<span class="meta-item">PROTO: ELF_EXEC</span>
-							</div>
-						</div>
-					{/if}
-				</div>
-			</section>
-
-			<!-- Android OS -->
-			<section
-				class="tactical-glass tactical-card group"
-				in:fly={{ y: 40, duration: 800, delay: 400 }}
-			>
-				<div class="card-icon-overlay">
-					<Smartphone size={80} strokeWidth={1} />
-				</div>
-
-				<div class="card-content">
-					<div class="release-indicator">
-						<span class="indicator-dot secondary"></span>
-						<span class="indicator-label secondary"
-							>MOBILE_CORE_V8A</span
-						>
-					</div>
-
-					<h2 class="card-title">ANDROID_OS</h2>
-					<p class="card-description">
-						Streamlined mobile interface optimized for low-latency
-						data streaming and tactile synchronization.
-					</p>
-
-					<div class="tech-specs">
-						<div class="spec-item">
-							<span class="spec-label">ARCHITECTURE</span>
-							<span class="spec-value">ARM64_V8A</span>
-						</div>
-						<div class="spec-item">
-							<span class="spec-label">API_LEVEL</span>
-							<span class="spec-value">30+ (R)</span>
-						</div>
-					</div>
-
-					{#if loading}
-						<div class="loading-placeholder">
-							<div class="progress-bar">
-								<div
-									class="progress-fill shimmer"
-									style="width: 45%;"
-								></div>
-							</div>
-						</div>
-					{:else}
-						{@const apk = getLatest("android")}
-						<div class="download-action">
-							<a
-								href={apk.download_url}
-								class="tactical-btn secondary-action {downloading === 'android' ? 'is-downloading' : ''}"
-								onclick={() => handleDownload("android")}
-							>
-								{#if downloading === "android"}
-									<Zap size={20} class="spinning" />
-									<span>ARM64_UPLOADING...</span>
-								{:else}
-									<Zap size={20} />
-									<span>DOWNLOAD FOR ANDROID</span>
-								{/if}
-							</a>
-							<div class="file-meta">
-								<span class="meta-item">VER: {apk?.version}</span>
-								<span class="meta-item">SIZE: {apk?.size}</span>
-								<span class="meta-item">ENGINE: V5_CORE</span>
-							</div>
-						</div>
-					{/if}
-				</div>
-			</section>
-
-			<!-- TV OS -->
-			<section
-				class="tactical-glass tactical-card group"
-				in:fly={{ y: 40, duration: 800, delay: 500 }}
-			>
-				<div class="card-icon-overlay">
-					<Tv size={80} strokeWidth={1} />
-				</div>
-
-				<div class="card-content">
-					<div class="release-indicator">
-						<span class="indicator-dot accent"></span>
-						<span class="indicator-label accent">TV_CORE_ARM64</span>
-					</div>
-
-					<h2 class="card-title">TV_OS</h2>
-					<p class="card-description">
-						Android TV optimized streaming client with leanback UI
-						and remote control support.
-					</p>
-
-					<div class="tech-specs">
-						<div class="spec-item">
-							<span class="spec-label">ARCHITECTURE</span>
-							<span class="spec-value">ARM64_TV</span>
-						</div>
-						<div class="spec-item">
-							<span class="spec-label">API_LEVEL</span>
-							<span class="spec-value">30+ (TV)</span>
-						</div>
-					</div>
-
-					{#if loading}
-						<div class="loading-placeholder">
-							<div class="progress-bar">
-								<div
-									class="progress-fill shimmer"
-									style="width: 75%;"
-								></div>
-							</div>
-						</div>
-					{:else}
-						{@const tv = getLatest("tv")}
-						<div class="download-action">
-							<a
-								href={tv.download_url}
-								class="tactical-btn accent-action {downloading === 'tv' ? 'is-downloading' : ''}"
-								onclick={() => handleDownload("tv")}
-							>
-								{#if downloading === "tv"}
-									<Activity size={20} class="spinning" />
-									<span>SYNCING_CORE...</span>
-								{:else}
-									<Download size={20} />
-									<span>DOWNLOAD FOR TV</span>
-								{/if}
-							</a>
-							<div class="file-meta">
-								<span class="meta-item">VER: {tv?.version}</span>
-								<span class="meta-item">SIZE: {tv?.size}</span>
-								<span class="meta-item">ENGINE: LEANBACK</span>
-							</div>
-						</div>
-					{/if}
-				</div>
-			</section>
-		</div>
-
-		<!-- Footer Stats -->
-		<footer class="tactical-footer" in:fade={{ delay: 1000 }}>
-			<div class="footer-stat-card">
-				<Activity size={16} class="stat-icon" />
-				<div class="stat-data">
-					<span class="stat-label">NETWORK_LOAD</span>
-					<span class="stat-value">OPTIMIZED</span>
-				</div>
-			</div>
-			<div class="footer-stat-card">
-				<ShieldCheck size={16} class="stat-icon" />
-				<div class="stat-data">
-					<span class="stat-label">ENCRYPTION</span>
-					<span class="stat-value">MIL_GRADE</span>
-				</div>
-			</div>
-			<div class="footer-stat-card">
-				<Cpu size={16} class="stat-icon" />
-				<div class="stat-data">
-					<span class="stat-label">CORE_SYNC</span>
-					<span class="stat-value">0.002MS</span>
-				</div>
-			</div>
-			<div class="footer-stat-card">
-				<Terminal size={16} class="stat-icon" />
-				<div class="stat-data">
-					<span class="stat-label">TERMINAL</span>
-					<span class="stat-value">ACTIVE</span>
-				</div>
-			</div>
-		</footer>
-
-		<!-- Guide Tip -->
-		<div class="tactical-guide" in:fade={{ delay: 1200 }}>
-			<Info size={18} />
-			<span
-				>INSTALLATION_TIP: Enable "Unknown Sources" in OS Security
-				Settings for APK deployment.</span
-			>
-		</div>
-	</main>
+  <div class="install-tip">
+    <p>💡 <strong>Tip for Android users:</strong> Enable "Install from Unknown Sources" in your device settings before installing the APK.</p>
+  </div>
 </div>
 
 <style>
-	.tactical-page-container {
-		min-height: 100vh;
-		background: var(--tactical-bg);
-		color: var(--net-text);
-		position: relative;
-		overflow-x: hidden;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 4rem 1.5rem;
-	}
+  .download-page {
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+    max-width: 1000px;
+  }
 
-	.tactical-hud-overlay {
-		position: fixed;
-		inset: 0;
-		pointer-events: none;
-		z-index: 1;
-	}
+  .page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
 
-	.tactical-content {
-		position: relative;
-		z-index: 10;
-		max-width: 1100px;
-		width: 100%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(229, 9, 20, 0.1);
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--net-red);
+    margin-bottom: 1rem;
+  }
 
-	.tactical-header {
-		text-align: center;
-		margin-bottom: 4rem;
-	}
+  .page-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.75rem;
+  }
 
-	.status-badge {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.5rem 1rem;
-		background: rgba(26, 115, 232, 0.1);
-		border-radius: 2rem;
-		margin-bottom: 1.5rem;
-	}
+  .page-subtitle {
+    color: var(--net-text-muted);
+    font-size: 1rem;
+    max-width: 550px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
 
-	.status-dot {
-		width: 6px;
-		height: 6px;
-		background: var(--tactical-primary);
-		border-radius: 50%;
-	}
+  .platforms-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
 
-	.status-dot.pulse {
-		box-shadow: 0 0 10px var(--tactical-primary);
-		animation: pulse 2s infinite;
-	}
+  .platform-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    transition: all 0.25s;
+  }
 
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 1;
-			transform: scale(1);
-		}
-		50% {
-			opacity: 0.5;
-			transform: scale(1.2);
-		}
-	}
+  .platform-card:hover {
+    border-color: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+  }
 
-	.status-label {
-		font-family: var(--font-mono);
-		font-size: 0.65rem;
-		letter-spacing: 0.1em;
-		color: var(--tactical-primary);
-	}
+  .platform-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: rgba(229, 9, 20, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--net-red);
+  }
 
-	.tactical-title {
-		font-size: clamp(2.5rem, 6vw, 4rem);
-		font-weight: 800;
-		letter-spacing: -0.04em;
-		margin-bottom: 1rem;
-		color: var(--tactical-primary);
-		text-shadow: 0 0 15px rgba(26, 115, 232, 0.3);
-	}
+  .platform-info {
+    min-width: 0;
+  }
 
-	.version-tag {
-		font-size: 0.4em;
-		vertical-align: middle;
-		opacity: 0.6;
-		font-weight: 400;
-	}
+  .platform-badge-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
 
-	.tactical-subtitle {
-		font-size: 1.1rem;
-		color: var(--net-text-muted);
-		max-width: 600px;
-		line-height: 1.6;
-	}
+  .platform-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
 
-	.tactical-grid-system {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-		gap: 2rem;
-		width: 100%;
-		margin-bottom: 4rem;
-	}
+  .platform-badge.stable {
+    background: rgba(74, 222, 128, 0.1);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.2);
+  }
 
-	.tactical-card {
-		position: relative;
-		padding: 2.5rem;
-		border-radius: 1.5rem;
-		overflow: hidden;
-		transition:
-			transform 0.3s ease,
-			border-color 0.3s ease;
-	}
+  .platform-badge.beta {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+  }
 
-	.tactical-card:hover {
-		transform: translateY(-5px);
-		border-color: rgba(173, 199, 255, 0.4);
-	}
+  .platform-info h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    color: white;
+  }
 
-	.card-icon-overlay {
-		position: absolute;
-		top: -1.5rem;
-		right: -1.5rem;
-		opacity: 0.05;
-		color: var(--tactical-primary);
-		transition: opacity 0.3s ease;
-	}
+  .platform-info p {
+    font-size: 0.85rem;
+    color: var(--net-text-muted);
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+  }
 
-	.tactical-card:hover .card-icon-overlay {
-		opacity: 0.1;
-	}
+  .specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
 
-	.release-indicator {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 1rem;
-	}
+  .specs span {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    color: var(--net-text-muted);
+    font-weight: 500;
+  }
 
-	.indicator-dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-	}
-	.indicator-dot.primary {
-		background: var(--tactical-primary);
-		box-shadow: 0 0 8px var(--tactical-primary);
-	}
-	.indicator-dot.secondary {
-		background: #4caf50;
-		box-shadow: 0 0 8px #4caf50;
-	}
+  .platform-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 140px;
+  }
 
-	.indicator-label {
-		font-family: var(--font-mono);
-		font-size: 0.6rem;
-		letter-spacing: 0.15em;
-		text-transform: uppercase;
-	}
-	.indicator-label.primary {
-		color: var(--tactical-primary);
-	}
-	.indicator-label.secondary {
-		color: #4caf50;
-	}
+  .download-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--net-red);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    white-space: nowrap;
+    font-family: inherit;
+    width: 100%;
+    justify-content: center;
+  }
 
-	.card-title {
-		font-size: 2.25rem;
-		font-weight: 700;
-		margin-bottom: 1rem;
-		letter-spacing: -0.02em;
-	}
+  .download-btn:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+  }
 
-	.card-description {
-		color: var(--net-text-muted);
-		font-size: 0.95rem;
-		line-height: 1.6;
-		margin-bottom: 2rem;
-	}
+  .file-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.72rem;
+    color: var(--net-text-muted);
+  }
 
-	.tech-specs {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-		margin-bottom: 2.5rem;
-	}
+  .skeleton-btn {
+    width: 140px;
+    height: 42px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    animation: shimmer 1.5s infinite;
+  }
 
-	.spec-item {
-		background: rgba(255, 255, 255, 0.03);
-		padding: 0.75rem 1rem;
-		border-left: 2px solid rgba(173, 199, 255, 0.2);
-	}
+  @keyframes shimmer {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
 
-	.spec-label {
-		display: block;
-		font-family: var(--font-mono);
-		font-size: 0.55rem;
-		color: var(--tactical-outline);
-		margin-bottom: 0.25rem;
-		letter-spacing: 0.1em;
-	}
+  .spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+  }
 
-	.spec-value {
-		font-weight: 700;
-		font-size: 0.85rem;
-		color: var(--net-text);
-	}
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 
-	.download-action {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
+  .install-tip {
+    text-align: center;
+    padding: 1.25rem 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+  }
 
-	.primary-action {
-		background: var(--tactical-primary-container);
-		color: white;
-		height: 4rem;
-		border-radius: 0.75rem;
-		box-shadow: 0 0 20px rgba(26, 115, 232, 0.3);
-		transition: all 0.3s ease;
-	}
+  .install-tip p {
+    color: var(--net-text-muted);
+    font-size: 0.88rem;
+    margin: 0;
+  }
 
-	.primary-action:hover {
-		background: var(--tactical-primary);
-		box-shadow: 0 0 30px var(--tactical-primary);
-		transform: translateY(-2px);
-	}
+  .install-tip strong {
+    color: white;
+  }
 
-	.secondary-action {
-		background: rgba(255, 255, 255, 0.05);
-		color: var(--tactical-primary);
-		height: 4rem;
-		border: 1px solid rgba(173, 199, 255, 0.2);
-		border-radius: 0.75rem;
-		transition: all 0.3s ease;
-	}
+  @media (max-width: 768px) {
+    .page-title { font-size: 1.8rem; }
+    .page-subtitle { font-size: 0.92rem; }
 
-	.secondary-action:hover {
-		background: rgba(173, 199, 255, 0.1);
-		box-shadow: 0 0 20px rgba(26, 115, 232, 0.2);
-		transform: translateY(-2px);
-		border-color: var(--tactical-primary);
-	}
+    .platform-card {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      padding: 1.5rem;
+      text-align: center;
+    }
 
-	.accent-action {
-		background: rgba(255, 152, 0, 0.15);
-		color: #ff9800;
-		height: 4rem;
-		border: 1px solid rgba(255, 152, 0, 0.3);
-		border-radius: 0.75rem;
-		transition: all 0.3s ease;
-	}
+    .platform-icon {
+      margin: 0 auto;
+    }
 
-	.accent-action:hover {
-		background: rgba(255, 152, 0, 0.25);
-		box-shadow: 0 0 25px rgba(255, 152, 0, 0.4);
-		transform: translateY(-2px);
-	}
+    .specs {
+      justify-content: center;
+    }
 
-	.is-downloading {
-		pointer-events: none;
-		opacity: 0.8;
-		filter: brightness(1.2);
-		animation: pulse-glow 1s infinite alternate;
-	}
+    .platform-action {
+      width: 100%;
+    }
 
-	@keyframes pulse-glow {
-		from {
-			box-shadow: 0 0 10px currentColor;
-		}
-		to {
-			box-shadow: 0 0 40px currentColor;
-		}
-	}
+    .download-btn {
+      width: 100%;
+    }
+  }
 
-	.spinning {
-		animation: rotate 2s linear infinite;
-	}
-
-	@keyframes rotate {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	.file-meta {
-		display: flex;
-		justify-content: space-between;
-		padding: 0 0.5rem;
-		font-family: var(--font-mono);
-		font-size: 0.65rem;
-		color: var(--tactical-outline);
-		opacity: 0.6;
-	}
-
-	.tactical-footer {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 1rem;
-		width: 100%;
-		max-width: 800px;
-	}
-
-	@media (min-width: 768px) {
-		.tactical-footer {
-			grid-template-columns: repeat(4, 1fr);
-		}
-	}
-
-	.footer-stat-card {
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid rgba(255, 255, 255, 0.05);
-		padding: 1rem;
-		border-radius: 0.75rem;
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-	}
-
-	.stat-icon {
-		color: var(--tactical-outline);
-		opacity: 0.4;
-	}
-
-	.stat-label {
-		display: block;
-		font-family: var(--font-mono);
-		font-size: 0.55rem;
-		color: var(--tactical-outline);
-		letter-spacing: 0.1em;
-	}
-
-	.stat-value {
-		font-weight: 700;
-		font-size: 0.8rem;
-		color: var(--tactical-primary);
-	}
-
-	.tactical-guide {
-		margin-top: 3rem;
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 1rem 1.5rem;
-		background: rgba(26, 115, 232, 0.05);
-		border: 1px solid rgba(26, 115, 232, 0.1);
-		border-radius: 1rem;
-		font-size: 0.8rem;
-		color: var(--net-text-muted);
-		text-align: center;
-	}
-
-	.loading-placeholder {
-		height: 4rem;
-		display: flex;
-		align-items: center;
-	}
-
-	.progress-bar {
-		width: 100%;
-		height: 4px;
-		background: rgba(255, 255, 255, 0.05);
-		border-radius: 2px;
-		overflow: hidden;
-	}
-
-	.progress-fill {
-		height: 100%;
-		background: var(--tactical-primary);
-		box-shadow: 0 0 10px var(--tactical-primary);
-	}
-
-	.shimmer {
-		position: relative;
-		overflow: hidden;
-	}
-
-	.indicator-dot.accent {
-		background: #ff9800;
-		box-shadow: 0 0 8px #ff9800;
-	}
-
-	.indicator-label.accent {
-		color: #ff9800;
-	}
-
-	.accent-action {
-		background: rgba(255, 152, 0, 0.15);
-		color: #ff9800;
-		height: 4rem;
-		border: 1px solid rgba(255, 152, 0, 0.3);
-		border-radius: 0.75rem;
-	}
-
-	.accent-action:hover {
-		background: rgba(255, 152, 0, 0.25);
-	}
-
-	@keyframes shimmer-load {
-		100% {
-			left: 100%;
-		}
-	}
-
-	@media (max-width: 480px) {
-		.tactical-page-container {
-			padding: 3rem 1rem;
-		}
-		.tactical-title {
-			font-size: 2.5rem;
-		}
-		.tactical-card {
-			padding: 1.5rem;
-		}
-		.card-title {
-			font-size: 1.75rem;
-		}
-	}
+  @media (max-width: 480px) {
+    .page-title { font-size: 1.5rem; }
+    .platform-card { padding: 1.25rem; }
+    .platform-info h2 { font-size: 1.1rem; }
+    .platform-info p { font-size: 0.82rem; }
+  }
 </style>

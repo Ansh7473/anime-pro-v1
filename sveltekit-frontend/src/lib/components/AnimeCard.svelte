@@ -31,7 +31,7 @@
   function handleNavigate(e?: Event) {
     // If middle click or ctrl click, let the browser handle it naturally
     if (e instanceof MouseEvent && (e.button === 1 || e.ctrlKey || e.metaKey)) return;
-    
+
     if (e) e.preventDefault();
     if (id) goto(`/anime/${id}`);
   }
@@ -58,12 +58,12 @@
     <div class="card-overlay">
       <div class="card-play">▶</div>
     </div>
-    
+
     <!-- Tactical Metadata Overlays -->
     <div class="tactical-meta-top">
       {#if score > 0}
         <span class="card-score">
-          <span class="score-label">RATING</span>
+          <span class="score-label">Rating</span>
           {score.toFixed(1)}
         </span>
       {/if}
@@ -72,7 +72,7 @@
     <div class="tactical-meta-bottom">
       <div class="status-indicator">
         <div class="bit"></div>
-        <span>SYNC_OK</span>
+        <span>HD</span>
       </div>
     </div>
   </div>
@@ -100,7 +100,7 @@
     z-index: 10;
     background: rgba(255, 255, 255, 0.05);
     border-color: var(--tv-focus-border, rgba(173, 199, 255, 0.3));
-    box-shadow: 
+    box-shadow:
       0 10px 40px -10px rgba(0, 0, 0, 0.7),
       0 0 25px var(--tv-focus-glow, rgba(173, 199, 255, 0.1));
     outline: none; /* We use box-shadow/border for a cleaner look */

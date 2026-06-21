@@ -3,17 +3,13 @@
   import { api, getProxiedImage } from '$lib/api';
   import { auth, updateProfile } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
-  import { 
-    Activity, 
-    Clock, 
-    Shield, 
-    Target, 
-    Zap, 
-    Database, 
-    History, 
-    Bookmark,
+  import {
+    Activity,
+    Clock,
+    Zap,
     Cpu,
-    Radio
+    Radio,
+    User
   } from 'lucide-svelte';
 
   let stats = $state<any>(null);
@@ -22,7 +18,7 @@
   let recommendations = $state<any>(null);
   let loading = $state(true);
 
-  async function loadIntel() {
+  async function loadDashboard() {
     if (!$auth.token) {
       goto('/auth/login?redirect=/intel');
       return;
@@ -38,24 +34,23 @@
       ]);
 
       stats = statsRes;
-      history = (historyRes || []).slice(0, 10); // Last 10 entries
+      history = (historyRes || []).slice(0, 10);
       watchlist = watchlistRes || [];
       recommendations = recsRes;
     } catch (err) {
-      console.error('Failed to load intel:', err);
+      console.error('Failed to load dashboard:', err);
     } finally {
       loading = false;
     }
   }
 
-  onMount(loadIntel);
+  onMount(loadDashboard);
 
   async function togglePref(key: string, value: string | number | boolean) {
     if (!$auth.currentProfile?.id || !$auth.token) return;
     try {
-      // Corrected argument order: (token, id, data)
       const updated = await api.updateProfile($auth.token, $auth.currentProfile.id, { [key]: value });
-      updateProfile(updated); // Sync with local auth store
+      updateProfile(updated);
     } catch (err) {
       console.error('Failed to sync settings:', err);
     }
@@ -63,421 +58,646 @@
 </script>
 
 <svelte:head>
-  <title>WatchAnimez Profile and Recommendations</title>
-  <meta
-    name="description"
-    content="Manage your WatchAnimez profile, watch history, watchlist, viewing statistics, and anime recommendations."
-  />
+  <title>My Dashboard — WatchAnimez</title>
+  <meta name="description" content="Your personal WatchAnimez dashboard — watch history, recommendations, preferences, and viewing statistics." />
 </svelte:head>
 
-<div class="profile-page">
+<div class="dashboard-page container">
   {#if loading}
-    <div class="loader-container">
-      <div class="premium-loader">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-      </div>
-      <div class="loading-text">LOADING PROFILE...</div>
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading your dashboard...</p>
     </div>
   {:else if stats}
-    <div class="profile-container">
-      <!-- MINIMALIST HEADER -->
-      <header class="profile-header">
-        <div class="user-info">
-          <div class="avatar-placeholder">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="header-top">
+        <div class="header-left">
+          <div class="avatar">
             {($auth.currentProfile?.name || 'A')[0].toUpperCase()}
           </div>
-          <div class="user-meta">
-            <h1>{$auth.currentProfile?.name || 'User'}</h1>
-            <div class="status-row">
-              <span class="status-badge">ONLINE</span>
-              <span class="level-badge">LEVEL {stats?.progression?.level || '01'}</span>
-            </div>
+          <div>
+            <h1 class="page-title">{$auth.currentProfile?.name || 'My Dashboard'}</h1>
+            <p class="page-subtitle">Your watch history, preferences, and personalized recommendations</p>
           </div>
         </div>
-        <div class="account-actions">
-          <div class="time-stamp">{new Date().toLocaleDateString()}</div>
+        <div class="header-badge">
+          <User size={16} />
+          <span>Dashboard</span>
         </div>
-      </header>
+      </div>
+    </div>
 
-      <div class="dashboard-grid">
-        <!-- LEFT COLUMN: STATS & SETTINGS -->
-        <div class="sidebar">
-          <section class="premium-card stats-overview">
-            <h2>STATISTICS</h2>
-            <div class="stat-items">
-              <div class="item">
-                <span class="label">WATCH TIME</span>
-                <span class="val">{(stats?.total_hours || 0).toFixed(1)}h</span>
-              </div>
-              <div class="item highlight">
-                <span class="label">RANK</span>
-                <span class="val">{stats?.progression?.rank || 'RECRUIT'}</span>
-              </div>
-              <div class="item">
-                <span class="label">RESERVES</span>
-                <span class="val">{stats?.reserves_count || '0'}</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="premium-card config-sync">
-            <h2>TACTICAL SYNC</h2>
-            <div class="sync-items">
-              <button 
-                class="sync-btn"
-                class:active={$auth.currentProfile?.autoNext}
-                onclick={() => togglePref('autoNext', !$auth.currentProfile?.autoNext)}
-              >
-                <span>AUTO_NEXT</span>
-                <div class="indicator"></div>
-              </button>
-              <button 
-                class="sync-btn"
-                class:active={$auth.currentProfile?.autoSkip}
-                onclick={() => togglePref('autoSkip', !$auth.currentProfile?.autoSkip)}
-              >
-                <span>AUTO_SKIP</span>
-                <div class="indicator"></div>
-              </button>
-              
-              <div class="select-group">
-                <span class="label">AUDIO_PROTOCOL</span>
-                <select 
-                  value={$auth.currentProfile?.language || 'sub'} 
-                  onchange={(e) => togglePref('language', (e.target as HTMLSelectElement).value)}
-                >
-                  <option value="sub">SUBTITLED</option>
-                  <option value="dub">DUBBED</option>
-                  <option value="multi">MULTI_AUDIO</option>
-                </select>
-              </div>
-
-              <div class="visual-engine-link">
-                <span class="label">VISUAL_ENGINE</span>
-                <a href="/profile" class="engine-btn">
-                  <Cpu size={14} /> CONFIGURE_VISUALS
-                </a>
-              </div>
-            </div>
-          </section>
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon"><Clock size={20} /></div>
+        <div class="stat-info">
+          <span class="stat-value">{(stats?.total_hours || 0).toFixed(1)}h</span>
+          <span class="stat-label">Watch Time</span>
         </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><Activity size={20} /></div>
+        <div class="stat-info">
+          <span class="stat-value">{stats?.progression?.rank || 'Newcomer'}</span>
+          <span class="stat-label">Rank</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><Zap size={20} /></div>
+        <div class="stat-info">
+          <span class="stat-value">{stats?.reserves_count || '0'}</span>
+          <span class="stat-label">In Watchlist</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><Radio size={20} /></div>
+        <div class="stat-info">
+          <span class="stat-value">Level {stats?.progression?.level || '1'}</span>
+          <span class="stat-label">Profile Level</span>
+        </div>
+      </div>
+    </div>
 
-        <!-- MAIN COLUMN: ACTIVITY & RECS -->
-        <div class="main-content">
-          <!-- QUICK RESUME -->
-          {#if stats?.quick_resume}
-            <section class="resume-card premium-card">
-              <div class="card-bg" style="background-image: url({getProxiedImage(stats.quick_resume.animePoster)})"></div>
-              <div class="overlay"></div>
-              <div class="resume-info">
-                <span class="tag">ACTIVE OBJECTIVE</span>
-                <h3>{stats.quick_resume.animeTitle}</h3>
-                <div class="meta">
-                  EPISODE {stats.quick_resume.episodeNumber} // {stats.quick_resume.duration > 0 ? Math.round((stats.quick_resume.progress / stats.quick_resume.duration) * 100) : 0}% COMPLETE
-                </div>
-                <a href="/watch/{stats.quick_resume.animeId}/{stats.quick_resume.episodeNumber}" class="btn-resume">
-                  <Zap size={16} /> RESUME_MISSION
-                </a>
+    <!-- Quick Resume -->
+    {#if stats?.quick_resume}
+      <section class="resume-section">
+        <div class="resume-card">
+          <img src={getProxiedImage(stats.quick_resume.animePoster)} alt="" class="resume-poster" />
+          <div class="resume-info">
+            <span class="resume-tag">Continue Watching</span>
+            <h3 class="resume-title">{stats.quick_resume.animeTitle}</h3>
+            <p class="resume-meta">
+              Episode {stats.quick_resume.episodeNumber} · {stats.quick_resume.duration > 0 ? Math.round((stats.quick_resume.progress / stats.quick_resume.duration) * 100) : 0}% complete
+            </p>
+            <div class="resume-progress">
+              <div class="resume-progress-fill" style="width: {stats.quick_resume.duration > 0 ? (stats.quick_resume.progress / stats.quick_resume.duration) * 100 : 0}%"></div>
+            </div>
+          </div>
+          <a href="/watch/{stats.quick_resume.animeId}/{stats.quick_resume.episodeNumber}" class="resume-btn">
+            <Zap size={16} /> Resume
+          </a>
+        </div>
+      </section>
+    {/if}
+
+    <div class="dashboard-grid">
+      <!-- Left: Preferences -->
+      <div class="sidebar">
+        <section class="card">
+          <h2 class="card-title">Preferences</h2>
+          <div class="pref-list">
+            <button
+              class="pref-toggle"
+              class:active={$auth.currentProfile?.autoNext}
+              onclick={() => togglePref('autoNext', !$auth.currentProfile?.autoNext)}
+            >
+              <span>Auto-Play Next Episode</span>
+              <div class="toggle-dot"></div>
+            </button>
+            <button
+              class="pref-toggle"
+              class:active={$auth.currentProfile?.autoSkip}
+              onclick={() => togglePref('autoSkip', !$auth.currentProfile?.autoSkip)}
+            >
+              <span>Skip Intros</span>
+              <div class="toggle-dot"></div>
+            </button>
+
+            <div class="pref-select">
+              <label>Audio Preference</label>
+              <select
+                value={$auth.currentProfile?.language || 'sub'}
+                onchange={(e) => togglePref('language', (e.target as HTMLSelectElement).value)}
+              >
+                <option value="sub">Subtitled</option>
+                <option value="dub">Dubbed</option>
+                <option value="multi">Multi-Audio</option>
+              </select>
+            </div>
+
+            <a href="/profile" class="theme-link">
+              <Cpu size={16} /> Customize Theme & Appearance
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right: Activity + Recommendations -->
+      <div class="main-col">
+        <!-- Recent Activity -->
+        <section class="card">
+          <h2 class="card-title">Recent Activity</h2>
+          <div class="activity-list">
+            {#if history.length === 0}
+              <div class="empty-state">
+                <Clock size={32} class="empty-icon" />
+                <p>No watch history yet. Start watching to build your activity!</p>
               </div>
-            </section>
-          {/if}
-
-          <!-- RECENT ACTIVITY -->
-          <section class="premium-card">
-            <h2>RECENT_ACTIVITY</h2>
-            <div class="activity-list">
-              {#if history.length === 0}
-                <div class="empty">NO RECENT ACTIVITY RECORDED</div>
-              {:else}
-                {#each history as entry (entry.id)}
-                  <a href="/anime/{entry.animeId}" class="activity-item">
-                    <img src={getProxiedImage(entry.animePoster)} alt="" />
-                    <div class="item-content">
-                      <span class="name">{entry.animeTitle}</span>
-                      <span class="meta">EP {entry.episodeNumber} • {new Date(entry.lastWatchedAt).toLocaleDateString()}</span>
-                    </div>
-                    <div class="mini-progress">
-                      <div class="fill" style="width: {entry.duration > 0 ? (entry.progress / entry.duration) * 100 : 0}%"></div>
-                    </div>
-                  </a>
-                {/each}
-              {/if}
-            </div>
-          </section>
-
-          <!-- TACTICAL BRIEFING (AI Recommendations) -->
-          <section class="premium-card">
-            <div class="section-header">
-              <h2>TACTICAL_BRIEFING</h2>
-              <span class="ai-badge"><Radio size={12} /> AI_CONNECTED</span>
-            </div>
-            <p class="briefing-text">{recommendations?.briefing || 'Gathering intelligence for your next deployment...'}</p>
-            <div class="recs-grid">
-              {#each (recommendations?.recommendations || []) as rec (rec.id)}
-                <a href="/anime/{rec.id}" class="rec-card">
-                  <img src={getProxiedImage(rec.poster)} alt="" />
-                  <div class="rec-blur"></div>
-                  <div class="rec-info">
-                    <span class="title">{rec.title}</span>
-                    <span class="reason">{rec.reason}</span>
+            {:else}
+              {#each history as entry (entry.id)}
+                <a href="/anime/{entry.animeId}" class="activity-item">
+                  <img src={getProxiedImage(entry.animePoster)} alt="" class="activity-poster" />
+                  <div class="activity-info">
+                    <span class="activity-name">{entry.animeTitle}</span>
+                    <span class="activity-meta">EP {entry.episodeNumber} · {new Date(entry.lastWatchedAt).toLocaleDateString()}</span>
+                  </div>
+                  <div class="activity-progress">
+                    <div class="activity-progress-fill" style="width: {entry.duration > 0 ? (entry.progress / entry.duration) * 100 : 0}%"></div>
                   </div>
                 </a>
               {/each}
-            </div>
-          </section>
-        </div>
+            {/if}
+          </div>
+        </section>
+
+        <!-- AI Recommendations -->
+        <section class="card">
+          <div class="card-title-row">
+            <h2 class="card-title">Recommended For You</h2>
+            <span class="ai-badge"><Radio size={12} /> AI Powered</span>
+          </div>
+          <p class="recs-intro">{recommendations?.briefing || 'Analyzing your taste to find your next favorite anime...'}</p>
+          <div class="recs-grid">
+            {#each (recommendations?.recommendations || []) as rec (rec.id)}
+              <a href="/anime/{rec.id}" class="rec-card">
+                <img src={getProxiedImage(rec.poster)} alt="" class="rec-poster" />
+                <div class="rec-info">
+                  <span class="rec-title">{rec.title}</span>
+                  <span class="rec-reason">{rec.reason}</span>
+                </div>
+              </a>
+            {/each}
+          </div>
+        </section>
       </div>
     </div>
   {/if}
 </div>
 
 <style>
-  .profile-page {
-    min-height: 100vh;
-    background: #0a0a0b;
-    color: #f2f2f2;
-    padding: 100px 20px 40px;
-    font-family: inherit;
+  .dashboard-page {
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+    max-width: 1100px;
   }
 
-  .profile-container {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  /* LOADING STATE */
-  .loader-container {
-    height: 70vh;
+  /* Loading */
+  .loading-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
+    padding: 6rem 1rem;
+    gap: 1rem;
+    color: var(--net-text-muted);
   }
-  .premium-loader {
-    display: flex;
-    gap: 8px;
-  }
-  .premium-loader .dot {
-    width: 6px;
-    height: 6px;
-    background: var(--net-red, #ff1e2b);
-    border-radius: 50%;
-    animation: bounce 0.6s infinite alternate;
-  }
-  .premium-loader .dot:nth-child(2) { animation-delay: 0.2s; }
-  .premium-loader .dot:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce { to { opacity: 0.3; transform: scale(0.8); } }
-  .loading-text { font-size: 0.7rem; letter-spacing: 2px; opacity: 0.5; }
+  .loading-state p { font-size: 0.9rem; }
 
-  /* HEADER */
-  .profile-header {
+  /* Page Header */
+  .page-header { margin-bottom: 2rem; }
+  .header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 40px;
-    padding-bottom: 30px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 1rem;
   }
-  .user-info { display: flex; align-items: center; gap: 20px; }
-  .avatar-placeholder {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, var(--net-red) 0%, #7c040a 100%);
-    border-radius: 16px;
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--net-red), #7c040a);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 800;
-    color: #fff;
-    box-shadow: 0 10px 20px rgba(229, 9, 20, 0.2);
+    color: white;
+    flex-shrink: 0;
   }
-  .user-meta h1 { font-size: 1.8rem; font-weight: 900; margin: 0 0 5px; letter-spacing: -0.02em; }
-  .status-row { display: flex; gap: 10px; }
-  .status-badge { font-size: 0.6rem; font-weight: 800; background: rgba(0, 255, 127, 0.1); color: #00ff7f; padding: 2px 8px; border-radius: 4px; }
-  .level-badge { font-size: 0.6rem; font-weight: 800; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.6); padding: 2px 8px; border-radius: 4px; }
-  .time-stamp { font-size: 0.8rem; opacity: 0.3; font-weight: 600; }
-
-  /* DASHBOARD GRID */
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 30px;
-  }
-
-  .premium-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    padding: 24px;
-    margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-  }
-  .premium-card h2 {
-    font-size: 0.75rem;
+  .page-title {
+    font-size: 1.8rem;
     font-weight: 800;
-    letter-spacing: 1.5px;
-    color: rgba(255, 255, 255, 0.4);
-    margin: 0 0 20px;
-    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.2rem;
   }
-
-  /* SIDEBAR STATS */
-  .stat-items { display: flex; flex-direction: column; gap: 15px; }
-  .stat-items .item { display: flex; justify-content: space-between; align-items: baseline; }
-  .stat-items .label { font-size: 0.7rem; font-weight: 700; opacity: 0.5; }
-  .stat-items .val { font-size: 1.25rem; font-weight: 800; }
-  .stat-items .item.highlight .val { color: var(--net-red); }
-
-  /* CONFIG SYNC */
-  .sync-items { display: flex; flex-direction: column; gap: 12px; }
-  .sync-btn {
+  .page-subtitle {
+    color: var(--net-text-muted);
+    font-size: 0.92rem;
+  }
+  .header-badge {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
+    background: rgba(229, 9, 20, 0.1);
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--net-red);
+    white-space: nowrap;
+  }
+
+  /* Stats Row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 12px 16px;
-    border-radius: 12px;
-    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 1.25rem;
     transition: all 0.2s;
-    color: rgba(255, 255, 255, 0.6);
+  }
+  .stat-card:hover {
+    border-color: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(229, 9, 20, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--net-red);
+    flex-shrink: 0;
+  }
+  .stat-info { display: flex; flex-direction: column; }
+  .stat-value { font-size: 1.1rem; font-weight: 700; color: white; }
+  .stat-label { font-size: 0.75rem; color: var(--net-text-muted); margin-top: 0.15rem; }
+
+  /* Resume Section */
+  .resume-section { margin-bottom: 2rem; }
+  .resume-card {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1.25rem;
+    transition: all 0.2s;
+  }
+  .resume-card:hover {
+    border-color: rgba(229, 9, 20, 0.2);
+  }
+  .resume-poster {
+    width: 60px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .resume-info { flex: 1; min-width: 0; }
+  .resume-tag {
     font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    color: var(--net-red);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
-  .sync-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
-  .sync-btn.active { color: #fff; border-color: rgba(0, 153, 255, 0.3); background: rgba(0, 153, 255, 0.05); }
-  .indicator { width: 6px; height: 6px; border-radius: 50%; background: #333; transition: all 0.3s; }
-  .active .indicator { background: var(--net-red); box-shadow: 0 0 8px var(--net-red); }
-
-  .visual-engine-link { margin-top: 15px; }
-  .visual-engine-link .label { font-size: 0.6rem; font-weight: 800; opacity: 0.3; display: block; margin-bottom: 8px; }
-  .engine-btn {
+  .resume-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0.25rem 0;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .resume-meta {
+    font-size: 0.82rem;
+    color: var(--net-text-muted);
+    margin-bottom: 0.5rem;
+  }
+  .resume-progress {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .resume-progress-fill {
+    height: 100%;
+    background: var(--net-red);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+  .resume-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.3);
-    color: var(--net-red);
-    padding: 12px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    text-decoration: none;
-    transition: all 0.3s;
-  }
-  .engine-btn:hover {
+    gap: 0.4rem;
+    padding: 0.6rem 1.25rem;
     background: var(--net-red);
     color: white;
-    transform: translateY(-2px);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .resume-btn:hover { filter: brightness(1.15); }
+
+  /* Dashboard Grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 1.5rem;
+    align-items: start;
   }
 
-  /* MAIN CONTENT */
-  /* QUICK RESUME */
-  .resume-card {
-    height: 240px;
+  /* Cards */
+  .card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    color: white;
+  }
+  .card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .card-title-row .card-title { margin-bottom: 0; }
+
+  /* Preferences */
+  .pref-list {
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: 30px;
-    border: none;
+    gap: 0.75rem;
   }
-  .card-bg {
+  .pref-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    color: white;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .pref-toggle:hover { background: rgba(255, 255, 255, 0.06); }
+  .toggle-dot {
+    width: 38px;
+    height: 22px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.12);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-dot::after {
+    content: '';
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-size: cover;
-    background-position: center 20%;
-    filter: brightness(0.6) saturate(1.2);
-    transition: transform 0.8s cubic-bezier(0.2, 0, 0.2, 1);
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s;
   }
-  .resume-card:hover .card-bg { transform: scale(1.05); }
-  .overlay {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(0deg, rgba(10, 10, 11, 0.9) 0%, rgba(10, 10, 11, 0.2) 100%);
+  .pref-toggle.active .toggle-dot {
+    background: var(--net-red);
   }
-  .resume-info { position: relative; z-index: 2; }
-  .resume-info .tag { font-size: 0.6rem; font-weight: 900; letter-spacing: 2px; color: var(--net-red); margin-bottom: 10px; display: block; }
-  .resume-info h3 { font-size: 2rem; font-weight: 900; margin: 0 0 10px; letter-spacing: -0.03em; }
-  .resume-info .meta { font-size: 0.8rem; font-weight: 700; opacity: 0.7; margin-bottom: 20px; }
-  .btn-resume {
+  .pref-toggle.active .toggle-dot::after {
+    transform: translateX(16px);
+  }
+
+  .pref-select {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .pref-select label {
+    font-size: 0.78rem;
+    color: var(--net-text-muted);
+    font-weight: 600;
+  }
+  .pref-select select {
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: white;
+    font-size: 0.88rem;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+  }
+  .pref-select select:focus { border-color: var(--net-red); }
+
+  .theme-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    background: rgba(229, 9, 20, 0.06);
+    border: 1px solid rgba(229, 9, 20, 0.12);
+    border-radius: 10px;
+    color: var(--net-red);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .theme-link:hover {
+    background: rgba(229, 9, 20, 0.1);
+    border-color: rgba(229, 9, 20, 0.25);
+  }
+
+  /* AI Badge */
+  .ai-badge {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    background: #f2f2f2;
-    color: #000;
-    padding: 12px 24px;
-    border-radius: 12px;
-    font-weight: 800;
-    font-size: 0.85rem;
-    text-decoration: none;
-    transition: all 0.3s;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+    border: 1px solid rgba(167, 139, 250, 0.2);
+    padding: 0.25rem 0.6rem;
+    border-radius: 50px;
   }
-  .btn-resume:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
 
-  /* RECENT ACTIVITY */
-  .activity-list { display: flex; flex-direction: column; gap: 8px; }
+  .recs-intro {
+    font-size: 0.88rem;
+    color: var(--net-text-muted);
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+  }
+
+  .recs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+  }
+  .rec-card {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .rec-card:hover {
+    border-color: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .rec-poster {
+    width: 44px;
+    height: 60px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .rec-info { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+  .rec-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rec-reason {
+    font-size: 0.72rem;
+    color: var(--net-text-muted);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Activity List */
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
   .activity-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 14px;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
     text-decoration: none;
-    color: inherit;
-    position: relative;
-    overflow: hidden;
     transition: background 0.2s;
   }
   .activity-item:hover { background: rgba(255, 255, 255, 0.04); }
-  .activity-item img { width: 40px; height: 56px; object-fit: cover; border-radius: 8px; }
-  .item-content { flex: 1; display: flex; flex-direction: column; }
-  .item-content .name { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
-  .item-content .meta { font-size: 0.7rem; opacity: 0.4; font-weight: 600; }
-  .mini-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: rgba(255, 255, 255, 0.05); }
-  .mini-progress .fill { height: 100%; background: var(--net-red); }
-
-  /* AI BRIEFING */
-  .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
-  .ai-badge { font-size: 0.6rem; font-weight: 800; color: var(--net-red); display: flex; align-items: center; gap: 5px; }
-  .briefing-text { font-size: 0.95rem; line-height: 1.6; opacity: 0.7; margin-bottom: 24px; font-weight: 500; }
-  .recs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-  .rec-card {
-    height: 140px;
-    border-radius: 16px;
-    position: relative;
+  .activity-poster {
+    width: 36px;
+    height: 48px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .activity-info { flex: 1; min-width: 0; }
+  .activity-name {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .activity-meta {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--net-text-muted);
+    margin-top: 0.15rem;
+  }
+  .activity-progress {
+    width: 50px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .activity-progress-fill {
+    height: 100%;
+    background: var(--net-red);
+    border-radius: 2px;
+  }
+
+  .empty-state {
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: 15px;
-    text-decoration: none;
-    color: #fff;
+    align-items: center;
+    padding: 2rem 1rem;
+    gap: 0.75rem;
+    text-align: center;
   }
-  .rec-card img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-  .rec-blur { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); }
-  .rec-info { position: relative; z-index: 2; }
-  .rec-info .title { display: block; font-size: 0.85rem; font-weight: 800; margin-bottom: 4px; }
-  .rec-info .reason { font-size: 0.65rem; opacity: 0.6; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .empty-icon { color: var(--net-text-muted); opacity: 0.4; }
+  .empty-state p { font-size: 0.88rem; color: var(--net-text-muted); }
 
-  /* RESPONSIVE */
-  @media (max-width: 1024px) {
-    .dashboard-grid { grid-template-columns: 1fr; }
-    .sidebar { order: 2; }
-    .main-content { order: 1; }
+  /* Responsive */
+  @media (max-width: 900px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+    .stats-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
-  @media (max-width: 640px) {
-    .resume-info h3 { font-size: 1.5rem; }
-    .profile-header { flex-direction: column; text-align: center; gap: 20px; }
-    .user-info { flex-direction: column; }
+
+  @media (max-width: 600px) {
+    .page-title { font-size: 1.4rem; }
+    .page-subtitle { font-size: 0.85rem; }
+    .header-badge { display: none; }
+    .stats-row {
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .stat-card { padding: 1rem; }
+    .stat-value { font-size: 0.95rem; }
+    .resume-card {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .resume-btn { width: 100%; justify-content: center; }
+    .recs-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .stats-row { grid-template-columns: 1fr; }
+    .avatar { width: 42px; height: 42px; font-size: 1.1rem; }
   }
 </style>
-

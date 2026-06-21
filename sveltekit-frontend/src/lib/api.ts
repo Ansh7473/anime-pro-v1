@@ -9,8 +9,11 @@ const AUTH_URL = `${BACKEND_URL}/api/v1/auth`;
 const USER_URL = `${BACKEND_URL}/api/v1/user`;
 const GENERAL_PROXY = `${STREAMING_URL}/proxy`;
 
-async function fetchJSON(url: string, options?: RequestInit) {
-	const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } });
+async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof fetch }) {
+	const fetchFn = options?.fetch || fetch;
+	const fetchOptions = { ...options };
+	delete fetchOptions.fetch;
+	const res = await fetchFn(url, { ...fetchOptions, headers: { 'Content-Type': 'application/json', ...fetchOptions.headers } });
 	if (!res.ok) {
 		if (res.status === 401 && browser) {
 			clearAuth();
@@ -95,16 +98,16 @@ let homeCacheTime = 0;
 const CACHE_TTL = 60_000;
 
 export const api = {
-	getHome: async (force = false) => {
+	getHome: async (force = false, customFetch?: typeof fetch) => {
 		if (homeCache && !force && Date.now() - homeCacheTime < CACHE_TTL) return homeCache;
-		const res = await fetchJSON(`${BASE_URL}/home`);
+		const res = await fetchJSON(`${BASE_URL}/home`, { fetch: customFetch });
 		homeCache = res?.data || res;
 		homeCacheTime = Date.now();
 		return homeCache;
 	},
 
-	getAnime: async (id: string | number) => {
-		const res = await fetchJSON(`${BASE_URL}/anime/${id}`);
+	getAnime: async (id: string | number, customFetch?: typeof fetch) => {
+		const res = await fetchJSON(`${BASE_URL}/anime/${id}`, { fetch: customFetch });
 		return res?.data || res;
 	},
 
@@ -124,14 +127,14 @@ export const api = {
 		return res;
 	},
 
-	getTopAnime: async (format = 'TV', page = 1, limit = 20, sort = 'POPULARITY_DESC') => {
+	getTopAnime: async (format = 'TV', page = 1, limit = 20, sort = 'POPULARITY_DESC', customFetch?: typeof fetch) => {
 		const params = new URLSearchParams({
 			format: format.toUpperCase(),
 			page: page.toString(),
 			limit: limit.toString(),
 			sort: sort
 		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
 	},
 
 	getAnilistSchedule: async (start: number, end: number) => {
@@ -139,34 +142,34 @@ export const api = {
 		return res?.data || res;
 	},
 
-	getCurrentSeasonal: async (page = 1, limit = 20) => {
+	getCurrentSeasonal: async (page = 1, limit = 20, customFetch?: typeof fetch) => {
 		const params = new URLSearchParams({
 			status: 'RELEASING',
 			page: page.toString(),
 			limit: limit.toString(),
 			sort: 'TRENDING_DESC'
 		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
 	},
 
-	getUpcoming: async (page = 1, limit = 20) => {
+	getUpcoming: async (page = 1, limit = 20, customFetch?: typeof fetch) => {
 		const params = new URLSearchParams({
 			status: 'NOT_YET_RELEASED',
 			page: page.toString(),
 			limit: limit.toString(),
 			sort: 'POPULARITY_DESC'
 		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
 	},
 
-	getByGenre: async (genre: string, page = 1, limit = 20) => {
+	getByGenre: async (genre: string, page = 1, limit = 20, customFetch?: typeof fetch) => {
 		const params = new URLSearchParams({
 			genre,
 			page: page.toString(),
 			limit: limit.toString(),
 			sort: 'POPULARITY_DESC'
 		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
 	},
 
 	getRecommendations: async (id: string | number) => {
@@ -200,16 +203,16 @@ export const api = {
 		return pick?.idMal || pick?.id;
 	},
 
-	getCategory: async (type: string, page = 1) => {
+	getCategory: async (type: string, page = 1, customFetch?: typeof fetch) => {
 		switch (type) {
-			case 'trending-now': case 'trending': return api.getCurrentSeasonal(page);
-			case 'seasonal': case 'top-airing': return api.getCurrentSeasonal(page);
-			case 'upcoming': return api.getUpcoming(page);
-			case 'popular': case 'most-popular': case 'all-time-popular': return api.getTopAnime('TV', page);
-			case 'movies': return api.getTopAnime('MOVIE', page);
-			case 'action': return api.getByGenre('Action', page);
-			case 'romance': return api.getByGenre('Romance', page);
-			default: return api.getTopAnime('TV', page);
+			case 'trending-now': case 'trending': return api.getCurrentSeasonal(page, 20, customFetch);
+			case 'seasonal': case 'top-airing': return api.getCurrentSeasonal(page, 20, customFetch);
+			case 'upcoming': return api.getUpcoming(page, 20, customFetch);
+			case 'popular': case 'most-popular': case 'all-time-popular': return api.getTopAnime('TV', page, 20, 'POPULARITY_DESC', customFetch);
+			case 'movies': return api.getTopAnime('MOVIE', page, 20, 'POPULARITY_DESC', customFetch);
+			case 'action': return api.getByGenre('Action', page, 20, customFetch);
+			case 'romance': return api.getByGenre('Romance', page, 20, customFetch);
+			default: return api.getTopAnime('TV', page, 20, 'POPULARITY_DESC', customFetch);
 		}
 	},
 

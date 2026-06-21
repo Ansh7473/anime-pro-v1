@@ -1,93 +1,95 @@
 <script lang="ts">
-  import { 
-    Globe, 
-    Send, 
-    MessageSquare, 
-    Shield, 
-    Cpu, 
-    Database, 
-    Radio,
-    Terminal,
-    Heart
+  import {
+    Globe,
+    Send,
+    MessageSquare,
+    Shield,
+    Mail,
+    Heart,
+    ExternalLink
   } from 'lucide-svelte';
-  
+
   const currentYear = new Date().getFullYear();
 </script>
 
-<footer class="tactical-footer">
+<footer class="site-footer">
   <div class="footer-grid container">
-    <!-- Brand / Mission -->
+    <!-- Brand -->
     <div class="footer-section brand-section">
       <div class="footer-logo">
-        <Terminal size={24} style="color: var(--net-red)" />
-        <span class="logo-text">WATCHANIMEZ<span class="dot">.</span></span>
+        <span class="logo-text">WATCH<span class="accent">ANIMEZ</span></span>
       </div>
-      <p class="mission-text">
-        High-fidelity tactical interface for strategic anime distribution. 
-        Advanced intelligence, seamless streaming, and operative-grade performance.
+      <p class="footer-desc">
+        Your premium anime streaming destination. Discover trending series, seasonal hits, classic favorites, and the latest movies — all in one place with fast, reliable streaming.
       </p>
-      <div class="op-status">
-        <div class="status-indicator online"></div>
-        <span class="status-text">NETWORK_ONLINE // ENCRYPTED_AUTH</span>
+      <div class="social-links">
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="social-icon">
+          <Globe size={18} />
+        </a>
+        <a href="https://discord.com" target="_blank" rel="noopener noreferrer" aria-label="Discord" class="social-icon">
+          <MessageSquare size={18} />
+        </a>
+        <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" class="social-icon">
+          <Send size={18} />
+        </a>
+        <a href="mailto:support@watchanimez.me" aria-label="Email" class="social-icon">
+          <Mail size={18} />
+        </a>
       </div>
     </div>
 
-    <!-- Navigation -->
+    <!-- Browse -->
     <div class="footer-section">
-      <h3 class="section-title">ASSET_NAVIGATION</h3>
+      <h3 class="section-title">Browse</h3>
       <ul class="footer-links">
-        <li><a href="/explore">EXPLORE_INDEX</a></li>
-        <li><a href="/intel">INTEL_HUB</a></li>
-        <li><a href="/schedule">DEPLOYMENT_SCHEDULE</a></li>
-        <li><a href="/latest">NEW_ACQUISITIONS</a></li>
+        <li><a href="/explore">Explore</a></li>
+        <li><a href="/latest">Latest Releases</a></li>
+        <li><a href="/schedule">Schedule</a></li>
+        <li><a href="/movies">Movies</a></li>
+        <li><a href="/tv-series">TV Series</a></li>
       </ul>
     </div>
 
-    <!-- Community / Comms -->
+    <!-- Community -->
     <div class="footer-section">
-      <h3 class="section-title">COMMS_CHANNELS</h3>
+      <h3 class="section-title">Community</h3>
       <ul class="footer-links">
-        <li><a href="https://github.com" target="_blank"><Globe size={14} /> GITHUB_REPOSITORY</a></li>
-        <li><a href="https://discord.com" target="_blank"><MessageSquare size={14} /> DISCORD_SERVER</a></li>
-        <li><a href="https://twitter.com" target="_blank"><Send size={14} /> TWITTER_COMMS</a></li>
-        <li><a href="/donate"><Shield size={14} /> SUPPORT_OPERATIONS</a></li>
+        <li><a href="https://github.com" target="_blank" rel="noopener noreferrer"><Globe size={14} /> GitHub</a></li>
+        <li><a href="https://discord.com" target="_blank" rel="noopener noreferrer"><MessageSquare size={14} /> Discord</a></li>
+        <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer"><Send size={14} /> Twitter</a></li>
+        <li><a href="/donate"><Heart size={14} /> Support Us</a></li>
       </ul>
     </div>
 
-    <!-- Technical Specs -->
+    <!-- Legal -->
     <div class="footer-section">
-      <h3 class="section-title">SYSTEM_DATA</h3>
-      <div class="tech-specs">
-        <div class="spec-item">
-          <Cpu size={14} />
-          <span>V1.0.8_STABLE</span>
-        </div>
-        <div class="spec-item">
-          <Database size={14} />
-          <span>FIRESTORE_SECURE</span>
-        </div>
-        <div class="spec-item">
-          <Radio size={14} />
-          <span>PROXY_LAYER_ACTIVE</span>
-        </div>
-      </div>
+      <h3 class="section-title">Legal</h3>
+      <ul class="footer-links">
+        <li><a href="/about">About Us</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms & Conditions</a></li>
+        <li><a href="/faq">FAQ</a></li>
+      </ul>
     </div>
   </div>
 
   <div class="footer-bottom">
     <div class="container bottom-content">
-      <p class="copyright">&copy; {currentYear} WATCHANIMEZ COMMAND. All operational data encrypted and distributed via secure channels.</p>
+      <p class="copyright">&copy; {currentYear} WatchAnimez. All rights reserved.</p>
       <div class="legal-links">
-        <a href="/tos">TERMS_OF_SERVICE</a>
-        <span class="divider">//</span>
-        <a href="/privacy">PRIVACY_PROTOCOL</a>
+        <a href="/terms">Terms of Service</a>
+        <span class="divider">·</span>
+        <a href="/privacy">Privacy Policy</a>
+        <span class="divider">·</span>
+        <a href="/faq">FAQ</a>
       </div>
     </div>
   </div>
 </footer>
 
 <style>
-  .tactical-footer {
+  .site-footer {
     background: #050505;
     border-top: 1px solid rgba(229, 9, 20, 0.1);
     padding-top: 4rem;
@@ -106,67 +108,64 @@
   .footer-section {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
   .footer-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
   }
 
   .logo-text {
     font-size: 1.5rem;
     font-weight: 800;
-    letter-spacing: 2px;
+    letter-spacing: -0.02em;
     color: #fff;
   }
 
-  .logo-text .dot { color: var(--net-red); }
+  .logo-text .accent { color: var(--net-red); }
 
-  .mission-text {
-    font-size: 0.85rem;
+  .footer-desc {
+    font-size: 0.88rem;
     color: rgba(255, 255, 255, 0.5);
-    line-height: 1.6;
-    max-width: 320px;
+    line-height: 1.7;
+    max-width: 340px;
   }
 
-  .op-status {
+  .social-links {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .social-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: rgba(229, 9, 20, 0.05);
-    padding: 6px 12px;
-    border-radius: 4px;
-    width: fit-content;
-    border: 0.5px solid rgba(229, 9, 20, 0.1);
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s;
+    text-decoration: none;
   }
-
-  .status-indicator {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-  }
-
-  .status-indicator.online {
-    background: #00ffcc;
-    box-shadow: 0 0 8px #00ffcc;
-  }
-
-  .status-text {
-    font-size: 0.6rem;
-    font-weight: 800;
+  .social-icon:hover {
+    background: rgba(229, 9, 20, 0.1);
+    border-color: var(--net-red);
     color: var(--net-red);
-    letter-spacing: 1px;
+    transform: translateY(-2px);
   }
 
   .section-title {
-    font-size: 0.75rem;
-    font-weight: 800;
+    font-size: 0.85rem;
+    font-weight: 700;
     color: #fff;
-    letter-spacing: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     position: relative;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
   }
 
   .section-title::after {
@@ -183,17 +182,18 @@
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 0.75rem;
   }
 
   .footer-links a {
-    font-size: 0.8rem;
+    font-size: 0.88rem;
     color: rgba(255, 255, 255, 0.5);
-    font-weight: 600;
+    font-weight: 500;
     display: flex;
     align-items: center;
     gap: 8px;
     transition: all 0.2s;
+    text-decoration: none;
   }
 
   .footer-links a:hover {
@@ -201,24 +201,9 @@
     transform: translateX(4px);
   }
 
-  .tech-specs {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .spec-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-    font-weight: 700;
-  }
-
   .footer-bottom {
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 2rem 0;
+    padding: 1.5rem 0;
     background: #030303;
   }
 
@@ -230,8 +215,8 @@
   }
 
   .copyright {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.35);
     font-weight: 500;
   }
 
@@ -239,18 +224,19 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 500;
   }
 
   .legal-links a {
     color: rgba(255, 255, 255, 0.4);
     transition: color 0.2s;
+    text-decoration: none;
   }
 
   .legal-links a:hover { color: #fff; }
 
-  .divider { color: rgba(255, 255, 255, 0.1); }
+  .divider { color: rgba(255, 255, 255, 0.15); }
 
   @media (max-width: 1024px) {
     .footer-grid {
@@ -266,10 +252,10 @@
     .bottom-content {
       flex-direction: column;
       text-align: center;
-      gap: 1.5rem;
+      gap: 1rem;
     }
-    .tactical-footer {
-      padding-bottom: 80px; /* Space for mobile nav */
+    .site-footer {
+      padding-bottom: 80px;
     }
   }
 </style>

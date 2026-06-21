@@ -22,8 +22,16 @@
         throw new Error("Invalid response from server");
       }
     } catch (e: any) {
-      error =
-        e.message || "Failed to establish connection. Check your credentials.";
+      const msg = String(e.message || e || "");
+      if (msg.includes("401") || msg.includes("Unauthorized") || msg.includes("invalid") || msg.includes("credentials")) {
+        error = "Wrong email or password. Please check your credentials and try again.";
+      } else if (msg.includes("network") || msg.includes("fetch") || msg.includes("Failed to fetch")) {
+        error = "Connection error. Please check your internet and try again.";
+      } else if (msg.includes("500") || msg.includes("Internal")) {
+        error = "Server error. Please try again in a moment.";
+      } else {
+        error = msg || "Something went wrong. Please try again.";
+      }
     } finally {
       loading = false;
     }
@@ -36,11 +44,11 @@
 </script>
 
 <svelte:head>
-  <title>Login / WatchAnimez</title>
+  <title>Login — WatchAnimez</title>
+  <meta name="description" content="Sign in to your WatchAnimez account to access your watchlist, favorites, and personalized recommendations." />
 </svelte:head>
 
-<div class="netflix-page" class:ready={mounted}>
-  <!-- Cinematic Background -->
+<div class="login-page" class:ready={mounted}>
   <div class="hero-bg">
     <div class="poster-overlay"></div>
     <div class="gradient-overlay"></div>
@@ -50,7 +58,7 @@
     <div class="login-card glass">
       <header class="login-header">
         <h1>Welcome Back</h1>
-        <p class="subtitle">Access your WatchAnimez operator profile</p>
+        <p class="subtitle">Sign in to your WatchAnimez account</p>
       </header>
 
       {#if error}
@@ -69,7 +77,7 @@
               required
               autocomplete="email"
             />
-            <label for="email" class:active={email}>Operator ID / Email</label>
+            <label for="email" class:active={email}>Email Address</label>
             <div class="focus-border"></div>
           </div>
         </div>
@@ -83,9 +91,7 @@
               required
               autocomplete="current-password"
             />
-            <label for="password" class:active={password}
-              >Access Key / Password</label
-            >
+            <label for="password" class:active={password}>Password</label>
             <div class="focus-border"></div>
           </div>
         </div>
@@ -93,17 +99,17 @@
         <button type="submit" class="submit-btn" disabled={loading}>
           {#if loading}
             <span class="loader"></span>
-            INITIALIZING...
+            Signing in...
           {:else}
-            ESTABLISH CONNECTION
+            Sign In
           {/if}
         </button>
       </form>
 
       <footer class="login-footer">
         <div class="footer-links">
-          <span class="new-text">New Operator?</span>
-          <a href="/auth/register" class="signup-link">Register Account</a>
+          <span class="new-text">New to WatchAnimez?</span>
+          <a href="/auth/register" class="signup-link">Create Account</a>
         </div>
       </footer>
     </div>
@@ -114,14 +120,14 @@
   :global(:root) {
     --n-bg: #000;
     --n-card-bg: rgba(0, 0, 0, 0.75);
-    --n-accent: #0088ff;
+    --n-accent: var(--net-red, #e50914);
     --n-text: #fff;
     --n-text-muted: #8c8c8c;
     --n-input-bg: #333;
-    --n-error: #e87c03;
+    --n-error: #e50914;
   }
 
-  .netflix-page {
+  .login-page {
     position: relative;
     min-height: 100vh;
     display: flex;
@@ -129,20 +135,15 @@
     align-items: center;
     background: var(--n-bg);
     color: var(--n-text);
-    font-family:
-      "Inter",
-      system-ui,
-      -apple-system,
-      sans-serif;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
     opacity: 0;
     transition: opacity 0.5s ease;
   }
 
-  .netflix-page.ready {
+  .login-page.ready {
     opacity: 1;
   }
 
-  /* Cinematic Background */
   .hero-bg {
     position: absolute;
     inset: 0;
@@ -153,7 +154,7 @@
   .poster-overlay {
     position: absolute;
     inset: 0;
-    background: url("https://images.unsplash.com/photo-1541562232579-512a21359920?auto=format&fit=crop&q=60&w=1200")
+    background: url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200")
       center/cover;
     filter: blur(20px) brightness(0.3);
     transform: scale(1.1);
@@ -181,7 +182,7 @@
   .login-card {
     background: var(--n-card-bg);
     padding: 3.5rem 4rem;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
   }
 
@@ -203,12 +204,15 @@
   }
 
   .error-alert {
-    background: var(--n-error);
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-    font-size: 0.85rem;
+    background: rgba(229, 9, 20, 0.15);
+    border: 1px solid rgba(229, 9, 20, 0.3);
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
     margin-bottom: 1.5rem;
     font-weight: 500;
+    color: #ff6b6b;
+    line-height: 1.5;
   }
 
   .login-form {
@@ -224,7 +228,7 @@
   .input-container {
     position: relative;
     background: var(--n-input-bg);
-    border-radius: 4px;
+    border-radius: 8px;
   }
 
   input {
@@ -236,6 +240,7 @@
     font-size: 1rem;
     outline: none;
     height: 55px;
+    box-sizing: border-box;
   }
 
   label {
@@ -277,18 +282,17 @@
     color: #fff;
     border: none;
     padding: 1rem;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
-    transition:
-      transform 0.2s ease,
-      filter 0.2s ease;
+    transition: transform 0.2s ease, filter 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
     letter-spacing: 0.5px;
+    font-family: inherit;
   }
 
   .submit-btn:hover:not(:disabled) {
@@ -311,9 +315,7 @@
   }
 
   @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
   }
 
   .login-footer {
@@ -342,16 +344,19 @@
 
   @media (max-width: 480px) {
     .login-card {
-      padding: 3rem 1.5rem;
+      padding: 2.5rem 1.5rem;
       background: #000;
       border-radius: 0;
     }
-    .netflix-page {
+    .login-page {
       align-items: flex-start;
       background: #000;
     }
     .hero-bg {
       display: none;
+    }
+    h1 {
+      font-size: 1.8rem;
     }
   }
 </style>

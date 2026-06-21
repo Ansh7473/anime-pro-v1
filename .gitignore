@@ -50,8 +50,18 @@ notfor vervel/
 !package-lock.json
 !composer.json
 !tsconfig.json
+!sveltekit-frontend/static/manifest.json
 
 hello-world-fire-tv
 native-android-tv
 ComposeForTv
 tv-samples
+
+# AI/Dev Tools
+.codegraph/
+.playwright-mcp/
+
+# Temp check files
+check_results.txt
+check_results_utf8.txt
+nul
