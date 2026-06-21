@@ -13,13 +13,13 @@ export default defineConfig({
 				changeOrigin: true,
 			},
 			'/animelok-api': {
-				target: 'https://animelok.xyz',
+				target: 'https://animelok.net',
 				changeOrigin: true,
 				secure: true,
 				rewrite: (path) => path.replace(/^\/animelok-api/, '/api/anime'),
 				headers: {
-					'Origin': 'https://animelok.xyz',
-					'Referer': 'https://animelok.xyz/',
+					'Origin': 'https://animelok.net',
+					'Referer': 'https://animelok.net/',
 					'Accept': 'application/json, text/plain, */*',
 				},
 			}

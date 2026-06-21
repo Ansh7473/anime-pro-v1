@@ -119,7 +119,7 @@ export const api = {
 	search: async (q: string, page = 1, limit = 20, filters: any = {}) => {
 		const params = new URLSearchParams({
 			q,
-			page: page.toString(), 
+			page: page.toString(),
 			limit: limit.toString(),
 			sort: filters.sort?.[0] || 'POPULARITY_DESC'
 		});
