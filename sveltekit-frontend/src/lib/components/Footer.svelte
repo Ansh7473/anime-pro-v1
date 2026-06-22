@@ -69,6 +69,7 @@
         <li><a href="/contact">Contact</a></li>
         <li><a href="/privacy">Privacy Policy</a></li>
         <li><a href="/terms">Terms & Conditions</a></li>
+        <li><a href="/dmca">DMCA Policy</a></li>
         <li><a href="/faq">FAQ</a></li>
       </ul>
     </div>
@@ -81,6 +82,8 @@
         <a href="/terms">Terms of Service</a>
         <span class="divider">·</span>
         <a href="/privacy">Privacy Policy</a>
+        <span class="divider">·</span>
+        <a href="/dmca">DMCA</a>
         <span class="divider">·</span>
         <a href="/faq">FAQ</a>
       </div>
