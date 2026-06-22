@@ -452,6 +452,7 @@
       { name: "Aniwaves", fetcher: api.getAniwavesSources },
       { name: "Animen", fetcher: api.getAnimenSources },
       { name: "AnimixStream", fetcher: api.getAnimixStreamSources },
+      { name: "AnimePahe", fetcher: api.getAnimePaheSources },
     ];
 
     let autoStarted = false;
