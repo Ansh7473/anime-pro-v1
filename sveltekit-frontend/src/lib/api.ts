@@ -263,6 +263,9 @@ export const api = {
 	getAnimixStreamSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources/animixstream?animeId=${animeId}&ep=${ep}`),
 
+	getAnimePaheSources: (animeId: string, ep: number) =>
+		fetchJSON(`${STREAMING_URL}/sources/animepahe?animeId=${animeId}&ep=${ep}`),
+
 	getAggregateSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources?animeId=${animeId}&ep=${ep}`),
 
