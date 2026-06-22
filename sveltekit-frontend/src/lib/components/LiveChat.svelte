@@ -14,12 +14,12 @@
   } from "lucide-svelte";
   import * as Ably from "ably";
 
-  let { animeId, episode, isInline = false } = $props<{ animeId: string; episode: number; isInline?: boolean }>();
+  let { animeId, episode, isInline = false, onClose }: { animeId: string; episode: number; isInline?: boolean; onClose?: () => void } = $props();
   let ably: Ably.Realtime | null = null;
   let channel: any = null;
   let messages = $state<any[]>([]);
   let newMessage = $state("");
-  let isOpen = $state(false);
+  let isOpen = $state(isInline);
   let connected = $state(false);
   let chatEndRef: HTMLDivElement | null = $state(null);
   let chatType = $state("Live Chat"); // Visual only for YT feel
@@ -89,7 +89,7 @@
   }
 </script>
 
-<div class="chat-container" class:closed={!isOpen} class:inline={isInline}>
+<div class="chat-container" class:closed={!isOpen && !isInline} class:inline={isInline}>
   <button
     class="sidebar-toggle"
     onclick={() => (isOpen = !isOpen)}
@@ -103,7 +103,7 @@
     {/if}
   </button>
 
-  {#if isOpen}
+  {#if isOpen || isInline}
     <div class="chat-main glass-panel">
       <!-- YouTube Style Header -->
       <div class="chat-header">
@@ -114,7 +114,7 @@
           </div>
           <div class="header-actions">
             <button class="icon-btn"><Settings size={16} /></button>
-            <button class="icon-btn" onclick={() => (isOpen = false)}
+            <button class="icon-btn" onclick={() => isInline ? onClose?.() : (isOpen = false)}
               ><X size={18} /></button
             >
           </div>

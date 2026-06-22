@@ -25,12 +25,12 @@
       // Build discussion tree from flat list
       const map: Record<string, any> = {};
       const roots: any[] = [];
-      
+
       allComments.forEach((c: any) => {
         c.replies = [];
         map[c.id] = c;
       });
-      
+
       allComments.forEach((c: any) => {
         if (c.parentId && map[c.parentId]) {
           map[c.parentId].replies.push(c);
@@ -38,7 +38,7 @@
           roots.push(c);
         }
       });
-      
+
       comments = roots;
     } catch (e) {
       console.error('Failed to fetch comments:', e);
@@ -138,15 +138,15 @@
     {#if $auth.token}
       <img src={getProxiedImage($auth.currentProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user?.email || 'guest'}`)} alt="My Avatar" class="user-avatar" />
       <div class="input-wrapper">
-        <textarea 
-          placeholder="What are your thoughts on this episode?" 
+        <textarea
+          placeholder="What are your thoughts on this episode?"
           bind:value={newComment}
           rows="2"
         ></textarea>
         <div class="input-footer">
-          <button 
-            class="post-btn" 
-            onclick={() => postComment()} 
+          <button
+            class="post-btn"
+            onclick={() => postComment()}
             disabled={!newComment.trim() || processing}
           >
             {processing && !replyingTo ? 'Posting...' : 'Post Comment'}
@@ -174,10 +174,10 @@
     {:else}
       {#each comments as comment (comment.id)}
         <div class="comment-card">
-          <img 
-            src={getProxiedImage(comment.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.userName || 'User'}`)} 
-            alt={comment.userName} 
-            class="user-avatar" 
+          <img
+            src={getProxiedImage(comment.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.userName || 'User'}`)}
+            alt={comment.userName}
+            class="user-avatar"
           />
           <div class="comment-body">
             <div class="comment-info">
@@ -185,7 +185,7 @@
               <span class="timestamp">{formatDate(comment.createdAt)}</span>
             </div>
             <p class="content">{comment.content}</p>
-            
+
             <div class="comment-actions">
               <button class="action-btn" onclick={() => replyingTo = comment.id}>
                 <Reply size={14} /> Reply
@@ -200,15 +200,15 @@
             <!-- Reply Input -->
             {#if replyingTo === comment.id}
               <div class="input-container reply-input">
-                <textarea 
-                  placeholder="Write a reply..." 
+                <textarea
+                  placeholder="Write a reply..."
                   bind:value={replyText}
                   rows="1"
                 ></textarea>
                 <div class="input-footer">
                   <button class="btn-cancel" onclick={() => replyingTo = null}>Cancel</button>
-                  <button 
-                    class="post-btn" 
+                  <button
+                    class="post-btn"
                     onclick={() => postComment(comment.id)}
                     disabled={!replyText.trim() || processing}
                   >
@@ -223,10 +223,10 @@
               <div class="replies-list">
                 {#each comment.replies as reply (reply.id)}
                   <div class="comment-card reply">
-                    <img 
-                      src={getProxiedImage(reply.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.userName || 'User'}`)} 
-                      alt={reply.userName} 
-                      class="user-avatar sm" 
+                    <img
+                      src={getProxiedImage(reply.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reply.userName || 'User'}`)}
+                      alt={reply.userName}
+                      class="user-avatar sm"
                     />
                     <div class="comment-body">
                       <div class="comment-info">
@@ -260,76 +260,304 @@
     flex-direction: column;
     gap: 2rem;
     color: white;
+    background: linear-gradient(135deg, rgba(18, 18, 24, 0.82), rgba(8, 8, 12, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 26px;
+    padding: 2rem;
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
   .comments-header {
     display: flex;
     align-items: center;
     gap: 1rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .comments-header h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
-  .comment-count { font-size: 0.9rem; color: var(--net-text-muted); font-weight: 600; padding-top: 0.2rem; }
+  .comments-header h3 {
+    font-size: 1.5rem;
+    font-weight: 950;
+    letter-spacing: -0.02em;
+    color: #fff;
+    text-shadow: 0 0 26px rgba(229, 9, 20, 0.35);
+    flex: 1;
+  }
 
-  .user-avatar { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; object-fit: cover; }
-  .user-avatar.sm { width: 32px; height: 32px; border-radius: 8px; }
+  .comment-count {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 700;
+    padding: 0.4rem 1rem;
+    background: rgba(229, 9, 20, 0.15);
+    border: 1px solid rgba(229, 9, 20, 0.3);
+    border-radius: 999px;
+    box-shadow: 0 0 18px rgba(229, 9, 20, 0.25);
+  }
 
-  .input-container { display: flex; gap: 1.25rem; }
-  .input-wrapper { flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+  .user-avatar.sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .input-container {
+    display: flex;
+    gap: 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 1.5rem;
+  }
+  .input-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 
   textarea {
-    width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px; padding: 1rem; color: white; font-family: inherit; font-size: 0.95rem;
-    resize: vertical; outline: none; transition: 0.2s;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 1rem;
+    color: white;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    outline: none;
+    transition: 0.2s;
   }
-  textarea:focus { border-color: var(--net-red); background: rgba(255, 255, 255, 0.08); }
+  textarea:focus {
+    border-color: rgba(229, 9, 20, 0.6);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15);
+  }
 
-  .input-footer { display: flex; justify-content: flex-end; gap: 1rem; }
-  
+  .input-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+
   .post-btn {
-    background: var(--net-red); color: white; border: none; padding: 0.6rem 1.25rem;
-    border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+    background: linear-gradient(135deg, #e50914 0%, #c70811 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 8px 20px rgba(229, 9, 20, 0.3);
   }
-  .post-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3); }
-  .post-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .post-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.15);
+    box-shadow: 0 12px 28px rgba(229, 9, 20, 0.5);
+  }
+  .post-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-  .btn-cancel { background: transparent; color: var(--net-text-muted); border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+  .btn-cancel {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+  }
 
   .login-prompt {
-    flex: 1; text-align: center; padding: 2.5rem; background: rgba(255, 255, 255, 0.03); 
-    border-radius: 20px; border: 1px dashed rgba(255, 255, 255, 0.1);
-    display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+    flex: 1;
+    text-align: center;
+    padding: 2.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
   }
-  .btn-login { background: white; color: black; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 800; text-decoration: none; transition: 0.2s; }
-  .btn-login:hover { transform: scale(1.05); }
-
-  .comments-list { display: flex; flex-direction: column; gap: 2.5rem; }
-
-  .comment-card { display: flex; gap: 1.25rem; }
-  .comment-card.reply { gap: 1rem; margin-top: 1.5rem; }
-
-  .comment-body { flex: 1; display: flex; flex-direction: column; gap: 0.6rem; }
-  .comment-info { display: flex; align-items: center; gap: 1rem; }
-  .user-name { font-weight: 700; font-size: 0.95rem; color: white; }
-  .timestamp { font-size: 0.8rem; color: var(--net-text-muted); }
-
-  .content { line-height: 1.6; color: rgba(255, 255, 255, 0.9); font-size: 0.95rem; white-space: pre-wrap; }
-
-  .comment-actions { display: flex; gap: 1.5rem; margin-top: 0.25rem; }
-  .action-btn { 
-    background: transparent; border: none; color: var(--net-text-muted); 
-    display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; 
-    font-weight: 700; cursor: pointer; transition: 0.2s;
+  .btn-login {
+    background: white;
+    color: black;
+    padding: 0.85rem 2rem;
+    border-radius: 12px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: 0.2s;
   }
-  .action-btn:hover { color: white; }
-  .action-btn.delete:hover { color: var(--net-red); }
+  .btn-login:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+  }
 
-  .reply-input { margin-top: 1rem; }
-  .replies-list { border-left: 2px solid rgba(255, 255, 255, 0.05); padding-left: 1rem; margin-top: 0.5rem; }
+  .comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .comment-card {
+    display: flex;
+    gap: 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: 0.2s;
+  }
+  .comment-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .comment-card.reply {
+    gap: 1rem;
+    margin-top: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.04);
+  }
+
+  .comment-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .comment-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .user-name {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: white;
+  }
+  .timestamp {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .content {
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+  }
+
+  .comment-actions {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+  }
+  .action-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+  }
+  .action-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .action-btn.delete:hover {
+    color: #ff4757;
+    background: rgba(229, 9, 20, 0.15);
+  }
+
+  .reply-input {
+    margin-top: 1rem;
+  }
+  .replies-list {
+    border-left: 2px solid rgba(229, 9, 20, 0.3);
+    padding-left: 1rem;
+    margin-top: 1rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.95rem;
+  }
 
   .comment-skeleton {
-    height: 100px; background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
-    background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 16px;
+    height: 100px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 16px;
   }
-  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .comments-section {
+      padding: 1.5rem;
+      border-radius: 18px;
+    }
+
+    .comments-header h3 {
+      font-size: 1.25rem;
+    }
+
+    .comment-count {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.75rem;
+    }
+
+    .input-container {
+      padding: 1rem;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+    }
+
+    .comment-card {
+      padding: 1rem;
+      gap: 0.85rem;
+    }
+
+    .user-name {
+      font-size: 0.85rem;
+    }
+
+    .content {
+      font-size: 0.88rem;
+    }
+  }
 </style>

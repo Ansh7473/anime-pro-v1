@@ -148,6 +148,13 @@
   // Keyboard shortcuts tooltip
   let showShortcuts = $state(false);
 
+  // Collapsible LiveChat state
+  let showLiveChat = $state(false);
+
+  // Collapsible Server Selection state
+  let showServers = $state(true);
+  let openProvider = $state<string | null>(null);
+
   let isRotated = $state(false);
 
   function isMobileDevice() {
@@ -848,22 +855,147 @@
         </div>
       </div>
 
-      <!-- Provider / Source TABS -->
-      {#if Object.keys(groupedSources).length > 0}
-        <div class="server-selection cards-glass">
+      <div class="watch-engagement-strip cards-glass">
+        <div class="engagement-copy">
+          <span class="engagement-kicker">Episode pulse</span>
+          <strong>React while you watch</strong>
+        </div>
+        <div class="engagement-actions">
+          <ReactionsBar {animeId} episode={ep} />
+          <button
+            class="nav-secondary-btn comment-jump-btn"
+            onclick={() =>
+              document
+                .getElementById("community")
+                ?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <MessageSquare size={16} /> Show Comments
+          </button>
+        </div>
+      </div>
+
+      <!-- Collapsible LiveChat Section -->
+      <div class="collapsible-chat-wrapper mt-6">
+        <!-- Chat Toggle Button -->
+        <button
+          class="chat-toggle-btn"
+          onclick={() => {
+            showLiveChat = !showLiveChat;
+            if (showLiveChat) showServers = false;
+          }}
+          aria-expanded={showLiveChat}
+          aria-controls="live-chat-section"
+        >
+          <div class="toggle-content">
+            <MessageSquare size={18} />
+            <span class="toggle-text">{showLiveChat ? 'Hide Live Chat' : 'Live Chat'}</span>
+            <ChevronDown
+              size={16}
+              class={`toggle-icon ${showLiveChat ? 'rotated' : ''}`}
+            />
+          </div>
+          {#if !showLiveChat}
+            <span class="chat-badge">Optional</span>
+          {/if}
+        </button>
+
+        <!-- Collapsible Chat Container -->
+        <div
+          id="live-chat-section"
+          class="collapsible-chat-container"
+          class:expanded={showLiveChat}
+        >
+          <LiveChat {animeId} episode={ep} isInline={true} onClose={() => showLiveChat = false} />
+        </div>
+      </div>
+
+      <!-- Show Server Selection Button (when chat is open) -->
+      {#if showLiveChat && Object.keys(groupedSources).length > 0}
+        <button
+          class="show-servers-btn mt-6"
+          onclick={() => {
+            showServers = true;
+            showLiveChat = false;
+          }}
+        >
+          <Server size={18} />
+          <span>Show Server Selection</span>
+        </button>
+      {/if}
+
+      <!-- Collapsible Server Selection Section -->
+      <div class="collapsible-server-wrapper mt-6">
+        <!-- Server Toggle Button -->
+        <button
+          class="server-toggle-btn"
+          onclick={() => showServers = !showServers}
+          aria-expanded={showServers}
+          aria-controls="server-selection-section"
+        >
+          <div class="toggle-content">
+            <Server size={18} />
+            <span class="toggle-text">{showServers ? 'Hide Servers' : 'Server Selection'}</span>
+            <ChevronDown
+              size={16}
+              class={`toggle-icon ${showServers ? 'rotated' : ''}`}
+            />
+          </div>
+          {#if !showServers}
+            <span class="server-badge">{sources.length} Sources</span>
+          {/if}
+        </button>
+
+        <!-- Collapsible Server Container -->
+        <div
+          id="server-selection-section"
+          class="collapsible-server-container"
+          class:expanded={showServers}
+        >
+          <!-- Provider / Source TABS -->
+          {#if Object.keys(groupedSources).length > 0}
+            <div class="server-selection cards-glass">
           <div class="server-header">
-            <h3><Server size={18} /> Select Server</h3>
+            <div class="server-title-group">
+              <div class="server-icon-wrapper">
+                <Server size={20} class="server-icon" />
+              </div>
+              <div>
+                <h3>Select Server</h3>
+                <p class="server-subtitle">Choose your preferred streaming source</p>
+              </div>
+            </div>
             <div class="server-stats">
-              <span>{sources.length} Sources Found</span>
+              <div class="stat-badge">
+                <span class="stat-number">{sources.length}</span>
+                <span class="stat-label">Sources</span>
+              </div>
+              <div class="stat-badge">
+                <span class="stat-number">{Object.keys(groupedSources).length}</span>
+                <span class="stat-label">Providers</span>
+              </div>
             </div>
           </div>
 
           <div class="provider-grid">
             {#each Object.entries(groupedSources) as [provider, categories]}
-              <div class="provider-card">
-                <div class="prov-name">{provider}</div>
-                <div class="quality-tabs">
-                  {#each Object.entries(categories) as [category, categorySources]}
+              <div class="provider-card" class:open={openProvider === provider}>
+                <button
+                  class="provider-toggle"
+                  onclick={() => openProvider = openProvider === provider ? null : provider}
+                  aria-expanded={openProvider === provider}
+                >
+                  <span class="prov-name">{provider}</span>
+                  <span class="provider-summary">
+                    {Object.values(categories).reduce((sum, list) => sum + list.length, 0)} sources
+                    <ChevronDown
+                      size={15}
+                      class={`provider-chevron ${openProvider === provider ? 'rotated' : ''}`}
+                    />
+                  </span>
+                </button>
+                <div class="provider-sources" class:expanded={openProvider === provider}>
+                  <div class="quality-tabs">
+                    {#each Object.entries(categories) as [category, categorySources]}
                     <div class="category-group">
                       <span class="cat-label">{category}</span>
                       <div class="source-chips">
@@ -881,19 +1013,48 @@
                       </div>
                     </div>
                   {/each}
+                  </div>
                 </div>
               </div>
             {/each}
           </div>
+            </div>
+          {/if}
         </div>
+      </div>
+
+      <!-- Show Live Chat Button (when servers are open) -->
+      {#if showServers && Object.keys(groupedSources).length > 0}
+        <button
+          class="show-chat-btn mt-6"
+          onclick={() => {
+            showLiveChat = true;
+            showServers = false;
+          }}
+        >
+          <MessageSquare size={18} />
+          <span>Show Live Chat</span>
+        </button>
       {/if}
 
+      <div class="community-section mt-10" id="community">
+        <CommentsSection {animeId} episode={ep} />
+      </div>
+    </div>
+
+    <!-- Right Column: Episodes -->
+    <aside class="side-info-section">
       <!-- Episodes Navigation -->
-      <div class="episodes-section cards-glass mt-6">
+      <div class="episodes-section side-episodes cards-glass">
         <div class="section-header">
           <div class="header-main">
-            <h3><Play size={18} /> Episodes</h3>
-            <span class="ep-count">{episodes.length} total</span>
+            <div class="section-icon-wrapper">
+              <Play size={20} class="section-icon" />
+            </div>
+            <div>
+              <h3>Episodes</h3>
+              <p class="section-subtitle">{episodes.length} episodes available</p>
+            </div>
           </div>
 
           {#if totalPages > 1}
@@ -952,85 +1113,17 @@
           {/each}
         </div>
       </div>
-
-      <div class="community-section mt-10" id="community">
-        <CommentsSection {animeId} episode={ep} />
-      </div>
-    </div>
-
-    <!-- Right Column: Metadata & Engagement -->
-    <aside class="side-info-section">
-      <div class="anime-quick-card glass">
-        <div class="quick-header">
-          <img
-            src={anime?.image || anime?.poster}
-            alt={anime?.title}
-            class="quick-poster"
-          />
-          <div class="quick-titles">
-            <h1 class="main-title">{anime?.title}</h1>
-            <div class="quick-stats">
-              <span>{anime?.type}</span>
-              <span class="dot"></span>
-              <span>{anime?.year}</span>
-              <span class="dot"></span>
-              <span class="status">{anime?.status}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="engagement-row">
-          <ReactionsBar {animeId} episode={ep} />
-        </div>
-
-        <div class="quick-synopsis">
-          <p>{anime?.synopsis?.slice(0, 180)}...</p>
-          <a href="/anime/{animeId}" class="read-more">View Full Details</a>
-        </div>
-      </div>
-
-      <div class="side-actions mt-6">
-        <button
-          class="nav-secondary-btn w-full"
-          onclick={() =>
-            document
-              .getElementById("community")
-              ?.scrollIntoView({ behavior: "smooth" })}
-        >
-          <MessageSquare size={16} /> Show Comments
-        </button>
-      </div>
-
-      {#if recommendations.length > 0}
-        <div class="side-recommendations mt-8">
-          <h4 class="side-label">You Might Also Like</h4>
-          <div class="side-recs-list">
-            {#each recommendations.slice(0, 5) as rec}
-              <a href="/anime/{rec.id}" class="side-rec-item">
-                <img src={getProxiedImage(rec.image)} alt={rec.title} />
-                <div class="rec-meta">
-                  <span class="rec-title line-clamp-2">{rec.title}</span>
-                  <span class="rec-type">{rec.type} • {rec.year}</span>
-                </div>
-              </a>
-            {/each}
-          </div>
-        </div>
-      {/if}
-      <!-- Live Chat (Integrated for Desktop/TV) -->
-      <div class="hidden md:block mt-8">
-        <LiveChat {animeId} episode={ep} isInline={true} />
-      </div>
     </aside>
   </div>
 
-  <!-- Live Chat (Full Width for Mobile) -->
-  <div class="md:hidden container mt-8 px-4">
-    <LiveChat {animeId} episode={ep} isInline={false} />
-  </div>
-
   <!-- Related Content (Bottom) -->
-  <div class="container mt-12 pb-20">
+  <div class="container watch-bottom-rail mt-12 pb-20">
+    {#if recommendations.length > 0}
+      <div class="bottom-row">
+        <Row title="You Might Also Like" items={recommendations} />
+      </div>
+    {/if}
+
     {#if anime?.relations?.length > 0}
       <div class="bottom-row">
         <Row title="Related Work" items={anime.relations} />
@@ -1077,6 +1170,83 @@
 <!-- player-page -->
 
 <style>
+  .watch-bottom-rail {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .bottom-row {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 26px;
+    padding: 1.25rem 0.75rem 1.4rem;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(229, 9, 20, 0.22), transparent 34%),
+      linear-gradient(135deg, rgba(18, 18, 24, 0.82), rgba(8, 8, 12, 0.9));
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      0 0 44px rgba(229, 9, 20, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  .bottom-row::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(229, 9, 20, 0.28), transparent 26%, transparent 74%, rgba(229, 9, 20, 0.18));
+    opacity: 0.55;
+  }
+
+  .bottom-row :global(.row-section) {
+    position: relative;
+    margin-bottom: 0;
+  }
+
+  .bottom-row :global(.row-title) {
+    color: #fff;
+    font-size: clamp(1.2rem, 2vw, 1.65rem);
+    font-weight: 950;
+    text-shadow: 0 0 26px rgba(229, 9, 20, 0.45);
+  }
+
+  .bottom-row :global(.row-title)::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 10px;
+    border-radius: 999px;
+    background: var(--accent-red);
+    box-shadow: 0 0 18px rgba(229, 9, 20, 0.9);
+    vertical-align: middle;
+  }
+
+  .bottom-row :global(.row-scroll) {
+    padding-top: 0.85rem;
+    padding-bottom: 0.9rem;
+  }
+
+  .bottom-row :global(.row-scroll > *) {
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.45));
+  }
+
+  @media (max-width: 768px) {
+    .watch-bottom-rail {
+      gap: 1.35rem;
+    }
+
+    .bottom-row {
+      margin-inline: -0.25rem;
+      border-radius: 18px;
+      padding: 1rem 0.25rem;
+    }
+  }
+
   /* --- Premium Design System Overrides --- */
   :root {
     --glass-bg: rgba(15, 15, 18, 0.7);
@@ -1404,40 +1574,402 @@
     color: #fff;
   }
 
-  /* Sections */
-  .cards-glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    border-radius: 24px;
-    padding: 2rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  }
-
-  .section-header {
+  .watch-engagement-strip {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 2rem;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 18px;
   }
 
-  .header-main {
+  .engagement-copy {
     display: flex;
-    align-items: baseline;
-    gap: 12px;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
   }
 
-  .header-main h3 {
-    font-size: 1.5rem;
-    font-weight: 800;
+  .engagement-kicker {
+    color: var(--accent-red);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .engagement-copy strong {
+    color: #fff;
+    font-size: 0.95rem;
+  }
+
+  .watch-engagement-strip :global(.reactions-container) {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .engagement-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: flex-end;
+    gap: 0.9rem;
+    flex-wrap: wrap;
   }
 
-  .ep-count {
-    color: var(--net-text-muted);
-    font-size: 0.9rem;
+  .comment-jump-btn {
+    width: auto;
+    min-height: 42px;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  /* Collapsible Chat & Server Styles */
+  .chat-toggle-btn,
+  .server-toggle-btn {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(18, 18, 24, 0.82), rgba(8, 8, 12, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .chat-toggle-btn:hover,
+  .server-toggle-btn:hover {
+    background: linear-gradient(135deg, rgba(28, 28, 34, 0.9), rgba(18, 18, 22, 0.95));
+    border-color: rgba(229, 9, 20, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 24px rgba(229, 9, 20, 0.15);
+  }
+
+  .toggle-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+  }
+
+  .toggle-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .toggle-icon.rotated {
+    transform: rotate(180deg);
+  }
+
+  .chat-badge,
+  .server-badge {
+    padding: 0.4rem 1rem;
+    background: rgba(229, 9, 20, 0.15);
+    border: 1px solid rgba(229, 9, 20, 0.3);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 18px rgba(229, 9, 20, 0.25);
+  }
+
+  .collapsible-chat-container,
+  .collapsible-server-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    opacity: 0;
+  }
+
+  .collapsible-chat-container.expanded {
+    max-height: 800px;
+    opacity: 1;
+  }
+
+  .collapsible-server-container.expanded {
+    max-height: 1200px;
+    opacity: 1;
+    margin-top: 1rem;
+  }
+
+  .show-chat-btn,
+  .show-servers-btn {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(18, 18, 24, 0.82), rgba(8, 8, 12, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .show-chat-btn:hover,
+  .show-servers-btn:hover {
+    background: linear-gradient(135deg, rgba(28, 28, 34, 0.9), rgba(18, 18, 22, 0.95));
+    border-color: rgba(229, 9, 20, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 24px rgba(229, 9, 20, 0.15);
+  }
+
+  /* Collapsible LiveChat Styles */
+  .collapsible-chat-wrapper {
+    width: 100%;
+    margin-top: 1.5rem;
+  }
+
+  .chat-toggle-btn {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(15, 15, 18, 0.8) 0%, rgba(20, 20, 25, 0.7) 100%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .chat-toggle-btn:hover {
+    background: linear-gradient(135deg, rgba(20, 20, 25, 0.9) 0%, rgba(25, 25, 30, 0.8) 100%);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .chat-toggle-btn:active {
+    transform: translateY(0);
+  }
+
+  .toggle-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+  }
+
+  .toggle-text {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .toggle-icon {
+    transition: transform 0.3s ease;
+    opacity: 0.7;
+  }
+
+  .toggle-icon.rotated {
+    transform: rotate(180deg);
+  }
+
+  .chat-badge {
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.2) 0%, rgba(229, 9, 20, 0.1) 100%);
+    color: #ff6b7a;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid rgba(229, 9, 20, 0.3);
+  }
+
+  .collapsible-chat-container {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    margin-top: 0;
+  }
+
+  .collapsible-chat-container.expanded {
+    max-height: 800px;
+    opacity: 1;
+    margin-top: 1rem;
+  }
+
+  .show-servers-btn {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.08) 100%);
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(229, 9, 20, 0.3);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.2);
+  }
+
+  .show-servers-btn:hover {
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.25) 0%, rgba(229, 9, 20, 0.15) 100%);
+    border-color: rgba(229, 9, 20, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(229, 9, 20, 0.3);
+  }
+
+  .show-servers-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Utility classes for spacing */
+  .mt-6 {
+    margin-top: 1.5rem;
+  }
+
+  .mt-8 {
+    margin-top: 2rem;
+  }
+
+  /* Responsive adjustments for collapsible chat */
+  @media (max-width: 768px) {
+    .chat-toggle-btn {
+      padding: 0.875rem 1.25rem;
+      font-size: 0.95rem;
+      border-radius: 14px;
+    }
+
+    .collapsible-chat-container.expanded {
+      max-height: 600px;
+    }
+
+    .show-servers-btn {
+      padding: 1rem 1.25rem;
+      font-size: 0.95rem;
+      border-radius: 14px;
+    }
+
+    .chat-badge {
+      padding: 0.2rem 0.6rem;
+      font-size: 0.7rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .collapsible-chat-wrapper {
+      margin-top: 1rem;
+    }
+
+    .chat-toggle-btn {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      border-radius: 12px;
+    }
+
+    .toggle-content {
+      gap: 0.5rem;
+    }
+
+    .collapsible-chat-container.expanded {
+      max-height: 500px;
+      margin-top: 0.75rem;
+    }
+
+    .show-servers-btn {
+      padding: 0.875rem 1rem;
+      font-size: 0.9rem;
+      border-radius: 12px;
+    }
+  }
+
+  /* Enhanced Server Header */
+  .server-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .server-title-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .server-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent-red) 0%, #c70811 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px var(--accent-glow);
+    flex-shrink: 0;
+  }
+
+  .server-icon {
+    color: #fff;
+  }
+
+  .server-title-group h3 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin: 0 0 4px 0;
+    color: #fff;
+  }
+
+  .server-subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .server-stats {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .stat-badge {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 80px;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--accent-red);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
   }
 
   /* Provider Card Design */
@@ -1448,148 +1980,346 @@
   }
 
   .provider-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 1.25rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .provider-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .provider-card:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-color: rgba(229, 9, 20, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .provider-card:hover::before {
+    opacity: 1;
+  }
+
+  .provider-toggle {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .provider-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .provider-chevron {
+    transition: transform 0.25s ease;
+  }
+
+  .provider-chevron.rotated {
+    transform: rotate(180deg);
+  }
+
+  .provider-sources {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.25s ease;
+  }
+
+  .provider-sources.expanded {
+    max-height: 900px;
+    opacity: 1;
+    margin-top: 1rem;
+  }
+
+  .provider-card.open {
+    border-color: rgba(229, 9, 20, 0.28);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(229, 9, 20, 0.1);
   }
 
   .prov-name {
-    font-size: 0.8rem;
-    font-weight: 800;
+    font-size: 0.85rem;
+    font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--net-text-muted);
-    margin-bottom: 1rem;
-    border-bottom: 1px solid var(--glass-border);
-    padding-bottom: 0.5rem;
+    letter-spacing: 0.12em;
+    color: #fff;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .prov-name::before {
+    content: '▶';
+    color: var(--accent-red);
+    font-size: 0.7rem;
   }
 
   .category-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .category-group:last-child {
+    margin-bottom: 0;
   }
 
   .cat-label {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--accent-red);
-    margin-bottom: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  /* Color-coded category labels */
+  .cat-label:has(+ .source-chips .source-chip:nth-child(1)) {
+    background: rgba(229, 9, 20, 0.15);
+    color: #ff4757;
+  }
+
+  .cat-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
   }
 
   .source-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.6rem;
   }
 
   .source-chip {
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: 10px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     color: #fff;
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 0.88rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .source-chip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.25s;
   }
 
   .source-chip:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #fff;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .source-chip:active {
+    transform: translateY(0);
   }
 
   .source-chip.active {
-    background: var(--accent-red);
+    background: linear-gradient(135deg, var(--accent-red) 0%, #c70811 100%);
     border-color: var(--accent-red);
-    box-shadow: 0 4px 15px var(--accent-glow);
+    box-shadow: 0 6px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
   }
 
-  .source-chip .q {
+  .source-chip.active::before {
+    opacity: 1;
+  }
+
+  .source-chip.active::after {
+    content: '✓';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 16px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.65rem;
-    opacity: 0.6;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 2px 4px;
-    border-radius: 4px;
+    font-weight: 900;
   }
 
-  /* Episode Cards Update */
+  /* Enhanced quality badges with color coding */
+  .source-chip .q {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Quality-specific styling via data attributes or inline styles will be added in the HTML */
+
+  /* Enhanced Episode Cards */
   .episodes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.75rem;
   }
 
   .episode-card {
-    background: transparent;
-    border: none;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 0.85rem;
     text-align: left;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  .episode-card:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  }
+
+  .episode-card.current {
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.12) 0%, rgba(229, 9, 20, 0.04) 100%);
+    border-color: rgba(229, 9, 20, 0.4);
+    box-shadow: 0 8px 24px var(--accent-glow);
   }
 
   .ep-thumb {
     position: relative;
     width: 100%;
     aspect-ratio: 16/9;
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
-    margin-bottom: 0.75rem;
-    border: 1px solid var(--glass-border);
+    margin-bottom: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .ep-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .ep-hover {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(229, 9, 20, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: 0.3s;
-    backdrop-filter: blur(2px);
+    transition: opacity 0.3s;
+    backdrop-filter: blur(4px);
   }
 
   .episode-card:hover .ep-thumb img {
-    transform: scale(1.1);
+    transform: scale(1.12);
   }
+
   .episode-card:hover .ep-hover {
     opacity: 1;
   }
 
   .episode-card.current .ep-thumb {
     border: 2px solid var(--accent-red);
-    box-shadow: 0 0 20px var(--accent-glow);
+    box-shadow: 0 0 24px var(--accent-glow);
   }
 
   .playing-tag {
     position: absolute;
-    bottom: 8px;
+    top: 8px;
     right: 8px;
-    background: var(--accent-red);
+    background: linear-gradient(135deg, var(--accent-red) 0%, #c70811 100%);
     color: #fff;
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 4px 8px;
-    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    padding: 5px 10px;
+    border-radius: 6px;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 12px var(--accent-glow);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .playing-tag::before {
+    content: '▶';
+    font-size: 0.6rem;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .ep-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .ep-meta .num {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 800;
+    font-size: 0.92rem;
+    font-weight: 900;
+    color: #fff;
     margin-bottom: 2px;
   }
 
@@ -1601,33 +2331,206 @@
   }
 
   .filler-tag {
-    font-size: 0.6rem;
-    background: rgba(255, 165, 0, 0.2);
-    color: orange;
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 0.65rem;
     font-weight: 800;
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.25) 0%, rgba(255, 140, 0, 0.15) 100%);
+    color: #ffa500;
+    padding: 3px 8px;
+    border-radius: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border: 1px solid rgba(255, 165, 0, 0.3);
   }
 
   .ep-progress-bar {
     width: 100%;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.1);
-    margin-top: 8px;
-    border-radius: 2px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    margin-top: 10px;
+    border-radius: 3px;
     overflow: hidden;
+    position: relative;
   }
+
   .progress-fill {
     height: 100%;
-    background: var(--accent-red);
+    background: linear-gradient(90deg, var(--accent-red) 0%, #ff4757 100%);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    background: rgba(255, 255, 255, 0.4);
+    filter: blur(2px);
   }
 
   .ep-meta .name {
-    font-size: 0.8rem;
-    color: var(--net-text-muted);
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.4;
+    font-weight: 500;
   }
 
-  /* Side Info Header */
+  /* Sections */
+  .cards-glass {
+    background: linear-gradient(135deg, rgba(15, 15, 18, 0.75) 0%, rgba(15, 15, 18, 0.65) 100%);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Enhanced Section Headers */
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+
+  .header-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .section-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.05) 100%);
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .section-icon {
+    color: var(--accent-red);
+  }
+
+  .header-main h3 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin: 0 0 4px 0;
+    color: #fff;
+  }
+
+  .section-subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .ep-count {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+  }
+
+  .side-episodes {
+    padding: 1.1rem;
+    max-height: calc(100vh - 8rem);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .side-episodes .section-header {
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+  }
+
+  .side-episodes .header-main {
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .side-episodes .section-icon-wrapper {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .side-episodes .header-main h3 {
+    font-size: 1.05rem;
+  }
+
+  .side-episodes .section-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .side-episodes .range-select {
+    max-width: 150px;
+    padding: 8px 34px 8px 12px;
+    font-size: 0.75rem;
+  }
+
+  .side-episodes .episodes-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+  .side-episodes .episode-card {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem;
+    border-radius: 12px;
+  }
+
+  .side-episodes .episode-card:hover {
+    transform: translateY(-1px);
+  }
+
+  .side-episodes .ep-thumb {
+    width: 86px;
+    margin-bottom: 0;
+    border-radius: 8px;
+  }
+
+  .side-episodes .playing-tag {
+    top: 5px;
+    right: 5px;
+    padding: 3px 6px;
+    font-size: 0.55rem;
+  }
+
+  .side-episodes .ep-meta .num {
+    font-size: 0.78rem;
+  }
+
+  .side-episodes .ep-meta .name {
+    font-size: 0.72rem;
+    line-height: 1.25;
+  }
+
+  .side-episodes .ep-progress-bar {
+    height: 3px;
+    margin-top: 7px;
+  }
+
+  /* Enhanced Side Info Header */
   .side-info-section {
     position: sticky;
     top: 2rem;
@@ -1635,9 +2538,14 @@
   }
 
   .anime-quick-card {
-    padding: 1.5rem;
+    padding: 1.75rem;
     border-radius: 20px;
-    border: 1px solid var(--glass-border);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, rgba(15, 15, 18, 0.8) 0%, rgba(15, 15, 18, 0.7) 100%);
+    backdrop-filter: blur(20px);
+    box-shadow:
+      0 16px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .quick-header {
@@ -1647,26 +2555,35 @@
   }
 
   .quick-poster {
-    width: 90px;
+    width: 95px;
     aspect-ratio: 2/3;
     object-fit: cover;
     border-radius: 12px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    box-shadow:
+      0 12px 24px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s;
+  }
+
+  .quick-poster:hover {
+    transform: scale(1.05);
   }
 
   .main-title {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     font-weight: 900;
-    line-height: 1.2;
-    margin-bottom: 8px;
+    line-height: 1.25;
+    margin-bottom: 10px;
+    color: #fff;
   }
 
   .quick-stats {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.75rem;
-    color: var(--net-text-muted);
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
   }
 
   .dot {
@@ -1674,32 +2591,15 @@
     height: 4px;
     border-radius: 50%;
     background: currentColor;
-    opacity: 0.3;
+    opacity: 0.4;
   }
+
   .status {
     color: #10b981;
-    font-weight: 700;
-  }
-
-  .engagement-row {
-    margin-bottom: 1.5rem;
-    padding: 1rem 0;
-    border-top: 1px solid var(--glass-border);
-    border-bottom: 1px solid var(--glass-border);
-  }
-
-  .quick-synopsis p {
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: var(--net-text-muted);
-    margin-bottom: 1rem;
-  }
-
-  .read-more {
-    font-size: 0.8rem;
     font-weight: 800;
-    color: var(--accent-red);
-    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.72rem;
   }
 
   /* Overlays UI */
@@ -1773,45 +2673,59 @@
     font-weight: 900;
   }
 
-  /* Misc */
+  /* Enhanced Range Selector */
   .range-selector {
     position: relative;
     display: flex;
     align-items: center;
   }
-  .range-selector::after {
-    content: "▼";
-    font-size: 0.6rem;
-    position: absolute;
-    right: 12px;
-    pointer-events: none;
-    color: var(--net-text-muted);
-    opacity: 0.7;
-  }
 
   .range-select {
     appearance: none;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--glass-border);
-    padding: 8px 36px 8px 16px;
-    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.55) 100%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 10px 40px 10px 18px;
+    border-radius: 11px;
     color: #fff;
     font-weight: 800;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
   }
+
   .range-select:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .range-select:focus {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
   }
 
   .range-select option {
     background: #111;
     color: #fff;
-    padding: 10px;
+    padding: 12px;
+    font-weight: 600;
+  }
+
+  .range-selector::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid rgba(255, 255, 255, 0.6);
+    pointer-events: none;
   }
 
   /* TV Mode Enhancements */
@@ -1838,7 +2752,36 @@
       grid-template-columns: 1fr;
     }
     .side-info-section {
-      display: none;
+      display: block;
+      position: relative;
+      top: auto;
+    }
+
+    .side-episodes {
+      max-height: none;
+      overflow: visible;
+    }
+
+    .side-episodes .episodes-grid {
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    /* Adjust server header for tablet */
+    .server-header {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .server-stats {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .stat-badge {
+      flex: 1;
+      max-width: 120px;
     }
   }
 
@@ -1846,35 +2789,158 @@
     .watch-layout {
       gap: 1.5rem;
     }
+
     .cards-glass {
       padding: 1.25rem;
       border-radius: 16px;
     }
 
-    /* MOBILE LIST VIEW: Thumbnail on left, title on right */
+    /* Mobile Server Header */
+    .server-header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+    }
+
+    .server-title-group {
+      gap: 0.75rem;
+    }
+
+    .server-icon-wrapper {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    .server-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .server-title-group h3 {
+      font-size: 1.25rem;
+    }
+
+    .server-subtitle {
+      font-size: 0.78rem;
+    }
+
+    .server-stats {
+      gap: 0.75rem;
+    }
+
+    .stat-badge {
+      padding: 10px 12px;
+      min-width: 70px;
+    }
+
+    .stat-number {
+      font-size: 1.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+    }
+
+    /* Mobile Provider Cards */
+    .provider-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .provider-card {
+      padding: 1.25rem;
+      border-radius: 14px;
+    }
+
+    .prov-name {
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.6rem;
+    }
+
+    .category-group {
+      padding: 0.65rem;
+      margin-bottom: 1rem;
+    }
+
+    .cat-label {
+      font-size: 0.68rem;
+      padding: 3px 8px;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Mobile Source Chips - Larger touch targets */
+    .source-chips {
+      gap: 0.5rem;
+    }
+
+    .source-chip {
+      padding: 9px 14px;
+      font-size: 0.82rem;
+      border-radius: 10px;
+      min-height: 40px;
+    }
+
+    .source-chip .q {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+    }
+
+    .watch-engagement-strip {
+      align-items: stretch;
+      flex-direction: column;
+      padding: 1rem;
+    }
+
+    .watch-engagement-strip :global(.reactions-container) {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .engagement-actions {
+      width: 100%;
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .comment-jump-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .side-episodes .episodes-grid,
     .episodes-grid {
       display: flex;
       flex-direction: column;
       gap: 12px;
+      max-height: none;
+      overflow: visible;
     }
 
+    .side-episodes .episode-card,
     .episode-card {
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 8px;
-      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
       border-radius: 12px;
-      border: 1px solid transparent;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .episode-card:hover {
+      transform: translateY(0);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
     }
 
     .episode-card.current {
-      background: rgba(229, 9, 20, 0.1);
-      border-color: rgba(229, 9, 20, 0.3);
+      background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.05) 100%);
+      border-color: rgba(229, 9, 20, 0.4);
     }
 
+    .side-episodes .ep-thumb,
     .ep-thumb {
-      width: 120px;
+      width: 130px;
       flex-shrink: 0;
       margin-bottom: 0;
     }
@@ -1884,6 +2950,48 @@
       flex-direction: column;
       justify-content: center;
       overflow: hidden;
+      flex: 1;
+    }
+
+    .ep-meta .num {
+      font-size: 0.88rem;
+    }
+
+    .ep-meta .name {
+      font-size: 0.78rem;
+    }
+
+    .playing-tag {
+      font-size: 0.65rem;
+      padding: 4px 8px;
+      top: 6px;
+      right: 6px;
+    }
+
+    /* Mobile Section Headers */
+    .section-icon-wrapper {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+    }
+
+    .section-icon {
+      width: 18px;
+      height: 18px;
+    }
+
+    .header-main h3 {
+      font-size: 1.25rem;
+    }
+
+    .section-subtitle {
+      font-size: 0.78rem;
+    }
+
+    /* Mobile Range Selector */
+    .range-select {
+      padding: 9px 36px 9px 14px;
+      font-size: 0.8rem;
     }
 
     /* Scale down HUD controls on mobile to prevent blocking stream */
@@ -1938,6 +3046,121 @@
   @media (max-width: 480px) {
     .video-container {
       border-radius: 12px;
+    }
+
+    .cards-glass {
+      padding: 1rem;
+      border-radius: 14px;
+    }
+
+    /* Small Mobile Server Header */
+    .server-icon-wrapper {
+      width: 36px;
+      height: 36px;
+    }
+
+    .server-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .server-title-group h3 {
+      font-size: 1.1rem;
+    }
+
+    .server-subtitle {
+      font-size: 0.72rem;
+    }
+
+    .stat-badge {
+      padding: 8px 10px;
+      min-width: 60px;
+    }
+
+    .stat-number {
+      font-size: 1.1rem;
+    }
+
+    .stat-label {
+      font-size: 0.6rem;
+    }
+
+    /* Small Mobile Provider Cards */
+    .provider-card {
+      padding: 1rem;
+    }
+
+    .prov-name {
+      font-size: 0.75rem;
+    }
+
+    .category-group {
+      padding: 0.6rem;
+    }
+
+    .cat-label {
+      font-size: 0.65rem;
+    }
+
+    /* Small Mobile Source Chips */
+    .source-chip {
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      min-height: 38px;
+    }
+
+    .source-chip .q {
+      font-size: 0.6rem;
+      padding: 2px 5px;
+    }
+
+    /* Small Mobile Episode List */
+    .episode-card {
+      padding: 8px;
+      gap: 12px;
+    }
+
+    .side-episodes .ep-thumb,
+    .ep-thumb {
+      width: 110px;
+    }
+
+    .ep-meta .num {
+      font-size: 0.82rem;
+    }
+
+    .ep-meta .name {
+      font-size: 0.72rem;
+    }
+
+    .playing-tag {
+      font-size: 0.6rem;
+      padding: 3px 6px;
+    }
+
+    /* Small Mobile Section Headers */
+    .section-icon-wrapper {
+      width: 34px;
+      height: 34px;
+    }
+
+    .section-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .header-main h3 {
+      font-size: 1.1rem;
+    }
+
+    .section-subtitle {
+      font-size: 0.72rem;
+    }
+
+    /* Small Mobile Range Selector */
+    .range-select {
+      padding: 8px 32px 8px 12px;
+      font-size: 0.75rem;
     }
 
     .resume-popup,

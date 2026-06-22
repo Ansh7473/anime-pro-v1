@@ -1,7 +1,10 @@
 import { browser } from '$app/environment';
 import { clearAuth } from '$lib/stores/auth';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://anime-pro-v1-backend-go.vercel.app';
+// Normalize backend URL - remove trailing slash if present
+const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || 'https://anime-pro-v1-backend-go.vercel.app';
+const BACKEND_URL = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
+
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
 const JIKAN_URL = `${BACKEND_URL}/api/v1/jikan`;
