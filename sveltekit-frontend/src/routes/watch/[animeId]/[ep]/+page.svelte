@@ -130,7 +130,7 @@
   let autoNext = $state($auth.currentProfile?.autoNext ?? true);
   let autoSkip = $state($auth.currentProfile?.autoSkip ?? false);
   let lastSavedTime = 0;
-  
+
   // HEURISTIC TRACKING (For Iframes/Embeds)
   let timeSpentInEpisode = $state(0);
   let sessionStartTime = Date.now();
@@ -259,7 +259,7 @@
       currentPos = videoElement.currentTime;
       totalDur = videoElement.duration || 1440;
       isCompleted = videoElement.ended || (currentPos / totalDur > 0.9);
-      
+
       // Throttling for native video
       if (!force && !videoElement.ended && currentPos - lastSavedTime < 30) return;
     } else if (isEmbed) {
@@ -267,7 +267,7 @@
       currentPos = timeSpentInEpisode;
       totalDur = 1440; // Estimated 24 mins
       isCompleted = currentPos > 1200; // Completed after 20 mins of active watching
-      
+
       // Throttling for embeds
       if (!force && !isCompleted && currentPos - lastSavedTime < 60) return;
     } else {
@@ -449,6 +449,9 @@
       { name: "AnimeHindiDubbed", fetcher: api.getAHDSources },
       { name: "Toonstream", fetcher: api.getToonstreamSources },
       { name: "WatchAnimeWorld", fetcher: api.getWatchAnimeWorldSources },
+      { name: "Aniwaves", fetcher: api.getAniwavesSources },
+      { name: "Animen", fetcher: api.getAnimenSources },
+      { name: "AnimixStream", fetcher: api.getAnimixStreamSources },
     ];
 
     let autoStarted = false;
@@ -722,8 +725,8 @@
     <!-- Left Column: Video & Main Controls -->
     <div class="primary-section">
       <div class="player-wrapper" class:theater={theaterMode}>
-        <div 
-          class="video-container" 
+        <div
+          class="video-container"
           class:theater={theaterMode}
           class:is-rotated={isRotated}
         >
@@ -818,7 +821,7 @@
               <!-- Bottom Playback Overlays -->
               <div class="controls-overlay" class:visible={!theaterMode}></div>
             {/if}
-            
+
             <!-- Global Utils (Needed for both but positioned carefully) -->
             <div class="top-controls-hub">
               <div class="controls-group">
@@ -1877,7 +1880,7 @@
       top: 0.25rem;
       left: 0.25rem;
     }
-    
+
     .top-controls-hub .controls-group {
       gap: 0;
       padding: 0.2rem;
@@ -1889,7 +1892,7 @@
       height: 24px;
       border-radius: 4px;
     }
-    
+
     .top-controls-hub .ctrl-btn[title="Shortcuts"] {
       display: none;
     }

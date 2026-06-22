@@ -254,6 +254,15 @@ export const api = {
 	getWatchAnimeWorldSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources/watchanimeworld?animeId=${animeId}&ep=${ep}`),
 
+	getAniwavesSources: (animeId: string, ep: number) =>
+		fetchJSON(`${STREAMING_URL}/sources/aniwaves?animeId=${animeId}&ep=${ep}`),
+
+	getAnimenSources: (animeId: string, ep: number) =>
+		fetchJSON(`${STREAMING_URL}/sources/animen?animeId=${animeId}&ep=${ep}`),
+
+	getAnimixStreamSources: (animeId: string, ep: number) =>
+		fetchJSON(`${STREAMING_URL}/sources/animixstream?animeId=${animeId}&ep=${ep}`),
+
 	getAggregateSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources?animeId=${animeId}&ep=${ep}`),
 
@@ -408,7 +417,7 @@ export const api = {
 };
 
 export function getProxiedUrl(url: string, referer = ''): string {
-	// Disable automatic proxy wrapping for stream URLs as requested. 
+	// Disable automatic proxy wrapping for stream URLs as requested.
 	// The player will handle specific segment proxying via HLS.js xhrSetup if necessary.
 	return url;
 }
