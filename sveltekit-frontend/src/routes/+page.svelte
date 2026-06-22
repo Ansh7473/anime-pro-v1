@@ -93,12 +93,12 @@
 </script>
 
 <svelte:head>
-  <title>WatchAnimez — Your Premium Anime Destination</title>
+  <title>WatchAnimez — Watch Online Anime in Hindi, English, Multi-lang, Japanese for Free | 50+ Sources of Streaming | Leading Website</title>
   <meta
     name="description"
     content="Discover trending, popular, top-rated, seasonal, action, romance, and movie anime on WatchAnimez."
   />
-  <meta property="og:title" content="WatchAnimez — Premium Anime Hub" />
+  <meta property="og:title" content="WatchAnimez — Watch Online Anime in Hindi, English, Multi-lang, Japanese for Free" />
   <meta
     property="og:description"
     content="Discover trending, popular, top-rated, seasonal, action, romance, and movie anime on WatchAnimez."

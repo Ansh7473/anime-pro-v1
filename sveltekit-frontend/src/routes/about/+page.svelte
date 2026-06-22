@@ -6,7 +6,7 @@
 <div class="page-container container">
   <div class="page-header">
     <h1>About WatchAnimez</h1>
-    <p class="subtitle">Your premium anime streaming destination since 2024</p>
+    <p class="subtitle">Watch online anime in Hindi, English, Multi-lang, and Japanese for free since 2024</p>
   </div>
 
   <div class="content-section">

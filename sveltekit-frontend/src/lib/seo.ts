@@ -162,13 +162,13 @@ export function getAnimeJsonLd(anime: any, canonicalUrl: string) {
 		aggregateRating:
 			anime?.score || anime?.rating
 				? {
-						'@type': 'AggregateRating',
-						ratingValue: Number(anime.score || anime.rating),
-						bestRating: 10,
-						worstRating: 1,
-						ratingCount: anime?.scoredBy || anime?.members || Math.max(1, Math.round(Number(anime.score || anime.rating) * 1200)),
-						reviewCount: anime?.favorites || Math.max(1, Math.round(Number(anime.score || anime.rating) * 150))
-					}
+					'@type': 'AggregateRating',
+					ratingValue: Number(anime.score || anime.rating),
+					bestRating: 10,
+					worstRating: 1,
+					ratingCount: anime?.scoredBy || anime?.members || Math.max(1, Math.round(Number(anime.score || anime.rating) * 1200)),
+					reviewCount: anime?.favorites || Math.max(1, Math.round(Number(anime.score || anime.rating) * 150))
+				}
 				: undefined
 	};
 }
