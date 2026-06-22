@@ -110,7 +110,7 @@
     <div class="loading-content">
       <div class="spinner-ring">
         <div class="ring"></div>
-        <span class="logo-mini">WA</span>
+        <img src="/favicon-192.png" alt="WatchAnimez" class="logo-mini" />
       </div>
       <p>Loading your anime...</p>
     </div>
@@ -318,10 +318,10 @@
     }
   }
   .logo-mini {
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: var(--net-red);
-    letter-spacing: -0.05em;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 4px;
   }
 
   .home-rows {
@@ -382,7 +382,8 @@
       height: 56px;
     }
     .logo-mini {
-      font-size: 1rem;
+      width: 26px;
+      height: 26px;
     }
     .home-rows {
       margin-top: 0;
@@ -416,7 +417,8 @@
       height: 48px;
     }
     .logo-mini {
-      font-size: 0.9rem;
+      width: 24px;
+      height: 24px;
     }
     .home-rows {
       margin-top: 0.5rem;
@@ -450,7 +452,8 @@
       height: 40px;
     }
     .logo-mini {
-      font-size: 0.85rem;
+      width: 22px;
+      height: 22px;
     }
     .home-rows {
       margin-top: 1rem;

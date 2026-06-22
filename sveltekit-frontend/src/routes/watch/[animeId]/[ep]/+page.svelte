@@ -706,6 +706,7 @@
         tabindex="0"
         onkeydown={(e) => e.key === "Enter" && goto("/")}
       >
+        <img src="/favicon-192.png" alt="WatchAnimez" class="logo-img" />
         <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
       </div>
     </div>
@@ -1135,11 +1136,20 @@
   }
 
   .top-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     cursor: pointer;
     transition: transform 0.3s;
   }
   .top-logo:hover {
     transform: scale(1.05);
+  }
+  .logo-img {
+    height: 32px;
+    width: 32px;
+    object-fit: contain;
+    border-radius: 6px;
   }
 
   .logo-text {

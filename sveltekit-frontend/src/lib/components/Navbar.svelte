@@ -103,6 +103,7 @@
 <nav class="navbar" class:scrolled>
   <div class="nav-inner">
     <a href="/" class="logo">
+      <img src="/favicon-192.png" alt="WatchAnimez" class="logo-img" />
       <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
     </a>
 
@@ -318,11 +319,24 @@
     margin: 0 auto;
   }
   .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 1.4rem;
     font-weight: 800;
     letter-spacing: -0.03em;
     text-decoration: none;
     color: white;
+  }
+  .logo-img {
+    height: 32px;
+    width: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+  }
+  .logo:hover .logo-img {
+    transform: scale(1.05);
   }
   .logo-accent {
     color: var(--net-red);
