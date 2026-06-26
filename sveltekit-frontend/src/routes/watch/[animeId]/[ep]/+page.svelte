@@ -2715,19 +2715,16 @@
     font-weight: 600;
   }
 
-  .range-selector::after {
-    content: '';
+  .range-selector :global(.ptr-none) {
     position: absolute;
     right: 14px;
     top: 50%;
     transform: translateY(-50%);
-    width: 0;
-    height: 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 6px solid rgba(255, 255, 255, 0.6);
     pointer-events: none;
+    color: rgba(255, 255, 255, 0.6);
   }
+
+
 
   /* TV Mode Enhancements */
   :global(.tv-mode) .watch-layout {
