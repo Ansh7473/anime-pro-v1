@@ -131,7 +131,7 @@
 
   .footer-desc {
     font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.65);
     line-height: 1.7;
     max-width: 340px;
   }
@@ -190,7 +190,7 @@
 
   .footer-links a {
     font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.65);
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -219,7 +219,7 @@
 
   .copyright {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.6);
     font-weight: 500;
   }
 
@@ -232,7 +232,7 @@
   }
 
   .legal-links a {
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.65);
     transition: color 0.2s;
     text-decoration: none;
   }

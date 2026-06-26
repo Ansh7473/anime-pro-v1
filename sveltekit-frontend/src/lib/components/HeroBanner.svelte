@@ -159,9 +159,11 @@
           onclick={() => goTo(i)}
           aria-label="Slide {i + 1}"
         >
-          {#if i === current}
-            <span class="dot-progress"></span>
-          {/if}
+          <span class="dot-track">
+            {#if i === current}
+              <span class="dot-progress"></span>
+            {/if}
+          </span>
         </button>
       {/each}
     </div>
@@ -361,26 +363,37 @@
     gap: 0.5rem;
   }
   .dot {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    padding: 0;
+    position: relative;
+  }
+  .dot-track {
     width: 32px;
     height: 4px;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.25);
-    cursor: pointer;
     transition: all 0.3s;
     overflow: hidden;
     position: relative;
-    border: none;
-    padding: 0;
-    min-height: auto;
-    min-width: auto;
+    display: block;
   }
-  .dot:hover,
-  .dot:focus-visible {
+  .dot:hover .dot-track,
+  .dot:focus-visible .dot-track {
     background: rgba(255, 255, 255, 0.5);
+  }
+  .dot:focus-visible .dot-track {
     outline: 2px solid white;
     outline-offset: 2px;
   }
-  .dot.active {
+  .dot.active .dot-track {
     background: rgba(255, 255, 255, 0.2);
     width: 48px;
   }
@@ -390,32 +403,35 @@
     left: 0;
     top: 0;
     bottom: 0;
+    right: 0;
     background: var(--net-red);
     border-radius: 2px;
+    transform-origin: left;
     animation: dot-fill 8s linear forwards;
   }
   @keyframes dot-fill {
     from {
-      width: 0%;
+      transform: scaleX(0);
     }
     to {
-      width: 100%;
+      transform: scaleX(1);
     }
   }
 
   /* Swipe hint — shows briefly on mobile */
   .swipe-hint {
     display: none;
+    pointer-events: none;
   }
 
   @media (max-width: 768px) {
     .hero {
       height: 60vh;
-      min-height: 380px;
+      min-height: 400px;
     }
     .hero-content {
       padding: 1.5rem 1.25rem;
-      padding-bottom: 3.5rem;
+      padding-bottom: 4.8rem;
     }
     .hero-arrow {
       display: none;
@@ -454,10 +470,14 @@
       bottom: 0.8rem;
     }
     .dot {
+      width: 32px;
+      height: 32px;
+    }
+    .dot-track {
       width: 20px;
       height: 3px;
     }
-    .dot.active {
+    .dot.active .dot-track {
       width: 32px;
     }
 
@@ -475,18 +495,18 @@
       0% { opacity: 0; }
       20% { opacity: 1; }
       80% { opacity: 1; }
-      100% { opacity: 0; display: none; }
+      100% { opacity: 0; }
     }
   }
 
   @media (max-width: 480px) {
     .hero {
       height: 55vh;
-      min-height: 320px;
+      min-height: 360px;
     }
     .hero-content {
       padding: 1.25rem 0.85rem;
-      padding-bottom: 3rem;
+      padding-bottom: 4.2rem;
     }
     .hero-badge {
       font-size: 0.65rem;
@@ -518,10 +538,14 @@
       bottom: 0.6rem;
     }
     .dot {
+      width: 28px;
+      height: 28px;
+    }
+    .dot-track {
       width: 16px;
       height: 2.5px;
     }
-    .dot.active {
+    .dot.active .dot-track {
       width: 26px;
     }
   }

@@ -66,7 +66,7 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
-    color: var(--net-text-muted);
+    color: rgba(255, 255, 255, 0.65);
     text-decoration: none;
     font-size: 0.7rem;
     font-weight: 500;
@@ -80,12 +80,12 @@
   }
 
   .nav-item.active {
-    color: var(--net-red);
+    color: #ff4757;
   }
 
   .nav-item.active :global(svg) {
     transform: translateY(-2px);
-    color: var(--net-red);
+    color: #ff4757;
   }
 
   .nav-item:active {

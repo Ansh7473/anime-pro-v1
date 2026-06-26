@@ -30,7 +30,7 @@
     <div class="row-header">
       <h2 class="row-title">{title}</h2>
       {#if href}
-        <a {href} class="row-see-all">See All →</a>
+        <a {href} class="row-see-all" aria-label="See all {title.toLowerCase()}">See All →</a>
       {/if}
     </div>
     <div class="row-wrapper">
