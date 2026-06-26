@@ -82,7 +82,7 @@
       <div class="info-card">
         <div class="info-icon">💬</div>
         <h3>Discord</h3>
-        <p><a href="https://discord.com" target="_blank" rel="noopener noreferrer">Join our community</a></p>
+        <p><a href="https://discord.gg/7v6ZzkJpXV" target="_blank" rel="noopener noreferrer">Join our community</a></p>
       </div>
       <div class="info-card">
         <div class="info-icon">🐛</div>

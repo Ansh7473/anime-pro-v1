@@ -26,7 +26,7 @@
         <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="social-icon">
           <Globe size={18} />
         </a>
-        <a href="https://discord.com" target="_blank" rel="noopener noreferrer" aria-label="Discord" class="social-icon">
+        <a href="https://discord.gg/7v6ZzkJpXV" target="_blank" rel="noopener noreferrer" aria-label="Discord" class="social-icon">
           <MessageSquare size={18} />
         </a>
         <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" class="social-icon">
@@ -55,7 +55,7 @@
       <h3 class="section-title">Community</h3>
       <ul class="footer-links">
         <li><a href="https://github.com" target="_blank" rel="noopener noreferrer"><Globe size={14} /> GitHub</a></li>
-        <li><a href="https://discord.com" target="_blank" rel="noopener noreferrer"><MessageSquare size={14} /> Discord</a></li>
+        <li><a href="https://discord.gg/7v6ZzkJpXV" target="_blank" rel="noopener noreferrer"><MessageSquare size={14} /> Discord</a></li>
         <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer"><Send size={14} /> Twitter</a></li>
         <li><a href="/donate"><Heart size={14} /> Support Us</a></li>
       </ul>

@@ -247,7 +247,7 @@
           <h2 class="signal-title">Join Our Community</h2>
           <p>Connect with thousands of anime fans. Share recommendations, report bugs, and be part of something amazing.</p>
           <div class="signal-actions">
-            <a href="https://discord.com" target="_blank" class="btn-primary">
+            <a href="https://discord.gg/7v6ZzkJpXV" target="_blank" class="btn-primary">
               <MessageSquare size={18} /> Join Discord
             </a>
             <button class="btn-secondary" onclick={() => goto('/explore')}>
