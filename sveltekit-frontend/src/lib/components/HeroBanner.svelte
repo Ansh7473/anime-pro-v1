@@ -32,7 +32,7 @@
     stopAutoplay();
     interval = setInterval(() => {
       if (!paused) next();
-    }, 8000);
+    }, 5000);
   }
   function stopAutoplay() {
     if (interval) clearInterval(interval);
@@ -179,7 +179,7 @@
   .hero {
     position: relative;
     width: 100%;
-    height: 80vh;
+    height: 70vh; 
     min-height: 500px;
     overflow: hidden;
     display: flex;
@@ -407,7 +407,7 @@
     background: var(--net-red);
     border-radius: 2px;
     transform-origin: left;
-    animation: dot-fill 8s linear forwards;
+    animation: dot-fill 5s linear forwards;
   }
   @keyframes dot-fill {
     from {
