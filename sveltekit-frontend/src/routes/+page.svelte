@@ -66,8 +66,17 @@
       ]);
 
       if (history && Array.isArray(history)) {
-        continueWatching = history
-          .filter((h: any) => !h.completed)
+        // Group by animeId and keep the most recently watched episode of each anime
+        const uniqueHistoryMap = new Map();
+        for (const item of history) {
+          if (!item.animeId) continue;
+          const existing = uniqueHistoryMap.get(item.animeId);
+          if (!existing || new Date(item.lastWatchedAt) > new Date(existing.lastWatchedAt)) {
+            uniqueHistoryMap.set(item.animeId, item);
+          }
+        }
+
+        continueWatching = Array.from(uniqueHistoryMap.values())
           .slice(0, 15)
           .map((h: any) => ({
             id: h.animeId,
@@ -76,6 +85,7 @@
             episode: h.episodeNumber,
             progress: h.progress,
             duration: h.duration,
+            completed: h.completed,
           }));
       }
 
@@ -120,12 +130,12 @@
   <HeroBanner items={homeData.trending || homeData.popular || []} />
 
   <div class="home-rows">
-    <!-- Continue Watching (logged in + has history) -->
+    <!-- Recent Watches (logged in + has history) -->
     {#if continueWatching.length > 0}
       <section class="row-section continue-section">
         <div class="row-header">
-          <h2 class="row-title">📺 Continue Watching</h2>
-          <a href="/history" class="view-all">View All</a>
+          <h2 class="row-title">📺 Recent Watches</h2>
+          <a href="/favorites" class="view-all">View All</a>
         </div>
         <div class="continue-scroll">
           {#each continueWatching as item (item.id + "-" + item.episode)}

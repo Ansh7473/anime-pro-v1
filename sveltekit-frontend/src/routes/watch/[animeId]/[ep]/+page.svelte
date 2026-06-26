@@ -290,6 +290,7 @@
         progress: currentPos,
         duration: totalDur,
         completed: isCompleted,
+        profileId: $auth.currentProfile?.id ? String($auth.currentProfile.id) : undefined,
       });
       lastSavedTime = currentPos;
       console.log(`[Monitor] Progress synced: ${currentPos}s / ${totalDur}s (Completed: ${isCompleted})`);

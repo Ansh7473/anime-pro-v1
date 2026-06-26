@@ -30,10 +30,9 @@
   }
 
   onMount(async () => {
-    // @ts-ignore
-    const isElectron = !!window.electronAPI?.isElectron;
-    // @ts-ignore
-    const isCapacitor = window.Capacitor?.isNativePlatform?.();
+    const win = window as any;
+    const isElectron = !!win.electronAPI?.isElectron;
+    const isCapacitor = win.Capacitor?.isNativePlatform?.();
 
     if (isElectron || isCapacitor) {
       try {
@@ -44,10 +43,10 @@
 
         if (latest) {
           let currentVersion = "1.0.0";
-          if (isElectron && window.electronAPI?.getAppVersion) {
-            currentVersion = await window.electronAPI.getAppVersion();
-          } else if (isCapacitor && window.AndroidApp?.getAppVersion) {
-            currentVersion = window.AndroidApp.getAppVersion();
+          if (isElectron && win.electronAPI?.getAppVersion) {
+            currentVersion = await win.electronAPI.getAppVersion();
+          } else if (isCapacitor && win.AndroidApp?.getAppVersion) {
+            currentVersion = win.AndroidApp.getAppVersion();
           }
 
           if (isNewerVersion(latest.version, currentVersion)) {

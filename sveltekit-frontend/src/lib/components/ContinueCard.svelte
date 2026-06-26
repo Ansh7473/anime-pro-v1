@@ -25,9 +25,13 @@
       <div class="play-icon">▶</div>
     </div>
     <span class="ep-badge">EP {epNum}</span>
-    <span class="time-left">{formatTime(duration - progress)} left</span>
+    {#if percent >= 90 || item?.completed}
+      <span class="time-left" style="background: rgba(74, 222, 128, 0.9); color: #000; font-weight: 700;">Completed</span>
+    {:else}
+      <span class="time-left">{formatTime(duration - progress)} left</span>
+    {/if}
     <div class="progress-track">
-      <div class="progress-fill" style="width: {percent}%"></div>
+      <div class="progress-fill" style="width: {percent}%; background: {percent >= 90 || item?.completed ? '#4ADE80' : 'var(--net-red)'};"></div>
     </div>
   </div>
   <p class="card-title">{title}</p>
