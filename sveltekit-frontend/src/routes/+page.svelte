@@ -145,11 +145,6 @@
       </section>
     {/if}
 
-    <!-- My Favorites -->
-    {#if favorites.length > 0}
-      <Row title="❤️ My Favorites" items={favorites} />
-    {/if}
-
     <Row
       title="🔥 Trending Now"
       items={homeData.trending || []}
