@@ -841,14 +841,14 @@
                   title="Rotate"
                   onclick={toggleRotation}
                 >
-                  <RotateCw size={18} />
+                  <RotateCw size={16} />
                 </button>
                 <button
                   class="ctrl-btn"
                   title="Shortcuts"
                   onclick={() => (showShortcuts = !showShortcuts)}
                 >
-                  <Keyboard size={18} />
+                  <Keyboard size={16} />
                 </button>
               </div>
             </div>
@@ -3015,8 +3015,8 @@
     }
 
     .top-controls-hub .ctrl-btn :global(svg) {
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
     }
   }
 
