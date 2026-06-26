@@ -15,8 +15,19 @@
   // Update check logic
   let showUpdatePopup = $state(false);
   let latestVersion = $state("");
-  const CURRENT_VERSION = "1.0.0";
   const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app';
+
+  function isNewerVersion(latest: string, current: string): boolean {
+    const lParts = latest.replace(/^v/, "").split('.').map(Number);
+    const cParts = current.replace(/^v/, "").split('.').map(Number);
+    for (let i = 0; i < Math.max(lParts.length, cParts.length); i++) {
+      const l = lParts[i] || 0;
+      const c = cParts[i] || 0;
+      if (l > c) return true;
+      if (l < c) return false;
+    }
+    return false;
+  }
 
   onMount(async () => {
     // @ts-ignore
@@ -31,9 +42,18 @@
         const platform = isElectron ? "windows" : "android";
         const latest = releases.find((r: any) => r.platform === platform);
 
-        if (latest && latest.version !== CURRENT_VERSION) {
-          latestVersion = latest.version;
-          showUpdatePopup = true;
+        if (latest) {
+          let currentVersion = "1.0.0";
+          if (isElectron && window.electronAPI?.getAppVersion) {
+            currentVersion = await window.electronAPI.getAppVersion();
+          } else if (isCapacitor && window.AndroidApp?.getAppVersion) {
+            currentVersion = window.AndroidApp.getAppVersion();
+          }
+
+          if (isNewerVersion(latest.version, currentVersion)) {
+            latestVersion = latest.version;
+            showUpdatePopup = true;
+          }
         }
       } catch (e) {
         console.error("Update check failed:", e);

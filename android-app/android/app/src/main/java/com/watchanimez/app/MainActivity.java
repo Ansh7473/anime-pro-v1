@@ -66,6 +66,9 @@ public class MainActivity extends BridgeActivity {
             // Expose native orientation control to JavaScript
             webView.addJavascriptInterface(new OrientationBridge(), "AndroidRotation");
 
+            // Expose native app metadata to JavaScript
+            webView.addJavascriptInterface(new AppInfoBridge(), "AndroidApp");
+
             // Handle file downloads from WebView
             webView.setDownloadListener(new DownloadListener() {
                 @Override
@@ -181,6 +184,18 @@ public class MainActivity extends BridgeActivity {
             runOnUiThread(() ->
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)
             );
+        }
+    }
+
+    // JavaScript interface for native app metadata
+    private class AppInfoBridge {
+        @JavascriptInterface
+        public String getAppVersion() {
+            try {
+                return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            } catch (Exception e) {
+                return "0.0.1";
+            }
         }
     }
 
