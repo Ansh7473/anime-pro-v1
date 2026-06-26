@@ -83,17 +83,23 @@
           <div class="skeleton-btn"></div>
         {:else}
           {@const win = getLatest("windows")}
-          <a href={win.download_url} class="download-btn" onclick={() => handleDownload("windows")}>
-            {#if downloading === "windows"}
-              <span class="spinner-small"></span> Downloading...
-            {:else}
-              <Download size={18} /> Download
-            {/if}
-          </a>
-          <div class="file-meta">
-            <span>v{win.version}</span>
-            <span>{win.size}</span>
-          </div>
+          {#if releases.some((r) => r.platform === "windows")}
+            <a href={win.download_url} class="download-btn" onclick={() => handleDownload("windows")}>
+              {#if downloading === "windows"}
+                <span class="spinner-small"></span> Downloading...
+              {:else}
+                <Download size={18} /> Download
+              {/if}
+            </a>
+            <div class="file-meta">
+              <span>v{win.version}</span>
+              <span>{win.size}</span>
+            </div>
+          {:else}
+            <button class="coming-soon-btn" disabled>
+              Coming Soon
+            </button>
+          {/if}
         {/if}
       </div>
     </section>
@@ -117,17 +123,23 @@
           <div class="skeleton-btn"></div>
         {:else}
           {@const mac = getLatest("mac")}
-          <a href={mac.download_url} class="download-btn" onclick={() => handleDownload("mac")}>
-            {#if downloading === "mac"}
-              <span class="spinner-small"></span> Downloading...
-            {:else}
-              <Download size={18} /> Download
-            {/if}
-          </a>
-          <div class="file-meta">
-            <span>v{mac.version}</span>
-            <span>{mac.size}</span>
-          </div>
+          {#if releases.some((r) => r.platform === "mac")}
+            <a href={mac.download_url} class="download-btn" onclick={() => handleDownload("mac")}>
+              {#if downloading === "mac"}
+                <span class="spinner-small"></span> Downloading...
+              {:else}
+                <Download size={18} /> Download
+              {/if}
+            </a>
+            <div class="file-meta">
+              <span>v{mac.version}</span>
+              <span>{mac.size}</span>
+            </div>
+          {:else}
+            <button class="coming-soon-btn" disabled>
+              Coming Soon
+            </button>
+          {/if}
         {/if}
       </div>
     </section>
@@ -151,17 +163,23 @@
           <div class="skeleton-btn"></div>
         {:else}
           {@const linux = getLatest("linux")}
-          <a href={linux.download_url} class="download-btn" onclick={() => handleDownload("linux")}>
-            {#if downloading === "linux"}
-              <span class="spinner-small"></span> Downloading...
-            {:else}
-              <Download size={18} /> Download
-            {/if}
-          </a>
-          <div class="file-meta">
-            <span>v{linux.version}</span>
-            <span>{linux.size}</span>
-          </div>
+          {#if releases.some((r) => r.platform === "linux")}
+            <a href={linux.download_url} class="download-btn" onclick={() => handleDownload("linux")}>
+              {#if downloading === "linux"}
+                <span class="spinner-small"></span> Downloading...
+              {:else}
+                <Download size={18} /> Download
+              {/if}
+            </a>
+            <div class="file-meta">
+              <span>v{linux.version}</span>
+              <span>{linux.size}</span>
+            </div>
+          {:else}
+            <button class="coming-soon-btn" disabled>
+              Coming Soon
+            </button>
+          {/if}
         {/if}
       </div>
     </section>
@@ -185,17 +203,23 @@
           <div class="skeleton-btn"></div>
         {:else}
           {@const android = getLatest("android")}
-          <a href={android.download_url} class="download-btn" onclick={() => handleDownload("android")}>
-            {#if downloading === "android"}
-              <span class="spinner-small"></span> Downloading...
-            {:else}
-              <Download size={18} /> Download
-            {/if}
-          </a>
-          <div class="file-meta">
-            <span>v{android.version}</span>
-            <span>{android.size}</span>
-          </div>
+          {#if releases.some((r) => r.platform === "android")}
+            <a href={android.download_url} class="download-btn" onclick={() => handleDownload("android")}>
+              {#if downloading === "android"}
+                <span class="spinner-small"></span> Downloading...
+              {:else}
+                <Download size={18} /> Download
+              {/if}
+            </a>
+            <div class="file-meta">
+              <span>v{android.version}</span>
+              <span>{android.size}</span>
+            </div>
+          {:else}
+            <button class="coming-soon-btn" disabled>
+              Coming Soon
+            </button>
+          {/if}
         {/if}
       </div>
     </section>
@@ -219,17 +243,23 @@
           <div class="skeleton-btn"></div>
         {:else}
           {@const tv = getLatest("tv")}
-          <a href={tv.download_url} class="download-btn" onclick={() => handleDownload("tv")}>
-            {#if downloading === "tv"}
-              <span class="spinner-small"></span> Downloading...
-            {:else}
-              <Download size={18} /> Download
-            {/if}
-          </a>
-          <div class="file-meta">
-            <span>v{tv.version}</span>
-            <span>{tv.size}</span>
-          </div>
+          {#if releases.some((r) => r.platform === "tv")}
+            <a href={tv.download_url} class="download-btn" onclick={() => handleDownload("tv")}>
+              {#if downloading === "tv"}
+                <span class="spinner-small"></span> Downloading...
+              {:else}
+                <Download size={18} /> Download
+              {/if}
+            </a>
+            <div class="file-meta">
+              <span>v{tv.version}</span>
+              <span>{tv.size}</span>
+            </div>
+          {:else}
+            <button class="coming-soon-btn" disabled>
+              Coming Soon
+            </button>
+          {/if}
         {/if}
       </div>
     </section>
@@ -407,6 +437,24 @@
   .download-btn:hover {
     filter: brightness(1.15);
     transform: translateY(-1px);
+  }
+
+  .coming-soon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--net-text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: not-allowed;
+    width: 100%;
+    white-space: nowrap;
+    font-family: inherit;
+    box-sizing: border-box;
   }
 
   .file-meta {

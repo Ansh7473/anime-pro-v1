@@ -126,11 +126,11 @@
         <Download size={20} />
       </a>
 
-      <a href="/donate" class="nav-icon-btn text-pink-500" title="Donate">
+      <a href="/donate" class="nav-icon-btn text-pink-500 hide-mobile" title="Donate">
         <Heart size={20} fill="currentColor" />
       </a>
 
-      <div class="search-container" bind:this={searchContainer}>
+      <div class="search-container" class:open={searchOpen} bind:this={searchContainer}>
         {#if searchOpen}
           <div class="search-box glass">
             <input
@@ -189,13 +189,8 @@
         {/if}
       </div>
 
-      <button
-        class="nav-icon-btn hamburger hide-desktop"
-        onclick={() => (mobileMenuOpen = !mobileMenuOpen)}>☰</button
-      >
-
       {#if $auth.user}
-        <div class="user-profile" class:open={profileOpen} bind:this={profileContainer}>
+        <div class="user-profile hide-mobile" class:open={profileOpen} bind:this={profileContainer}>
           <button class="profile-trigger" title="Account" onclick={(e) => { e.stopPropagation(); profileOpen = !profileOpen; }}>
             <img
               src={getProxiedImage(
@@ -236,7 +231,7 @@
           </div>
         </div>
       {:else}
-        <div class="user-profile" class:open={profileOpen} bind:this={profileContainer}>
+        <div class="user-profile hide-mobile" class:open={profileOpen} bind:this={profileContainer}>
           <button class="profile-trigger" title="Guest" onclick={(e) => { e.stopPropagation(); profileOpen = !profileOpen; }}>
             <img
               src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest&backgroundColor=b6e3f4"
@@ -262,28 +257,103 @@
           </div>
         </div>
       {/if}
+
+      <button
+        class="nav-icon-btn hamburger hide-desktop"
+        onclick={() => (mobileMenuOpen = !mobileMenuOpen)}>☰</button
+      >
     </div>
   </div>
 
   {#if mobileMenuOpen}
     <div class="mobile-menu glass">
-      {#each navLinks as link}
+      <div class="mobile-links-grid">
+        {#each navLinks as link}
+          <a
+            href={link.href}
+            class="mobile-link"
+            class:active={page.url.pathname === link.href}
+            onclick={() => (mobileMenuOpen = false)}>{link.label}</a
+          >
+        {/each}
+        
+        <!-- Heart (Donate) option inside hamburger menu -->
         <a
-          href={link.href}
-          class="mobile-link"
-          onclick={() => (mobileMenuOpen = false)}>{link.label}</a
+          href="/donate"
+          class="mobile-link donate-mobile-link"
+          onclick={() => (mobileMenuOpen = false)}
         >
-      {/each}
-      {#if !$auth.user}
-        <hr />
-        <a
-          href="/auth/login"
-          class="mobile-link"
-          onclick={() => (mobileMenuOpen = false)}>Login</a>
-        <a
-          href="/auth/register"
-          class="mobile-link accent"
-          onclick={() => (mobileMenuOpen = false)}>Sign Up</a>
+          <span class="mobile-heart-wrapper">
+            <Heart size={16} fill="currentColor" />
+          </span>
+          Donate / Support
+        </a>
+      </div>
+
+      <hr class="mobile-divider" />
+
+      {#if $auth.user}
+        <div class="mobile-profile-section">
+          <div class="mobile-user-info">
+            <img
+              src={getProxiedImage(
+                ($auth.currentProfile?.avatar) ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user?.email || 'guest'}`,
+              )}
+              alt="Profile"
+              class="mobile-profile-avatar"
+            />
+            <div class="mobile-profile-details">
+              <span class="mobile-profile-name">{$auth.currentProfile?.name || "User"}</span>
+              <span class="mobile-profile-email">{$auth.user.email}</span>
+            </div>
+          </div>
+          <div class="mobile-profile-links">
+            <a href="/profile" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>My Profile</a>
+            <a href="/watchlist" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>Watchlist</a>
+            <a href="/favorites" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>Favorites</a>
+            <button
+               class="mobile-link mobile-btn"
+               onclick={() => {
+                 isTV.set(true);
+                 document.body.classList.add('tv-mode');
+                 mobileMenuOpen = false;
+               }}>TV Mode Hub</button>
+            <button
+              class="mobile-link mobile-btn logout"
+              onclick={() => {
+                mobileMenuOpen = false;
+                logoutUser();
+                goto("/");
+              }}>Logout</button
+            >
+          </div>
+        </div>
+      {:else}
+        <div class="mobile-profile-section">
+          <div class="mobile-user-info">
+            <img
+              src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest&backgroundColor=b6e3f4"
+              alt="Guest"
+              class="mobile-profile-avatar"
+            />
+            <div class="mobile-user-details">
+              <span class="mobile-profile-name">Guest User</span>
+              <span class="mobile-profile-email">Not logged in</span>
+            </div>
+          </div>
+          <div class="mobile-profile-links">
+            <a href="/auth/login" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>Login</a>
+            <a href="/auth/register" class="mobile-link accent" onclick={() => (mobileMenuOpen = false)}>Sign Up</a>
+            <button
+               class="mobile-link mobile-btn"
+               onclick={() => {
+                 isTV.set(true);
+                 document.body.classList.add('tv-mode');
+                 mobileMenuOpen = false;
+               }}>TV Mode Hub</button>
+          </div>
+        </div>
       {/if}
     </div>
   {/if}
@@ -388,6 +458,30 @@
     color: white;
     outline: none;
   }
+  .search-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 0.5rem;
+  }
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--net-text-muted, #999);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+  }
+  .close-btn:hover {
+    color: white;
+  }
   .suggestions-dropdown {
     position: absolute;
     top: 110%;
@@ -412,6 +506,43 @@
     width: 40px;
     height: 56px;
     object-fit: cover;
+  }
+  .suggestion-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    flex: 1;
+  }
+  .suggestion-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.2rem;
+  }
+  .suggestion-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--net-text-muted, #999);
+  }
+  .suggestion-type {
+    text-transform: uppercase;
+  }
+  .suggestion-score {
+    color: #fbbf24;
+  }
+  .searching-state {
+    padding: 0.75rem;
+    color: var(--net-text-muted, #999);
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
   .user-profile {
     position: relative;
@@ -468,19 +599,184 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: #141414;
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: calc(100vh - 100% - 60px);
+    overflow-y: auto;
+    animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .mobile-links-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .mobile-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: var(--net-text-muted, #ccc);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  .mobile-link:hover, .mobile-link.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .mobile-link.accent {
+    color: var(--net-red, #ff0055);
+  }
+  .donate-mobile-link {
+    color: #ff69b4;
+    font-weight: 600;
+  }
+  .donate-mobile-link:hover {
+    background: rgba(255, 105, 180, 0.1) !important;
+    color: #ff8da1;
+  }
+  .mobile-heart-wrapper {
+    display: inline-flex;
+    margin-right: 0.5rem;
+    color: #ff69b4;
+  }
+  .mobile-divider {
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin: 0.5rem 0;
+  }
+  .mobile-profile-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
     padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+  .mobile-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+  .mobile-profile-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+  .mobile-profile-details {
     display: flex;
     flex-direction: column;
   }
-  .mobile-link {
-    padding: 0.75rem;
-    color: #ccc;
-    text-decoration: none;
+  .mobile-profile-name {
+    font-weight: 600;
+    color: white;
+    font-size: 0.95rem;
+  }
+  .mobile-profile-email {
+    font-size: 0.8rem;
+    color: var(--net-text-muted, #888);
+  }
+  .mobile-profile-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .mobile-btn {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+  .mobile-btn.logout {
+    color: #ff4a4a;
+  }
+  .mobile-btn.logout:hover {
+    background: rgba(255, 74, 74, 0.08);
   }
 
   @media (max-width: 768px) {
     .hide-mobile { display: none; }
+    
+    .search-container.open {
+      position: absolute;
+      top: 100%;
+      left: 1rem;
+      right: 1rem;
+      width: calc(100% - 2rem);
+      margin-top: 0.5rem;
+      z-index: 1001;
+      display: block;
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      padding: 0;
+    }
+    
+    .search-container.open .search-box {
+      width: 100%;
+      background: rgba(20, 20, 20, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      border-radius: 12px;
+      padding: 0.6rem 1rem;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+    }
+    
+    .search-container.open .search-box input {
+      flex: 1;
+      font-size: 1rem;
+      padding: 0.2rem 0;
+      background: none;
+      border: none;
+      color: white;
+      outline: none;
+    }
+    
+    .search-container.open .suggestions-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      width: 100%;
+      margin-top: 0.25rem;
+      background: rgba(20, 20, 20, 0.98);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      border-radius: 12px;
+      box-sizing: border-box;
+      max-height: 300px;
+      overflow-y: auto;
+    }
   }
   @media (min-width: 769px) {
     .hide-desktop { display: none; }
