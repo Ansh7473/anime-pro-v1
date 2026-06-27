@@ -65,3 +65,4 @@ tv-samples
 check_results.txt
 check_results_utf8.txt
 nul
+.env*
