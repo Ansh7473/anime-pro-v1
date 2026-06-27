@@ -1,6 +1,6 @@
 <script lang="ts">
   import { auth } from "$lib/stores/auth";
-  import { getProxiedImage } from "$lib/api";
+  import { getProxiedImage, BACKEND_URL } from "$lib/api";
   import { onMount, onDestroy } from "svelte";
   import {
     Send,
@@ -34,7 +34,7 @@
   });
 
   async function connect() {
-    const authUrl = `https://anime-pro-v1-backend-go.vercel.app/api/v1/chat/token`;
+    const authUrl = `${BACKEND_URL}/api/v1/chat/token`;
 
     ably = new Ably.Realtime({
       authUrl: authUrl,

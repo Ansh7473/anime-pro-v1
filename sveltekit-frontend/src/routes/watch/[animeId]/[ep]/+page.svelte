@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api, getProxiedImage, getProxiedUrl } from "$lib/api";
+  import { api, getProxiedImage, getProxiedUrl, BACKEND_URL } from "$lib/api";
   import Row from "$lib/components/Row.svelte";
   import { auth } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
@@ -678,7 +678,7 @@
 
           if (isRestricted && !url.includes("/streaming/proxy")) {
             const proxyBase =
-              "https://anime-pro-v1-backend-go.vercel.app/api/v1/streaming/proxy";
+              `${BACKEND_URL}/api/v1/streaming/proxy`;
             const referer = url.includes("desidub")
               ? "https://www.desidubanime.me/"
               : url.includes("animehindidubbed")

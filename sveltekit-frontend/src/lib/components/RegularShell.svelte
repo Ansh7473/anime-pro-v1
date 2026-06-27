@@ -9,13 +9,13 @@
   import { Download, X } from "lucide-svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { BACKEND_URL } from "$lib/api";
 
   let { children } = $props();
 
   // Update check logic
   let showUpdatePopup = $state(false);
   let latestVersion = $state("");
-  const BACKEND_URL = 'https://anime-pro-v1-backend-go.vercel.app';
 
   function isNewerVersion(latest: string, current: string): boolean {
     const lParts = latest.replace(/^v/, "").split('.').map(Number);

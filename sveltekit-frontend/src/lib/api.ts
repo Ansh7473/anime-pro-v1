@@ -1,9 +1,21 @@
 import { browser } from '$app/environment';
 import { clearAuth } from '$lib/stores/auth';
 
-// Normalize backend URL - remove trailing slash if present
-const rawBackendUrl = import.meta.env.VITE_BACKEND_URL || 'https://anime-pro-v1-backend-go.vercel.app';
-const BACKEND_URL = rawBackendUrl.endsWith('/') ? rawBackendUrl.slice(0, -1) : rawBackendUrl;
+// Backend pool — two Vercel deployments on separate free-tier accounts.
+// Set VITE_BACKEND_URL to override with a single backend (e.g. local dev).
+const BACKENDS = (
+	import.meta.env.VITE_BACKEND_URL
+		? [import.meta.env.VITE_BACKEND_URL]
+		: ['https://anime-pro-backend.vercel.app', 'https://anime-pro-backend-smoky.vercel.app']
+).map((u: string) => u.replace(/\/+$/, ''));
+
+// Randomly order the pool so load spreads ~evenly across accounts per session,
+// while keeping every backend available for failover.
+const POOL = [...BACKENDS].sort(() => Math.random() - 0.5);
+export const BACKEND_URL = POOL[0];
+
+// Round-robin cursor so consecutive API calls alternate backends.
+let rrCursor = 0;
 
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
@@ -16,14 +28,32 @@ async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof f
 	const fetchFn = options?.fetch || fetch;
 	const fetchOptions = { ...options };
 	delete fetchOptions.fetch;
-	const res = await fetchFn(url, { ...fetchOptions, headers: { 'Content-Type': 'application/json', ...fetchOptions.headers } });
-	if (!res.ok) {
-		if (res.status === 401 && browser) {
-			clearAuth();
+	const headers = { 'Content-Type': 'application/json', ...fetchOptions.headers };
+
+	let lastError: unknown;
+	// Start at the next backend in rotation (per-request distribution),
+	// then fall through to the remaining backend(s) for failover.
+	const start = rrCursor++ % POOL.length;
+	const order = POOL.map((_, i) => POOL[(start + i) % POOL.length]);
+	for (const backend of order) {
+		// url is built from BACKEND_URL (POOL[0]); swap the host to target/fail over.
+		const target = url.replace(BACKEND_URL, backend);
+		let res: Response;
+		try {
+			res = await fetchFn(target, { ...fetchOptions, headers });
+		} catch (err) {
+			lastError = err; // network/timeout — try the next backend
+			continue;
 		}
-		throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+		if (res.ok) return res.json();
+		if (res.status === 401 && browser) clearAuth();
+		// Client errors (4xx) are deterministic — don't retry other backends.
+		if (res.status < 500) {
+			throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+		}
+		lastError = new Error(`HTTP ${res.status}: ${res.statusText}`); // 5xx — try next
 	}
-	return res.json();
+	throw lastError ?? new Error('All backends failed');
 }
 
 /** Helper to create auth headers */
