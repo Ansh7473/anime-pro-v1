@@ -1,7 +1,7 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
-  import { onMount } from "svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { Calendar, Clock, AlertCircle } from "lucide-svelte";
 
   const toDateStr = (d: Date) => d.toISOString().split("T")[0];
@@ -45,8 +45,7 @@
     }
   }
 
-  onMount(fetchSchedule);
-
+  // The $effect below fires on mount (selectedDate is set), so no separate onMount needed.
   $effect(() => {
     if (selectedDate) {
       fetchSchedule();
@@ -105,9 +104,8 @@
   <!-- Content -->
   <main class="content-area">
     {#if loading}
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading schedule...</p>
+      <div class="anime-grid">
+        <SkeletonGrid count={18} />
       </div>
     {:else if scheduledAnimes.length === 0}
       <div class="empty-state">
@@ -231,19 +229,6 @@
     font-size: 0.88rem;
     color: var(--net-text-muted);
     font-weight: 500;
-  }
-
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 1rem;
-    gap: 1rem;
-    color: var(--net-text-muted);
-  }
-  .loading-state p {
-    font-size: 0.9rem;
   }
 
   .empty-state {

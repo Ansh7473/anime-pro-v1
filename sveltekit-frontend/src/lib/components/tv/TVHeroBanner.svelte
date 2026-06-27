@@ -63,12 +63,16 @@
     onmouseleave={() => (paused = false)}
     in:fly={{ y: 20, duration: 800 }}
   >
-    <!-- Background slides -->
+    <!-- Background slides — only active + neighbours load (better LCP). -->
     {#each heroes as slide, i}
       <div
         class="tv-hero-bg"
         class:active={i === current}
-        style="background-image: url({getProxiedImage(slide.image || slide.poster || '')});"
+        style={(i === current ||
+          i === (current + 1) % heroes.length ||
+          i === (current - 1 + heroes.length) % heroes.length)
+          ? `background-image: url(${getProxiedImage(slide.image || slide.poster || '')});`
+          : ''}
       ></div>
     {/each}
 

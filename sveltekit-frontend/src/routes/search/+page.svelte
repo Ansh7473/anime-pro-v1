@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { page } from "$app/state";
   import { onMount } from "svelte";
 
@@ -68,7 +69,9 @@
   </div>
 
   {#if loading && results.length === 0}
-    <div class="center"><div class="spinner"></div></div>
+    <div class="results-grid">
+      <SkeletonGrid count={18} />
+    </div>
   {:else if results.length > 0}
     <div class="results-grid">
       {#each results as anime (anime.id)}

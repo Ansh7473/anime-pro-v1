@@ -73,9 +73,9 @@
         <div class="app-logos">
           <span class="app-label">Scan with any UPI app</span>
           <div class="logo-row">
-            <img src="/paytm_logo.png" alt="Paytm" />
-            <img src="/phonepe_logo.png" alt="PhonePe" />
-            <img src="/googlepay_logo.png" alt="Google Pay" />
+            <img src="/paytm_logo.png" alt="Paytm" loading="lazy" decoding="async" />
+            <img src="/phonepe_logo.png" alt="PhonePe" loading="lazy" decoding="async" />
+            <img src="/googlepay_logo.png" alt="Google Pay" loading="lazy" decoding="async" />
             <img src="/bhim_logo.png" alt="BHIM" />
           </div>
         </div>

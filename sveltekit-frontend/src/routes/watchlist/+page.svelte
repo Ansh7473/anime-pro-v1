@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
 
   let watchlist: any[] = $state([]);
   let loading = $state(true);
@@ -48,8 +49,8 @@
   </div>
 
   {#if loading}
-    <div class="center">
-      <div class="spinner"></div>
+    <div class="watchlist-grid">
+      <SkeletonGrid count={12} />
     </div>
   {:else if error}
     <div class="error-state glass">
@@ -149,12 +150,6 @@
     border-color: var(--net-red);
   }
 
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 4rem 0;
-  }
-
   .empty-state,
   .error-state {
     text-align: center;
@@ -204,9 +199,6 @@
     .empty-icon {
       font-size: 2.5rem;
     }
-    .center {
-      padding: 3rem 0;
-    }
   }
 
   @media (max-width: 480px) {
@@ -239,9 +231,6 @@
     }
     .empty-state h2 {
       font-size: 1.2rem;
-    }
-    .center {
-      padding: 2rem 0;
     }
   }
 

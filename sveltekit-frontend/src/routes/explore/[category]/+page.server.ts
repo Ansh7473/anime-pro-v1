@@ -5,22 +5,16 @@ import { absoluteUrl } from '$lib/seo';
 
 const fallbackCategory = { data: [], pagination: { has_next_page: false } };
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
-  try {
-    const res = await withSeoTimeout(api.getCategory(params.category, 1, fetch), fallbackCategory);
-    return {
-      category: params.category,
-      items: res?.data || [],
-      hasNext: res?.pagination?.has_next_page || false,
-      canonicalUrl: absoluteUrl(`/explore/${params.category}/`)
-    };
-  } catch (error) {
-    console.error(`Failed to load category ${params.category} for SSR:`, error);
-    return {
-      category: params.category,
-      items: [],
-      hasNext: false,
-      canonicalUrl: absoluteUrl(`/explore/${params.category}/`)
-    };
-  }
+export const load: PageServerLoad = ({ params, fetch }) => {
+  // Stream the initial list: shell + skeleton grid paint instantly, data swaps in.
+  return {
+    category: params.category,
+    canonicalUrl: absoluteUrl(`/explore/${params.category}/`),
+    initial: withSeoTimeout(api.getCategory(params.category, 1, fetch), fallbackCategory)
+      .then((res) => ({ items: res?.data || [], hasNext: res?.pagination?.has_next_page || false }))
+      .catch((error) => {
+        console.error(`Failed to load category ${params.category} for SSR:`, error);
+        return { items: [], hasNext: false };
+      })
+  };
 };

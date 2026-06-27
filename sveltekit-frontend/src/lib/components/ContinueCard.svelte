@@ -20,7 +20,7 @@
 
 <a href="/watch/{id}/{epNum}" class="continue-card">
   <div class="card-thumb">
-    <img src={poster} alt={title} loading="lazy" />
+    <img src={poster} alt={title} loading="lazy" decoding="async" />
     <div class="thumb-overlay">
       <div class="play-icon">▶</div>
     </div>

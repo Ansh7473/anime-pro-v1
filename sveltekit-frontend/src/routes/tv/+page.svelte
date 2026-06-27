@@ -55,15 +55,31 @@
   }
   .sk-hero {
     height: 70vh;
-    background: #111;
     border-radius: 24px;
     margin-bottom: 3rem;
   }
   .sk-row {
     height: 200px;
-    background: #111;
     border-radius: 12px;
     margin-bottom: 2rem;
     width: 100%;
+  }
+  .sk-hero,
+  .sk-row {
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.04) 30%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.04) 70%
+    );
+    background-size: 200% 100%;
+    animation: tv-shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes tv-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sk-hero, .sk-row { animation: none; }
   }
 </style>

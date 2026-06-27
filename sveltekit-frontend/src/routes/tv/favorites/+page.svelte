@@ -2,6 +2,7 @@
   import { api } from "$lib/api";
   import { auth } from "$lib/stores/auth";
   import TVAnimeCard from "$lib/components/tv/TVAnimeCard.svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { Heart } from 'lucide-svelte';
   import { fly } from 'svelte/transition';
   import { onMount } from "svelte";
@@ -35,8 +36,8 @@
   </header>
 
   {#if loading}
-    <div class="row-loading">
-        <div class="tv-spinner"></div>
+    <div class="results-grid">
+      <SkeletonGrid count={12} />
     </div>
   {:else if favorites.length > 0}
     <div class="results-grid">
@@ -64,22 +65,6 @@
 </div>
 
 <style>
-  .row-loading {
-    display: flex;
-    justify-content: center;
-    padding: 4rem;
-  }
-  .tv-spinner {
-    width: 60px;
-    height: 60px;
-    border: 6px solid rgba(255,255,255,0.1);
-    border-top-color: var(--net-red);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
   .section-header {
     display: flex;
     align-items: center;

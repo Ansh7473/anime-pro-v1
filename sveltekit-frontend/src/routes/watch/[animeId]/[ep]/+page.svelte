@@ -20,8 +20,8 @@
   } from "lucide-svelte";
   import Hls from "hls.js";
   import ReactionsBar from "$lib/components/ReactionsBar.svelte";
-  import LiveChat from "$lib/components/LiveChat.svelte";
-  import CommentsSection from "$lib/components/CommentsSection.svelte";
+  // LiveChat & CommentsSection are lazy-loaded (below the fold) to keep
+  // their ~28KB out of the initial watch chunk.
 
   let { data } = $props();
   const animeId = $derived(data.animeId);
@@ -151,6 +151,31 @@
 
   // Collapsible LiveChat state
   let showLiveChat = $state(false);
+  // Lazy-loaded heavy components (kept out of the initial watch chunk)
+  let LiveChatComp: any = $state(null);
+  let CommentsComp: any = $state(null);
+  let commentsEl: HTMLElement | null = $state(null);
+  function loadLiveChat() {
+    if (!LiveChatComp)
+      import("$lib/components/LiveChat.svelte").then((m) => (LiveChatComp = m.default));
+  }
+  // Mount comments only when scrolled near (below the fold).
+  onMount(() => {
+    if (!commentsEl) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          io.disconnect();
+          import("$lib/components/CommentsSection.svelte").then(
+            (m) => (CommentsComp = m.default),
+          );
+        }
+      },
+      { rootMargin: "400px" },
+    );
+    io.observe(commentsEl);
+    return () => io.disconnect();
+  });
 
   // Collapsible Server Selection state
   let showServers = $state(true);
@@ -944,7 +969,7 @@
           class="chat-toggle-btn"
           onclick={() => {
             showLiveChat = !showLiveChat;
-            if (showLiveChat) showServers = false;
+            if (showLiveChat) { showServers = false; loadLiveChat(); }
           }}
           aria-expanded={showLiveChat}
           aria-controls="live-chat-section"
@@ -968,7 +993,9 @@
           class="collapsible-chat-container"
           class:expanded={showLiveChat}
         >
-          <LiveChat {animeId} episode={ep} isInline={true} onClose={() => showLiveChat = false} />
+          {#if showLiveChat && LiveChatComp}
+            <LiveChatComp {animeId} episode={ep} isInline={true} onClose={() => showLiveChat = false} />
+          {/if}
         </div>
       </div>
 
@@ -1100,8 +1127,23 @@
         </button>
       {/if}
 
-      <div class="community-section mt-10" id="community">
-        <CommentsSection {animeId} episode={ep} />
+      <div class="community-section mt-10" id="community" bind:this={commentsEl}>
+        {#if CommentsComp}
+          <CommentsComp {animeId} episode={ep} />
+        {:else}
+          <div class="comments-skeleton" aria-hidden="true">
+            <div class="cs-title shimmer"></div>
+            {#each Array(3) as _, i (i)}
+              <div class="cs-row">
+                <div class="cs-avatar shimmer"></div>
+                <div class="cs-body">
+                  <div class="cs-line shimmer"></div>
+                  <div class="cs-line short shimmer"></div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
     </div>
 
@@ -1233,6 +1275,59 @@
 <!-- player-page -->
 
 <style>
+  .comments-skeleton {
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
+    background: var(--surface-1);
+    padding: 1.5rem;
+  }
+  .comments-skeleton .cs-title {
+    width: 160px;
+    height: 1.2rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+  }
+  .comments-skeleton .cs-row {
+    display: flex;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .comments-skeleton .cs-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .comments-skeleton .cs-body {
+    flex: 1;
+  }
+  .comments-skeleton .cs-line {
+    height: 0.8rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    width: 100%;
+  }
+  .comments-skeleton .cs-line.short {
+    width: 55%;
+  }
+  .comments-skeleton .shimmer {
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.05) 30%,
+      rgba(255, 255, 255, 0.11) 50%,
+      rgba(255, 255, 255, 0.05) 70%
+    );
+    background-size: 200% 100%;
+    animation: cs-shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes cs-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .comments-skeleton .shimmer { animation: none; }
+  }
+
   .watch-bottom-rail {
     position: relative;
     z-index: 5;

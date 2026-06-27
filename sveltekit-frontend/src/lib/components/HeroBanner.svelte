@@ -101,14 +101,17 @@
     ontouchmove={handleTouchMove}
     ontouchend={handleTouchEnd}
   >
-    <!-- Background slides -->
+    <!-- Background slides — only the active slide + its neighbours load their
+         image, so we fetch ~2-3 images up front instead of all 8 (better LCP). -->
     {#each heroes as slide, i}
       <div
         class="hero-bg"
         class:active={i === current}
-        style="background-image: url({getProxiedImage(
-          slide.image || slide.poster || '',
-        )});"
+        style={(i === current ||
+          i === (current + 1) % heroes.length ||
+          i === (current - 1 + heroes.length) % heroes.length)
+          ? `background-image: url(${getProxiedImage(slide.image || slide.poster || '')});`
+          : ''}
       ></div>
     {/each}
 

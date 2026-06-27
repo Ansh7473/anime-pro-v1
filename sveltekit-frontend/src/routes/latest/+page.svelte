@@ -1,9 +1,9 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import JsonLd from "$lib/components/JsonLd.svelte";
   import { getCollectionJsonLd } from "$lib/seo";
-  import { onMount } from "svelte";
   import { Clock, ChevronLeft, ChevronRight } from "lucide-svelte";
 
   const TABS = [
@@ -20,21 +20,30 @@
 
   let tab = $state("recently-updated");
   let page = $state(1);
-  // svelte-ignore state_referenced_locally
-  let animes: any[] = $state(data.initialItems || []);
-  // svelte-ignore state_referenced_locally
-  let loading = $state(animes.length === 0);
-  // svelte-ignore state_referenced_locally
-  let hasNextPage = $state(data.hasNext || false);
+  let animes: any[] = $state([]);
+  let loading = $state(true);
+  let hasNextPage = $state(false);
 
-  $effect(() => {
-    animes = data.initialItems || [];
-    hasNextPage = data.hasNext || false;
-  });
-  let ready = $state(false);
   const collectionJsonLd = $derived(
     getCollectionJsonLd(pageTitle, pageDescription, data.canonicalUrl, animes)
   );
+
+  // Consume the streamed initial data (default tab, page 1). Re-seeds on navigation.
+  let lastInitial: any = null;
+  $effect(() => {
+    const p = data.initial;
+    if (p === lastInitial) return;
+    lastInitial = p;
+    tab = "recently-updated";
+    page = 1;
+    loading = true;
+    Promise.resolve(p).then((res) => {
+      if (data.initial !== p) return; // stale navigation
+      animes = res?.items || [];
+      hasNextPage = res?.hasNext || false;
+      loading = false;
+    });
+  });
 
   async function fetchEpisodes() {
     loading = true;
@@ -54,23 +63,27 @@
     } finally {
       loading = false;
     }
+    if (typeof window !== "undefined")
+      window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  onMount(() => {
-    ready = true;
-  });
-
-  $effect(() => {
-    if (ready && (tab || page)) {
-      fetchEpisodes();
-      if (typeof window !== "undefined")
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  });
-
   function changeTab(id: string) {
+    if (tab === id) return;
     tab = id;
     page = 1;
+    fetchEpisodes();
+  }
+
+  function prevPage() {
+    if (page <= 1) return;
+    page--;
+    fetchEpisodes();
+  }
+
+  function nextPage() {
+    if (!hasNextPage) return;
+    page++;
+    fetchEpisodes();
   }
 </script>
 
@@ -115,9 +128,8 @@
   <!-- Content -->
   <div class="content-section container">
     {#if loading && animes.length === 0}
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <span>Loading latest anime...</span>
+      <div class="anime-grid">
+        <SkeletonGrid count={24} />
       </div>
     {:else if animes.length > 0}
       <div class="anime-grid">
@@ -128,7 +140,7 @@
 
       <!-- Pagination -->
       <div class="pagination">
-        <button class="page-btn" disabled={page === 1} onclick={() => page--}>
+        <button class="page-btn" disabled={page === 1} onclick={prevPage}>
           <ChevronLeft size={18} />
           <span>Previous</span>
         </button>
@@ -137,7 +149,7 @@
           <span>Page {page}</span>
         </div>
 
-        <button class="page-btn next" disabled={!hasNextPage} onclick={() => page++}>
+        <button class="page-btn next" disabled={!hasNextPage} onclick={nextPage}>
           <span>Next</span>
           <ChevronRight size={18} />
         </button>
@@ -276,20 +288,6 @@
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--net-text-muted);
-  }
-
-  /* Loading */
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 1rem;
-    gap: 1rem;
-    color: var(--net-text-muted);
-  }
-  .loading-state span {
-    font-size: 0.9rem;
   }
 
   /* Empty */

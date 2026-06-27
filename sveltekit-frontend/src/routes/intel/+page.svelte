@@ -64,9 +64,15 @@
 
 <div class="dashboard-page container">
   {#if loading}
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading your dashboard...</p>
+    <div class="intel-skeleton" aria-hidden="true">
+      <div class="isk-header shimmer"></div>
+      <div class="stats-row">
+        {#each Array(4) as _, i (i)}
+          <div class="isk-stat shimmer"></div>
+        {/each}
+      </div>
+      <div class="isk-block shimmer"></div>
+      <div class="isk-block shimmer"></div>
     </div>
   {:else if stats}
     <!-- Page Header -->
@@ -166,8 +172,9 @@
             </button>
 
             <div class="pref-select">
-              <label>Audio Preference</label>
+              <label for="audio-pref">Audio Preference</label>
               <select
+                id="audio-pref"
                 value={$auth.currentProfile?.language || 'sub'}
                 onchange={(e) => togglePref('language', (e.target as HTMLSelectElement).value)}
               >
@@ -198,7 +205,7 @@
             {:else}
               {#each history as entry (entry.id)}
                 <a href="/anime/{entry.animeId}" class="activity-item">
-                  <img src={getProxiedImage(entry.animePoster)} alt="" class="activity-poster" />
+                  <img src={getProxiedImage(entry.animePoster)} alt="" class="activity-poster" loading="lazy" decoding="async" />
                   <div class="activity-info">
                     <span class="activity-name">{entry.animeTitle}</span>
                     <span class="activity-meta">EP {entry.episodeNumber} · {new Date(entry.lastWatchedAt).toLocaleDateString()}</span>
@@ -222,7 +229,7 @@
           <div class="recs-grid">
             {#each (recommendations?.recommendations || []) as rec (rec.id)}
               <a href="/anime/{rec.id}" class="rec-card">
-                <img src={getProxiedImage(rec.poster)} alt="" class="rec-poster" />
+                <img src={getProxiedImage(rec.poster)} alt="" class="rec-poster" loading="lazy" decoding="async" />
                 <div class="rec-info">
                   <span class="rec-title">{rec.title}</span>
                   <span class="rec-reason">{rec.reason}</span>
@@ -244,16 +251,27 @@
   }
 
   /* Loading */
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 6rem 1rem;
-    gap: 1rem;
-    color: var(--net-text-muted);
+  .intel-skeleton { padding-top: 1rem; }
+  .isk-header { height: 80px; border-radius: 14px; margin-bottom: 1.5rem; }
+  .isk-stat { height: 84px; border-radius: 12px; }
+  .isk-block { height: 180px; border-radius: 14px; margin-top: 1.5rem; }
+  .shimmer {
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.05) 30%,
+      rgba(255, 255, 255, 0.11) 50%,
+      rgba(255, 255, 255, 0.05) 70%
+    );
+    background-size: 200% 100%;
+    animation: intel-shimmer 1.4s ease-in-out infinite;
   }
-  .loading-state p { font-size: 0.9rem; }
+  @keyframes intel-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer { animation: none; }
+  }
 
   /* Page Header */
   .page-header { margin-bottom: 2rem; }

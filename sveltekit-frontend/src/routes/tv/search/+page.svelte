@@ -2,6 +2,7 @@
   import { api } from "$lib/api";
   import { onMount } from "svelte";
   import TVAnimeCard from "$lib/components/tv/TVAnimeCard.svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { Search as SearchIcon } from 'lucide-svelte';
 
   import { page } from "$app/state";
@@ -76,8 +77,8 @@
 
   <div class="search-results">
     {#if loading}
-      <div class="row-loading">
-        <div class="tv-spinner"></div>
+      <div class="results-grid">
+        <SkeletonGrid count={12} />
       </div>
     {:else if results.length > 0}
       <div class="results-grid">
@@ -155,25 +156,6 @@
     transform: scale(1.1);
     background: white;
     color: black;
-  }
-
-  .tv-spinner {
-    width: 60px;
-    height: 60px;
-    border: 6px solid rgba(255,255,255,0.1);
-    border-top-color: var(--net-red);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  .row-loading {
-    display: flex;
-    justify-content: center;
-    padding: 4rem;
   }
 
   .results-grid {

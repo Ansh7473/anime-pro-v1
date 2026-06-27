@@ -1,9 +1,9 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import JsonLd from "$lib/components/JsonLd.svelte";
   import { getCollectionJsonLd } from "$lib/seo";
-  import { onMount } from "svelte";
 
   let { data } = $props();
   const category = $derived(data.category);
@@ -23,20 +23,25 @@
     romance: "💕 Romance",
   };
 
-  // svelte-ignore state_referenced_locally
-  let items: any[] = $state(data.items || []);
-  // svelte-ignore state_referenced_locally
-  let loading = $state(!data.items?.length);
-  // svelte-ignore state_referenced_locally
-  let hasNext = $state(data.hasNext || false);
+  let items: any[] = $state([]);
+  let loading = $state(true);
+  let hasNext = $state(false);
   let currentPage = $state(1);
 
+  // Consume the streamed initial data; re-seeds when navigating between categories.
+  let lastInitial: any = null;
   $effect(() => {
-    // Keep in sync with server-loaded data updates during navigation
-    items = data.items || [];
-    loading = !data.items?.length;
-    hasNext = data.hasNext || false;
+    const p = data.initial;
+    if (p === lastInitial) return;
+    lastInitial = p;
+    loading = true;
     currentPage = 1;
+    Promise.resolve(p).then((res) => {
+      if (data.initial !== p) return; // stale navigation
+      items = res?.items || [];
+      hasNext = res?.hasNext || false;
+      loading = false;
+    });
   });
 
   const pageTitle = $derived(titleMap[category] || category);
@@ -44,10 +49,6 @@
     `Browse ${pageTitle.replace(/[^\w\s&-]/g, "").trim()} anime on WatchAnimez with posters, ratings, genres, and detailed watch pages.`
   );
   const collectionJsonLd = $derived(getCollectionJsonLd(`${pageTitle} — WatchAnimez`, pageDescription, data.canonicalUrl, items));
-
-  onMount(() => {
-    if (items.length === 0) loadPage(1);
-  });
 
   async function loadPage(p: number) {
     loading = true;
@@ -76,7 +77,9 @@
 <div class="page container">
   <h1 class="page-title">{titleMap[category] || category}</h1>
   {#if loading && items.length === 0}
-    <div class="center"><div class="spinner"></div></div>
+    <div class="grid">
+      <SkeletonGrid count={18} />
+    </div>
   {:else}
     <div class="grid">
       {#each items as anime (anime.id)}

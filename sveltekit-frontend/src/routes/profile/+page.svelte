@@ -4,6 +4,8 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { themeState, type ThemeSettings } from '$lib/stores/theme';
+  import PasswordModal from "$lib/components/PasswordModal.svelte";
+  import CreateProfileModal from "$lib/components/CreateProfileModal.svelte";
   import {
     User,
     UserPlus,
@@ -188,9 +190,11 @@
 </svelte:head>
 
 {#if loading}
-  <div class="loading-state">
-    <div class="spinner"></div>
-    <p>Loading your profile...</p>
+  <div class="profile-page container">
+    <div class="pf-sk pf-sk-header shimmer"></div>
+    <div class="pf-sk pf-sk-card shimmer"></div>
+    <div class="pf-sk pf-sk-section shimmer"></div>
+    <div class="pf-sk pf-sk-section shimmer"></div>
   </div>
 {:else}
   <div class="profile-page container">
@@ -359,8 +363,10 @@
             <a href="/favorites" class="btn-text">View All</a>
           </div>
           {#if loadingFavs}
-            <div class="fav-loading">
-              <div class="spinner small"></div>
+            <div class="fav-grid">
+              {#each Array(6) as _, i (i)}
+                <div class="fav-sk shimmer" aria-hidden="true"></div>
+              {/each}
             </div>
           {:else if favorites.length === 0}
             <div class="fav-empty">
@@ -371,7 +377,7 @@
             <div class="fav-grid">
               {#each favorites.slice(0, 6) as anime}
                 <a href="/anime/{anime.id}" class="fav-card">
-                  <img src={getProxiedImage(anime.poster)} alt={anime.title} class="fav-poster" />
+                  <img src={getProxiedImage(anime.poster)} alt={anime.title} class="fav-poster" loading="lazy" decoding="async" />
                   <span class="fav-title">{anime.title}</span>
                 </a>
               {/each}
@@ -385,85 +391,23 @@
 
 <!-- Password Modal -->
 {#if showPasswordModal}
-  <div class="modal-overlay" onclick={closeModals} role="dialog" aria-modal="true">
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h3>Change Password</h3>
-        <button class="modal-close" onclick={closeModals}><X size={18} /></button>
-      </div>
-      <form onsubmit={(e) => { e.preventDefault(); handlePasswordChange(); }} class="modal-body">
-        {#if error}
-          <div class="alert alert-error small">
-            <AlertCircle size={14} />
-            <span>{error}</span>
-          </div>
-        {/if}
-        <div class="form-group">
-          <label>Current Password</label>
-          <input type="password" bind:value={passwordForm.current} required placeholder="Enter current password" />
-        </div>
-        <div class="form-group">
-          <label>New Password</label>
-          <input type="password" bind:value={passwordForm.new} required minlength={6} placeholder="At least 6 characters" />
-        </div>
-        <div class="form-group">
-          <label>Confirm New Password</label>
-          <input type="password" bind:value={passwordForm.confirm} required placeholder="Re-enter new password" />
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-outline" onclick={closeModals}>Cancel</button>
-          <button type="submit" class="btn-primary" disabled={processing}>
-            {processing ? 'Updating...' : 'Update Password'}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <PasswordModal
+    {error}
+    {processing}
+    onClose={closeModals}
+    onSubmit={(d) => { passwordForm = d; handlePasswordChange(); }}
+  />
 {/if}
 
 <!-- Create Profile Modal -->
 {#if showProfileModal}
-  <div class="modal-overlay" onclick={closeModals} role="dialog" aria-modal="true">
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">
-        <h3>Create New Profile</h3>
-        <button class="modal-close" onclick={closeModals}><X size={18} /></button>
-      </div>
-      <form onsubmit={(e) => { e.preventDefault(); handleCreateProfile(); }} class="modal-body">
-        {#if error}
-          <div class="alert alert-error small">
-            <AlertCircle size={14} />
-            <span>{error}</span>
-          </div>
-        {/if}
-        <div class="form-group">
-          <label>Profile Name</label>
-          <input type="text" bind:value={profileForm.name} required maxlength={20} placeholder="Enter a name for this profile" />
-        </div>
-        <div class="form-group">
-          <label>Choose Avatar</label>
-          <div class="avatar-grid">
-            {#each avatars as av}
-              <button
-                type="button"
-                class="avatar-option"
-                class:selected={profileForm.avatar === av}
-                onclick={() => profileForm.avatar = av}
-              >
-                <img src={av} alt="" />
-              </button>
-            {/each}
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-outline" onclick={closeModals}>Cancel</button>
-          <button type="submit" class="btn-primary" disabled={processing || !profileForm.name}>
-            {processing ? 'Creating...' : 'Create Profile'}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <CreateProfileModal
+    {error}
+    {processing}
+    {avatars}
+    onClose={closeModals}
+    onSubmit={(d) => { profileForm = d; handleCreateProfile(); }}
+  />
 {/if}
 
 <style>
@@ -474,15 +418,33 @@
   }
 
   /* Loading */
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 6rem 1rem;
-    gap: 1rem;
-    color: var(--net-text-muted);
-    min-height: 60vh;
+  .pf-sk {
+    border-radius: 14px;
+    margin-bottom: 1.25rem;
+  }
+  .pf-sk-header { height: 64px; }
+  .pf-sk-card { height: 160px; }
+  .pf-sk-section { height: 200px; }
+  .fav-sk {
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+  }
+  .shimmer {
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.05) 30%,
+      rgba(255, 255, 255, 0.11) 50%,
+      rgba(255, 255, 255, 0.05) 70%
+    );
+    background-size: 200% 100%;
+    animation: pf-shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes pf-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer { animation: none; }
   }
 
   /* Page Header */
@@ -529,7 +491,6 @@
     margin-bottom: 1.5rem;
     line-height: 1.4;
   }
-  .alert.small { padding: 0.65rem 0.85rem; font-size: 0.82rem; margin-bottom: 1rem; }
   .alert-error {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.2);
@@ -813,28 +774,8 @@
   }
   .fav-empty svg { opacity: 0.3; }
   .fav-empty p { font-size: 0.85rem; }
-  .fav-loading {
-    display: flex;
-    justify-content: center;
-    padding: 2rem;
-  }
 
   /* Buttons */
-  .btn-primary {
-    padding: 0.7rem 1.5rem;
-    background: var(--net-red);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 0.88rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-  .btn-primary:hover:not(:disabled) { filter: brightness(1.15); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
   .btn-outline {
     padding: 0.6rem 1.25rem;
     background: none;
@@ -897,107 +838,6 @@
   .btn-icon:hover { background: rgba(255, 255, 255, 0.05); }
   .btn-icon.danger:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
 
-  /* Modals */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    padding: 1rem;
-  }
-  .modal {
-    background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 440px;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  .modal-header h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0;
-  }
-  .modal-close {
-    background: none;
-    border: none;
-    color: var(--net-text-muted);
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 6px;
-  }
-  .modal-close:hover { background: rgba(255, 255, 255, 0.05); color: white; }
-  .modal-body { padding: 1.5rem; }
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-  }
-
-  /* Forms */
-  .form-group {
-    margin-bottom: 1.25rem;
-  }
-  .form-group label {
-    display: block;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--net-text-muted);
-    margin-bottom: 0.4rem;
-  }
-  .form-group input {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    color: white;
-    font-size: 0.9rem;
-    font-family: inherit;
-    outline: none;
-    box-sizing: border-box;
-  }
-  .form-group input:focus { border-color: var(--net-red); }
-  .form-group input::placeholder { color: rgba(255, 255, 255, 0.25); }
-
-  .avatar-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0.5rem;
-  }
-  .avatar-option {
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.2s;
-    padding: 0;
-    background: rgba(255, 255, 255, 0.05);
-  }
-  .avatar-option img { width: 100%; height: 100%; object-fit: cover; }
-  .avatar-option:hover { border-color: rgba(255, 255, 255, 0.2); }
-  .avatar-option.selected { border-color: var(--net-red); box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.3); }
-
-  .spinner.small {
-    width: 20px;
-    height: 20px;
-  }
-
   /* Responsive */
   @media (max-width: 768px) {
     .page-title { font-size: 1.5rem; }
@@ -1019,8 +859,5 @@
     .user-name { font-size: 1.05rem; }
     .card { padding: 1.25rem; }
     .fav-grid { grid-template-columns: repeat(2, 1fr); }
-    .avatar-grid { grid-template-columns: repeat(3, 1fr); }
-    .modal { border-radius: 12px; }
-    .modal-body { padding: 1.25rem; }
   }
 </style>

@@ -3,6 +3,8 @@
   import { auth } from "$lib/stores/auth";
   import JsonLd from "$lib/components/JsonLd.svelte";
   import Row from "$lib/components/Row.svelte";
+  import SkeletonDetail from "$lib/components/SkeletonDetail.svelte";
+  import SkeletonRow from "$lib/components/SkeletonRow.svelte";
   import { getAnimeJsonLd, truncateDescription } from "$lib/seo";
 
   let { data } = $props();
@@ -12,8 +14,8 @@
   let characters: any[] = $state([]);
   let recommendations: any[] = $state([]);
   let relations: any[] = $state([]);
-  // svelte-ignore state_referenced_locally
-  let loading = $state(!data.anime);
+  // Secondary data (characters/recs/relations) loads after the main info is shown.
+  let detailsLoading = $state(true);
   let inWatchlist = $state(false);
   let isFavorite = $state(false);
   let watchlistStatus = $state("");
@@ -38,7 +40,7 @@
   });
 
   async function loadAnimeData(currentId: number) {
-    loading = true;
+    detailsLoading = true;
     try {
       // Reset details when ID changes to prevent showing old data during fetch
       characters = [];
@@ -48,12 +50,12 @@
       isFavorite = false;
       watchlistStatus = "";
 
-      // Hydrate anime from server data if available and matches, else fetch
+      // Hydrate anime from server data if available and matches, else fetch.
+      // The main info renders immediately; only secondary sections show skeletons.
       if (data.anime && data.anime.id === currentId) {
         anime = data.anime;
       } else {
-        const res = await api.getAnime(currentId);
-        anime = res;
+        anime = await api.getAnime(currentId);
       }
 
       // Check watchlist and favorite status if logged in
@@ -94,7 +96,7 @@
       console.error(e);
     } finally {
       if (currentId === id) {
-        loading = false;
+        detailsLoading = false;
       }
     }
   }
@@ -181,9 +183,9 @@
   <JsonLd data={animeJsonLd} />
 {/if}
 
-{#if loading}
-  <div class="center"><div class="spinner"></div></div>
-{:else if anime}
+{#if !anime}
+  <SkeletonDetail />
+{:else}
   <!-- Banner -->
   <div
     class="detail-banner"
@@ -270,42 +272,84 @@
       </div>
     </div>
 
-    <!-- Characters -->
-    {#if characters.length > 0}
+    {#if detailsLoading}
+      <!-- Secondary content skeletons while characters/relations/recommendations load -->
       <section class="section">
         <h2 class="section-title">Characters</h2>
         <div class="chars-grid">
-          {#each characters.slice(0, 12) as c}
+          {#each Array(12) as _, i (i)}
             <div class="char-card">
-              <img
-                src={c.character?.images?.jpg?.image_url || ""}
-                alt={c.character?.name || ""}
-              />
-              <p class="char-name">{c.character?.name || "Unknown"}</p>
-              <p class="char-role">{c.role}</p>
+              <div class="char-img-sk shimmer"></div>
+              <div class="char-line-sk shimmer"></div>
             </div>
           {/each}
         </div>
       </section>
-    {/if}
+      <SkeletonRow count={8} />
+    {:else}
+      <!-- Characters -->
+      {#if characters.length > 0}
+        <section class="section">
+          <h2 class="section-title">Characters</h2>
+          <div class="chars-grid">
+            {#each characters.slice(0, 12) as c}
+              <div class="char-card">
+                <img
+                  src={c.character?.images?.jpg?.image_url || ""}
+                  alt={c.character?.name || ""}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <p class="char-name">{c.character?.name || "Unknown"}</p>
+                <p class="char-role">{c.role}</p>
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/if}
 
-    <!-- Relations -->
-    {#if relations.length > 0}
-      <Row title="Related Seasons & Prequels" items={relations} />
-    {/if}
+      <!-- Relations -->
+      {#if relations.length > 0}
+        <Row title="Related Seasons & Prequels" items={relations} />
+      {/if}
 
-    <!-- Recommendations -->
-    {#if recommendations.length > 0}
-      <Row title="You Might Also Like" items={recommendations} />
+      <!-- Recommendations -->
+      {#if recommendations.length > 0}
+        <Row title="You Might Also Like" items={recommendations} />
+      {/if}
     {/if}
   </div>
 {/if}
 
 <style>
-  .center {
-    display: flex;
-    justify-content: center;
-    padding: 8rem 0;
+  .char-img-sk {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto;
+  }
+  .char-line-sk {
+    width: 70%;
+    height: 0.7rem;
+    border-radius: 4px;
+    margin: 0.4rem auto 0;
+  }
+  .shimmer {
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.05) 30%,
+      rgba(255, 255, 255, 0.11) 50%,
+      rgba(255, 255, 255, 0.05) 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer { animation: none; }
   }
   .detail-banner {
     position: relative;
@@ -482,9 +526,6 @@
   }
 
   @media (max-width: 480px) {
-    .center {
-      padding: 4rem 0;
-    }
     .detail-grid {
       grid-template-columns: 1fr;
       gap: 1rem;

@@ -54,7 +54,7 @@
   onkeydown={handleKeydown}
 >
 <div class="card-img-wrap">
-    <img src={poster} alt={title} loading="lazy" />
+    <img src={poster} alt={title} loading="lazy" decoding="async" />
     <div class="card-overlay">
       <div class="card-play">▶</div>
     </div>

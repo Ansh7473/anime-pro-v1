@@ -4,6 +4,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import AnimeCard from "$lib/components/AnimeCard.svelte";
+    import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
 
     let favorites: any[] = $state([]);
     let loading = $state(true);
@@ -48,8 +49,8 @@
     </div>
 
     {#if loading}
-        <div class="center">
-            <div class="spinner"></div>
+        <div class="favorites-grid">
+            <SkeletonGrid count={12} />
         </div>
     {:else if error}
         <div class="error-state glass">
@@ -160,28 +161,6 @@
         transform: scale(1.1);
     }
 
-    .center {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 300px;
-    }
-
-    .spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid rgba(255, 255, 255, 0.1);
-        border-top-color: var(--net-red);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
     .error-state,
     .empty-state {
         text-align: center;
@@ -196,7 +175,6 @@
         margin-bottom: 1rem;
     }
 
-    .error-state h2,
     .empty-state h2 {
         font-size: 1.5rem;
         margin-bottom: 0.5rem;
@@ -254,7 +232,6 @@
         .empty-icon {
             font-size: 3rem;
         }
-        .error-state h2,
         .empty-state h2 {
             font-size: 1.3rem;
         }
@@ -294,7 +271,6 @@
         .empty-icon {
             font-size: 2.5rem;
         }
-        .error-state h2,
         .empty-state h2 {
             font-size: 1.2rem;
         }

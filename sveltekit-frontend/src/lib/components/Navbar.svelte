@@ -172,6 +172,8 @@
                     src={getProxiedImage(anime.poster)}
                     alt={anime.title}
                     class="suggestion-poster"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div class="suggestion-info">
                     <span class="suggestion-title">{anime.title}</span>

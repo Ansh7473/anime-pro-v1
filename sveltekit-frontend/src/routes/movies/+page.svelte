@@ -1,9 +1,9 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
+  import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import JsonLd from "$lib/components/JsonLd.svelte";
   import { getCollectionJsonLd } from "$lib/seo";
-  import { onMount } from "svelte";
   import { Film, ChevronDown } from "lucide-svelte";
 
   let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
@@ -12,28 +12,33 @@
   const pageDescription =
     "Browse popular, trending, top-rated, and upcoming anime movies with poster art, ratings, details, and episode links on WatchAnimez.";
 
-  // svelte-ignore state_referenced_locally
-  let items: any[] = $state(data.initialItems || []);
-  // svelte-ignore state_referenced_locally
-  let loading = $state(items.length === 0);
-  // svelte-ignore state_referenced_locally
-  let hasNext = $state(data.hasNext || false);
-
-  $effect(() => {
-    items = data.initialItems || [];
-    hasNext = data.hasNext || false;
-  });
+  let items: any[] = $state([]);
+  let loading = $state(true);
+  let hasNext = $state(false);
   let currentPage = $state(1);
   let activeFilter = $state("Popular");
+
+  // Consume the streamed initial data (re-seeds on navigation, resets to default filter).
+  let lastInitial: any = null;
+  $effect(() => {
+    const p = data.initial;
+    if (p === lastInitial) return;
+    lastInitial = p;
+    loading = true;
+    activeFilter = "Popular";
+    currentPage = 1;
+    Promise.resolve(p).then((res) => {
+      if (data.initial !== p) return; // stale navigation
+      items = res?.items || [];
+      hasNext = res?.hasNext || false;
+      loading = false;
+    });
+  });
   const collectionJsonLd = $derived(
     getCollectionJsonLd(pageTitle, pageDescription, data.canonicalUrl, items)
   );
 
   const filters = ["Popular", "Trending", "Top Rated", "Upcoming"];
-
-  onMount(() => {
-    if (items.length === 0) loadPage(1);
-  });
 
   async function loadPage(p: number) {
     loading = true;
@@ -118,9 +123,8 @@
 
   <!-- Content -->
   {#if loading && items.length === 0}
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading anime movies...</p>
+    <div class="anime-grid">
+      <SkeletonGrid count={18} />
     </div>
   {:else}
     <div class="anime-grid">
@@ -231,20 +235,6 @@
     gap: 1.25rem;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     margin-bottom: 3rem;
-  }
-
-  /* Loading */
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 1rem;
-    gap: 1rem;
-    color: var(--net-text-muted);
-  }
-  .loading-state p {
-    font-size: 0.9rem;
   }
 
   /* Load More */
