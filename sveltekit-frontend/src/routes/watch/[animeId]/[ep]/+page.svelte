@@ -42,6 +42,7 @@
   });
 
   let anime: any = $state(null);
+  let posterColor = $state(""); // dominant poster color as "r, g, b"
   let recommendations: any[] = $state([]);
   let sources: any[] = $state([]);
   let episodes: any[] = $state([]);
@@ -400,6 +401,7 @@
         api.getRecommendations(animeId),
       ]);
       anime = animeRes;
+      extractPosterColor(getProxiedImage(anime?.image || anime?.poster));
       episodes = metaRes?.data?.episodes || [];
       recommendations = recsRes || [];
 
@@ -436,6 +438,80 @@
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     cancelCountdown();
   });
+
+  // Extract the dominant/vibrant color from the anime poster so the whole
+  // watch screen background can adopt the colour of the exact anime.
+  // Uses the proxied URL because the backend proxy sends CORS headers
+  // (AniList's CDN does not), which keeps the canvas readable.
+  function extractPosterColor(src: string) {
+    if (!src || typeof window === "undefined") return;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const w = 64;
+        const h = 64;
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, w, h);
+        const { data } = ctx.getImageData(0, 0, w, h);
+
+        let r = 0,
+          g = 0,
+          b = 0,
+          count = 0;
+        // Vibrant accumulator (saturated mid-tones)
+        let vr = 0,
+          vg = 0,
+          vb = 0,
+          vcount = 0;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const cr = data[i];
+          const cg = data[i + 1];
+          const cb = data[i + 2];
+          const ca = data[i + 3];
+          if (ca < 125) continue;
+
+          const max = Math.max(cr, cg, cb);
+          const min = Math.min(cr, cg, cb);
+          const lum = (max + min) / 2;
+          const sat =
+            max === min
+              ? 0
+              : lum > 127
+                ? (max - min) / (510 - max - min)
+                : (max - min) / (max + min);
+
+          r += cr;
+          g += cg;
+          b += cb;
+          count++;
+
+          if (sat > 0.35 && lum > 40 && lum < 220) {
+            vr += cr;
+            vg += cg;
+            vb += cb;
+            vcount++;
+          }
+        }
+
+        if (vcount > count * 0.02) {
+          posterColor = `${Math.round(vr / vcount)}, ${Math.round(vg / vcount)}, ${Math.round(vb / vcount)}`;
+        } else if (count > 0) {
+          posterColor = `${Math.round(r / count)}, ${Math.round(g / count)}, ${Math.round(b / count)}`;
+        }
+      } catch (e) {
+        // Tainted canvas or read error — keep the theme accent fallback.
+        console.warn("Poster colour extraction failed:", e);
+      }
+    };
+    img.onerror = () => {};
+    img.src = src;
+  }
 
   async function loadSources() {
     const loadId = ++currentLoadId;
@@ -691,7 +767,10 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="player-page">
+<div
+  class="player-page"
+  style={posterColor ? `--poster-tint: ${posterColor};` : ""}
+>
   <!-- Cinematic Background Blur -->
   <div
     class="page-background"
@@ -701,33 +780,16 @@
   ></div>
   <div class="page-overlay"></div>
 
-  <!-- Top Navigation Bar (Floating) -->
+  <!-- Floating Back Button -->
   <div class="top-nav container">
-    <div class="nav-left">
-      <button class="nav-back-btn" onclick={() => goto(`/anime/${animeId}`)}>
-        <ChevronLeft size={20} />
-      </button>
-      <div
-        class="top-logo"
-        onclick={() => goto("/")}
-        role="button"
-        tabindex="0"
-        onkeydown={(e) => e.key === "Enter" && goto("/")}
-      >
-        <img src="/favicon-192.png" alt="WatchAnimez" class="logo-img" />
-        <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
-      </div>
-    </div>
-    <div class="top-nav-meta">
-      <span class="watching-label">Now Watching</span>
-      <h2 class="anime-mini-title">
-        {typeof anime?.title === "object"
-          ? anime.title.english ||
-            anime.title.romaji ||
-            anime.title.userPreferred
-          : anime?.title || "Loading..."}
-      </h2>
-    </div>
+    <button
+      class="nav-back-btn"
+      onclick={() => goto(`/anime/${animeId}`)}
+      aria-label="Back to anime details"
+    >
+      <ChevronLeft size={20} />
+      <span class="back-label">Back</span>
+    </button>
   </div>
 
   <!-- Main Content Layout -->
@@ -1181,26 +1243,16 @@
 
   .bottom-row {
     position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 26px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
     padding: 1.25rem 0.75rem 1.4rem;
-    background:
-      radial-gradient(circle at 12% 0%, rgba(229, 9, 20, 0.22), transparent 34%),
-      linear-gradient(135deg, rgba(18, 18, 24, 0.82), rgba(8, 8, 12, 0.9));
+    background: var(--surface-1);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     box-shadow:
-      0 24px 60px rgba(0, 0, 0, 0.55),
-      0 0 44px rgba(229, 9, 20, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      0 18px 44px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
     overflow: hidden;
-  }
-
-  .bottom-row::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(90deg, rgba(229, 9, 20, 0.28), transparent 26%, transparent 74%, rgba(229, 9, 20, 0.18));
-    opacity: 0.55;
   }
 
   .bottom-row :global(.row-section) {
@@ -1209,22 +1261,22 @@
   }
 
   .bottom-row :global(.row-title) {
-    color: #fff;
-    font-size: clamp(1.2rem, 2vw, 1.65rem);
-    font-weight: 950;
-    text-shadow: 0 0 26px rgba(229, 9, 20, 0.45);
+    color: var(--txt);
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
   .bottom-row :global(.row-title)::before {
     content: '';
     display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin-right: 10px;
+    width: 4px;
+    height: 1.05em;
+    margin-right: 12px;
     border-radius: 999px;
-    background: var(--accent-red);
-    box-shadow: 0 0 18px rgba(229, 9, 20, 0.9);
-    vertical-align: middle;
+    background: var(--accent);
+    box-shadow: 0 0 14px var(--accent-glow);
+    vertical-align: -0.18em;
   }
 
   .bottom-row :global(.row-scroll) {
@@ -1248,19 +1300,36 @@
     }
   }
 
-  /* --- Premium Design System Overrides --- */
-  :root {
-    --glass-bg: rgba(15, 15, 18, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --accent-red: #e50914;
-    --accent-glow: rgba(229, 9, 20, 0.3);
-  }
-
+  /* --- Watch Page Design System (theme-aware) --- */
   .player-page {
+    /* Local tokens mapped to the global theme so the player follows the
+       active theme like the rest of the site instead of hardcoded red. */
+    --accent: var(--net-red, #e50914);
+    --accent-red: var(--net-red, #e50914);
+    --accent-soft: color-mix(in srgb, var(--net-red, #e50914) 16%, transparent);
+    --accent-glow: color-mix(in srgb, var(--net-red, #e50914) 28%, transparent);
+    /* Poster-driven tint — overridden inline once the poster colour is read,
+       so the whole screen adopts the colour of the exact anime. */
+    --poster-tint: 229, 9, 20;
+    --tint-soft: rgba(var(--poster-tint), 0.16);
+    --tint-strong: rgba(var(--poster-tint), 0.32);
+    --tint-glow: rgba(var(--poster-tint), 0.42);
+    --surface-1: color-mix(in srgb, var(--net-bg, #0a0a0a) 78%, #ffffff 4%);
+    --surface-2: color-mix(in srgb, var(--net-bg, #0a0a0a) 70%, #ffffff 6%);
+    --hairline: rgba(255, 255, 255, 0.08);
+    --hairline-strong: rgba(255, 255, 255, 0.14);
+    --glass-bg: var(--surface-1);
+    --glass-border: var(--hairline);
+    --txt: var(--net-text, #fff);
+    --txt-muted: var(--net-text-muted, #9ca3af);
+    --radius-card: 20px;
+    --radius-inner: 14px;
+    --gap-section: 1.75rem;
+
     position: relative;
     min-height: 100vh;
-    background: #050505;
-    color: #fff;
+    background: var(--net-bg, #050505);
+    color: var(--txt);
     overflow-x: hidden;
     padding-bottom: 5rem;
   }
@@ -1269,110 +1338,77 @@
     position: fixed;
     inset: 0;
     background-size: cover;
-    background-position: center;
-    filter: blur(80px) saturate(1.5) brightness(0.3);
+    background-position: center 20%;
+    filter: blur(3px) saturate(1.5) brightness(0.55);
     z-index: 0;
-    transform: scale(1.1);
+    transform: scale(1.12);
+    opacity: 1;
   }
 
   .page-overlay {
     position: fixed;
     inset: 0;
-    background: radial-gradient(
-        circle at top right,
-        rgba(229, 9, 20, 0.05),
-        transparent
+    background:
+      radial-gradient(
+        120% 80% at 80% -10%,
+        var(--tint-strong),
+        transparent 50%
       ),
-      linear-gradient(to bottom, transparent, #050505);
+      radial-gradient(
+        100% 60% at 15% 0%,
+        var(--tint-soft),
+        transparent 55%
+      ),
+      linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 45%,
+        color-mix(in srgb, var(--net-bg, #050505) 60%, transparent) 72%,
+        var(--net-bg, #050505) 96%
+      );
     z-index: 1;
+    transition: background 0.8s ease;
   }
 
   .top-nav {
     position: relative;
     z-index: 100;
-    padding: 1.5rem 1rem;
-    padding-top: max(1.5rem, env(safe-area-inset-top));
+    padding: 1.25rem 1rem 0.25rem;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    animation: fadeInDown 0.8s ease;
-  }
-
-  .nav-left {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-  }
-
-  .top-logo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: transform 0.3s;
-  }
-  .top-logo:hover {
-    transform: scale(1.05);
-  }
-  .logo-img {
-    height: 32px;
-    width: 32px;
-    object-fit: contain;
-    border-radius: 6px;
-  }
-
-  .logo-text {
-    font-size: 1.5rem;
-    font-weight: 900;
-    letter-spacing: -1px;
-    color: #fff;
-  }
-  .logo-accent {
-    color: var(--accent-red);
-    text-shadow: 0 0 15px var(--accent-glow);
+    justify-content: flex-start;
+    animation: fadeInDown 0.6s ease;
   }
 
   .nav-back-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 45px;
-    height: 45px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: 50%;
-    color: #fff;
+    gap: 0.5rem;
+    height: 42px;
+    padding: 0 1.1rem 0 0.85rem;
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    color: var(--txt);
+    font-weight: 700;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: 0.3s;
-    backdrop-filter: blur(10px);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .nav-back-btn:hover {
-    background: var(--accent-red);
-    border-color: var(--accent-red);
-    transform: translateX(-5px) scale(1.1);
+    background: color-mix(in srgb, var(--accent) 16%, var(--surface-1));
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    transform: translateX(-3px);
   }
 
-  .top-nav-meta {
-    text-align: right;
-  }
-
-  .watching-label {
-    display: block;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--net-text-muted);
-    margin-bottom: 4px;
-    font-weight: 800;
-  }
-
-  .anime-mini-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #fff;
+  .back-label {
+    line-height: 1;
   }
 
   /* Layout */
@@ -1380,21 +1416,44 @@
     position: relative;
     z-index: 5;
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 2.5rem;
-    margin-top: 1rem;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 2rem;
+    margin-top: 1.25rem;
+    align-items: start;
   }
 
   .primary-section {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: var(--gap-section);
+    min-width: 0;
   }
 
   /* Video & Player */
   .player-wrapper {
+    position: relative;
     width: 100%;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Ambient theme glow ("ambilight") radiating from behind the player */
+  .player-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: -6% -3% -10%;
+    z-index: 0;
+    border-radius: 48px;
+    background:
+      radial-gradient(60% 65% at 50% 45%, var(--tint-glow), transparent 72%),
+      radial-gradient(80% 90% at 50% 60%, var(--tint-soft), transparent 78%);
+    filter: blur(72px) saturate(1.35);
+    opacity: 0.9;
+    pointer-events: none;
+    transition: opacity 0.6s ease, background 0.8s ease;
+  }
+
+  .player-wrapper:hover::before {
+    opacity: 1;
   }
 
   .player-wrapper.theater {
@@ -1407,17 +1466,22 @@
     background: #000;
   }
 
+  .player-wrapper.theater::before {
+    display: none;
+  }
+
   .video-container {
     position: relative;
+    z-index: 1;
     width: 100%;
     aspect-ratio: 16/9;
     background: #000;
-    border-radius: 20px;
+    border-radius: var(--radius-card);
     overflow: hidden;
     box-shadow:
-      0 30px 60px rgba(0, 0, 0, 0.8),
-      0 0 0 1px var(--glass-border);
-    transition: border-radius 0.5s;
+      0 24px 60px rgba(0, 0, 0, 0.65),
+      0 0 0 1px var(--hairline);
+    transition: border-radius 0.4s ease;
   }
 
   .video-container.theater {
@@ -1505,7 +1569,7 @@
   .spinner-premium {
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(229, 9, 20, 0.1);
+    border: 3px solid color-mix(in srgb, var(--accent) 12%, transparent);
     border-top: 3px solid var(--accent-red);
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -1645,9 +1709,9 @@
   .chat-toggle-btn:hover,
   .server-toggle-btn:hover {
     background: linear-gradient(135deg, rgba(28, 28, 34, 0.9), rgba(18, 18, 22, 0.95));
-    border-color: rgba(229, 9, 20, 0.3);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 24px rgba(229, 9, 20, 0.15);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 24px color-mix(in srgb, var(--accent) 15%, transparent);
   }
 
   .toggle-content {
@@ -1668,13 +1732,13 @@
   .chat-badge,
   .server-badge {
     padding: 0.4rem 1rem;
-    background: rgba(229, 9, 20, 0.15);
-    border: 1px solid rgba(229, 9, 20, 0.3);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
     border-radius: 999px;
     font-size: 0.85rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 0 18px rgba(229, 9, 20, 0.25);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 22%, transparent);
   }
 
   .collapsible-chat-container,
@@ -1717,9 +1781,9 @@
   .show-chat-btn:hover,
   .show-servers-btn:hover {
     background: linear-gradient(135deg, rgba(28, 28, 34, 0.9), rgba(18, 18, 22, 0.95));
-    border-color: rgba(229, 9, 20, 0.3);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 24px rgba(229, 9, 20, 0.15);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 24px color-mix(in srgb, var(--accent) 15%, transparent);
   }
 
   /* Collapsible LiveChat Styles */
@@ -1780,15 +1844,15 @@
   }
 
   .chat-badge {
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.2) 0%, rgba(229, 9, 20, 0.1) 100%);
-    color: #ff6b7a;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent) 0%, color-mix(in srgb, var(--accent) 10%, transparent) 100%);
+    color: color-mix(in srgb, var(--accent) 55%, #fff);
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border: 1px solid rgba(229, 9, 20, 0.3);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   }
 
   .collapsible-chat-container {
@@ -1807,9 +1871,9 @@
 
   .show-servers-btn {
     width: 100%;
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.08) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent) 0%, color-mix(in srgb, var(--accent) 8%, transparent) 100%);
     backdrop-filter: blur(12px);
-    border: 2px solid rgba(229, 9, 20, 0.3);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 32%, transparent);
     border-radius: 16px;
     padding: 1.25rem 1.5rem;
     color: rgba(255, 255, 255, 0.95);
@@ -1821,14 +1885,14 @@
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    box-shadow: 0 4px 16px rgba(229, 9, 20, 0.2);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 18%, transparent);
   }
 
   .show-servers-btn:hover {
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.25) 0%, rgba(229, 9, 20, 0.15) 100%);
-    border-color: rgba(229, 9, 20, 0.5);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 26%, transparent) 0%, color-mix(in srgb, var(--accent) 15%, transparent) 100%);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(229, 9, 20, 0.3);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 28%, transparent);
   }
 
   .show-servers-btn:active {
@@ -1842,6 +1906,18 @@
 
   .mt-8 {
     margin-top: 2rem;
+  }
+
+  .mt-10 {
+    margin-top: 2.5rem;
+  }
+
+  .mt-12 {
+    margin-top: 3rem;
+  }
+
+  .pb-20 {
+    padding-bottom: 5rem;
   }
 
   /* Responsive adjustments for collapsible chat */
@@ -1914,7 +1990,7 @@
   .server-icon-wrapper {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, var(--accent-red) 0%, #c70811 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 72%, #000) 100%);
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -2004,7 +2080,7 @@
 
   .provider-card:hover {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border-color: rgba(229, 9, 20, 0.3);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
     transform: translateY(-2px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   }
@@ -2058,8 +2134,8 @@
   }
 
   .provider-card.open {
-    border-color: rgba(229, 9, 20, 0.28);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(229, 9, 20, 0.1);
+    border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 24px color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   .prov-name {
@@ -2109,8 +2185,8 @@
 
   /* Color-coded category labels */
   .cat-label:has(+ .source-chips .source-chip:nth-child(1)) {
-    background: rgba(229, 9, 20, 0.15);
-    color: #ff4757;
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: color-mix(in srgb, var(--accent) 70%, #fff);
   }
 
   .cat-label::before {
@@ -2149,7 +2225,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.2), transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), transparent);
     opacity: 0;
     transition: opacity 0.25s;
   }
@@ -2166,7 +2242,7 @@
   }
 
   .source-chip.active {
-    background: linear-gradient(135deg, var(--accent-red) 0%, #c70811 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 72%, #000) 100%);
     border-color: var(--accent-red);
     box-shadow: 0 6px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transform: translateY(-1px);
@@ -2235,8 +2311,8 @@
   }
 
   .episode-card.current {
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.12) 0%, rgba(229, 9, 20, 0.04) 100%);
-    border-color: rgba(229, 9, 20, 0.4);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, color-mix(in srgb, var(--accent) 4%, transparent) 100%);
+    border-color: color-mix(in srgb, var(--accent) 42%, transparent);
     box-shadow: 0 8px 24px var(--accent-glow);
   }
 
@@ -2260,7 +2336,7 @@
   .ep-hover {
     position: absolute;
     inset: 0;
-    background: rgba(229, 9, 20, 0.3);
+    background: color-mix(in srgb, var(--accent) 32%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2286,7 +2362,7 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    background: linear-gradient(135deg, var(--accent-red) 0%, #c70811 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 72%, #000) 100%);
     color: #fff;
     font-size: 0.7rem;
     font-weight: 900;
@@ -2355,7 +2431,7 @@
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-red) 0%, #ff4757 100%);
+    background: linear-gradient(90deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 60%, #fff) 100%);
     border-radius: 3px;
     transition: width 0.3s ease;
     position: relative;
@@ -2381,14 +2457,15 @@
 
   /* Sections */
   .cards-glass {
-    background: linear-gradient(135deg, rgba(15, 15, 18, 0.75) 0%, rgba(15, 15, 18, 0.65) 100%);
+    background: var(--surface-1);
     backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    padding: 2rem;
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
+    padding: 1.75rem;
     box-shadow:
-      0 20px 40px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      0 16px 40px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   /* Enhanced Section Headers */
@@ -2408,8 +2485,8 @@
   .section-icon-wrapper {
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.05) 100%);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent) 0%, color-mix(in srgb, var(--accent) 5%, transparent) 100%);
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
     border-radius: 11px;
     display: flex;
     align-items: center;
@@ -2705,7 +2782,7 @@
 
   .range-select:focus {
     border-color: var(--accent-red);
-    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.2);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   }
 
   .range-select option {
@@ -2932,8 +3009,8 @@
     }
 
     .episode-card.current {
-      background: linear-gradient(135deg, rgba(229, 9, 20, 0.15) 0%, rgba(229, 9, 20, 0.05) 100%);
-      border-color: rgba(229, 9, 20, 0.4);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent) 0%, color-mix(in srgb, var(--accent) 5%, transparent) 100%);
+      border-color: color-mix(in srgb, var(--accent) 42%, transparent);
     }
 
     .side-episodes .ep-thumb,
