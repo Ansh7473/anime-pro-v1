@@ -1,6 +1,5 @@
 <script lang="ts">
   import { api, getProxiedImage, getProxiedUrl, BACKEND_URL } from "$lib/api";
-  import Row from "$lib/components/Row.svelte";
   import { auth } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
   import { onMount, onDestroy, untrack } from "svelte";
@@ -17,6 +16,8 @@
     RotateCw,
     MessageSquare,
     ChevronDown,
+    LayoutGrid,
+    List,
   } from "lucide-svelte";
   import Hls from "hls.js";
   import ReactionsBar from "$lib/components/ReactionsBar.svelte";
@@ -81,6 +82,94 @@
 
   function goToEpPage(pageIndex: number) {
     currentEpPage = pageIndex;
+  }
+
+  // --- Miruro-style UI helpers ---
+  // Lightweight "Autoplay" toggle (cosmetic gate for auto-starting playback).
+  let autoplay = $state(true);
+
+  // Episode list filter (compact number grid)
+  let epFilter = $state("");
+  let filteredEpisodes = $derived.by(() => {
+    const q = epFilter.trim().toLowerCase();
+    if (!q) return displayedEpisodes;
+    return displayedEpisodes.filter(
+      (e: any) =>
+        String(e.number).includes(q) ||
+        (e.title || "").toLowerCase().includes(q),
+    );
+  });
+
+  // Classify a source into an audio category (Sub / English Dub / Hindi Dub / Raw)
+  function catOf(src: any): string {
+    if (!src) return "Sub";
+    const lang = (src.language || "").toLowerCase();
+    const type = (src.type || "").toLowerCase();
+    const c = (src.category || "").toLowerCase();
+    const prov = (src.provider || "").toLowerCase();
+    if (
+      lang.includes("hindi") ||
+      c === "hindi" ||
+      ((lang.includes("multi") || lang === "multi-audio") &&
+        (prov.includes("desidub") || prov.includes("hindi")))
+    )
+      return "Hindi Dub";
+    if (lang.includes("english") || c === "dub" || type === "dub")
+      return "English Dub";
+    if (c === "raw" || type === "raw") return "Raw";
+    return "Sub";
+  }
+
+  let audioCategories = $derived.by(() => {
+    const set = new Set<string>();
+    for (const s of sources) set.add(catOf(s));
+    return [...set];
+  });
+  let selectedCategory = $state("Sub");
+  // Keep the audio dropdown in sync when the active source changes.
+  $effect(() => {
+    if (selectedSource) {
+      const c = catOf(selectedSource);
+      untrack(() => {
+        selectedCategory = c;
+      });
+    }
+  });
+  let serversInCategory = $derived(
+    sources.filter((s: any) => catOf(s) === selectedCategory),
+  );
+  let currentEpisodeTitle = $derived.by(() => {
+    const e = episodes.find((x: any) => x.number === ep);
+    return e?.title || `Episode ${ep}`;
+  });
+
+  function selectAudioCategory(cat: string) {
+    selectedCategory = cat;
+    const first = sources.find((s: any) => catOf(s) === cat);
+    if (first) handleSourceChange(first);
+  }
+
+  function selectServerByUrl(url: string) {
+    const src = sources.find((s: any) => s.url === url);
+    if (src) handleSourceChange(src);
+  }
+
+  function sourceLabel(src: any): string {
+    const prov = src.provider ? src.provider.split(/[\s(]/)[0] : "Server";
+    const q = src.quality ? ` ${src.quality}` : "";
+    return `${prov}${q}`;
+  }
+
+  // Episode list view mode (compact number grid vs. titled list)
+  let epView = $state<"grid" | "list">("grid");
+
+  // Resolve a possibly-nested title object (AniList style) to a string.
+  function titleOf(item: any): string {
+    const t = item?.title || item?.name || item?.userPreferred;
+    if (typeof t === "string" && t) return t;
+    if (t && typeof t === "object")
+      return t.english || t.userPreferred || t.romaji || t.native || "Unknown";
+    return "Unknown";
   }
 
   // Group sources by Provider first, then by Language/Category
@@ -177,8 +266,9 @@
     return () => io.disconnect();
   });
 
-  // Collapsible Server Selection state
-  let showServers = $state(true);
+  // Collapsible Server Selection state (collapsed by default — the inline
+  // Audio/Server switcher in the title bar is the primary control now).
+  let showServers = $state(false);
   let openProvider = $state<string | null>(null);
 
   let isRotated = $state(false);
@@ -693,7 +783,7 @@
       hls.loadSource(url);
       hls.attachMedia(videoElement);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        videoElement?.play().catch(() => {});
+        if (autoplay) videoElement?.play().catch(() => {});
 
         // Apply Auto Skip Intro if enabled (approximate for now)
         if (autoSkip && videoElement && videoElement.currentTime < 5) {
@@ -943,6 +1033,150 @@
         </div>
       </div>
 
+      <!-- Player options bar (miruro-style lightweight toggles) -->
+      <div class="player-options-bar">
+        <div class="opt-toggles">
+          <button
+            class="opt-toggle"
+            class:on={autoplay}
+            onclick={() => (autoplay = !autoplay)}
+          >
+            <span class="opt-dot"></span> Autoplay
+          </button>
+          <button
+            class="opt-toggle"
+            class:on={autoSkip}
+            onclick={() => (autoSkip = !autoSkip)}
+          >
+            <SkipForward size={13} /> Auto Skip
+          </button>
+          <button
+            class="opt-toggle"
+            class:on={autoNext}
+            onclick={() => (autoNext = !autoNext)}
+          >
+            <ChevronRight size={13} /> Auto Next
+          </button>
+          <button
+            class="opt-toggle"
+            class:on={showShortcuts}
+            onclick={() => (showShortcuts = !showShortcuts)}
+          >
+            <Keyboard size={13} /> Shortcuts
+          </button>
+          <button
+            class="opt-toggle"
+            class:on={theaterMode}
+            onclick={() => (theaterMode = !theaterMode)}
+          >
+            <Monitor size={13} /> Lights Off
+          </button>
+        </div>
+        <div class="opt-nav">
+          <button
+            class="opt-nav-btn"
+            disabled={ep <= 1}
+            onclick={() => ep > 1 && changeEp(ep - 1)}
+          >
+            <ChevronLeft size={14} /> Prev
+          </button>
+          <button
+            class="opt-nav-btn"
+            disabled={ep >= episodes.length}
+            onclick={() => ep < episodes.length && changeEp(ep + 1)}
+          >
+            Next <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      <!-- Episode title + audio/server quick switch (miruro-style) -->
+      <div class="episode-title-bar">
+        <div class="etb-head">
+          <h1 class="etb-title">
+            <span class="etb-num">{ep}.</span>
+            {currentEpisodeTitle}
+          </h1>
+          {#if sources.length > 0}
+            <div class="etb-selectors">
+              {#if audioCategories.length > 1}
+                <label class="etb-select">
+                  <span class="etb-select-label">Audio</span>
+                  <select
+                    value={selectedCategory}
+                    onchange={(e) => selectAudioCategory(e.currentTarget.value)}
+                  >
+                    {#each audioCategories as cat}
+                      <option value={cat}>{cat}</option>
+                    {/each}
+                  </select>
+                </label>
+              {/if}
+              <label class="etb-select">
+                <span class="etb-select-label">Server · {serversInCategory.length}</span>
+                <select
+                  value={selectedSource?.url}
+                  onchange={(e) => selectServerByUrl(e.currentTarget.value)}
+                >
+                  {#each serversInCategory as src}
+                    <option value={src.url}>{sourceLabel(src)}</option>
+                  {/each}
+                </select>
+              </label>
+            </div>
+          {/if}
+        </div>
+        <div class="etb-meta">
+          {#if anime?.releaseDate || anime?.year}
+            <span class="etb-pill">{anime?.releaseDate || anime?.year}</span>
+          {/if}
+          {#if episodes.length}
+            <span class="etb-pill">{episodes.length} episodes</span>
+          {/if}
+          {#if anime?.status}
+            <span class="etb-pill etb-pill-status">{anime.status}</span>
+          {/if}
+          {#if anime?.duration}
+            <span class="etb-pill">{anime.duration} min</span>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Anime info detail card (miruro-style) -->
+      {#if anime}
+        <div class="anime-detail-card cards-glass">
+          <img
+            class="adc-poster"
+            src={getProxiedImage(anime?.image || anime?.poster)}
+            alt={anime?.title}
+            loading="lazy"
+          />
+          <div class="adc-body">
+            <h2 class="adc-title">{anime?.title}</h2>
+            {#if anime?.genres?.length}
+              <div class="adc-genres">
+                {#each anime.genres.slice(0, 6) as g}
+                  <span class="adc-genre">{g}</span>
+                {/each}
+              </div>
+            {/if}
+            {#if anime?.description}
+              <p class="adc-desc line-clamp-3">
+                {@html anime.description}
+              </p>
+            {/if}
+            <div class="adc-meta-grid">
+              {#if anime?.type}<div class="adc-meta"><span>Format</span><strong>{anime.type}</strong></div>{/if}
+              {#if anime?.status}<div class="adc-meta"><span>Status</span><strong>{anime.status}</strong></div>{/if}
+              {#if episodes.length}<div class="adc-meta"><span>Episodes</span><strong>{episodes.length}</strong></div>{/if}
+              {#if anime?.rating}<div class="adc-meta"><span>Rating</span><strong>{anime.rating}</strong></div>{/if}
+              {#if anime?.releaseDate || anime?.year}<div class="adc-meta"><span>Released</span><strong>{anime?.releaseDate || anime?.year}</strong></div>{/if}
+              {#if anime?.duration}<div class="adc-meta"><span>Duration</span><strong>{anime.duration} min</strong></div>{/if}
+            </div>
+          </div>
+        </div>
+      {/if}
+
       <div class="watch-engagement-strip cards-glass">
         <div class="engagement-copy">
           <span class="engagement-kicker">Episode pulse</span>
@@ -1149,91 +1383,149 @@
 
     <!-- Right Column: Episodes -->
     <aside class="side-info-section">
-      <!-- Episodes Navigation -->
+      <!-- Episodes -->
       <div class="episodes-section side-episodes cards-glass">
-        <div class="section-header">
-          <div class="header-main">
-            <div class="section-icon-wrapper">
-              <Play size={20} class="section-icon" />
-            </div>
-            <div>
-              <h3>Episodes</h3>
-              <p class="section-subtitle">{episodes.length} episodes available</p>
+        <div class="ep-panel-head">
+          <div class="ep-panel-title">
+            <Play size={14} />
+            <span>Episodes</span>
+            <span class="ep-panel-count">{episodes.length}</span>
+          </div>
+          <div class="ep-panel-controls">
+            {#if totalPages > 1}
+              <div class="ep-range-wrap">
+                <select
+                  class="ep-range-select"
+                  value={currentEpPage}
+                  onchange={(e) => goToEpPage(parseInt(e.currentTarget.value))}
+                >
+                  {#each epPageRanges as range}
+                    <option value={range.index}>{range.label}</option>
+                  {/each}
+                </select>
+                <ChevronDown size={12} class="ptr-none" />
+              </div>
+            {/if}
+            <div class="ep-view-toggle">
+              <button
+                class:on={epView === "grid"}
+                title="Grid view"
+                aria-label="Grid view"
+                onclick={() => (epView = "grid")}
+              >
+                <LayoutGrid size={14} />
+              </button>
+              <button
+                class:on={epView === "list"}
+                title="List view"
+                aria-label="List view"
+                onclick={() => (epView = "list")}
+              >
+                <List size={14} />
+              </button>
             </div>
           </div>
-
-          {#if totalPages > 1}
-            <div class="range-selector">
-              <select
-                class="range-select"
-                value={currentEpPage}
-                onchange={(e) => goToEpPage(parseInt(e.currentTarget.value))}
-              >
-                {#each epPageRanges as range}
-                  <option value={range.index}>Batch: {range.label}</option>
-                {/each}
-              </select>
-              <ChevronDown size={14} class="ptr-none" />
-            </div>
-          {/if}
         </div>
 
-        <div class="episodes-grid">
-          {#each displayedEpisodes as episode}
-            <button
-              class="episode-card"
-              class:current={episode.number === ep}
-              onclick={() => changeEp(episode.number)}
-            >
-              <div class="ep-thumb">
+        <div class="ep-filter-row">
+          <input
+            class="ep-filter-input"
+            type="text"
+            placeholder="Filter episodes…"
+            bind:value={epFilter}
+          />
+        </div>
+
+        {#if epView === "grid"}
+          <div class="ep-number-grid">
+            {#each filteredEpisodes as episode}
+              <button
+                class="ep-num-btn"
+                class:current={episode.number === ep}
+                class:watched={(episode.progressPercent || 0) >= 85}
+                class:partial={(episode.progressPercent || 0) > 0 &&
+                  (episode.progressPercent || 0) < 85}
+                class:filler={episode.isFiller}
+                title={episode.title || `Episode ${episode.number}`}
+                onclick={() => changeEp(episode.number)}
+              >
+                {episode.number}
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <div class="ep-list">
+            {#each filteredEpisodes as episode}
+              <button
+                class="ep-list-item"
+                class:current={episode.number === ep}
+                class:watched={(episode.progressPercent || 0) >= 85}
+                onclick={() => changeEp(episode.number)}
+              >
+                <span class="eli-num">{episode.number}</span>
+                <span class="eli-title line-clamp-1">
+                  {episode.title || `Episode ${episode.number}`}
+                </span>
+                {#if episode.isFiller}<span class="eli-filler">Filler</span>{/if}
+                {#if episode.number === ep}<span class="eli-play"><Play size={11} fill="currentColor" /></span>{/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      {#if anime?.relations?.length}
+        <div class="rail-section cards-glass">
+          <div class="rail-head"><span>Related</span></div>
+          <div class="rail-list">
+            {#each anime.relations.slice(0, 10) as item}
+              <a class="rail-item" href={`/anime/${item.id || item.mal_id}`}>
                 <img
-                  src={getProxiedImage(episode.image || anime?.poster)}
-                  alt="Ep {episode.number}"
+                  class="rail-thumb"
+                  src={getProxiedImage(item.poster || item.image)}
+                  alt={titleOf(item)}
                   loading="lazy"
                 />
-                <div class="ep-hover">
-                  <Play size={20} fill="white" />
+                <div class="rail-item-body">
+                  <span class="rail-item-title line-clamp-2">{titleOf(item)}</span>
+                  <span class="rail-item-meta">
+                    {item.type || item.format || "Anime"}{item.episodes
+                      ? ` · ${item.episodes} eps`
+                      : ""}
+                  </span>
                 </div>
-                {#if episode.number === ep}
-                  <div class="playing-tag">PLAYING</div>
-                {/if}
-              </div>
-              <div class="ep-meta">
-                <div class="ep-num-row">
-                  <span class="num">Episode {episode.number}</span>
-                  {#if episode.isFiller}<span class="filler-tag">Filler</span
-                    >{/if}
-                </div>
-                <p class="name line-clamp-1">
-                  {episode.title || `Episode ${episode.number}`}
-                </p>
-                <div class="ep-progress-bar">
-                  <div
-                    class="progress-fill"
-                    style="width: {episode.progressPercent || 0}%"
-                  ></div>
-                </div>
-              </div>
-            </button>
-          {/each}
+              </a>
+            {/each}
+          </div>
         </div>
-      </div>
+      {/if}
+
+      {#if recommendations.length}
+        <div class="rail-section cards-glass">
+          <div class="rail-head"><span>Recommendations</span></div>
+          <div class="rail-list">
+            {#each recommendations.slice(0, 12) as item}
+              <a class="rail-item" href={`/anime/${item.id || item.mal_id}`}>
+                <img
+                  class="rail-thumb"
+                  src={getProxiedImage(item.poster || item.image)}
+                  alt={titleOf(item)}
+                  loading="lazy"
+                />
+                <div class="rail-item-body">
+                  <span class="rail-item-title line-clamp-2">{titleOf(item)}</span>
+                  <span class="rail-item-meta">
+                    {item.type || item.format || "Anime"}{item.episodes
+                      ? ` · ${item.episodes} eps`
+                      : ""}
+                  </span>
+                </div>
+              </a>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </aside>
-  </div>
-
-  <!-- Related Content (Bottom) -->
-  <div class="container watch-bottom-rail mt-12 pb-20">
-    {#if recommendations.length > 0}
-      <div class="bottom-row">
-        <Row title="You Might Also Like" items={recommendations} />
-      </div>
-    {/if}
-
-    {#if anime?.relations?.length > 0}
-      <div class="bottom-row">
-        <Row title="Related Work" items={anime.relations} />
-      </div>
-    {/if}
   </div>
 
   <!-- Shortcuts Dialog -->
@@ -1395,35 +1687,41 @@
     }
   }
 
-  /* --- Watch Page Design System (theme-aware) --- */
+  /* --- Watch Page Design System — Miruro-inspired flat/lightweight --- */
+  /* VARIATION: adopts miruro.tv's flat panel system, compact spacing and
+     hairline borders, but keeps the WatchAnimez brand RED accent (instead of
+     miruro's violet) and the Outfit typeface for brand consistency. */
   .player-page {
-    /* Local tokens mapped to the global theme so the player follows the
-       active theme like the rest of the site instead of hardcoded red. */
     --accent: var(--net-red, #e50914);
     --accent-red: var(--net-red, #e50914);
-    --accent-soft: color-mix(in srgb, var(--net-red, #e50914) 16%, transparent);
-    --accent-glow: color-mix(in srgb, var(--net-red, #e50914) 28%, transparent);
-    /* Poster-driven tint — overridden inline once the poster colour is read,
-       so the whole screen adopts the colour of the exact anime. */
+    --accent-soft: color-mix(in srgb, var(--net-red, #e50914) 14%, transparent);
+    --accent-glow: color-mix(in srgb, var(--net-red, #e50914) 22%, transparent);
+    /* Poster-driven tint — overridden inline once the poster colour is read.
+       Kept very subtle so the page reads light & flat like miruro. */
     --poster-tint: 229, 9, 20;
-    --tint-soft: rgba(var(--poster-tint), 0.16);
-    --tint-strong: rgba(var(--poster-tint), 0.32);
-    --tint-glow: rgba(var(--poster-tint), 0.42);
-    --surface-1: color-mix(in srgb, var(--net-bg, #0a0a0a) 78%, #ffffff 4%);
-    --surface-2: color-mix(in srgb, var(--net-bg, #0a0a0a) 70%, #ffffff 6%);
-    --hairline: rgba(255, 255, 255, 0.08);
-    --hairline-strong: rgba(255, 255, 255, 0.14);
+    --tint-soft: rgba(var(--poster-tint), 0.10);
+    --tint-strong: rgba(var(--poster-tint), 0.16);
+    --tint-glow: rgba(var(--poster-tint), 0.24);
+    /* Flat surfaces (miruro tokens) */
+    --surface-1: #0e0e0e;
+    --surface-2: #141414;
+    --surface-card: #181818;
+    --surface-btn: #202020;
+    --surface-btn-hover: #292929;
+    --hairline: rgba(245, 245, 245, 0.10);
+    --hairline-strong: rgba(245, 245, 245, 0.16);
     --glass-bg: var(--surface-1);
     --glass-border: var(--hairline);
-    --txt: var(--net-text, #fff);
-    --txt-muted: var(--net-text-muted, #9ca3af);
-    --radius-card: 20px;
-    --radius-inner: 14px;
-    --gap-section: 1.75rem;
+    --txt: var(--net-text, #e8e8e8);
+    --txt-muted: var(--net-text-muted, #a8a8a8);
+    --txt-dim: #696969;
+    --radius-card: 10px;
+    --radius-inner: 8px;
+    --gap-section: 1rem;
 
     position: relative;
     min-height: 100vh;
-    background: var(--net-bg, #050505);
+    background: var(--net-bg, #080808);
     color: var(--txt);
     overflow-x: hidden;
     padding-bottom: 5rem;
@@ -1434,10 +1732,10 @@
     inset: 0;
     background-size: cover;
     background-position: center 20%;
-    filter: blur(3px) saturate(1.5) brightness(0.55);
+    filter: blur(6px) saturate(1.2) brightness(0.35);
     z-index: 0;
     transform: scale(1.12);
-    opacity: 1;
+    opacity: 0.7;
   }
 
   .page-overlay {
@@ -1541,14 +1839,14 @@
     background:
       radial-gradient(60% 65% at 50% 45%, var(--tint-glow), transparent 72%),
       radial-gradient(80% 90% at 50% 60%, var(--tint-soft), transparent 78%);
-    filter: blur(72px) saturate(1.35);
-    opacity: 0.9;
+    filter: blur(72px) saturate(1.2);
+    opacity: 0.35;
     pointer-events: none;
     transition: opacity 0.6s ease, background 0.8s ease;
   }
 
   .player-wrapper:hover::before {
-    opacity: 1;
+    opacity: 0.5;
   }
 
   .player-wrapper.theater {
@@ -1573,9 +1871,7 @@
     background: #000;
     border-radius: var(--radius-card);
     overflow: hidden;
-    box-shadow:
-      0 24px 60px rgba(0, 0, 0, 0.65),
-      0 0 0 1px var(--hairline);
+    box-shadow: 0 0 0 1px var(--hairline);
     transition: border-radius 0.4s ease;
   }
 
@@ -2550,17 +2846,13 @@
     font-weight: 500;
   }
 
-  /* Sections */
+  /* Sections — flat miruro panel */
   .cards-glass {
     background: var(--surface-1);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--hairline);
     border-radius: var(--radius-card);
-    padding: 1.75rem;
-    box-shadow:
-      0 16px 40px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: 0.85rem;
+    box-shadow: none;
   }
 
   /* Enhanced Section Headers */
@@ -3451,5 +3743,789 @@
     -webkit-line-clamp: 1;
     line-clamp: 1;
     overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+  }
+
+  /* ============================================================= */
+  /* === Miruro-inspired lightweight components (brand variant) === */
+  /* ============================================================= */
+
+  /* Player options bar */
+  .player-options-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
+  }
+  .opt-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  .opt-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.34rem 0.6rem;
+    border-radius: var(--radius-inner);
+    background: transparent;
+    color: var(--txt-dim);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  .opt-toggle:hover {
+    background: var(--surface-btn);
+    color: var(--txt);
+  }
+  .opt-toggle.on {
+    color: var(--accent);
+  }
+  .opt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    box-sizing: border-box;
+  }
+  .opt-toggle.on .opt-dot {
+    background: currentColor;
+  }
+  .opt-nav {
+    display: flex;
+    gap: 0.35rem;
+  }
+  .opt-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.34rem 0.7rem;
+    border-radius: var(--radius-inner);
+    background: var(--surface-btn);
+    color: var(--txt);
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: background 0.18s ease;
+  }
+  .opt-nav-btn:hover:not(:disabled) {
+    background: var(--surface-btn-hover);
+  }
+  .opt-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Episode title + audio/server bar */
+  .episode-title-bar {
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-card);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .etb-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .etb-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--txt);
+    margin: 0;
+    line-height: 1.3;
+    min-width: 0;
+  }
+  .etb-num {
+    color: var(--accent);
+    margin-right: 0.15rem;
+  }
+  .etb-selectors {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .etb-select {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .etb-select-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--txt-dim);
+    font-weight: 700;
+    padding-left: 2px;
+  }
+  .etb-select select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--surface-btn);
+    color: var(--txt);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-inner);
+    padding: 0.42rem 1.7rem 0.42rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a8a8a8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.55rem center;
+    outline: none;
+    transition: background-color 0.18s ease;
+  }
+  .etb-select select:hover {
+    background-color: var(--surface-btn-hover);
+  }
+  .etb-select select option {
+    background: #141414;
+    color: var(--txt);
+  }
+  .etb-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .etb-pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--txt-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+  }
+  .etb-pill-status {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    text-transform: capitalize;
+  }
+
+  /* Episode filter + compact number grid */
+  .ep-filter-row {
+    margin-bottom: 0.6rem;
+  }
+  .ep-filter-input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-inner);
+    padding: 0.5rem 0.7rem;
+    color: var(--txt);
+    font-size: 0.8rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.18s ease;
+  }
+  .ep-filter-input::placeholder {
+    color: var(--txt-dim);
+  }
+  .ep-filter-input:focus {
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .ep-number-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.4rem;
+    overflow-y: auto;
+    max-height: 46vh;
+    padding-right: 3px;
+  }
+  .ep-num-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    background: var(--surface-2);
+    color: var(--txt-dim);
+    border: 1px solid transparent;
+    border-radius: var(--radius-inner);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .ep-num-btn:hover {
+    background: var(--surface-btn-hover);
+    color: var(--txt);
+  }
+  .ep-num-btn.partial {
+    color: var(--txt);
+  }
+  .ep-num-btn.watched {
+    background: color-mix(in srgb, #e49335 22%, var(--surface-2));
+    color: #e7b780;
+  }
+  .ep-num-btn.filler {
+    border-color: rgba(255, 165, 0, 0.3);
+  }
+  .ep-num-btn.current {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  /* Anime info detail card */
+  .anime-detail-card {
+    display: flex;
+    gap: 0.85rem;
+    padding: 0.85rem;
+    margin-top: 1rem;
+  }
+  .adc-poster {
+    width: 92px;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-inner);
+    flex-shrink: 0;
+  }
+  .adc-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .adc-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--txt);
+    margin: 0;
+    line-height: 1.25;
+  }
+  .adc-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .adc-genre {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: #3a2615;
+    background: #e49335;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+  }
+  .adc-desc {
+    font-size: 0.8rem;
+    color: var(--txt-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .adc-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1rem;
+    margin-top: 0.2rem;
+  }
+  .adc-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.74rem;
+    border-bottom: 1px solid var(--hairline);
+    padding: 0.28rem 0;
+  }
+  .adc-meta span {
+    color: var(--txt-dim);
+  }
+  .adc-meta strong {
+    color: var(--txt);
+    font-weight: 600;
+    text-align: right;
+  }
+
+  @media (max-width: 1100px) {
+    .anime-detail-card {
+      max-width: 640px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .player-options-bar {
+      padding: 0.45rem;
+    }
+    .opt-toggle {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.45rem;
+    }
+    .opt-nav-btn {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.55rem;
+    }
+    .etb-title {
+      font-size: 0.95rem;
+    }
+    .etb-selectors {
+      width: 100%;
+    }
+    .etb-select {
+      flex: 1;
+    }
+    .etb-select select {
+      width: 100%;
+    }
+    .ep-number-grid {
+      grid-template-columns: repeat(6, 1fr);
+      max-height: none;
+    }
+    .adc-poster {
+      width: 76px;
+    }
+    .adc-meta-grid {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .ep-number-grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  /* === Flatten legacy heavy components to match miruro look === */
+  .chat-toggle-btn,
+  .server-toggle-btn,
+  .show-chat-btn,
+  .show-servers-btn {
+    background: var(--surface-1) !important;
+    border: 1px solid var(--hairline) !important;
+    border-radius: var(--radius-card) !important;
+    padding: 0.7rem 0.9rem !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    font-size: 0.9rem;
+  }
+  .chat-toggle-btn:hover,
+  .server-toggle-btn:hover,
+  .show-chat-btn:hover,
+  .show-servers-btn:hover {
+    background: var(--surface-2) !important;
+    border-color: var(--hairline-strong) !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .chat-badge,
+  .server-badge {
+    background: var(--surface-btn) !important;
+    border: 1px solid var(--hairline) !important;
+    box-shadow: none !important;
+    color: var(--txt-muted) !important;
+    border-radius: 999px !important;
+  }
+
+  .server-selection .server-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .server-icon-wrapper,
+  .section-icon-wrapper {
+    background: var(--surface-btn) !important;
+    border: 1px solid var(--hairline) !important;
+    box-shadow: none !important;
+  }
+  .server-title-group h3,
+  .header-main h3 {
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+  }
+  .stat-badge {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--hairline) !important;
+    border-radius: var(--radius-inner) !important;
+  }
+  .stat-number {
+    color: var(--accent) !important;
+  }
+
+  .provider-card {
+    background: var(--surface-2) !important;
+    border: 1px solid var(--hairline) !important;
+    border-radius: var(--radius-card) !important;
+    padding: 0.85rem 1rem !important;
+    box-shadow: none !important;
+  }
+  .provider-card::before {
+    display: none !important;
+  }
+  .provider-card:hover {
+    background: var(--surface-card) !important;
+    border-color: var(--hairline-strong) !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .provider-card.open {
+    border-color: color-mix(in srgb, var(--accent) 28%, transparent) !important;
+    box-shadow: none !important;
+  }
+  .category-group {
+    background: var(--surface-1) !important;
+    border: 1px solid var(--hairline) !important;
+    border-radius: var(--radius-inner) !important;
+  }
+  .source-chip {
+    background: var(--surface-btn) !important;
+    border: 1px solid var(--hairline) !important;
+    border-radius: var(--radius-inner) !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+  }
+  .source-chip::before {
+    display: none !important;
+  }
+  .source-chip:hover {
+    background: var(--surface-btn-hover) !important;
+    border-color: var(--hairline-strong) !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .source-chip.active {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  /* Flatten engagement strip accents */
+  .watch-engagement-strip {
+    border-radius: var(--radius-card);
+  }
+  .engagement-kicker {
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .comment-jump-btn {
+    background: var(--surface-btn);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-inner);
+    color: var(--txt);
+  }
+  .comment-jump-btn:hover {
+    background: var(--surface-btn-hover);
+  }
+
+  /* Flatten back button */
+  .nav-back-btn {
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: var(--radius-inner);
+  }
+
+  /* ===================================================== */
+  /* === Dense single-screen layout (miruro round 2)   === */
+  /* ===================================================== */
+
+  /* Tighten the overall grid + rail */
+  .watch-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 1.25rem;
+    margin-top: 0.85rem;
+  }
+  .primary-section {
+    gap: 0.85rem;
+  }
+  /* Let the whole rail flow naturally (stack episodes + detail + related + recs) */
+  .side-info-section {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .side-episodes {
+    max-height: none;
+    overflow: visible;
+    padding: 0.85rem;
+  }
+
+  /* Compact episode panel header */
+  .ep-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .ep-panel-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--txt);
+  }
+  .ep-panel-title :global(svg) {
+    color: var(--accent);
+  }
+  .ep-panel-count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--txt-dim);
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+  }
+  .ep-panel-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .ep-range-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .ep-range-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--surface-btn);
+    color: var(--txt);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-inner);
+    padding: 0.34rem 1.5rem 0.34rem 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+  }
+  .ep-range-select option {
+    background: #141414;
+    color: var(--txt);
+  }
+  .ep-range-wrap :global(.ptr-none) {
+    position: absolute;
+    right: 6px;
+    pointer-events: none;
+    color: var(--txt-dim);
+  }
+  .ep-view-toggle {
+    display: inline-flex;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-inner);
+    overflow: hidden;
+  }
+  .ep-view-toggle button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    background: transparent;
+    color: var(--txt-dim);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .ep-view-toggle button.on {
+    background: var(--accent);
+    color: #fff;
+  }
+  .ep-view-toggle button:not(.on):hover {
+    background: var(--surface-btn-hover);
+    color: var(--txt);
+  }
+
+  /* Episode list view */
+  .ep-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: 48vh;
+    overflow-y: auto;
+    padding-right: 3px;
+  }
+  .ep-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.55rem;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-inner);
+    text-align: left;
+    transition: background 0.15s ease;
+  }
+  .ep-list-item:hover {
+    background: var(--surface-btn-hover);
+  }
+  .eli-num {
+    flex-shrink: 0;
+    min-width: 26px;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--txt-dim);
+  }
+  .eli-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.8rem;
+    color: var(--txt-muted);
+  }
+  .eli-filler {
+    flex-shrink: 0;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #ffa500;
+    border: 1px solid rgba(255, 165, 0, 0.35);
+    border-radius: 4px;
+    padding: 0.05rem 0.35rem;
+    text-transform: uppercase;
+  }
+  .eli-play {
+    flex-shrink: 0;
+    color: var(--accent);
+    display: inline-flex;
+  }
+  .ep-list-item.current {
+    background: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .ep-list-item.current .eli-num,
+  .ep-list-item.current .eli-title {
+    color: var(--txt);
+  }
+  .ep-list-item.watched .eli-num {
+    color: #e7b780;
+  }
+  .ep-number-grid {
+    max-height: none;
+  }
+
+  /* Right-rail compact lists (Related / Recommendations) */
+  .rail-section {
+    padding: 0.85rem;
+  }
+  .rail-head {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--txt);
+    margin-bottom: 0.7rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .rail-head::before {
+    content: "";
+    width: 3px;
+    height: 0.9em;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .rail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .rail-item {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.35rem;
+    border-radius: var(--radius-inner);
+    transition: background 0.15s ease;
+  }
+  .rail-item:hover {
+    background: var(--surface-2);
+  }
+  .rail-thumb {
+    width: 46px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+    background: var(--surface-2);
+  }
+  .rail-item-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+  .rail-item-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--txt);
+    line-height: 1.3;
+  }
+  .rail-item-meta {
+    font-size: 0.7rem;
+    color: var(--txt-dim);
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* --- Responsive: when the rail drops below the player --- */
+  @media (max-width: 1100px) {
+    .watch-layout {
+      grid-template-columns: 1fr;
+    }
+    .side-info-section {
+      flex-direction: column;
+    }
+    /* Related / Recommendations become a multi-column grid when full-width */
+    .rail-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.5rem;
+    }
+    .ep-list {
+      max-height: 60vh;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .rail-list {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+    .rail-thumb {
+      width: 40px;
+      height: 56px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .watch-layout {
+      gap: 0.85rem;
+    }
+    .rail-list {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 </style>
