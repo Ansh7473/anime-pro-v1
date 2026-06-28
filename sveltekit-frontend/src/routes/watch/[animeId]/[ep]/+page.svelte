@@ -21,6 +21,7 @@
     Share2,
     Download,
     Flag,
+    X,
   } from "lucide-svelte";
   import Hls from "hls.js";
   import ReactionsBar from "$lib/components/ReactionsBar.svelte";
@@ -499,6 +500,7 @@
       case "escape":
         cancelCountdown();
         showShortcuts = false;
+        theaterMode = false;
         break;
       case "?":
         showShortcuts = !showShortcuts;
@@ -948,6 +950,15 @@
     <!-- Left Column: Video & Main Controls -->
     <div class="primary-section">
       <div class="player-wrapper" class:theater={theaterMode}>
+        {#if theaterMode}
+          <button
+            class="theater-exit"
+            onclick={() => (theaterMode = false)}
+            aria-label="Turn lights on"
+          >
+            <X size={15} /> Lights On
+          </button>
+        {/if}
         <div
           class="video-container"
           class:theater={theaterMode}
@@ -1702,12 +1713,42 @@
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     z-index: 1000;
-    background: #000;
+    background: rgba(0, 0, 0, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(8px, 4vw, 56px);
   }
 
   .player-wrapper.theater::before {
     display: none;
+  }
+
+  .theater-exit {
+    position: fixed;
+    top: clamp(10px, 3vw, 22px);
+    right: clamp(10px, 3vw, 22px);
+    z-index: 1001;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: background 0.2s;
+  }
+  .theater-exit:hover {
+    background: rgba(255, 255, 255, 0.22);
   }
 
   .video-container {
@@ -1723,8 +1764,11 @@
   }
 
   .video-container.theater {
-    border-radius: 0;
-    height: 100%;
+    border-radius: 8px;
+    width: min(100%, calc((100dvh - 2 * clamp(8px, 4vw, 56px)) * 16 / 9));
+    height: auto;
+    max-height: 100%;
+    aspect-ratio: 16 / 9;
     box-shadow: none;
   }
 
