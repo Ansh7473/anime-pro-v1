@@ -1,12 +1,14 @@
 <script lang="ts">
   import { api } from "$lib/api";
   import { auth } from "$lib/stores/auth";
+  import { onMount } from "svelte";
   import HeroBanner from "$lib/components/HeroBanner.svelte";
   import Row from "$lib/components/Row.svelte";
   import ContinueCard from "$lib/components/ContinueCard.svelte";
   import SkeletonHero from "$lib/components/SkeletonHero.svelte";
   import SkeletonRow from "$lib/components/SkeletonRow.svelte";
   import HomeMarketing from "$lib/components/HomeMarketing.svelte";
+  import AiringSchedule from "$lib/components/AiringSchedule.svelte";
 
   let { data } = $props();
 
@@ -58,6 +60,50 @@
       console.error("Failed to fetch user context:", e);
     }
   }
+
+  // --- Extra discovery sections (client-loaded, below the main rows) ---
+  const GENRES = [
+    { label: "Action", slug: "action" },
+    { label: "Adventure", slug: "adventure" },
+    { label: "Comedy", slug: "comedy" },
+    { label: "Drama", slug: "drama" },
+    { label: "Fantasy", slug: "fantasy" },
+    { label: "Romance", slug: "romance" },
+    { label: "Sci-Fi", slug: "sci-fi" },
+    { label: "Slice of Life", slug: "slice-of-life" },
+    { label: "Supernatural", slug: "supernatural" },
+    { label: "Mystery", slug: "mystery" },
+    { label: "Horror", slug: "horror" },
+    { label: "Sports", slug: "sports" },
+    { label: "Mecha", slug: "mecha" },
+    { label: "Music", slug: "music" },
+  ];
+
+  let extraSections = $state<{ title: string; href: string; items: any[] }[]>([]);
+  let extraLoading = $state(true);
+
+  onMount(async () => {
+    const defs = [
+      { title: "🆕 New This Season", href: "/explore/seasonal", fn: () => api.getCurrentSeasonal(1, 20) },
+      { title: "🚀 Upcoming Anime", href: "/explore/upcoming", fn: () => api.getUpcoming(1, 20) },
+      { title: "😂 Comedy Picks", href: "/explore/comedy", fn: () => api.getByGenre("Comedy", 1, 20) },
+      { title: "🗺️ Adventure Awaits", href: "/explore/adventure", fn: () => api.getByGenre("Adventure", 1, 20) },
+      { title: "✨ Fantasy Worlds", href: "/explore/fantasy", fn: () => api.getByGenre("Fantasy", 1, 20) },
+    ];
+    const results = await Promise.all(
+      defs.map(async (d) => {
+        try {
+          const r: any = await d.fn();
+          const items = r?.data || r?.results || (Array.isArray(r) ? r : []);
+          return { title: d.title, href: d.href, items };
+        } catch {
+          return { title: d.title, href: d.href, items: [] };
+        }
+      }),
+    );
+    extraSections = results.filter((s) => s.items.length > 0);
+    extraLoading = false;
+  });
 </script>
 
 <svelte:head>
@@ -115,6 +161,35 @@
   </div>
 {/await}
 
+<!-- More discovery sections (client-loaded so they never block first paint) -->
+<div class="home-rows extra-rows">
+  {#if extraLoading}
+    {#each Array(3) as _, i (i)}
+      <SkeletonRow />
+    {/each}
+  {:else}
+    {#each extraSections as s (s.title)}
+      <Row title={s.title} items={s.items} href={s.href} />
+    {/each}
+  {/if}
+
+  <!-- Estimated Airing Schedule (miruro-style) -->
+  <AiringSchedule />
+
+  <!-- Browse by Genre -->
+  <section class="genre-section">
+    <div class="row-header">
+      <h2 class="row-title">🎯 Browse by Genre</h2>
+      <a href="/explore" class="view-all">Explore All</a>
+    </div>
+    <div class="genre-grid">
+      {#each GENRES as g}
+        <a class="genre-chip" href={`/explore/${g.slug}`}>{g.label}</a>
+      {/each}
+    </div>
+  </section>
+</div>
+
 <!-- Static, below-the-fold marketing + SEO content (own code-split chunk).
      Rendered outside {#await} so it is always in the SSR HTML for crawlers. -->
 <HomeMarketing />
@@ -134,6 +209,63 @@
     margin-top: -1rem;
     position: relative;
     z-index: 3;
+  }
+
+  .extra-rows {
+    margin-top: 0;
+  }
+
+  /* Browse by Genre */
+  .genre-section {
+    padding: 0.5rem 1rem 0;
+    margin-top: 1rem;
+  }
+  .genre-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.6rem;
+    padding: 0.5rem 0 0;
+  }
+  .genre-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: var(--net-card-bg, #181818);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--net-text, #fff);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  }
+  .genre-chip:hover {
+    background: var(--net-red, #e50914);
+    border-color: var(--net-red, #e50914);
+    transform: translateY(-2px);
+  }
+  @media (max-width: 768px) {
+    .genre-section {
+      padding: 0.5rem 0.75rem 0;
+    }
+    .genre-grid {
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 0.5rem;
+    }
+    .genre-chip {
+      padding: 0.7rem 0.75rem;
+      font-size: 0.82rem;
+    }
+  }
+  @media (max-width: 480px) {
+    .genre-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .genre-chip {
+      padding: 0.6rem 0.4rem;
+      font-size: 0.78rem;
+    }
   }
 
   /* Continue Watching section */

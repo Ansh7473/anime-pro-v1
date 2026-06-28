@@ -12,16 +12,27 @@
   let replyText = $state('');
   let loading = $state(true);
   let processing = $state(false);
+  let activeScope = $state<'episode' | 'anime'>('episode');
+
+  function setScope(s: 'episode' | 'anime') {
+    if (activeScope === s) return;
+    activeScope = s;
+  }
 
   $effect(() => {
-    if (animeId && episode) {
+    // Re-run when the anime, episode, or scope changes.
+    activeScope;
+    episode;
+    if (animeId) {
+      loading = true;
       fetchComments();
     }
   });
 
   async function fetchComments() {
     try {
-      const allComments = (await api.getComments(animeId, episode)) || [];
+      const epParam = activeScope === 'anime' ? 0 : episode;
+      const allComments = (await api.getComments(animeId, epParam)) || [];
       // Build discussion tree from flat list
       const map: Record<string, any> = {};
       const roots: any[] = [];
@@ -128,9 +139,30 @@
 
 <div class="comments-section">
   <div class="comments-header">
-    <MessageCircle size={22} />
-    <h3>Community Discussion</h3>
-    <span class="comment-count">{comments.length} Comments</span>
+    <div class="ch-titles">
+      <span class="ch-kicker"><MessageCircle size={13} /> The Anime Community</span>
+      <h3>Comments <span class="comment-count">{comments.length}</span></h3>
+    </div>
+    <div class="ch-tabs" role="tablist">
+      <button
+        class="ch-tab"
+        class:active={activeScope === 'anime'}
+        role="tab"
+        aria-selected={activeScope === 'anime'}
+        onclick={() => setScope('anime')}
+      >
+        Anime
+      </button>
+      <button
+        class="ch-tab"
+        class:active={activeScope === 'episode'}
+        role="tab"
+        aria-selected={activeScope === 'episode'}
+        onclick={() => setScope('episode')}
+      >
+        EP {episode}
+      </button>
+    </div>
   </div>
 
   <!-- Main Input -->
@@ -254,265 +286,339 @@
 </div>
 
 <style>
+  /* Flat, miruro-style discussion panel. Uses the watch-page design tokens
+     (inherited from .player-page) with safe fallbacks. */
   .comments-section {
-    margin-top: 3rem;
+    --c-surface: var(--surface-1, #0e0e0e);
+    --c-surface-2: var(--surface-2, #141414);
+    --c-btn: var(--surface-btn, #202020);
+    --c-btn-hover: var(--surface-btn-hover, #292929);
+    --c-line: var(--hairline, rgba(245, 245, 245, 0.1));
+    --c-line-strong: var(--hairline-strong, rgba(245, 245, 245, 0.16));
+    --c-accent: var(--net-red, #e50914);
+    --c-txt: var(--txt, #e8e8e8);
+    --c-dim: var(--txt-dim, #696969);
+    --c-radius: var(--radius-card, 10px);
+    --c-radius-in: var(--radius-inner, 8px);
+
+    margin-top: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    color: white;
-    background: linear-gradient(135deg, rgba(18, 18, 24, 0.82), rgba(8, 8, 12, 0.9));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 26px;
-    padding: 2rem;
-    box-shadow:
-      0 24px 60px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    gap: 1rem;
+    color: var(--c-txt);
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--c-radius);
+    padding: 1rem;
   }
 
   .comments-header {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
+    justify-content: space-between;
     gap: 1rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--c-line);
   }
-
-  .comments-header h3 {
-    font-size: 1.5rem;
-    font-weight: 950;
-    letter-spacing: -0.02em;
-    color: #fff;
-    text-shadow: 0 0 26px rgba(229, 9, 20, 0.35);
-    flex: 1;
+  .ch-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
   }
-
-  .comment-count {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
+  .ch-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.66rem;
     font-weight: 700;
-    padding: 0.4rem 1rem;
-    background: rgba(229, 9, 20, 0.15);
-    border: 1px solid rgba(229, 9, 20, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--c-dim);
+  }
+  .comments-header h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--c-txt);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .comment-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--c-dim);
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-line);
+    padding: 0.1rem 0.55rem;
     border-radius: 999px;
-    box-shadow: 0 0 18px rgba(229, 9, 20, 0.25);
+  }
+
+  .ch-tabs {
+    display: inline-flex;
+    gap: 0.4rem;
+  }
+  .ch-tab {
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--c-radius-in);
+    background: transparent;
+    border: 1px solid var(--c-line);
+    color: var(--c-txt);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease;
+  }
+  .ch-tab:hover {
+    background: var(--c-btn);
+  }
+  .ch-tab.active {
+    background: color-mix(in srgb, var(--c-accent) 22%, transparent);
+    border-color: var(--c-accent);
+    color: color-mix(in srgb, var(--c-accent) 80%, #fff);
   }
 
   .user-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     flex-shrink: 0;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--c-line);
+    background: var(--c-surface-2);
   }
   .user-avatar.sm {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 8px;
   }
 
   .input-container {
     display: flex;
-    gap: 1.25rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    padding: 1.5rem;
+    gap: 0.85rem;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-line);
+    border-radius: var(--c-radius);
+    padding: 0.85rem;
   }
   .input-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.6rem;
+    min-width: 0;
   }
 
   textarea {
     width: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
-    padding: 1rem;
-    color: white;
+    background: var(--c-surface);
+    border: 1px solid var(--c-line);
+    border-radius: var(--c-radius-in);
+    padding: 0.7rem 0.8rem;
+    color: var(--c-txt);
     font-family: inherit;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     resize: vertical;
     outline: none;
-    transition: 0.2s;
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  textarea::placeholder {
+    color: var(--c-dim);
   }
   textarea:focus {
-    border-color: rgba(229, 9, 20, 0.6);
-    background: rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15);
+    border-color: color-mix(in srgb, var(--c-accent) 55%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 18%, transparent);
   }
 
   .input-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
+    gap: 0.6rem;
   }
 
   .post-btn {
-    background: linear-gradient(135deg, #e50914 0%, #c70811 100%);
-    color: white;
+    background: var(--c-accent);
+    color: #fff;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    font-weight: 800;
-    font-size: 0.9rem;
+    padding: 0.55rem 1.2rem;
+    border-radius: var(--c-radius-in);
+    font-weight: 700;
+    font-size: 0.85rem;
     cursor: pointer;
-    transition: 0.2s;
-    box-shadow: 0 8px 20px rgba(229, 9, 20, 0.3);
+    transition:
+      filter 0.18s ease,
+      opacity 0.18s ease;
   }
   .post-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    filter: brightness(1.15);
-    box-shadow: 0 12px 28px rgba(229, 9, 20, 0.5);
+    filter: brightness(1.12);
   }
   .post-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
     cursor: not-allowed;
   }
 
   .btn-cancel {
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--c-dim);
     border: none;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: pointer;
-    padding: 0.75rem 1rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: var(--c-radius-in);
+  }
+  .btn-cancel:hover {
+    background: var(--c-btn);
+    color: var(--c-txt);
   }
 
   .login-prompt {
     flex: 1;
     text-align: center;
-    padding: 2.5rem;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 20px;
-    border: 1px dashed rgba(255, 255, 255, 0.15);
+    padding: 2rem 1.5rem;
+    background: var(--c-surface-2);
+    border-radius: var(--c-radius);
+    border: 1px dashed var(--c-line-strong);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.1rem;
+  }
+  .login-prompt p {
+    color: var(--c-dim);
+    font-size: 0.9rem;
   }
   .btn-login {
-    background: white;
-    color: black;
-    padding: 0.85rem 2rem;
-    border-radius: 12px;
-    font-weight: 800;
+    background: #fff;
+    color: #000;
+    padding: 0.7rem 1.6rem;
+    border-radius: var(--c-radius-in);
+    font-weight: 700;
     text-decoration: none;
-    transition: 0.2s;
+    transition: transform 0.18s ease;
   }
   .btn-login:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+    transform: scale(1.04);
   }
 
   .comments-list {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 0.75rem;
   }
 
   .comment-card {
     display: flex;
-    gap: 1.25rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 1.5rem;
-    transition: 0.2s;
+    gap: 0.85rem;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-line);
+    border-radius: var(--c-radius);
+    padding: 0.85rem 1rem;
+    transition: border-color 0.18s ease;
   }
   .comment-card:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: var(--c-line-strong);
   }
   .comment-card.reply {
-    gap: 1rem;
-    margin-top: 1rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.04);
+    gap: 0.65rem;
+    margin-top: 0.6rem;
+    background: var(--c-surface);
   }
 
   .comment-body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 0.4rem;
+    min-width: 0;
   }
   .comment-info {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.6rem;
   }
   .user-name {
-    font-weight: 800;
-    font-size: 0.95rem;
-    color: white;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--c-txt);
   }
   .timestamp {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    color: var(--c-dim);
   }
 
   .content {
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.95rem;
+    line-height: 1.55;
+    color: color-mix(in srgb, var(--c-txt) 88%, transparent);
+    font-size: 0.9rem;
     white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .comment-actions {
     display: flex;
-    gap: 1.5rem;
-    margin-top: 0.5rem;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
   }
   .action-btn {
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--c-dim);
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    font-weight: 700;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: 0.2s;
-    padding: 0.4rem 0.6rem;
-    border-radius: 8px;
+    transition:
+      color 0.18s ease,
+      background 0.18s ease;
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--c-radius-in);
   }
   .action-btn:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--c-txt);
+    background: var(--c-btn);
   }
   .action-btn.delete:hover {
-    color: #ff4757;
-    background: rgba(229, 9, 20, 0.15);
+    color: #ff5468;
+    background: color-mix(in srgb, var(--c-accent) 15%, transparent);
   }
 
   .reply-input {
-    margin-top: 1rem;
+    margin-top: 0.6rem;
   }
   .replies-list {
-    border-left: 2px solid rgba(229, 9, 20, 0.3);
-    padding-left: 1rem;
-    margin-top: 1rem;
+    border-left: 2px solid var(--c-line-strong);
+    padding-left: 0.85rem;
+    margin-top: 0.6rem;
   }
 
   .empty-state {
     text-align: center;
-    padding: 3rem 2rem;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.95rem;
+    padding: 2.25rem 1.5rem;
+    color: var(--c-dim);
+    font-size: 0.9rem;
   }
 
   .comment-skeleton {
-    height: 100px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    height: 84px;
+    background: linear-gradient(
+      90deg,
+      var(--c-surface-2),
+      var(--c-btn),
+      var(--c-surface-2)
+    );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    border-radius: 16px;
+    border-radius: var(--c-radius);
   }
   @keyframes shimmer {
     0% {
@@ -522,42 +628,30 @@
       background-position: 200% 0;
     }
   }
+  @media (prefers-reduced-motion: reduce) {
+    .comment-skeleton {
+      animation: none;
+    }
+  }
 
   @media (max-width: 768px) {
     .comments-section {
-      padding: 1.5rem;
-      border-radius: 18px;
+      padding: 0.85rem;
     }
-
     .comments-header h3 {
-      font-size: 1.25rem;
+      font-size: 1.05rem;
     }
-
-    .comment-count {
-      font-size: 0.75rem;
-      padding: 0.3rem 0.75rem;
-    }
-
-    .input-container {
-      padding: 1rem;
-    }
-
     .user-avatar {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
     }
-
     .comment-card {
-      padding: 1rem;
-      gap: 0.85rem;
+      padding: 0.75rem;
+      gap: 0.65rem;
     }
-
-    .user-name {
-      font-size: 0.85rem;
-    }
-
-    .content {
-      font-size: 0.88rem;
+    .ch-tab {
+      padding: 0.4rem 0.7rem;
+      font-size: 0.74rem;
     }
   }
 </style>

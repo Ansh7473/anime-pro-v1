@@ -242,9 +242,23 @@ export const api = {
 			case 'seasonal': case 'top-airing': return api.getCurrentSeasonal(page, 20, customFetch);
 			case 'upcoming': return api.getUpcoming(page, 20, customFetch);
 			case 'popular': case 'most-popular': case 'all-time-popular': return api.getTopAnime('TV', page, 20, 'POPULARITY_DESC', customFetch);
+			case 'highest-rated': case 'top-rated': return api.getTopAnime('TV', page, 20, 'SCORE_DESC', customFetch);
 			case 'movies': return api.getTopAnime('MOVIE', page, 20, 'POPULARITY_DESC', customFetch);
 			case 'action': return api.getByGenre('Action', page, 20, customFetch);
 			case 'romance': return api.getByGenre('Romance', page, 20, customFetch);
+			case 'comedy': return api.getByGenre('Comedy', page, 20, customFetch);
+			case 'adventure': return api.getByGenre('Adventure', page, 20, customFetch);
+			case 'fantasy': return api.getByGenre('Fantasy', page, 20, customFetch);
+			case 'sci-fi': return api.getByGenre('Sci-Fi', page, 20, customFetch);
+			case 'supernatural': return api.getByGenre('Supernatural', page, 20, customFetch);
+			case 'drama': return api.getByGenre('Drama', page, 20, customFetch);
+			case 'slice-of-life': return api.getByGenre('Slice of Life', page, 20, customFetch);
+			case 'mystery': return api.getByGenre('Mystery', page, 20, customFetch);
+			case 'horror': return api.getByGenre('Horror', page, 20, customFetch);
+			case 'sports': return api.getByGenre('Sports', page, 20, customFetch);
+			case 'mecha': return api.getByGenre('Mecha', page, 20, customFetch);
+			case 'music': return api.getByGenre('Music', page, 20, customFetch);
+			case 'psychological': return api.getByGenre('Psychological', page, 20, customFetch);
 			default: return api.getTopAnime('TV', page, 20, 'POPULARITY_DESC', customFetch);
 		}
 	},

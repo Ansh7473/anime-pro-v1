@@ -19,8 +19,22 @@
     upcoming: "🚀 Upcoming",
     movies: "🎬 Movies",
     "highest-rated": "🏆 Highest Rated",
+    "top-rated": "🏆 Top Rated",
     action: "⚔️ Action",
     romance: "💕 Romance",
+    comedy: "😂 Comedy",
+    adventure: "🗺️ Adventure",
+    fantasy: "✨ Fantasy",
+    "sci-fi": "🚀 Sci-Fi",
+    supernatural: "🔮 Supernatural",
+    drama: "🎭 Drama",
+    "slice-of-life": "🍵 Slice of Life",
+    mystery: "🕵️ Mystery",
+    horror: "👻 Horror",
+    sports: "🏅 Sports",
+    mecha: "🤖 Mecha",
+    music: "🎵 Music",
+    psychological: "🧠 Psychological",
   };
 
   let items: any[] = $state([]);

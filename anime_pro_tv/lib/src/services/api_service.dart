@@ -1,13 +1,48 @@
 import 'package:dio/dio.dart';
 
-class ApiService {
-  static const String _baseUrl = 'https://anime-pro-v1-backend-go.vercel.app/api/v1';
+import '../core/backend_config.dart';
 
+class ApiService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: _baseUrl,
     connectTimeout: const Duration(seconds: 30),
     receiveTimeout: const Duration(seconds: 30),
   ));
+
+  ApiService() {
+    // Round-robin across the backend pool, with automatic failover to the
+    // remaining host(s) on connection errors / timeouts / 5xx responses.
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        options.extra['_hosts'] ??= Backend.ordered();
+        options.extra['_attempt'] ??= 0;
+        final hosts = options.extra['_hosts'] as List<String>;
+        final attempt = options.extra['_attempt'] as int;
+        options.baseUrl = '${hosts[attempt % hosts.length]}/api/v1';
+        handler.next(options);
+      },
+      onError: (e, handler) async {
+        final options = e.requestOptions;
+        final hosts =
+            (options.extra['_hosts'] as List<String>?) ?? Backend.ordered();
+        final attempt = (options.extra['_attempt'] as int? ?? 0) + 1;
+        final status = e.response?.statusCode;
+        final retriable = e.type == DioExceptionType.connectionError ||
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            (status != null && status >= 500);
+        if (retriable && attempt < hosts.length) {
+          options.extra['_attempt'] = attempt;
+          try {
+            final r = await _dio.fetch(options);
+            return handler.resolve(r);
+          } catch (err) {
+            return handler.next(err is DioException ? err : e);
+          }
+        }
+        handler.next(e);
+      },
+    ));
+  }
 
   Future<dynamic> getHome() async {
     final response = await _dio.get('/anilist/home');

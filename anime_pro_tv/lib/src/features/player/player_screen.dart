@@ -11,6 +11,7 @@ import 'package:webview_windows/webview_windows.dart' as win;
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/image_utils.dart';
+import '../../core/backend_config.dart';
 import '../../core/tv_focusable.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
@@ -400,7 +401,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       referer = 'https://animelok.xyz/';
     }
 
-    const String proxyBase = 'https://anime-pro-v1-backend-go.vercel.app/api/v1/streaming/proxy';
+    final String proxyBase = Backend.proxyBase;
     return '$proxyBase?url=${Uri.encodeComponent(target)}&referer=${Uri.encodeComponent(referer)}';
   }
 

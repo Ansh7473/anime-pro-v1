@@ -424,6 +424,7 @@
     transition: color 0.2s;
     text-decoration: none;
     padding: 0.5rem 0;
+    white-space: nowrap;
   }
   .nav-link:hover, .nav-link.active {
     color: white;
@@ -718,7 +719,7 @@
     background: rgba(255, 74, 74, 0.08);
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .hide-mobile { display: none; }
     
     .search-container.open {
@@ -780,7 +781,7 @@
       overflow-y: auto;
     }
   }
-  @media (min-width: 769px) {
+  @media (min-width: 1025px) {
     .hide-desktop { display: none; }
     .user-profile:hover .profile-dropdown {
       opacity: 1;
