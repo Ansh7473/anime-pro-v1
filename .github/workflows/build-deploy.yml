@@ -134,9 +134,35 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/electron-cache
+            ${{ runner.temp }}/electron-builder-cache
+          key: electron-windows-${{ hashFiles('desktop-app/package.json') }}
+          restore-keys: |
+            electron-windows-
+
       - name: Build Desktop App
         working-directory: desktop-app
-        run: npm run build
+        shell: pwsh
+        env:
+          ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          for ($i = 1; $i -le 3; $i++) {
+            Write-Host "Desktop build attempt $i of 3"
+            npm run build
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($i -lt 3) {
+              Write-Host "Attempt $i failed (exit $LASTEXITCODE). Retrying in 20s..."
+              Start-Sleep -Seconds 20
+            }
+          }
+          Write-Error "Desktop build failed after 3 attempts"
+          exit 1
 
       - name: Upload Desktop Installer Artifact
         uses: actions/upload-artifact@v4
@@ -160,9 +186,30 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/electron-cache
+            ${{ runner.temp }}/electron-builder-cache
+          key: electron-mac-${{ hashFiles('desktop-app/package.json') }}
+          restore-keys: |
+            electron-mac-
+
       - name: Build Desktop App
         working-directory: desktop-app
-        run: npm run build:mac
+        env:
+          ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+        run: |
+          for i in 1 2 3; do
+            echo "Desktop build attempt $i of 3"
+            npm run build:mac && exit 0
+            echo "Attempt $i failed. Retrying in 20s..."
+            sleep 20
+          done
+          echo "Desktop build failed after 3 attempts"
+          exit 1
 
       - name: Upload Mac Installer Artifact
         uses: actions/upload-artifact@v4
@@ -193,9 +240,30 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/electron-cache
+            ${{ runner.temp }}/electron-builder-cache
+          key: electron-linux-${{ hashFiles('desktop-app/package.json') }}
+          restore-keys: |
+            electron-linux-
+
       - name: Build Desktop App
         working-directory: desktop-app
-        run: npm run build:linux
+        env:
+          ELECTRON_CACHE: ${{ runner.temp }}/electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/electron-builder-cache
+        run: |
+          for i in 1 2 3; do
+            echo "Desktop build attempt $i of 3"
+            npm run build:linux && exit 0
+            echo "Attempt $i failed. Retrying in 20s..."
+            sleep 20
+          done
+          echo "Desktop build failed after 3 attempts"
+          exit 1
 
       - name: Upload Linux Installer Artifact
         uses: actions/upload-artifact@v4
