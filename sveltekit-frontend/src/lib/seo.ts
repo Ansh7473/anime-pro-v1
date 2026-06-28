@@ -150,6 +150,14 @@ export function getAnimeJsonLd(anime: any, canonicalUrl: string) {
 		? 'Movie'
 		: 'TVSeries';
 
+	// AniList scores are on a 0–100 scale (e.g. 70 = 7.0/10). Normalise to the
+	// declared 1–10 range so Google does not reject it as "out of range".
+	const rawScore = Number(anime?.score ?? anime?.rating);
+	const hasRating = Number.isFinite(rawScore) && rawScore > 0;
+	const ratingValue = hasRating
+		? Math.min(10, Math.max(1, Math.round((rawScore > 10 ? rawScore / 10 : rawScore) * 10) / 10))
+		: undefined;
+
 	return {
 		'@context': 'https://schema.org',
 		'@type': type,
@@ -159,17 +167,16 @@ export function getAnimeJsonLd(anime: any, canonicalUrl: string) {
 		image: anime?.poster || anime?.image || anime?.coverImage?.extraLarge,
 		genre: anime?.genres?.map((genre: any) => (typeof genre === 'string' ? genre : genre?.name)).filter(Boolean),
 		numberOfEpisodes: anime?.episodes,
-		aggregateRating:
-			anime?.score || anime?.rating
-				? {
+		aggregateRating: hasRating
+			? {
 					'@type': 'AggregateRating',
-					ratingValue: Number(anime.score || anime.rating),
+					ratingValue,
 					bestRating: 10,
 					worstRating: 1,
-					ratingCount: anime?.scoredBy || anime?.members || Math.max(1, Math.round(Number(anime.score || anime.rating) * 1200)),
-					reviewCount: anime?.favorites || Math.max(1, Math.round(Number(anime.score || anime.rating) * 150))
+					ratingCount: anime?.scoredBy || anime?.members || Math.max(1, Math.round(rawScore * 1200)),
+					reviewCount: anime?.favorites || Math.max(1, Math.round(rawScore * 150))
 				}
-				: undefined
+			: undefined
 	};
 }
 
