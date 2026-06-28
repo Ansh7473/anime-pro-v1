@@ -3,7 +3,7 @@
   import { auth, switchProfile, logoutUser } from "$lib/stores/auth";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { themeState, type ThemeSettings } from '$lib/stores/theme';
+  import { themeState } from '$lib/stores/theme';
   import PasswordModal from "$lib/components/PasswordModal.svelte";
   import CreateProfileModal from "$lib/components/CreateProfileModal.svelte";
   import {
@@ -46,7 +46,64 @@
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Luna",
   ];
 
+  // --- Theme picker ---
+  // Keys mirror the .theme-* classes defined in src/lib/styles/themes.css
+  const THEME_KEYS = [
+    "minimalist", "classic-red", "deep-crimson", "blood-moon",
+    "obsidian", "midnight", "abyss", "void",
+    "emerald", "forest", "lichen", "oasis",
+    "cyberpunk", "neon-pulse", "matrix", "retrowave",
+    "slate", "royal", "ruby", "amber", "violet", "arctic", "rose", "gold",
+    "ocean", "lava", "mint", "coral", "sky", "sand", "storm", "clay",
+    "ink", "serene", "dracula", "nord", "monokai", "gruvbox", "solarized",
+    "autumn", "spring", "winter", "summer", "platinum", "titanium",
+    "copper", "bronze", "pearl", "onyx", "quartz", "amethyst", "topaz",
+    "sapphire", "peridot", "garnet", "citrine", "opal", "turquoise",
+    "malachite", "moonstone", "tanzanite", "crimson-vivid", "nebula",
+    "phosphor", "cyber-orange", "dracula-soft", "mocha", "macchiato",
+    "frappe", "latte", "sakura", "zen", "void-walker", "stellar",
+    "phantom", "ghoul", "titan",
+  ];
+
+  let swatches = $state<Record<string, { bg: string; accent: string }>>({});
+
+  function themeName(key: string) {
+    return key.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  }
+
+  // Read each theme's --net-bg / --net-red from the loaded stylesheet via a hidden probe,
+  // so swatches stay in sync with themes.css without hardcoding colours.
+  function computeSwatches() {
+    if (typeof document === "undefined") return;
+    const probe = document.createElement("div");
+    probe.style.position = "absolute";
+    probe.style.opacity = "0";
+    probe.style.pointerEvents = "none";
+    document.body.appendChild(probe);
+    const map: Record<string, { bg: string; accent: string }> = {};
+    for (const key of THEME_KEYS) {
+      probe.className = `theme-${key}`;
+      const cs = getComputedStyle(probe);
+      map[key] = {
+        bg: cs.getPropertyValue("--net-bg").trim() || "#0a0a0a",
+        accent: cs.getPropertyValue("--net-red").trim() || "#e50914",
+      };
+    }
+    document.body.removeChild(probe);
+    swatches = map;
+  }
+
+  function setTheme(key: string) {
+    themeState.update((s) => ({ ...s, current: key }));
+    success = `Theme set to ${themeName(key)}`;
+  }
+
+  function toggleGradients() {
+    themeState.update((s) => ({ ...s, gradients: !s.gradients }));
+  }
+
   onMount(async () => {
+    computeSwatches();
     if (!$auth.token) {
       goto("/auth/login?redirect=/profile");
       return;
@@ -230,19 +287,34 @@
 
     <!-- User Info Card -->
     <div class="user-card">
-      <div class="user-card-left">
-        <div class="user-avatar">
-          {($auth.currentProfile?.name || 'A')[0].toUpperCase()}
+      <div class="user-card-top">
+        <div class="user-card-left">
+          <div class="user-avatar">
+            {($auth.currentProfile?.name || 'A')[0].toUpperCase()}
+          </div>
+          <div class="user-details">
+            <h2 class="user-name">{$auth.currentProfile?.name || 'User'}</h2>
+            <p class="user-email">{$auth.user?.email || ''}</p>
+          </div>
         </div>
-        <div class="user-details">
-          <h2 class="user-name">{$auth.currentProfile?.name || 'User'}</h2>
-          <p class="user-email">{$auth.user?.email || ''}</p>
-          <span class="user-date">WatchAnimez Member</span>
+        <button class="btn-outline logout-btn" onclick={handleLogout}>
+          <LogOut size={16} /> Sign Out
+        </button>
+      </div>
+      <div class="profile-stats">
+        <div class="stat">
+          <span class="stat-num">{$auth.user?.profiles?.length || 1}</span>
+          <span class="stat-label">Profiles</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">{favorites.length}</span>
+          <span class="stat-label">Favorites</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">{themeName($themeState.current)}</span>
+          <span class="stat-label">Theme</span>
         </div>
       </div>
-      <button class="btn-outline logout-btn" onclick={handleLogout}>
-        <LogOut size={16} /> Sign Out
-      </button>
     </div>
 
     <div class="settings-grid">
@@ -250,7 +322,7 @@
       <div class="settings-col">
         <section class="card">
           <div class="card-header">
-            <h2 class="card-title">Profiles</h2>
+            <h2 class="card-title"><User size={16} /> Profiles</h2>
             <button class="btn-small" onclick={() => showProfileModal = true}>
               <UserPlus size={14} /> New Profile
             </button>
@@ -286,7 +358,7 @@
 
         <!-- Security -->
         <section class="card">
-          <h2 class="card-title">Security</h2>
+          <h2 class="card-title"><Key size={16} /> Security</h2>
           <button class="settings-action" onclick={() => showPasswordModal = true}>
             <div class="settings-action-left">
               <Key size={18} />
@@ -304,7 +376,7 @@
       <div class="settings-col">
         <!-- Preferences -->
         <section class="card">
-          <h2 class="card-title">Playback Preferences</h2>
+          <h2 class="card-title"><Settings size={16} /> Playback Preferences</h2>
           <div class="pref-list">
             <div class="pref-row">
               <span class="pref-label">Auto-Play Next Episode</span>
@@ -343,23 +415,48 @@
 
         <!-- Theme -->
         <section class="card">
-          <h2 class="card-title">Appearance</h2>
-          <a href="/intel" class="settings-action">
-            <div class="settings-action-left">
-              <Palette size={18} />
-              <div>
-                <span class="action-label">Customize Theme</span>
-                <span class="action-desc">Choose from 80+ color themes</span>
-              </div>
-            </div>
-            <ChevronRight size={16} class="chevron" />
-          </a>
+          <div class="card-header">
+            <h2 class="card-title"><Palette size={16} /> Appearance</h2>
+            <span class="theme-current">
+              {themeName($themeState.current)}
+            </span>
+          </div>
+
+          <div class="theme-grid">
+            {#each THEME_KEYS as key}
+              <button
+                class="theme-swatch"
+                class:active={$themeState.current === key}
+                title={themeName(key)}
+                aria-label={themeName(key)}
+                onclick={() => setTheme(key)}
+                style="--sw-bg: {swatches[key]?.bg || '#0a0a0a'}; --sw-accent: {swatches[key]?.accent || '#e50914'};"
+              >
+                <span class="sw-accent"></span>
+                {#if $themeState.current === key}
+                  <span class="sw-check"><Check size={12} /></span>
+                {/if}
+              </button>
+            {/each}
+          </div>
+
+          <div class="pref-row theme-gradient-row">
+            <span class="pref-label">Gradient accents</span>
+            <button
+              class="toggle"
+              class:on={$themeState.gradients}
+              onclick={toggleGradients}
+              aria-label="Toggle gradient accents"
+            >
+              <div class="toggle-knob"></div>
+            </button>
+          </div>
         </section>
 
         <!-- Favorites -->
         <section class="card">
           <div class="card-header">
-            <h2 class="card-title">Favorites</h2>
+            <h2 class="card-title"><Heart size={16} /> Favorites</h2>
             <a href="/favorites" class="btn-text">View All</a>
           </div>
           {#if loadingFavs}
@@ -412,6 +509,11 @@
 
 <style>
   .profile-page {
+    --s1: #121214;
+    --s2: #0d0d0f;
+    --hair: rgba(245, 245, 245, 0.08);
+    --hair-2: rgba(245, 245, 245, 0.14);
+    --r: 14px;
     padding-top: 2rem;
     padding-bottom: 4rem;
     max-width: 960px;
@@ -514,47 +616,87 @@
 
   /* User Card */
   .user-card {
+    background: var(--s1);
+    border: 1px solid var(--hair);
+    border-radius: var(--r);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .user-card-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+    gap: 1rem;
   }
   .user-card-left {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1.1rem;
+    min-width: 0;
   }
   .user-avatar {
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--net-red), #7c040a);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: white;
     flex-shrink: 0;
   }
+  .user-details { min-width: 0; }
   .user-name {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 700;
     margin-bottom: 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .user-email {
     font-size: 0.85rem;
     color: var(--net-text-muted);
-    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .user-date {
-    font-size: 0.75rem;
+  .profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--hair);
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     color: var(--net-text-muted);
-    opacity: 0.7;
+  }
+  .stat + .stat {
+    border-left: 1px solid var(--hair);
   }
 
   /* Settings Grid */
@@ -566,23 +708,28 @@
   }
 
   .card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    background: var(--s1);
+    border: 1px solid var(--hair);
+    border-radius: var(--r);
+    padding: 1.35rem;
+    margin-bottom: 1.25rem;
   }
+  .settings-col > .card:last-child { margin-bottom: 0; }
   .card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.1rem;
   }
   .card-title {
-    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
     font-weight: 700;
     margin-bottom: 1rem;
   }
+  .card-title :global(svg) { color: var(--net-red); flex: none; }
   .card-header .card-title { margin-bottom: 0; }
 
   /* Profiles List */
@@ -734,6 +881,81 @@
     transform: translateX(18px);
   }
 
+  /* Theme picker */
+  .theme-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--net-red);
+    background: rgba(229, 9, 20, 0.1);
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    padding: 0.3rem 0.65rem;
+    border-radius: 50px;
+    white-space: nowrap;
+  }
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 0.5rem;
+    max-height: 232px;
+    overflow-y: auto;
+    padding: 0.15rem 0.35rem 0.15rem 0.15rem;
+    margin-bottom: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
+  .theme-grid::-webkit-scrollbar { width: 6px; }
+  .theme-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+  }
+  .theme-swatch {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 9px;
+    background: var(--sw-bg);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .theme-swatch:hover {
+    transform: translateY(-2px) scale(1.05);
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+  .theme-swatch .sw-accent {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--sw-accent);
+    border: 1.5px solid rgba(0, 0, 0, 0.25);
+  }
+  .theme-swatch.active {
+    border-color: var(--sw-accent);
+    box-shadow: 0 0 0 2px var(--sw-accent);
+  }
+  .theme-swatch .sw-check {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .theme-gradient-row {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: none;
+    margin-top: 0.5rem;
+    padding-bottom: 0;
+  }
+
   /* Favorites */
   .fav-grid {
     display: grid;
@@ -843,21 +1065,17 @@
     .page-title { font-size: 1.5rem; }
     .header-badge { display: none; }
     .settings-grid { grid-template-columns: 1fr; }
-    .user-card {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-    .logout-btn { width: 100%; justify-content: center; }
     .fav-grid { grid-template-columns: repeat(3, 1fr); }
   }
 
   @media (max-width: 480px) {
     .page-title { font-size: 1.3rem; }
     .user-card-left { gap: 0.85rem; }
-    .user-avatar { width: 46px; height: 46px; font-size: 1.2rem; }
+    .user-avatar { width: 50px; height: 50px; font-size: 1.25rem; }
     .user-name { font-size: 1.05rem; }
-    .card { padding: 1.25rem; }
+    .logout-btn { padding: 0.5rem 0.85rem; }
+    .card { padding: 1.15rem; }
+    .stat-num { font-size: 1rem; }
     .fav-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
