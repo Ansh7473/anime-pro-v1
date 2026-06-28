@@ -17,7 +17,6 @@
     AlertCircle,
     Key,
     Palette,
-    Heart,
     LogOut,
     ChevronRight
   } from "lucide-svelte";
@@ -452,35 +451,6 @@
             </button>
           </div>
         </section>
-
-        <!-- Favorites -->
-        <section class="card">
-          <div class="card-header">
-            <h2 class="card-title"><Heart size={16} /> Favorites</h2>
-            <a href="/favorites" class="btn-text">View All</a>
-          </div>
-          {#if loadingFavs}
-            <div class="fav-grid">
-              {#each Array(6) as _, i (i)}
-                <div class="fav-sk shimmer" aria-hidden="true"></div>
-              {/each}
-            </div>
-          {:else if favorites.length === 0}
-            <div class="fav-empty">
-              <Heart size={24} />
-              <p>No favorites yet. Heart an anime to add it here!</p>
-            </div>
-          {:else}
-            <div class="fav-grid">
-              {#each favorites.slice(0, 6) as anime}
-                <a href="/anime/{anime.id}" class="fav-card">
-                  <img src={getProxiedImage(anime.poster)} alt={anime.title} class="fav-poster" loading="lazy" decoding="async" />
-                  <span class="fav-title">{anime.title}</span>
-                </a>
-              {/each}
-            </div>
-          {/if}
-        </section>
       </div>
     </div>
   </div>
@@ -527,10 +497,6 @@
   .pf-sk-header { height: 64px; }
   .pf-sk-card { height: 160px; }
   .pf-sk-section { height: 200px; }
-  .fav-sk {
-    aspect-ratio: 2 / 3;
-    border-radius: 8px;
-  }
   .shimmer {
     background: linear-gradient(
       100deg,
@@ -956,47 +922,6 @@
     padding-bottom: 0;
   }
 
-  /* Favorites */
-  .fav-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-  }
-  .fav-card {
-    text-decoration: none;
-    border-radius: 10px;
-    overflow: hidden;
-    transition: transform 0.2s;
-  }
-  .fav-card:hover { transform: translateY(-3px); }
-  .fav-poster {
-    width: 100%;
-    aspect-ratio: 2/3;
-    object-fit: cover;
-    border-radius: 8px;
-  }
-  .fav-title {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: white;
-    margin-top: 0.4rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .fav-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem 1rem;
-    gap: 0.75rem;
-    text-align: center;
-    color: var(--net-text-muted);
-  }
-  .fav-empty svg { opacity: 0.3; }
-  .fav-empty p { font-size: 0.85rem; }
-
   /* Buttons */
   .btn-outline {
     padding: 0.6rem 1.25rem;
@@ -1065,7 +990,6 @@
     .page-title { font-size: 1.5rem; }
     .header-badge { display: none; }
     .settings-grid { grid-template-columns: 1fr; }
-    .fav-grid { grid-template-columns: repeat(3, 1fr); }
   }
 
   @media (max-width: 480px) {
@@ -1076,6 +1000,5 @@
     .logout-btn { padding: 0.5rem 0.85rem; }
     .card { padding: 1.15rem; }
     .stat-num { font-size: 1rem; }
-    .fav-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
