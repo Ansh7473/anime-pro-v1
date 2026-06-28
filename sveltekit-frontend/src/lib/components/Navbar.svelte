@@ -229,7 +229,7 @@
                  isTV.set(true);
                  document.body.classList.add('tv-mode');
                  profileOpen = false;
-               }}><Tv size={16} /> TV Mode Hub</button>
+               }}><Tv size={16} /> TV Mode</button>
             <button
               class="dropdown-item logout"
               onclick={() => {
@@ -270,7 +270,7 @@
                  isTV.set(true);
                  document.body.classList.add('tv-mode');
                  profileOpen = false;
-               }}><Tv size={16} /> TV Mode Hub</button>
+               }}><Tv size={16} /> TV Mode</button>
           </div>
         </div>
       {/if}
