@@ -51,6 +51,7 @@
   let anime: any = $state(null);
   let posterColor = $state(""); // dominant poster color as "r, g, b"
   let recommendations: any[] = $state([]);
+  let relatedItems: any[] = $state([]);
   let sources: any[] = $state([]);
   let episodes: any[] = $state([]);
   let selectedSource: any = $state(null);
@@ -546,6 +547,40 @@
     return `${m}:${String(s).padStart(2, "0")}`;
   }
 
+  async function buildRelated() {
+    const valid = (anime?.relations || []).filter(
+      (r: any) => (r?.title || r?.name) && (r?.poster || r?.image),
+    );
+    relatedItems = valid;
+    if (valid.length >= 6) return;
+
+    const genres = (anime?.genres || [])
+      .map((g: any) => (typeof g === "string" ? g : g?.name))
+      .filter(Boolean);
+    if (!genres.length) return;
+    const genre = genres[Math.floor(Math.random() * genres.length)];
+
+    try {
+      const gRes = await api.getByGenre(genre, 1, 24);
+      const pool = (gRes?.data || gRes?.results || gRes || []).filter(
+        (a: any) =>
+          String(a?.id || a?.mal_id) !== String(animeId) &&
+          (a?.poster || a?.image) &&
+          (a?.title || a?.name),
+      );
+      // Fisher-Yates shuffle for random fallback picks
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const seen = new Set(valid.map((r: any) => String(r.id || r.mal_id)));
+      const extra = pool.filter((a: any) => !seen.has(String(a.id || a.mal_id)));
+      relatedItems = [...valid, ...extra].slice(0, 12);
+    } catch (e) {
+      console.error("Related genre fallback failed:", e);
+    }
+  }
+
   onMount(async () => {
     try {
       const [animeRes, metaRes, recsRes] = await Promise.all([
@@ -557,6 +592,10 @@
       extractPosterColor(getProxiedImage(anime?.image || anime?.poster));
       episodes = metaRes?.data?.episodes || [];
       recommendations = recsRes || [];
+
+      // Build the Related list: prefer real relations, but if they're missing or
+      // junk (no title/poster), fall back to random genre-matched anime.
+      await buildRelated();
 
       // Auto-select pagination page that contains the current episode
       if (ep > 0 && episodes.length > 0) {
@@ -1294,7 +1333,7 @@
               {#if anime?.type}<div class="adc-meta"><span>Format</span><strong>{anime.type}</strong></div>{/if}
               {#if anime?.status}<div class="adc-meta"><span>Status</span><strong>{anime.status}</strong></div>{/if}
               {#if episodes.length}<div class="adc-meta"><span>Episodes</span><strong>{episodes.length}</strong></div>{/if}
-              {#if anime?.rating}<div class="adc-meta"><span>Rating</span><strong>{anime.rating}</strong></div>{/if}
+              {#if anime?.rating}<div class="adc-meta"><span>Rating</span><strong>{anime.rating > 10 ? (anime.rating / 10).toFixed(1) : anime.rating}</strong></div>{/if}
               {#if anime?.releaseDate || anime?.year}<div class="adc-meta"><span>Released</span><strong>{anime?.releaseDate || anime?.year}</strong></div>{/if}
               {#if anime?.duration}<div class="adc-meta"><span>Duration</span><strong>{anime.duration} min</strong></div>{/if}
             </div>
@@ -1434,7 +1473,7 @@
         {ep}
         {currentEpPage}
         {recommendations}
-        relations={anime?.relations || []}
+        relations={relatedItems}
         onChangeEp={changeEp}
         onGoToPage={goToEpPage}
       />

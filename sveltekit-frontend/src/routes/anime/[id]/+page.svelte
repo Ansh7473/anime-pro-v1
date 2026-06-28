@@ -210,7 +210,7 @@
 
         <div class="detail-meta">
           {#if anime.score > 0}<span class="meta-tag"
-              >⭐ {anime.score.toFixed(1)}</span
+              >⭐ {anime.score > 10 ? (anime.score / 10).toFixed(1) : anime.score.toFixed(1)}</span
             >{/if}
           {#if anime.type}<span class="meta-tag">{anime.type}</span>{/if}
           {#if anime.episodes}<span class="meta-tag">{anime.episodes} eps</span
@@ -500,9 +500,21 @@
     .detail-content {
       margin-top: -5rem;
     }
-    .detail-actions {
-      flex-wrap: wrap;
+    .detail-info {
+      display: flex;
+      flex-direction: column;
     }
+    .detail-title { order: 1; }
+    .detail-jp { order: 2; }
+    .detail-meta { order: 3; }
+    .detail-genres { order: 4; }
+    .detail-actions {
+      order: 5;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .detail-synopsis { order: 6; }
+    .detail-studios { order: 7; }
     .btn-watchlist,
     .btn-favorite {
       flex: 1;
@@ -531,7 +543,7 @@
       gap: 1rem;
     }
     .detail-poster {
-      max-width: 200px;
+      max-width: 140px;
       margin: 0 auto;
     }
     .detail-title {

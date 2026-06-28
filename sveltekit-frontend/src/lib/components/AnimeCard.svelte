@@ -6,6 +6,8 @@
     size?: "small" | "normal" | "large";
   }>();
 
+  let imgError = $state(false);
+
   const poster = $derived(
     anime?.poster || anime?.image || anime?.images?.jpg?.large_image_url || "",
   );
@@ -25,7 +27,9 @@
     }
     return "Unknown Anime";
   });
-  const score = $derived(anime?.score || anime?.rating || 0);
+  const rawScore = $derived(anime?.score || anime?.rating || 0);
+  // AniList scores are 0-100 (e.g. 87); show them on the 0-10 scale (8.7).
+  const score = $derived(rawScore > 10 ? rawScore / 10 : rawScore);
   const id = $derived(anime?.id || anime?.mal_id);
 
   function handleNavigate(e?: Event) {
@@ -54,7 +58,14 @@
   onkeydown={handleKeydown}
 >
 <div class="card-img-wrap">
-    <img src={poster} alt={title} loading="lazy" decoding="async" />
+    {#if poster && !imgError}
+      <img src={poster} alt={title} loading="lazy" decoding="async" onerror={() => (imgError = true)} />
+    {:else}
+      <div class="card-fallback" aria-label={title}>
+        <span class="cf-mark">ワ</span>
+        <span class="cf-title">{title}</span>
+      </div>
+    {/if}
     <div class="card-overlay">
       <div class="card-play">▶</div>
     </div>
@@ -114,13 +125,43 @@
     border-radius: calc(var(--radius-lg) - 2px);
     overflow: hidden;
     aspect-ratio: 2 / 3;
-    background: #000;
+    background: linear-gradient(160deg, #17171a, #0c0c0e);
   }
   .card-img-wrap img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    text-align: center;
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(229, 9, 20, 0.18), transparent 70%),
+      linear-gradient(160deg, #17171a, #0c0c0e);
+  }
+  .card-fallback .cf-mark {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: rgba(229, 9, 20, 0.55);
+    line-height: 1;
+  }
+  .card-fallback .cf-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #c8c8cc;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .card:hover img {
     transform: scale(1.1);

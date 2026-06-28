@@ -8,7 +8,6 @@
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
   import { onMount } from "svelte";
-  import { goto } from "$app/navigation";
   import { BACKEND_URL } from "$lib/api";
 
   let { children } = $props();
@@ -60,15 +59,43 @@
     }
   });
 
-  function handleBack() {
-    if (window.history.length > 2) {
-      window.history.back();
-    } else {
-      goto("/");
-    }
+  // Scroll control (right-side up/down arrows, 25% per click, auto-hide when idle)
+  let scrolling = $state(false);
+  let atTop = $state(true);
+  let atBottom = $state(false);
+  let scrollIdleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function refreshScrollState() {
+    const y = window.scrollY;
+    const range = document.documentElement.scrollHeight - window.innerHeight;
+    atTop = y <= 4;
+    atBottom = range <= 4 || y >= range - 4;
   }
 
-  let canGoBack = $derived(page.url.pathname !== "/");
+  function showScrollControl() {
+    scrolling = true;
+    clearTimeout(scrollIdleTimer);
+    scrollIdleTimer = setTimeout(() => (scrolling = false), 1500);
+  }
+
+  function onScroll() {
+    refreshScrollState();
+    showScrollControl();
+  }
+
+  function scrollByQuarter(dir: 1 | -1) {
+    const range = document.documentElement.scrollHeight - window.innerHeight;
+    if (range <= 0) return;
+    window.scrollTo({ top: window.scrollY + dir * range * 0.25, behavior: "smooth" });
+    showScrollControl();
+  }
+
+  onMount(() => {
+    refreshScrollState();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  });
+
   let isWatchPage = $derived(page.url.pathname.startsWith('/watch/'));
 </script>
 
@@ -80,11 +107,20 @@
     <div class="tactical-grid"></div>
     <Navbar />
 
-    {#if canGoBack}
-      <button class="back-fab" onclick={handleBack} aria-label="Go back">
-        ←
-      </button>
-    {/if}
+    <div class="scroll-fab" class:visible={scrolling}>
+      <button
+        class="sf-btn"
+        onclick={() => scrollByQuarter(-1)}
+        disabled={atTop}
+        aria-label="Scroll up"
+      >↑</button>
+      <button
+        class="sf-btn"
+        onclick={() => scrollByQuarter(1)}
+        disabled={atBottom}
+        aria-label="Scroll down"
+      >↓</button>
+    </div>
 
     <PullToRefresh>
       <main class="main-content">
@@ -142,7 +178,7 @@
     min-height: 100vh;
   }
 
-  .back-fab {
+  .scroll-fab {
     display: none;
   }
 
@@ -152,25 +188,48 @@
       padding-bottom: 70px;
     }
 
-    .back-fab {
+    .scroll-fab {
       display: flex;
+      flex-direction: row;
+      gap: 0.6rem;
       position: fixed;
-      bottom: 1.5rem;
-      left: 1rem;
+      left: 50%;
+      bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 0.85rem);
       z-index: 999;
-      width: 44px;
-      height: 44px;
+      opacity: 0;
+      transform: translateX(-50%) translateY(8px);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .scroll-fab.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    .sf-btn {
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
-      background: rgba(229, 9, 20, 0.85);
-      color: white;
-      font-size: 1.3rem;
-      font-weight: 700;
+      display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff;
+      background: rgba(18, 18, 20, 0.92);
+      border: 1px solid rgba(245, 245, 245, 0.14);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .sf-btn:hover {
+      background: rgba(36, 36, 40, 0.95);
+    }
+    .sf-btn:disabled {
+      opacity: 0.35;
+      pointer-events: none;
     }
   }
 
