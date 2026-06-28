@@ -1,6 +1,6 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
-  import { Download, Heart } from 'lucide-svelte';
+  import { Download, Heart, User, Bookmark, Tv, LogOut, LogIn, UserPlus } from 'lucide-svelte';
   import { auth, logoutUser } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -205,15 +205,23 @@
 
           <div class="profile-dropdown glass">
             <div class="user-info">
-              <span class="user-name"
-                >{$auth.currentProfile?.name || "User"}</span
-              >
-              <span class="user-email">{$auth.user.email}</span>
+              <img
+                class="ui-avatar"
+                src={getProxiedImage(
+                  ($auth.currentProfile?.avatar) ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user?.email || 'guest'}`,
+                )}
+                alt="Profile"
+              />
+              <div class="ui-text">
+                <span class="user-name">{$auth.currentProfile?.name || "User"}</span>
+                <span class="user-email">{$auth.user.email}</span>
+              </div>
             </div>
             <hr />
-            <a href="/profile" class="dropdown-item" onclick={() => profileOpen = false}>My Profile</a>
-            <a href="/watchlist" class="dropdown-item" onclick={() => profileOpen = false}>Watchlist</a>
-            <a href="/favorites" class="dropdown-item" onclick={() => profileOpen = false}>Favorites</a>
+            <a href="/profile" class="dropdown-item" onclick={() => profileOpen = false}><User size={16} /> My Profile</a>
+            <a href="/watchlist" class="dropdown-item" onclick={() => profileOpen = false}><Bookmark size={16} /> Watchlist</a>
+            <a href="/favorites" class="dropdown-item" onclick={() => profileOpen = false}><Heart size={16} /> Favorites</a>
             <hr />
             <button
                class="dropdown-item"
@@ -221,14 +229,14 @@
                  isTV.set(true);
                  document.body.classList.add('tv-mode');
                  profileOpen = false;
-               }}>TV Mode Hub</button>
+               }}><Tv size={16} /> TV Mode Hub</button>
             <button
               class="dropdown-item logout"
               onclick={() => {
                 profileOpen = false;
                 logoutUser();
                 goto("/");
-              }}>Logout</button
+              }}><LogOut size={16} /> Logout</button
             >
           </div>
         </div>
@@ -242,12 +250,19 @@
           </button>
           <div class="profile-dropdown glass">
             <div class="user-info">
-              <span class="user-name">Guest User</span>
-              <span class="user-email">Not logged in</span>
+              <img
+                class="ui-avatar"
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest&backgroundColor=b6e3f4"
+                alt="Guest"
+              />
+              <div class="ui-text">
+                <span class="user-name">Guest User</span>
+                <span class="user-email">Not logged in</span>
+              </div>
             </div>
             <hr />
-            <a href="/auth/login" class="dropdown-item" onclick={() => profileOpen = false}>Login</a>
-            <a href="/auth/register" class="dropdown-item accent" onclick={() => profileOpen = false}>Sign Up</a>
+            <a href="/auth/login" class="dropdown-item" onclick={() => profileOpen = false}><LogIn size={16} /> Login</a>
+            <a href="/auth/register" class="dropdown-item accent" onclick={() => profileOpen = false}><UserPlus size={16} /> Sign Up</a>
             <hr />
             <button
                class="dropdown-item"
@@ -255,7 +270,7 @@
                  isTV.set(true);
                  document.body.classList.add('tv-mode');
                  profileOpen = false;
-               }}>TV Mode Hub</button>
+               }}><Tv size={16} /> TV Mode Hub</button>
           </div>
         </div>
       {/if}
@@ -553,11 +568,21 @@
   .profile-trigger {
     width: 36px;
     height: 36px;
-    border-radius: 4px;
+    border-radius: 50%;
     overflow: hidden;
     cursor: pointer;
-    border: none;
+    border: 1.5px solid rgba(245, 245, 245, 0.14);
     padding: 0;
+    background: #1a1a1c;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .profile-trigger:hover {
+    border-color: var(--net-red);
+    transform: translateY(-1px);
+  }
+  .user-profile.open .profile-trigger {
+    border-color: var(--net-red);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.18);
   }
   .profile-trigger img {
     width: 100%;
@@ -566,36 +591,125 @@
   }
   .profile-dropdown {
     position: absolute;
-    top: 120%;
+    top: calc(100% + 10px);
     right: 0;
-    width: 220px;
-    background: #141414;
-    border-radius: 8px;
-    padding: 0.75rem;
+    width: 244px;
+    background: #121214;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    border-radius: 14px;
+    padding: 0.5rem;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
-    transition: 0.2s;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top right;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+    z-index: 50;
+  }
+  .profile-dropdown::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    background: #121214;
+    border-left: 1px solid rgba(245, 245, 245, 0.1);
+    border-top: 1px solid rgba(245, 245, 245, 0.1);
+    transform: rotate(45deg);
   }
   .user-profile.open .profile-dropdown {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.55rem 0.65rem;
+  }
+  .ui-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+    background: #1a1a1c;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+  }
+  .ui-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .user-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .user-email {
+    font-size: 0.74rem;
+    color: var(--net-text-muted, #9a9a9a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-dropdown hr {
+    border: 0;
+    border-top: 1px solid rgba(245, 245, 245, 0.08);
+    margin: 0.35rem 0;
   }
   .dropdown-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
     width: 100%;
-    padding: 0.6rem;
-    color: #ccc;
+    padding: 0.55rem 0.6rem;
+    color: #cfcfcf;
+    font-size: 0.86rem;
+    font-weight: 500;
     text-decoration: none;
     background: none;
     border: none;
+    border-radius: 8px;
     text-align: left;
     cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+  }
+  .dropdown-item :global(svg) {
+    color: var(--net-text-muted, #9a9a9a);
+    flex: none;
+    transition: color 0.15s;
   }
   .dropdown-item:hover {
-    color: white;
-    background: rgba(255,255,255,0.1);
+    color: #fff;
+    background: rgba(245, 245, 245, 0.06);
+  }
+  .dropdown-item:hover :global(svg) {
+    color: #fff;
+  }
+  .dropdown-item.accent {
+    color: var(--net-red);
+    font-weight: 700;
+  }
+  .dropdown-item.accent :global(svg) {
+    color: var(--net-red);
+  }
+  .dropdown-item.accent:hover {
+    background: rgba(229, 9, 20, 0.12);
+    color: var(--net-red);
+  }
+  .dropdown-item.logout:hover {
+    color: #ff5a5f;
+    background: rgba(229, 9, 20, 0.1);
+  }
+  .dropdown-item.logout:hover :global(svg) {
+    color: #ff5a5f;
   }
   .mobile-menu {
     position: absolute;
