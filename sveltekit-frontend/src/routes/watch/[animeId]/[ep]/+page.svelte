@@ -947,6 +947,13 @@
 
   <!-- Main Content Layout -->
   <div class="watch-layout container">
+    {#if theaterMode}
+      <button
+        class="lights-dim"
+        aria-label="Turn lights on"
+        onclick={() => (theaterMode = false)}
+      ></button>
+    {/if}
     <!-- Left Column: Video & Main Controls -->
     <div class="primary-section">
       <div class="player-wrapper" class:theater={theaterMode}>
@@ -1707,23 +1714,24 @@
     opacity: 0.5;
   }
 
+  /* Lights Off — dim the page, keep the player in place and lit */
   .player-wrapper.theater {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    z-index: 1000;
-    background: rgba(0, 0, 0, 0.94);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: clamp(8px, 4vw, 56px);
+    position: relative;
+    z-index: 40;
   }
 
-  .player-wrapper.theater::before {
-    display: none;
+  .lights-dim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.86);
+    border: none;
+    cursor: pointer;
+    animation: lightsFade 0.22s ease;
+  }
+  @keyframes lightsFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .theater-exit {
@@ -1764,12 +1772,7 @@
   }
 
   .video-container.theater {
-    border-radius: 8px;
-    width: min(100%, calc((100dvh - 2 * clamp(8px, 4vw, 56px)) * 16 / 9));
-    height: auto;
-    max-height: 100%;
-    aspect-ratio: 16 / 9;
-    box-shadow: none;
+    box-shadow: 0 0 0 1px var(--hairline), 0 0 40px rgba(0, 0, 0, 0.6);
   }
 
   /* Rotation Lock Styles */
