@@ -1,0 +1,55 @@
+name: watchanimez
+description: "WatchAnimez — premium cross-platform anime streaming (phone, TV, iOS)."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Networking
+  dio: ^5.7.0
+
+  # Persistence
+  shared_preferences: ^2.3.3
+
+  # Images & loading UX
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+
+  # Typography (Outfit — matches the website)
+  google_fonts: ^6.2.1
+
+  # Video playback (native HLS via ExoPlayer/AVPlayer) + polished controls
+  video_player: ^2.9.2
+  chewie: ^1.8.5
+
+  # Embedded (iframe) stream sources
+  webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.3.0
+
+  # High refresh rate (90/120/144Hz) on Android
+  flutter_displaymode: ^0.7.0
+
+  # Misc
+  intl: ^0.20.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

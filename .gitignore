@@ -66,3 +66,8 @@ check_results.txt
 check_results_utf8.txt
 nul
 .env*
+
+# Backend moved to separate private repo (anime-pro-backend-go) — never track it here
+backend-go/
+go.work
+go.work.sum

@@ -311,6 +311,44 @@ jobs:
           name: watchanimez-android-apk
           path: android-app/android/app/build/outputs/apk/debug/app-debug.apk
 
+  build-flutter-android:
+    name: Build Flutter Android App (APK)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: false
+
+      - name: Install Dependencies
+        working-directory: flutter
+        run: flutter pub get
+
+      - name: Run Flutter Analyzer
+        working-directory: flutter
+        run: flutter analyze
+        continue-on-error: true
+
+      - name: Build Flutter Mobile APK
+        working-directory: flutter
+        run: flutter build apk --debug --android-skip-build-dependency-validation
+
+      - name: Upload Flutter APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: watchanimez-flutter-android-apk
+          path: flutter/build/app/outputs/flutter-apk/app-debug.apk
+
   build-tv:
     name: Build Flutter TV App (APK)
     runs-on: ubuntu-latest
@@ -351,7 +389,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: [build-desktop, build-desktop-mac, build-desktop-linux, build-android, build-tv, deploy-frontend]
+    needs: [build-desktop, build-desktop-mac, build-desktop-linux, build-android, build-flutter-android, build-tv, deploy-frontend]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
@@ -382,6 +420,12 @@ jobs:
           name: watchanimez-android-apk
           path: android-build
 
+      - name: Download Flutter Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: watchanimez-flutter-android-apk
+          path: flutter-android-build
+
       - name: Download TV Artifact
         uses: actions/download-artifact@v4
         with:
@@ -403,6 +447,7 @@ jobs:
           cp linux-build/*.AppImage release-assets/ || true
           cp linux-build/*.deb release-assets/ || true
           cp android-build/*.apk release-assets/WatchAnimez-Android.apk || true
+          cp flutter-android-build/*.apk release-assets/WatchAnimez-Android-2.apk || true
           cp tv-build/*.apk release-assets/WatchAnimez-TV.apk || true
           cp indexnow-log/indexnow-log.txt release-assets/ || true
 
@@ -415,7 +460,7 @@ jobs:
               echo -e "### WatchAnimez ${{ github.ref_name }}\n\nProfessional release of WatchAnimez." > release_body.txt
             fi
           else
-            echo -e "### Automated Latest Builds\nThis release contains the latest automated builds compiled from the \`main\` branch.\n\n* **Windows Desktop**: \`WatchAnimez-Setup-*.exe\`\n* **macOS Desktop**: \`WatchAnimez-Mac-*.dmg\` / \`*.zip\`\n* **Linux Desktop**: \`WatchAnimez-Linux-*.AppImage\` / \`*.deb\`\n* **Android Mobile**: \`WatchAnimez-Android.apk\`\n* **Android TV**: \`WatchAnimez-TV.apk\`" > release_body.txt
+            echo -e "### Automated Latest Builds\nThis release contains the latest automated builds compiled from the \`main\` branch.\n\n* **Windows Desktop**: \`WatchAnimez-Setup-*.exe\`\n* **macOS Desktop**: \`WatchAnimez-Mac-*.dmg\` / \`*.zip\`\n* **Linux Desktop**: \`WatchAnimez-Linux-*.AppImage\` / \`*.deb\`\n* **Android Mobile**: \`WatchAnimez-Android.apk\`\n* **Android Mobile 2**: \`WatchAnimez-Android-2.apk\`\n* **Android TV**: \`WatchAnimez-TV.apk\`" > release_body.txt
           fi
         shell: bash
 
