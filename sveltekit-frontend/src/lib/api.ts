@@ -6,7 +6,7 @@ import { clearAuth } from '$lib/stores/auth';
 const BACKENDS = (
 	import.meta.env.VITE_BACKEND_URL
 		? [import.meta.env.VITE_BACKEND_URL]
-		: ['https://anime-pro-backend.vercel.app', 'https://anime-pro-backend-smoky.vercel.app']
+		: ['https://anime-pro-backend.vercel.app', 'https://animeback-d76691b0d2f2.herokuapp.com']
 ).map((u: string) => u.replace(/\/+$/, ''));
 
 // Randomly order the pool so load spreads ~evenly across accounts per session,
