@@ -8,8 +8,8 @@ class BackendConfig {
 
   /// Backend hosts (two separate Vercel deployments).
   static const List<String> hosts = [
-    'https://anime-pro-backend.vercel.app',
-    'https://anime-pro-backend-smoky.vercel.app',
+    'https://animeback-d76691b0d2f2.herokuapp.com',
+    'https://animeback-d76691b0d2f2.herokuapp.com',
   ];
 
   static const String apiPath = '/api/v1';
