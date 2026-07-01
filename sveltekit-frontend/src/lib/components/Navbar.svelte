@@ -293,7 +293,7 @@
             onclick={() => (mobileMenuOpen = false)}>{link.label}</a
           >
         {/each}
-        
+
         <!-- Heart (Donate) option inside hamburger menu -->
         <a
           href="/donate"
@@ -383,10 +383,10 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 2rem;
     padding-top: max(0.75rem, env(safe-area-inset-top));
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
     background: linear-gradient(
       180deg,
       rgba(0, 0, 0, 0.8) 0%,
@@ -399,11 +399,30 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
   .nav-inner {
+    /* Flex layout: logo hugs the left edge, actions hug the right edge, and
+       nav-links (when visible) sit dead-centered via absolute positioning so
+       hiding them on tablet/mobile never lets actions drift toward the middle. */
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
+    gap: 1rem;
+  }
+  .nav-inner > .logo {
+    flex: 0 0 auto;
+  }
+  .nav-inner > .nav-links {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+  }
+  .nav-inner > .nav-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
   }
   .logo {
     display: flex;
@@ -835,7 +854,39 @@
 
   @media (max-width: 1024px) {
     .hide-mobile { display: none; }
-    
+
+    /* Tighter horizontal padding on tablet/mobile so logo + hamburger
+       don't get pushed off-edge on narrow viewports. */
+    .navbar {
+      padding: 0.75rem 1rem;
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+    .nav-inner {
+      gap: 0.75rem;
+    }
+  }
+
+  /* On truly narrow phones (<=360px, e.g. iPhone SE 1st gen), drop the
+     WATCHANIMEZ wordmark so the logo + all action icons fit without
+     overflowing the viewport. iPhone SE 2, iPhone 14, etc. keep the wordmark. */
+  @media (max-width: 360px) {
+    .logo-text {
+      display: none;
+    }
+    .navbar {
+      padding: 0.75rem 0.5rem;
+      padding-left: max(0.5rem, env(safe-area-inset-left));
+      padding-right: max(0.5rem, env(safe-area-inset-right));
+    }
+    .nav-inner {
+      gap: 0.25rem;
+    }
+    .nav-icon-btn {
+      min-width: 40px;
+      min-height: 40px;
+    }
+
     .search-container.open {
       position: absolute;
       top: 100%;
@@ -851,7 +902,7 @@
       border: none;
       padding: 0;
     }
-    
+
     .search-container.open .search-box {
       width: 100%;
       background: rgba(20, 20, 20, 0.95);
@@ -865,7 +916,7 @@
       display: flex;
       align-items: center;
     }
-    
+
     .search-container.open .search-box input {
       flex: 1;
       font-size: 1rem;
@@ -875,7 +926,7 @@
       color: white;
       outline: none;
     }
-    
+
     .search-container.open .suggestions-dropdown {
       position: absolute;
       top: 100%;
