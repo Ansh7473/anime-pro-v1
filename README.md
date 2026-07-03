@@ -57,7 +57,7 @@
 | Layer | Technology |
 | :--- | :--- |
 | **Frontend** | SvelteKit (Svelte 5), Vite, CSS |
-| **Backend** | Go (Gin), PostgreSQL, JWT Auth |
+| **Backend** | Go (Gin) private, PostgreSQL, JWT Auth |
 | **Mobile** | Capacitor 6 (Android), Java (Native Bridge) |
 | **Desktop** | Electron JS |
 | **TV** | Flutter |
