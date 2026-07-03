@@ -8,8 +8,8 @@ class Backend {
 
   /// Backend hosts (two separate Vercel accounts).
   static const List<String> hosts = [
-    'https://animeback-d76691b0d2f2.herokuapp.com',
-    'https://animeback-d76691b0d2f2.herokuapp.com',
+    'https://api.watchanimez.me',
+    'https://api.watchanimez.me',
   ];
 
   static int _cursor = 0;

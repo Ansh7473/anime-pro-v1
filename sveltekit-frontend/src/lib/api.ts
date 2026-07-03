@@ -1,12 +1,12 @@
 import { browser } from '$app/environment';
 import { clearAuth } from '$lib/stores/auth';
 
-// Backend pool — two Vercel deployments on separate free-tier accounts.
+
 // Set VITE_BACKEND_URL to override with a single backend (e.g. local dev).
 const BACKENDS = (
 	import.meta.env.VITE_BACKEND_URL
 		? [import.meta.env.VITE_BACKEND_URL]
-		: ['https://animeback-d76691b0d2f2.herokuapp.com', 'https://animeback-d76691b0d2f2.herokuapp.com']
+		: ['https://api.watchanimez.me', 'https://api.watchanimez.me']
 ).map((u: string) => u.replace(/\/+$/, ''));
 
 console.log("🔌 Loaded Backend URL:", BACKENDS[0]);
