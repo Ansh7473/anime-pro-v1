@@ -6,8 +6,10 @@ import { clearAuth } from '$lib/stores/auth';
 const BACKENDS = (
 	import.meta.env.VITE_BACKEND_URL
 		? [import.meta.env.VITE_BACKEND_URL]
-		: ['https://animeback-d76691b0d2f2.herokuapp.com', 'https://animeback-d76691b0d2f2.herokuapp.com']
+		: ['http://80.225.205.59:3001', 'http://80.225.205.59:3001']
 ).map((u: string) => u.replace(/\/+$/, ''));
+
+console.log("🔌 Loaded Backend URL:", BACKENDS[0]);
 
 // Randomly order the pool so load spreads ~evenly across accounts per session,
 // while keeping every backend available for failover.
