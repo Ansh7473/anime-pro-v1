@@ -141,8 +141,7 @@ async function queryAnilist(query: string, variables: Record<string, any> = {}) 
 	return json.data;
 }
 
-const mediaFragment = `
-  fragment mediaFields on Media {
+const mediaFieldsInline = `
     id idMal
     title { romaji english native userPreferred }
     synonyms
@@ -152,7 +151,6 @@ const mediaFragment = `
     studios(isMain: true) { nodes { name } }
     trailer { id site thumbnail }
     nextAiringEpisode { episode airingAt timeUntilAiring }
-  }
 `;
 
 function transformMedia(media: any) {
@@ -215,11 +213,19 @@ export const api = {
 		if (browser && !customFetch) {
 			try {
 				const numId = parseInt(String(id), 10);
-				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
-				const query = `query { Media(${queryField}, type: ANIME) { ${mediaFragment} } }`;
-				const data = await queryAnilist(query);
-				if (data?.Media) {
-					return transformMedia(data.Media);
+				if (!isNaN(numId)) {
+					// Query both AniList id and MAL id via aliases — home page may pass MAL IDs
+					const query = `query($id: Int) {
+						byAnilistId: Media(id: $id, type: ANIME) { ${mediaFieldsInline} }
+						byMalId: Media(idMal: $id, type: ANIME) { ${mediaFieldsInline} }
+					}`;
+					const data = await queryAnilist(query, { id: numId });
+					const media = data?.byAnilistId || data?.byMalId;
+					if (media) return transformMedia(media);
+				} else {
+					const query = `query { Media(idMal: ${id}, type: ANIME) { ${mediaFieldsInline} } }`;
+					const data = await queryAnilist(query);
+					if (data?.Media) return transformMedia(data.Media);
 				}
 			} catch (err) {
 				console.warn("Direct client getAnime failed, falling back to backend:", err);
@@ -409,23 +415,24 @@ export const api = {
 		if (browser) {
 			try {
 				const numId = parseInt(String(id), 10);
-				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
-				const query = `
-					query {
-						Media(${queryField}, type: ANIME) {
-							recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
-								nodes {
-									mediaRecommendation {
-										${mediaFragment}
-									}
-								}
-							}
-						}
-					}
-				`;
-				const data = await queryAnilist(query);
-				if (data?.Media?.recommendations?.nodes) {
-					return data.Media.recommendations.nodes
+				const recFields = `recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
+					nodes { mediaRecommendation { ${mediaFieldsInline} } }
+				}`;
+				let media: any = null;
+				if (!isNaN(numId)) {
+					const query = `query($id: Int) {
+						byAnilistId: Media(id: $id, type: ANIME) { ${recFields} }
+						byMalId: Media(idMal: $id, type: ANIME) { ${recFields} }
+					}`;
+					const data = await queryAnilist(query, { id: numId });
+					media = data?.byAnilistId || data?.byMalId;
+				} else {
+					const query = `query { Media(idMal: ${id}, type: ANIME) { ${recFields} } }`;
+					const data = await queryAnilist(query);
+					media = data?.Media;
+				}
+				if (media?.recommendations?.nodes) {
+					return media.recommendations.nodes
 						.map((n: any) => n.mediaRecommendation)
 						.filter(Boolean)
 						.map(transformMedia);
@@ -444,31 +451,36 @@ export const api = {
 		if (browser) {
 			try {
 				const numId = parseInt(String(id), 10);
-				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
-				const query = `
-					query {
-						Media(${queryField}, type: ANIME) {
-							characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 24) {
-								edges {
-									role
-									node {
-										id
-										name { full native }
-										image { large medium }
-									}
-									voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
-										id
-										name { full native }
-										image { large medium }
-									}
-								}
-							}
+				const charFields = `characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 24) {
+					edges {
+						role
+						node {
+							id
+							name { full native }
+							image { large medium }
+						}
+						voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
+							id
+							name { full native }
+							image { large medium }
 						}
 					}
-				`;
-				const data = await queryAnilist(query);
-				if (data?.Media?.characters?.edges) {
-					return data.Media.characters.edges.map((edge: any) => ({
+				}`;
+				let media: any = null;
+				if (!isNaN(numId)) {
+					const query = `query($id: Int) {
+						byAnilistId: Media(id: $id, type: ANIME) { ${charFields} }
+						byMalId: Media(idMal: $id, type: ANIME) { ${charFields} }
+					}`;
+					const data = await queryAnilist(query, { id: numId });
+					media = data?.byAnilistId || data?.byMalId;
+				} else {
+					const query = `query { Media(idMal: ${id}, type: ANIME) { ${charFields} } }`;
+					const data = await queryAnilist(query);
+					media = data?.Media;
+				}
+				if (media?.characters?.edges) {
+					return media.characters.edges.map((edge: any) => ({
 						role: edge.role,
 						character: {
 							id: edge.node?.id,
@@ -500,26 +512,31 @@ export const api = {
 		if (browser) {
 			try {
 				const numId = parseInt(String(id), 10);
-				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
-				const query = `
-					query {
-						Media(${queryField}, type: ANIME) {
-							staff(sort: [RELEVANCE, ID_DESC], page: 1, perPage: 12) {
-								edges {
-									role
-									node {
-										id
-										name { full }
-										image { large }
-									}
-								}
-							}
+				const staffFields = `staff(sort: [RELEVANCE, ID_DESC], page: 1, perPage: 12) {
+					edges {
+						role
+						node {
+							id
+							name { full }
+							image { large }
 						}
 					}
-				`;
-				const data = await queryAnilist(query);
-				if (data?.Media?.staff?.edges) {
-					return data.Media.staff.edges.map((e: any) => ({
+				}`;
+				let media: any = null;
+				if (!isNaN(numId)) {
+					const query = `query($id: Int) {
+						byAnilistId: Media(id: $id, type: ANIME) { ${staffFields} }
+						byMalId: Media(idMal: $id, type: ANIME) { ${staffFields} }
+					}`;
+					const data = await queryAnilist(query, { id: numId });
+					media = data?.byAnilistId || data?.byMalId;
+				} else {
+					const query = `query { Media(idMal: ${id}, type: ANIME) { ${staffFields} } }`;
+					const data = await queryAnilist(query);
+					media = data?.Media;
+				}
+				if (media?.staff?.edges) {
+					return media.staff.edges.map((e: any) => ({
 						name: e.node?.name?.full,
 						role: e.role,
 						image: e.node?.image?.large
