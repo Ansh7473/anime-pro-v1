@@ -6,8 +6,14 @@ declare global {
 		// interface Locals {}
 		// interface PageData {}
 		// interface PageState {}
-		// interface Platform {}
+		interface Platform {
+			env?: {
+				AD_SCRIPTS_HTML?: string;
+				[key: string]: unknown;
+			};
+		}
 	}
 }
 
 export {};
+
