@@ -340,11 +340,11 @@ export const api = {
 					}
 				`;
 				const data = await queryAnilist(query, { start, end });
-				if (data?.Page?.airingSchedules) {
-					return data.Page.airingSchedules.map((item: any) => ({
-						...item,
-						media: transformMedia(item.media)
-					}));
+								if (data?.Page?.airingSchedules) {
+									return data.Page.airingSchedules.map((item: any) => {
+										const m = transformMedia(item.media);
+										return { ...m, airingAt: item.airingAt, episode: item.episode, mediaId: item.mediaId, airingScheduleId: item.id, nextAiringEpisode: { episode: item.episode, airingAt: item.airingAt } };
+									});
 				}
 			} catch (err) {
 				console.warn("Direct client getAnilistSchedule failed, falling back to backend:", err);
