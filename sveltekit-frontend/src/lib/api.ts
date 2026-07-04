@@ -63,15 +63,81 @@ function authHeaders(token: string): HeadersInit {
 	return { 'Authorization': `Bearer ${token}` };
 }
 
+// ─── Client-side AniList rate limiter + cache (miruro-style) ─────────────────
+// AniList allows 90 req/min per IP. We conservatively budget 30 req/min on
+// the client and cache responses for 10 minutes so pagination/back-navigation
+// never re-fetches identical data.
+
+const _aniCache = new Map<string, { data: any; ts: number }>();
+const ANI_CACHE_TTL = 10 * 60 * 1000;
+
+function aniCacheKey(query: string, variables: Record<string, any>): string {
+	return JSON.stringify({ q: query.replace(/\s+/g, ' ').trim(), v: variables });
+}
+
+function aniCacheGet(key: string): any | null {
+	const entry = _aniCache.get(key);
+	if (!entry) return null;
+	if (Date.now() - entry.ts > ANI_CACHE_TTL) {
+		_aniCache.delete(key);
+		return null;
+	}
+	return entry.data;
+}
+
+function aniCacheSet(key: string, data: any): void {
+	if (_aniCache.size > 300) {
+		const first = _aniCache.keys().next().value;
+		if (first) _aniCache.delete(first);
+	}
+	_aniCache.set(key, { data, ts: Date.now() });
+}
+
+// Token-bucket: max 30 tokens, refills at 30/min (0.5/sec)
+let _aniTokens = 30;
+let _aniLastRefill = Date.now();
+const ANI_TOKEN_MAX = 30;
+const ANI_REFILL_RATE = 30 / 60_000; // tokens per ms
+
+function aniRefillTokens() {
+	const now = Date.now();
+	const elapsed = now - _aniLastRefill;
+	_aniTokens = Math.min(ANI_TOKEN_MAX, _aniTokens + elapsed * ANI_REFILL_RATE);
+	_aniLastRefill = now;
+}
+
+function aniWaitForToken(): Promise<void> {
+	return new Promise((resolve) => {
+		const tryAcquire = () => {
+			aniRefillTokens();
+			if (_aniTokens >= 1) {
+				_aniTokens--;
+				resolve();
+			} else {
+				setTimeout(tryAcquire, 1000);
+			}
+		};
+		tryAcquire();
+	});
+}
+
 async function queryAnilist(query: string, variables: Record<string, any> = {}) {
+	const key = aniCacheKey(query, variables);
+	const cached = aniCacheGet(key);
+	if (cached) return cached;
+
+	await aniWaitForToken();
+
 	const res = await fetch('https://graphql.anilist.co', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 		body: JSON.stringify({ query, variables })
 	});
-	if (!res.ok) throw new Error('AniList Network Error');
+	if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
 	const json = await res.json();
 	if (json.errors) throw new Error(json.errors[0].message);
+
+	aniCacheSet(key, json.data);
 	return json.data;
 }
 
@@ -132,6 +198,10 @@ let homeCache: any = null;
 let homeCacheTime = 0;
 const CACHE_TTL = 60_000;
 
+// Search Cache
+const searchCache = new Map<string, { data: any; time: number }>();
+const SEARCH_CACHE_TTL = 300_000; // 5 minutes
+
 export const api = {
 	getHome: async (force = false, customFetch?: typeof fetch) => {
 		if (homeCache && !force && Date.now() - homeCacheTime < CACHE_TTL) return homeCache;
@@ -142,6 +212,19 @@ export const api = {
 	},
 
 	getAnime: async (id: string | number, customFetch?: typeof fetch) => {
+		if (browser && !customFetch) {
+			try {
+				const numId = parseInt(String(id), 10);
+				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
+				const query = `query { Media(${queryField}, type: ANIME) { ${mediaFragment} } }`;
+				const data = await queryAnilist(query);
+				if (data?.Media) {
+					return transformMedia(data.Media);
+				}
+			} catch (err) {
+				console.warn("Direct client getAnime failed, falling back to backend:", err);
+			}
+		}
 		const res = await fetchJSON(`${BASE_URL}/anime/${id}`, { fetch: customFetch });
 		return res?.data || res;
 	},
@@ -152,17 +235,82 @@ export const api = {
 	},
 
 	search: async (q: string, page = 1, limit = 20, filters: any = {}) => {
+		const cacheKey = `${q.trim().toLowerCase()}:${page}:${limit}:${filters.sort?.[0] || filters.sort || ''}:${filters.format || ''}:${filters.status || ''}:${filters.genre || ''}`;
+		const cached = searchCache.get(cacheKey);
+		if (cached && Date.now() - cached.time < SEARCH_CACHE_TTL) {
+			return cached.data;
+		}
+
+		// Try direct client-side AniList GraphQL search (uses USER's own IP address quota!)
+		if (browser) {
+			try {
+				const searchQuery = `
+					query ($search: String, $page: Int, $perPage: Int, $sort: [MediaSort], $format: MediaFormat, $status: MediaStatus, $genre: String) {
+						Page(page: $page, perPage: $perPage) {
+							pageInfo { hasNextPage total }
+							media(search: $search, type: ANIME, sort: $sort, format: $format, status: $status, genre: $genre) {
+								id idMal
+								title { romaji english native userPreferred }
+								coverImage { extraLarge large }
+								bannerImage format status episodes duration genres
+								averageScore popularity seasonYear description
+							}
+						}
+					}
+				`;
+				const variables: any = {
+					page,
+					perPage: limit,
+					sort: Array.isArray(filters.sort) ? filters.sort : [filters.sort || 'POPULARITY_DESC']
+				};
+				if (q.trim()) variables.search = q.trim();
+				if (filters.format) variables.format = filters.format.toUpperCase();
+				if (filters.status) variables.status = filters.status.toUpperCase();
+				if (filters.genre) variables.genre = filters.genre;
+
+				const data = await queryAnilist(searchQuery, variables);
+				if (data?.Page?.media) {
+					const formatted = {
+						data: data.Page.media.map(transformMedia),
+						pagination: {
+							has_next_page: data.Page.pageInfo?.hasNextPage ?? false,
+							total: data.Page.pageInfo?.total ?? 0
+						}
+					};
+					searchCache.set(cacheKey, { data: formatted, time: Date.now() });
+					return formatted;
+				}
+			} catch (clientErr) {
+				console.warn("Direct client AniList search failed/rate-limited, falling back to backend proxy:", clientErr);
+			}
+		}
+
+		// Fallback to backend server proxy if client query fails or during SSR
 		const params = new URLSearchParams({
 			q,
 			page: page.toString(),
 			limit: limit.toString(),
-			sort: filters.sort?.[0] || 'POPULARITY_DESC'
+			sort: Array.isArray(filters.sort) ? filters.sort[0] : (filters.sort || 'POPULARITY_DESC')
 		});
+		if (filters.format) params.append('format', filters.format);
+		if (filters.status) params.append('status', filters.status);
+		if (filters.genre) params.append('genre', filters.genre);
+
 		const res = await fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+		if (res && res.data) {
+			searchCache.set(cacheKey, { data: res, time: Date.now() });
+		}
 		return res;
 	},
 
 	getTopAnime: async (format = 'TV', page = 1, limit = 20, sort = 'POPULARITY_DESC', customFetch?: typeof fetch) => {
+		if (browser && !customFetch) {
+			try {
+				return await api.search('', page, limit, { format, sort: [sort] });
+			} catch (err) {
+				console.warn("Direct client getTopAnime failed, falling back to backend:", err);
+			}
+		}
 		const params = new URLSearchParams({
 			format: format.toUpperCase(),
 			page: page.toString(),
@@ -173,11 +321,47 @@ export const api = {
 	},
 
 	getAnilistSchedule: async (start: number, end: number) => {
+		if (browser) {
+			try {
+				const query = `
+					query ($start: Int, $end: Int) {
+						Page(page: 1, perPage: 50) {
+							airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) {
+								id airingAt timeUntilAiring episode mediaId
+								media {
+									id idMal
+									title { romaji english native userPreferred }
+									coverImage { extraLarge large }
+									bannerImage format status episodes duration genres
+									averageScore popularity seasonYear description
+								}
+							}
+						}
+					}
+				`;
+				const data = await queryAnilist(query, { start, end });
+				if (data?.Page?.airingSchedules) {
+					return data.Page.airingSchedules.map((item: any) => ({
+						...item,
+						media: transformMedia(item.media)
+					}));
+				}
+			} catch (err) {
+				console.warn("Direct client getAnilistSchedule failed, falling back to backend:", err);
+			}
+		}
 		const res = await fetchJSON(`${BASE_URL}/schedule?start=${start}&end=${end}`);
 		return res?.data || res;
 	},
 
 	getCurrentSeasonal: async (page = 1, limit = 20, customFetch?: typeof fetch) => {
+		if (browser && !customFetch) {
+			try {
+				return await api.search('', page, limit, { status: 'RELEASING', sort: ['TRENDING_DESC'] });
+			} catch (err) {
+				console.warn("Direct client getCurrentSeasonal failed, falling back to backend:", err);
+			}
+		}
 		const params = new URLSearchParams({
 			status: 'RELEASING',
 			page: page.toString(),
@@ -188,6 +372,13 @@ export const api = {
 	},
 
 	getUpcoming: async (page = 1, limit = 20, customFetch?: typeof fetch) => {
+		if (browser && !customFetch) {
+			try {
+				return await api.search('', page, limit, { status: 'NOT_YET_RELEASED', sort: ['POPULARITY_DESC'] });
+			} catch (err) {
+				console.warn("Direct client getUpcoming failed, falling back to backend:", err);
+			}
+		}
 		const params = new URLSearchParams({
 			status: 'NOT_YET_RELEASED',
 			page: page.toString(),
@@ -198,6 +389,13 @@ export const api = {
 	},
 
 	getByGenre: async (genre: string, page = 1, limit = 20, customFetch?: typeof fetch) => {
+		if (browser && !customFetch) {
+			try {
+				return await api.search('', page, limit, { genre, sort: ['POPULARITY_DESC'] });
+			} catch (err) {
+				console.warn("Direct client getByGenre failed, falling back to backend:", err);
+			}
+		}
 		const params = new URLSearchParams({
 			genre,
 			page: page.toString(),
@@ -208,6 +406,34 @@ export const api = {
 	},
 
 	getRecommendations: async (id: string | number) => {
+		if (browser) {
+			try {
+				const numId = parseInt(String(id), 10);
+				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
+				const query = `
+					query {
+						Media(${queryField}, type: ANIME) {
+							recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
+								nodes {
+									mediaRecommendation {
+										${mediaFragment}
+									}
+								}
+							}
+						}
+					}
+				`;
+				const data = await queryAnilist(query);
+				if (data?.Media?.recommendations?.nodes) {
+					return data.Media.recommendations.nodes
+						.map((n: any) => n.mediaRecommendation)
+						.filter(Boolean)
+						.map(transformMedia);
+				}
+			} catch (clientErr) {
+				console.warn("Direct client getRecommendations failed, falling back to backend:", clientErr);
+			}
+		}
 		try {
 			const res = await fetchJSON(`${BASE_URL}/recommendations/${id}`);
 			return res?.data?.map(transformMedia) || [];
@@ -215,6 +441,55 @@ export const api = {
 	},
 
 	getCharacters: async (id: string | number) => {
+		if (browser) {
+			try {
+				const numId = parseInt(String(id), 10);
+				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
+				const query = `
+					query {
+						Media(${queryField}, type: ANIME) {
+							characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 24) {
+								edges {
+									role
+									node {
+										id
+										name { full native }
+										image { large medium }
+									}
+									voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
+										id
+										name { full native }
+										image { large medium }
+									}
+								}
+							}
+						}
+					}
+				`;
+				const data = await queryAnilist(query);
+				if (data?.Media?.characters?.edges) {
+					return data.Media.characters.edges.map((edge: any) => ({
+						role: edge.role,
+						character: {
+							id: edge.node?.id,
+							name: edge.node?.name?.full || edge.node?.name?.native || 'Unknown',
+							images: {
+								jpg: {
+									image_url: edge.node?.image?.large || edge.node?.image?.medium || ''
+								}
+							}
+						},
+						voiceActors: edge.voiceActors?.map((va: any) => ({
+							id: va.id,
+							name: va.name?.full || va.name?.native,
+							image: va.image?.large || va.image?.medium
+						})) || []
+					}));
+				}
+			} catch (clientErr) {
+				console.warn("Direct client getCharacters failed, falling back to backend:", clientErr);
+			}
+		}
 		try {
 			const res = await fetchJSON(`${BASE_URL}/characters/${id}`);
 			return res?.data || [];
@@ -222,20 +497,61 @@ export const api = {
 	},
 
 	getStaff: async (id: string | number) => {
+		if (browser) {
+			try {
+				const numId = parseInt(String(id), 10);
+				const queryField = !isNaN(numId) ? `id: ${numId}` : `idMal: ${id}`;
+				const query = `
+					query {
+						Media(${queryField}, type: ANIME) {
+							staff(sort: [RELEVANCE, ID_DESC], page: 1, perPage: 12) {
+								edges {
+									role
+									node {
+										id
+										name { full }
+										image { large }
+									}
+								}
+							}
+						}
+					}
+				`;
+				const data = await queryAnilist(query);
+				if (data?.Media?.staff?.edges) {
+					return data.Media.staff.edges.map((e: any) => ({
+						name: e.node?.name?.full,
+						role: e.role,
+						image: e.node?.image?.large
+					}));
+				}
+			} catch (clientErr) {
+				console.warn("Direct client getStaff failed:", clientErr);
+			}
+		}
 		try {
-			const query = `query($id:Int){Media(idMal:$id,type:ANIME){staff(sort:[RELEVANCE,ID_DESC],page:1,perPage:12){edges{role node{id name{full}image{large}}}}}}`;
-			const data = await queryAnilist(query, { id: parseInt(String(id)) });
-			return data.Media?.staff?.edges?.map((e: any) => ({ name: e.node.name.full, role: e.role, image: e.node.image.large })) || [];
+			const res = await fetchJSON(`${BASE_URL}/staff/${id}`);
+			return res?.data || [];
 		} catch { return []; }
 	},
 
 	getRandomAnime: async () => {
-		const randomPage = Math.floor(Math.random() * 20) + 1;
-		const query = `query($p:Int){Page(page:$p,perPage:25){media(type:ANIME,sort:[POPULARITY_DESC]){id idMal}}}`;
-		const data = await queryAnilist(query, { p: randomPage });
-		const list = data.Page?.media || [];
-		const pick = list[Math.floor(Math.random() * list.length)];
-		return pick?.idMal || pick?.id;
+		if (browser) {
+			try {
+				const randomPage = Math.floor(Math.random() * 20) + 1;
+				const query = `query($p:Int){Page(page:$p,perPage:25){media(type:ANIME,sort:[POPULARITY_DESC]){id idMal}}}`;
+				const data = await queryAnilist(query, { p: randomPage });
+				const list = data.Page?.media || [];
+				const pick = list[Math.floor(Math.random() * list.length)];
+				if (pick) return pick.idMal || pick.id;
+			} catch (clientErr) {
+				console.warn("Direct client getRandomAnime failed, falling back to backend:", clientErr);
+			}
+		}
+		try {
+			const res = await fetchJSON(`${BASE_URL}/random`);
+			return res?.data?.id || res?.data?.idMal || res?.id || 1;
+		} catch { return 1; }
 	},
 
 	getCategory: async (type: string, page = 1, customFetch?: typeof fetch) => {
@@ -266,13 +582,7 @@ export const api = {
 	},
 
 	getAiringSchedule: async (page = 1, limit = 20) => {
-		const params = new URLSearchParams({
-			status: 'RELEASING',
-			page: page.toString(),
-			limit: limit.toString(),
-			sort: 'POPULARITY_DESC'
-		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+		return api.getCurrentSeasonal(page, limit);
 	},
 
 	getSchedule: async (day?: string) => {

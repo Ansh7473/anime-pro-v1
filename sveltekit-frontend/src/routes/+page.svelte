@@ -137,7 +137,10 @@
     {#if continueWatching.length > 0}
       <section class="row-section continue-section">
         <div class="row-header">
-          <h2 class="row-title">📺 Recent Watches</h2>
+          <div class="row-title-group">
+            <span class="accent-bar"></span>
+            <h2 class="row-title">Continue Watching</h2>
+          </div>
           <a href="/favorites" class="view-all">View All</a>
         </div>
         <div class="continue-scroll">
@@ -277,34 +280,46 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 1rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+  .row-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .accent-bar {
+    width: 4px;
+    height: 18px;
+    background: white;
+    border-radius: 2px;
+    flex-shrink: 0;
   }
   .row-title {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    color: white;
+    letter-spacing: 0.01em;
   }
   .view-all {
-    font-size: 0.85rem;
-    color: var(--net-red);
-    font-weight: 600;
+    font-size: 0.82rem;
+    color: #a3a3a3;
+    font-weight: 500;
     text-decoration: none;
-    opacity: 0.8;
-    transition: 0.2s;
+    transition: color 0.2s;
   }
   .view-all:hover {
-    opacity: 1;
-    transform: translateX(3px);
+    color: white;
   }
 
   .continue-scroll {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     overflow-x: auto;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem;
     scrollbar-width: none;
     -ms-overflow-style: none;
     scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
   }
   .continue-scroll::-webkit-scrollbar {
     display: none;
@@ -322,7 +337,7 @@
       margin-bottom: 0.6rem;
     }
     .row-title {
-      font-size: 1.15rem;
+      font-size: 1rem;
     }
     .view-all {
       font-size: 0.8rem;

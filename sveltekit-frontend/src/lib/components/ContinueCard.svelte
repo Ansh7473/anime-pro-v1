@@ -10,108 +10,132 @@
   const duration = $derived(item?.duration || 1);
   const percent = $derived(Math.min((progress / duration) * 100, 100));
   const id = $derived(item?.id || item?.animeId);
-
-  function formatTime(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  }
 </script>
 
-<a href="/watch/{id}/{epNum}" class="continue-card">
-  <div class="card-thumb">
+<a href="/watch/{id}/{epNum}" class="resume-card">
+  <div class="card-poster">
     <img src={poster} alt={title} loading="lazy" decoding="async" />
-    <div class="thumb-overlay">
-      <div class="play-icon">▶</div>
+    <div class="play-circle">
+      <span class="play-icon">▶</span>
     </div>
     <span class="ep-badge">EP {epNum}</span>
-    {#if percent >= 90 || item?.completed}
-      <span class="time-left" style="background: rgba(74, 222, 128, 0.9); color: #000; font-weight: 700;">Completed</span>
-    {:else}
-      <span class="time-left">{formatTime(duration - progress)} left</span>
+    {#if percent > 0}
+      <div class="progress-track">
+        <div class="progress-fill" style="width: {percent}%"></div>
+      </div>
     {/if}
-    <div class="progress-track">
-      <div class="progress-fill" style="width: {percent}%; background: {percent >= 90 || item?.completed ? '#4ADE80' : 'var(--net-red)'};"></div>
-    </div>
   </div>
   <p class="card-title">{title}</p>
 </a>
 
 <style>
-  .continue-card {
-    display: block; flex-shrink: 0; width: 220px;
-    cursor: pointer; transition: transform 0.3s ease;
+  .resume-card {
+    display: block;
+    flex-shrink: 0;
+    width: 132px;
+    cursor: pointer;
     text-decoration: none;
+    scroll-snap-align: start;
+    transition: transform 0.2s ease;
   }
-  .continue-card:hover { transform: scale(1.05); z-index: 2; }
+  .resume-card:hover {
+    transform: scale(1.05);
+    z-index: 2;
+  }
 
-  .card-thumb {
-    position: relative; width: 100%; aspect-ratio: 16/9;
-    border-radius: 8px; overflow: hidden;
-    background: var(--net-card-bg);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  .card-poster {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #181818;
+    border: 2px solid transparent;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
-  .card-thumb img {
-    width: 100%; height: 100%; object-fit: cover;
-    transition: transform 0.4s ease;
+  .resume-card:hover .card-poster {
+    border-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.12);
   }
-  .continue-card:hover .card-thumb img { transform: scale(1.1); }
 
-  .thumb-overlay {
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.4);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.3s;
+  .card-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
-  .continue-card:hover .thumb-overlay { opacity: 1; }
 
+  .play-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .play-icon {
-    width: 44px; height: 44px; border-radius: 50%;
-    background: rgba(229,9,20,0.9);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem; color: white;
-    box-shadow: 0 4px 15px rgba(229,9,20,0.4);
-    transform: scale(0.8); transition: transform 0.3s;
+    color: white;
+    font-size: 1rem;
+    margin-left: 2px;
   }
-  .continue-card:hover .play-icon { transform: scale(1); }
 
   .ep-badge {
-    position: absolute; top: 8px; left: 8px;
-    background: rgba(0,0,0,0.75); color: white;
-    font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
-    border-radius: 4px; letter-spacing: 0.05em;
-    text-transform: uppercase;
+    position: absolute;
+    left: 6px;
+    bottom: 10px;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  .time-left {
-    position: absolute; top: 8px; right: 8px;
-    background: rgba(0,0,0,0.75); color: var(--net-text-muted);
-    font-size: 0.65rem; font-weight: 500; padding: 2px 8px;
-    border-radius: 4px;
-  }
-
-  /* Red progress bar at bottom */
   .progress-track {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    height: 4px; background: rgba(255,255,255,0.15);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.15);
   }
   .progress-fill {
     height: 100%;
-    background: var(--net-red);
-    border-radius: 0 2px 2px 0;
-    transition: width 0.3s ease;
-    box-shadow: 0 0 8px rgba(229,9,20,0.5);
+    background: var(--net-red, #E50914);
+    border-radius: 0 1px 0 0;
   }
 
   .card-title {
-    margin-top: 0.5rem; font-size: 0.85rem; font-weight: 500;
-    color: var(--net-text-muted); padding: 0 2px;
-    display: -webkit-box; -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical; overflow: hidden;
+    margin-top: 6px;
+    padding: 0 2px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #a3a3a3;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color 0.2s;
   }
-  .continue-card:hover .card-title { color: white; }
+  .resume-card:hover .card-title {
+    color: white;
+  }
 
   @media (max-width: 768px) {
-    .continue-card { width: 180px; }
+    .resume-card { width: 120px; }
+    .card-poster { border-radius: 10px; }
+  }
+
+  @media (max-width: 480px) {
+    .resume-card { width: 105px; }
+    .card-poster { border-radius: 8px; }
+    .card-title { font-size: 0.72rem; }
   }
 </style>

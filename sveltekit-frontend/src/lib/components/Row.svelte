@@ -8,12 +8,11 @@
   } = $props<{ title: string; items: any[]; href?: string }>();
   let scrollContainer: HTMLDivElement | undefined = $state();
 
-  // Deduplicate items to prevent Svelte 'each_key_duplicate' error
   let uniqueItems = $derived.by(() => {
     const seen = new Set();
     return items.filter((anime: any) => {
       const id = anime.id || anime.mal_id;
-      if (!id) return true; // Keep items without IDs, though rare
+      if (!id) return true;
       if (seen.has(id)) return false;
       seen.add(id);
       return true;
@@ -28,46 +27,64 @@
 {#if uniqueItems.length > 0}
   <section class="row-section">
     <div class="row-header">
-      <h2 class="row-title">{title}</h2>
+      <div class="row-title-group">
+        <span class="accent-bar"></span>
+        <h2 class="row-title">{title}</h2>
+      </div>
       {#if href}
         <a {href} class="row-see-all" aria-label="See all {title.toLowerCase()}">See All →</a>
       {/if}
     </div>
     <div class="row-wrapper">
-      <button class="row-arrow left" onclick={() => scrollBy(-1)}>‹</button>
+      <button class="row-arrow left" onclick={() => scrollBy(-1)} aria-label="Scroll left">‹</button>
       <div class="row-scroll" bind:this={scrollContainer}>
         {#each uniqueItems as anime (anime.id || anime.mal_id || Math.random())}
           <AnimeCard {anime} />
         {/each}
       </div>
-      <button class="row-arrow right" onclick={() => scrollBy(1)}>›</button>
+      <button class="row-arrow right" onclick={() => scrollBy(1)} aria-label="Scroll right">›</button>
     </div>
   </section>
 {/if}
 
 <style>
   .row-section {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
   .row-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+  .row-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .accent-bar {
+    width: 4px;
+    height: 18px;
+    background: white;
+    border-radius: 2px;
+    flex-shrink: 0;
   }
   .row-title {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    color: white;
+    letter-spacing: 0.01em;
   }
   .row-see-all {
-    color: var(--net-text-muted);
-    font-size: 0.85rem;
+    color: #a3a3a3;
+    font-size: 0.82rem;
+    font-weight: 500;
     transition: color 0.2s;
+    text-decoration: none;
   }
   .row-see-all:hover {
-    color: var(--net-red);
+    color: white;
   }
   .row-wrapper {
     position: relative;
@@ -76,7 +93,7 @@
     display: flex;
     gap: 0.75rem;
     overflow-x: auto;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem;
     scroll-snap-type: x mandatory;
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -91,67 +108,42 @@
     transform: translateY(-50%);
     z-index: 5;
     width: 36px;
-    height: 80px;
-    border-radius: var(--radius-md);
-    background: rgba(20, 20, 20, 0.8);
+    height: 72px;
+    border-radius: 6px;
+    background: rgba(20, 20, 20, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: white;
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.3s;
+    cursor: pointer;
+    transition: opacity 0.3s, background 0.2s;
   }
   .row-wrapper:hover .row-arrow {
     opacity: 1;
   }
-  .row-arrow.left {
-    left: 0;
-  }
-  .row-arrow.right {
-    right: 0;
-  }
+  .row-arrow.left { left: 0; }
+  .row-arrow.right { right: 0; }
   .row-arrow:hover {
-    background: rgba(229, 9, 20, 0.8);
+    background: rgba(255, 255, 255, 0.12);
   }
 
   @media (max-width: 768px) {
-    .row-section {
-      margin-bottom: 1.5rem;
-    }
-    .row-header {
-      padding: 0 0.75rem;
-      margin-bottom: 0.5rem;
-    }
-    .row-title {
-      font-size: 1.1rem;
-    }
-    .row-see-all {
-      font-size: 0.8rem;
-    }
-    .row-scroll {
-      gap: 0.5rem;
-      padding: 0.5rem 0.75rem;
-    }
-    .row-arrow {
-      display: none;
-    }
+    .row-section { margin-bottom: 1.25rem; }
+    .row-header { padding: 0 0.75rem; margin-bottom: 0.5rem; }
+    .row-title { font-size: 1rem; }
+    .accent-bar { height: 16px; }
+    .row-scroll { gap: 0.5rem; padding: 0.3rem 0.75rem; }
+    .row-arrow { display: none; }
   }
 
   @media (max-width: 480px) {
-    .row-section {
-      margin-bottom: 1.25rem;
-    }
-    .row-header {
-      padding: 0 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    .row-title {
-      font-size: 1rem;
-    }
-    .row-scroll {
-      gap: 0.4rem;
-      padding: 0.5rem 0.5rem;
-    }
+    .row-section { margin-bottom: 1rem; }
+    .row-header { padding: 0 0.5rem; margin-bottom: 0.4rem; }
+    .row-title { font-size: 0.92rem; }
+    .accent-bar { height: 14px; width: 3px; }
+    .row-scroll { gap: 0.4rem; padding: 0.3rem 0.5rem; }
   }
 </style>
