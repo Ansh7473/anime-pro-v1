@@ -118,7 +118,7 @@
         <span>{scheduledAnimes.length} anime airing {selectedIndex === 0 ? "today" : `on ${dateOptions[selectedIndex].label}`}</span>
       </div>
       <div class="anime-grid">
-        {#each scheduledAnimes as anime (anime.id)}
+        {#each scheduledAnimes as anime, i (anime.airingScheduleId || `${anime.id || 'sched'}-${anime.episode || i}-${i}`)}
           <div class="schedule-card">
             <AnimeCard {anime} />
             {#if anime.nextAiringEpisode}

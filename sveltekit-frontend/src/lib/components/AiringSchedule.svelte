@@ -99,7 +99,7 @@
     <p class="airing-empty">No episodes estimated for this day.</p>
   {:else}
     <div class="airing-scroll">
-      {#each items as a (a.id || a.mal_id)}
+      {#each items as a, i (`${a.airingScheduleId || a.id || a.mal_id || 'airing'}-${a.episode || i}-${i}`)}
         <a class="airing-card" href={`/anime/${a.id || a.mal_id}`}>
           <div class="ac-thumb">
             <img

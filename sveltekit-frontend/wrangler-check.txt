@@ -1,0 +1,36 @@
+npm warn config ignoring workspace config at D:\CURSOR\javascript.html\python\real world projects\anime-pro-v1\sveltekit-frontend/.npmrc
+
+ ⛅️ wrangler 4.81.1 (update available 4.107.0)
+──────────────────────────────────────────────
+Getting User settings...
+👋 You are logged in with an OAuth Token, associated with the email anshsoni310@gmail.com.
+┌─────────────────────────────────┬──────────────────────────────────┐
+│ Account Name                    │ Account ID                       │
+├─────────────────────────────────┼──────────────────────────────────┤
+│ Anshsoni310@gmail.com's Account │ 1c7d861a5d721dfe0c24559b0c907aef │
+└─────────────────────────────────┴──────────────────────────────────┘
+🔓 Token Permissions:
+Scope (Access)
+- account (read)
+- user (read)
+- workers (write)
+- workers_kv (write)
+- workers_routes (write)
+- workers_scripts (write)
+- workers_tail (read)
+- d1 (write)
+- pages (write)
+- zone (read)
+- ssl_certs (write)
+- ai (write)
+- ai-search (write)
+- ai-search (run)
+- queues (write)
+- pipelines (write)
+- secrets_store (write)
+- containers (write)
+- cloudchamber (write)
+- connectivity (admin)
+- email_routing (write)
+- email_sending (write)
+- offline_access 

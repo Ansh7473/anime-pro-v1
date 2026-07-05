@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.WatchAnimezTV" parent="Theme.Leanback">
+        <item name="android:windowBackground">@color/net_bg</item>
+        <item name="android:colorPrimary">@color/net_red</item>
+        <item name="android:colorAccent">@color/net_red</item>
+        <item name="defaultBrandColor">@color/net_red</item>
+        <item name="defaultSearchColor">@color/net_red</item>
+        <item name="defaultSearchBrightColor">@color/net_red_hover</item>
+        <item name="defaultSectionHeaderColor">@color/net_text</item>
+
+    </style>
+</resources>
