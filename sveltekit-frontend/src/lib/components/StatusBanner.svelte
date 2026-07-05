@@ -42,10 +42,19 @@
 
 <style>
   .status-banner {
-    background: linear-gradient(90deg, rgba(255, 160, 0, 0.12), rgba(255, 100, 0, 0.08));
+    background: linear-gradient(90deg, rgba(255, 160, 0, 0.15), rgba(255, 100, 0, 0.1));
     border-bottom: 1px solid rgba(255, 160, 0, 0.25);
-    position: relative;
-    z-index: 100;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 999;
+  }
+
+  @media (max-width: 768px) {
+    .status-banner {
+      top: 56px;
+    }
   }
 
   .status-content {
