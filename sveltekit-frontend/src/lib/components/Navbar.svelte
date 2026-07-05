@@ -1,23 +1,6 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
-  import { 
-    Download, 
-    Heart, 
-    User, 
-    Bookmark, 
-    Tv, 
-    LogOut, 
-    LogIn, 
-    UserPlus, 
-    Search, 
-    X, 
-    Sparkles,
-    ArrowLeft,
-    TrendingUp,
-    Film,
-    Tv2,
-    Flame
-  } from 'lucide-svelte';
+  import { Download, Heart, User, Bookmark, Tv, LogOut, LogIn, UserPlus } from 'lucide-svelte';
   import { auth, logoutUser } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -35,7 +18,6 @@
   let profileOpen = $state(false);
   let searchContainer: HTMLElement = $state(null!);
   let profileContainer: HTMLElement = $state(null!);
-  let searchInput: HTMLInputElement = $state(null!);
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -46,45 +28,21 @@
     { href: "/intel", label: "Blog" },
   ];
 
-  const trendingSearches = [
-    "Solo Leveling",
-    "Demon Slayer",
-    "One Piece",
-    "Jujutsu Kaisen",
-    "Bleach",
-    "Chainsaw Man"
-  ];
-
   function handleScroll() {
-    scrolled = window.scrollY > 20;
+    scrolled = window.scrollY > 50;
   }
 
-  function handleSearchKey(e: KeyboardEvent) {
+  function handleSearch(e: KeyboardEvent) {
     if (e.key === "Enter") {
       executeSearch();
-    } else if (e.key === "Escape") {
-      closeSearch();
     }
   }
 
   function executeSearch() {
     if (!searchQuery.trim()) return;
-    const q = searchQuery.trim();
-    closeSearch();
-    goto(`/search?q=${encodeURIComponent(q)}`);
-  }
-
-  function closeSearch() {
+    goto(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     searchOpen = false;
-    searchQuery = "";
     showSuggestions = false;
-  }
-
-  function toggleSearch() {
-    searchOpen = !searchOpen;
-    if (searchOpen) {
-      mobileMenuOpen = false;
-    }
   }
 
   async function handleRandom() {
@@ -95,32 +53,11 @@
   }
 
   function selectSuggestion(anime: any) {
-    closeSearch();
     goto(`/anime/${anime.id}`);
+    searchQuery = "";
+    searchOpen = false;
+    showSuggestions = false;
   }
-
-  function quickSearch(tag: string) {
-    searchQuery = tag;
-  }
-
-  // Prevent background scrolling when search modal or mobile menu is open
-  $effect(() => {
-    if (typeof document !== 'undefined') {
-      if (searchOpen || mobileMenuOpen) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = '';
-      }
-    }
-  });
-
-  // Auto-focus input when search opens
-  $effect(() => {
-    if (searchOpen && searchInput) {
-      const timer = setTimeout(() => searchInput?.focus(), 80);
-      return () => clearTimeout(timer);
-    }
-  });
 
   // Svelte 5 Debounced Search Effect
   $effect(() => {
@@ -133,8 +70,8 @@
     const timer = setTimeout(async () => {
       isSearching = true;
       try {
-        const res = await api.search(searchQuery.trim());
-        suggestions = res?.data ? res.data.slice(0, 6) : [];
+        const res = await api.search(searchQuery);
+        suggestions = res.data.slice(0, 6);
         showSuggestions = true;
       } catch (err) {
         console.error("Search error:", err);
@@ -142,29 +79,22 @@
       } finally {
         isSearching = false;
       }
-    }, 350);
+    }, 300);
 
     return () => clearTimeout(timer);
   });
 
   onMount(() => {
     const handleClick = (e: MouseEvent) => {
+      if (searchContainer && !searchContainer.contains(e.target as Node)) {
+        showSuggestions = false;
+      }
       if (profileContainer && !profileContainer.contains(e.target as Node)) {
         profileOpen = false;
       }
     };
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        toggleSearch();
-      }
-    };
     window.addEventListener("click", handleClick);
-    window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => {
-      window.removeEventListener("click", handleClick);
-      window.removeEventListener("keydown", handleGlobalKeyDown);
-    };
+    return () => window.removeEventListener("click", handleClick);
   });
 </script>
 
@@ -172,19 +102,11 @@
 
 <nav class="navbar" class:scrolled>
   <div class="nav-inner">
-    <!-- BRAND LOGO -->
-    <a href="/" class="logo" onclick={() => { closeSearch(); mobileMenuOpen = false; }}>
-      <div class="logo-badge">
-        <img src="/favicon-192.png" alt="WatchAnimez" class="logo-img" />
-        <span class="logo-glow"></span>
-      </div>
-      <div class="logo-text-wrapper">
-        <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
-        <span class="logo-subtag hide-mobile">HD STREAMING</span>
-      </div>
+    <a href="/" class="logo">
+      <img src="/favicon-192.png" alt="WatchAnimez" class="logo-img" />
+      <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
     </a>
 
-    <!-- DESKTOP NAV LINKS -->
     <div class="nav-links hide-mobile">
       {#each navLinks as link}
         <a
@@ -195,41 +117,80 @@
       {/each}
     </div>
 
-    <!-- ACTION BUTTONS -->
     <div class="nav-actions">
-      <!-- QUICK SEARCH TRIGGER (DESKTOP) -->
-      <button 
-        class="search-bar-trigger hide-mobile"
-        onclick={toggleSearch}
-        aria-label="Open search"
+      <button class="nav-icon-btn hide-mobile" onclick={handleRandom} title="Random Anime"
+        >🎲</button
       >
-        <Search size={16} class="search-trigger-icon" />
-        <span class="search-trigger-text">Search anime...</span>
-        <kbd class="search-shortcut">⌘K</kbd>
-      </button>
 
-      <!-- MOBILE SEARCH ICON -->
-      <button 
-        class="nav-icon-btn search-trigger-btn hide-desktop" 
-        onclick={toggleSearch} 
-        aria-label="Search Anime"
-      >
-        <Search size={20} />
-      </button>
-
-      <button class="nav-icon-btn hide-mobile" onclick={handleRandom} title="Surprise Anime">
-        <Sparkles size={18} />
-      </button>
-
-      <a href="/download" class="nav-icon-btn hide-mobile" title="Download Apps">
-        <Download size={18} />
+      <a href="/download" class="nav-icon-btn" title="Download Apps">
+        <Download size={20} />
       </a>
 
-      <a href="/donate" class="nav-icon-btn heart-btn hide-mobile" title="Donate & Support">
-        <Heart size={18} fill="currentColor" />
+      <a href="/donate" class="nav-icon-btn text-pink-500 hide-mobile" title="Donate">
+        <Heart size={20} fill="currentColor" />
       </a>
 
-      <!-- USER PROFILE DROPDOWN -->
+      <div class="search-container" class:open={searchOpen} bind:this={searchContainer}>
+        {#if searchOpen}
+          <div class="search-box glass">
+            <input
+              type="text"
+              placeholder="Search anime..."
+              bind:value={searchQuery}
+              onkeydown={handleSearch}
+              onfocus={() => suggestions.length > 0 && (showSuggestions = true)}
+            />
+            {#if isSearching}
+              <div class="search-spinner"></div>
+            {/if}
+            <button
+              class="close-btn"
+              onclick={() => {
+                searchOpen = false;
+                searchQuery = "";
+                showSuggestions = false;
+              }}>✕</button
+            >
+          </div>
+        {:else}
+          <button class="nav-icon-btn" onclick={() => (searchOpen = true)}
+            >🔍</button
+          >
+        {/if}
+
+        {#if showSuggestions && (suggestions.length > 0 || isSearching)}
+          <div class="suggestions-dropdown glass">
+            {#if isSearching && suggestions.length === 0}
+              <div class="searching-state">Searching...</div>
+            {:else}
+              {#each suggestions as anime}
+                <button
+                  class="suggestion-item"
+                  onclick={() => selectSuggestion(anime)}
+                >
+                  <img
+                    src={getProxiedImage(anime.poster)}
+                    alt={anime.title}
+                    class="suggestion-poster"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div class="suggestion-info">
+                    <span class="suggestion-title">{anime.title}</span>
+                    <div class="suggestion-meta">
+                      <span class="suggestion-type">{anime.type}</span>
+                      <span class="suggestion-score"
+                        >⭐ {anime.score || "N/A"}</span
+                      >
+                    </div>
+                  </div>
+                </button>
+              {/each}
+            {/if}
+          </div>
+        {/if}
+      </div>
+
       {#if $auth.user}
         <div class="user-profile hide-mobile" class:open={profileOpen} bind:this={profileContainer}>
           <button class="profile-trigger" title="Account" onclick={(e) => { e.stopPropagation(); profileOpen = !profileOpen; }}>
@@ -296,7 +257,7 @@
               />
               <div class="ui-text">
                 <span class="user-name">Guest User</span>
-                <span class="user-email">Sign in for watch history</span>
+                <span class="user-email">Not logged in</span>
               </div>
             </div>
             <hr />
@@ -314,17 +275,13 @@
         </div>
       {/if}
 
-      <!-- HAMBURGER MENU TOGGLE -->
       <button
         class="nav-icon-btn hamburger hide-desktop"
-        onclick={() => { mobileMenuOpen = !mobileMenuOpen; if (mobileMenuOpen) searchOpen = false; }}
-        aria-label="Toggle menu">
-        {#if mobileMenuOpen}<X size={22} />{:else}☰{/if}
-      </button>
+        onclick={() => (mobileMenuOpen = !mobileMenuOpen)}>☰</button
+      >
     </div>
   </div>
 
-  <!-- MOBILE HAMBURGER DRAWER -->
   {#if mobileMenuOpen}
     <div class="mobile-menu glass">
       <div class="mobile-links-grid">
@@ -337,6 +294,7 @@
           >
         {/each}
 
+        <!-- Heart (Donate) option inside hamburger menu -->
         <a
           href="/donate"
           class="mobile-link donate-mobile-link"
@@ -418,140 +376,7 @@
   {/if}
 </nav>
 
-<!-- HIGH-PERFORMANCE FULL-SCREEN OVERLAY SEARCH MODAL -->
-{#if searchOpen}
-  <div class="search-backdrop" onclick={closeSearch} role="dialog" aria-modal="true">
-    <div 
-      class="search-modal glass" 
-      bind:this={searchContainer} 
-      onclick={(e) => e.stopPropagation()}
-    >
-      <!-- MODAL TOP BAR -->
-      <div class="search-top-bar">
-        <button class="icon-action-btn back-btn" onclick={closeSearch} aria-label="Close search">
-          <ArrowLeft size={20} />
-        </button>
-
-        <div class="search-input-box">
-          <Search size={18} class="input-search-icon" />
-          <input
-            bind:this={searchInput}
-            type="text"
-            placeholder="Search anime, movies, series..."
-            bind:value={searchQuery}
-            onkeydown={handleSearchKey}
-          />
-          {#if isSearching}
-            <div class="search-spinner"></div>
-          {/if}
-          {#if searchQuery}
-            <button class="clear-input-btn" onclick={() => searchQuery = ""} aria-label="Clear query">
-              <X size={16} />
-            </button>
-          {/if}
-        </div>
-
-        <button class="cancel-modal-btn" onclick={closeSearch}>
-          Cancel
-        </button>
-      </div>
-
-      <!-- MODAL CONTENT AREA -->
-      <div class="search-body-content custom-scroll">
-        <!-- TRENDING / QUICK SEARCHES (WHEN INPUT IS EMPTY OR SHORT) -->
-        {#if searchQuery.trim().length < 2}
-          <div class="search-welcome-panel">
-            <div class="panel-section-title">
-              <Flame size={16} class="flame-icon" />
-              <span>Trending Searches</span>
-            </div>
-
-            <div class="trending-tags-grid">
-              {#each trendingSearches as tag}
-                <button class="trending-tag-pill" onclick={() => quickSearch(tag)}>
-                  <TrendingUp size={13} />
-                  <span>{tag}</span>
-                </button>
-              {/each}
-            </div>
-
-            <div class="search-tips">
-              <span class="tip-dot"></span>
-              <span>Tip: Press <kbd>Enter</kbd> anytime to open the complete catalog view.</span>
-            </div>
-          </div>
-        {:else if isSearching && suggestions.length === 0}
-          <div class="searching-loader-state">
-            <div class="search-spinner-lg"></div>
-            <span>Searching WatchAnimez database...</span>
-          </div>
-        {:else if suggestions.length > 0}
-          <div class="suggestions-container">
-            <div class="suggestions-header-bar">
-              <span class="header-label">Quick Suggestions</span>
-              <span class="header-hint">Found {suggestions.length} top matches</span>
-            </div>
-
-            <div class="suggestions-grid">
-              {#each suggestions as anime}
-                <button
-                  class="suggestion-card"
-                  onclick={() => selectSuggestion(anime)}
-                >
-                  <img
-                    src={getProxiedImage(anime.poster)}
-                    alt={anime.title}
-                    class="suggestion-poster"
-                    loading="lazy"
-                    decoding="async"
-                    onerror={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = '/favicon-192.png';
-                    }}
-                  />
-                  <div class="suggestion-details">
-                    <span class="suggestion-title">{anime.title}</span>
-                    {#if anime.japaneseTitle || anime.jname}
-                      <span class="suggestion-jtitle">{anime.japaneseTitle || anime.jname}</span>
-                    {/if}
-                    <div class="suggestion-meta-row">
-                      <span class="meta-pill type-pill">{anime.type || 'TV'}</span>
-                      {#if anime.episodes?.sub || anime.sub}
-                        <span class="meta-pill sub-pill">SUB {anime.episodes?.sub || anime.sub}</span>
-                      {/if}
-                      {#if anime.episodes?.dub || anime.dub}
-                        <span class="meta-pill dub-pill">DUB {anime.episodes?.dub || anime.dub}</span>
-                      {/if}
-                      {#if anime.score || anime.rating}
-                        <span class="meta-pill score-pill">⭐ {anime.score || anime.rating}</span>
-                      {/if}
-                    </div>
-                  </div>
-                </button>
-              {/each}
-            </div>
-
-            <button class="view-full-results-btn" onclick={executeSearch}>
-              <span>View all results for "{searchQuery}"</span>
-              <span class="arrow">→</span>
-            </button>
-          </div>
-        {:else if !isSearching && searchQuery.trim().length >= 2 && suggestions.length === 0}
-          <div class="no-results-state">
-            <Search size={40} class="no-results-icon" />
-            <h3>No Anime Found</h3>
-            <p>We couldn't find matches for "{searchQuery}". Try pressing Enter for extended search.</p>
-            <button class="view-full-results-btn" onclick={executeSearch}>
-              Search Catalog for "{searchQuery}"
-            </button>
-          </div>
-        {/if}
-      </div>
-    </div>
-  </div>
-{/if}
-
 <style>
-  /* --- MAIN NAVBAR STYLING --- */
   .navbar {
     position: fixed;
     top: 0;
@@ -562,276 +387,267 @@
     padding-top: max(0.75rem, env(safe-area-inset-top));
     padding-left: max(2rem, env(safe-area-inset-left));
     padding-right: max(2rem, env(safe-area-inset-right));
-    background: linear-gradient(180deg, rgba(8, 8, 12, 0.96) 0%, rgba(8, 8, 12, 0.6) 70%, transparent 100%);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.8) 0%,
+      transparent 100%
+    );
+    transition: background 0.3s ease;
   }
-
   .navbar.scrolled {
-    background: rgba(10, 10, 14, 0.94);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    background: var(--net-bg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
-
   .nav-inner {
+    /* Flex layout: logo hugs the left edge, actions hug the right edge, and
+       nav-links (when visible) sit dead-centered via absolute positioning so
+       hiding them on tablet/mobile never lets actions drift toward the middle. */
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    gap: 1.5rem;
+    margin: 0;
+    gap: 1rem;
   }
-
-  /* LOGO DESIGN */
+  .nav-inner > .logo {
+    flex: 0 0 auto;
+  }
+  .nav-inner > .nav-links {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+  }
+  .nav-inner > .nav-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
   .logo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     text-decoration: none;
     color: white;
   }
-
-  .logo-badge {
-    position: relative;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   .logo-img {
-    height: 34px;
-    width: 34px;
+    height: 32px;
+    width: 32px;
     object-fit: contain;
-    border-radius: 9px;
-    box-shadow: 0 0 14px rgba(229, 9, 20, 0.5);
-    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    z-index: 2;
+    border-radius: 6px;
+    transition: transform 0.2s ease;
   }
-
-  .logo-glow {
-    position: absolute;
-    inset: -2px;
-    background: radial-gradient(circle, rgba(229, 9, 20, 0.6) 0%, transparent 70%);
-    border-radius: 12px;
-    filter: blur(4px);
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
-  }
-
   .logo:hover .logo-img {
-    transform: scale(1.08) rotate(-3deg);
+    transform: scale(1.05);
   }
-
-  .logo:hover .logo-glow {
-    opacity: 1;
-  }
-
-  .logo-text-wrapper {
-    display: flex;
-    flex-direction: column;
-    line-height: 1;
-  }
-
-  .logo-text {
-    font-size: 1.35rem;
-    font-weight: 900;
-    letter-spacing: -0.03em;
-  }
-
   .logo-accent {
-    color: var(--net-red, #e50914);
-    text-shadow: 0 0 15px rgba(229, 9, 20, 0.6);
+    color: var(--net-red);
   }
-
-  .logo-subtag {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: rgba(255, 255, 255, 0.45);
-    margin-top: 2px;
-  }
-
-  /* NAV LINKS */
   .nav-links {
     display: flex;
-    align-items: center;
-    gap: 1.75rem;
+    gap: 1.5rem;
   }
-
   .nav-link {
-    position: relative;
-    color: rgba(255, 255, 255, 0.72);
-    font-weight: 600;
-    font-size: 0.92rem;
-    transition: color 0.2s ease;
+    color: var(--net-text-muted);
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
     text-decoration: none;
-    padding: 0.4rem 0;
+    padding: 0.5rem 0;
     white-space: nowrap;
   }
-
-  .nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: var(--net-red, #e50914);
-    border-radius: 2px;
-    box-shadow: 0 0 10px rgba(229, 9, 20, 0.8);
-    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
   .nav-link:hover, .nav-link.active {
-    color: #ffffff;
+    color: white;
   }
-
-  .nav-link.active::after, .nav-link:hover::after {
-    width: 100%;
-  }
-
-  /* ACTIONS & BUTTONS */
   .nav-actions {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem;
   }
-
-  .search-bar-trigger {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    padding: 0.45rem 0.9rem;
-    color: rgba(255, 255, 255, 0.65);
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
-  }
-
-  .search-bar-trigger:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(229, 9, 20, 0.5);
-    color: white;
-    box-shadow: 0 0 15px rgba(229, 9, 20, 0.2);
-  }
-
-  .search-trigger-text {
-    font-weight: 500;
-  }
-
-  .search-shortcut {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    padding: 0.1rem 0.35rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    font-family: inherit;
-    color: rgba(255, 255, 255, 0.7);
-  }
-
   .nav-icon-btn {
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 50%;
+    color: white;
+    background: none;
+    border: none;
     cursor: pointer;
-    width: 40px;
-    height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
-
-  .nav-icon-btn:hover {
-    color: #ffffff;
-    background: rgba(229, 9, 20, 0.15);
-    border-color: rgba(229, 9, 20, 0.4);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
+  .search-container {
+    position: relative;
   }
-
-  .heart-btn:hover {
-    color: #ff69b4;
-    background: rgba(255, 105, 180, 0.15);
-    border-color: rgba(255, 105, 180, 0.4);
-    box-shadow: 0 4px 15px rgba(255, 105, 180, 0.25);
+  .search-box {
+    display: flex;
+    align-items: center;
+    background: rgba(40, 40, 40, 0.6);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
   }
-
-  /* USER PROFILE DROPDOWN */
+  .search-box input {
+    background: none;
+    border: none;
+    color: white;
+    outline: none;
+  }
+  .search-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 0.5rem;
+  }
+  .close-btn {
+    background: none;
+    border: none;
+    color: var(--net-text-muted, #999);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+  }
+  .close-btn:hover {
+    color: white;
+  }
+  .suggestions-dropdown {
+    position: absolute;
+    top: 110%;
+    right: 0;
+    width: 300px;
+    background: #141414;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+  .suggestion-item {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+  }
+  .suggestion-poster {
+    width: 40px;
+    height: 56px;
+    object-fit: cover;
+  }
+  .suggestion-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    flex: 1;
+  }
+  .suggestion-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.2rem;
+  }
+  .suggestion-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--net-text-muted, #999);
+  }
+  .suggestion-type {
+    text-transform: uppercase;
+  }
+  .suggestion-score {
+    color: #fbbf24;
+  }
+  .searching-state {
+    padding: 0.75rem;
+    color: var(--net-text-muted, #999);
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
   .user-profile {
     position: relative;
   }
-
   .profile-trigger {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     overflow: hidden;
     cursor: pointer;
-    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    border: 1.5px solid rgba(245, 245, 245, 0.14);
     padding: 0;
     background: #1a1a1c;
-    transition: all 0.2s ease;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
-
   .profile-trigger:hover {
-    border-color: var(--net-red, #e50914);
+    border-color: var(--net-red);
     transform: translateY(-1px);
-    box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
   }
-
+  .user-profile.open .profile-trigger {
+    border-color: var(--net-red);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.18);
+  }
   .profile-trigger img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-
   .profile-dropdown {
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
     width: 244px;
-    background: rgba(14, 14, 18, 0.96);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    padding: 0.6rem;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+    background: #121214;
+    border: 1px solid rgba(245, 245, 245, 0.1);
+    border-radius: 14px;
+    padding: 0.5rem;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
     opacity: 0;
     visibility: hidden;
     transform: translateY(-8px) scale(0.98);
     transform-origin: top right;
     transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
-    z-index: 1200;
+    z-index: 50;
   }
-
+  .profile-dropdown::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    background: #121214;
+    border-left: 1px solid rgba(245, 245, 245, 0.1);
+    border-top: 1px solid rgba(245, 245, 245, 0.1);
+    transform: rotate(45deg);
+  }
   .user-profile.open .profile-dropdown {
     opacity: 1;
     visibility: visible;
     transform: translateY(0) scale(1);
   }
-
   .user-info {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
-    padding: 0.55rem;
+    gap: 0.6rem;
+    padding: 0.55rem 0.55rem 0.65rem;
   }
-
   .ui-avatar {
     width: 40px;
     height: 40px;
@@ -839,15 +655,13 @@
     object-fit: cover;
     flex: none;
     background: #1a1a1c;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(245, 245, 245, 0.1);
   }
-
   .ui-text {
     display: flex;
     flex-direction: column;
     min-width: 0;
   }
-
   .user-name {
     font-size: 0.9rem;
     font-weight: 700;
@@ -856,169 +670,174 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
   .user-email {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.74rem;
+    color: var(--net-text-muted, #9a9a9a);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
   .profile-dropdown hr {
     border: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    margin: 0.4rem 0;
+    border-top: 1px solid rgba(245, 245, 245, 0.08);
+    margin: 0.35rem 0;
   }
-
   .dropdown-item {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     width: 100%;
-    padding: 0.6rem 0.7rem;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.88rem;
-    font-weight: 600;
+    padding: 0.55rem 0.6rem;
+    color: #cfcfcf;
+    font-size: 0.86rem;
+    font-weight: 500;
     text-decoration: none;
     background: none;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     text-align: left;
     cursor: pointer;
     font-family: inherit;
     transition: background 0.15s, color 0.15s;
   }
-
+  .dropdown-item :global(svg) {
+    color: var(--net-text-muted, #9a9a9a);
+    flex: none;
+    transition: color 0.15s;
+  }
   .dropdown-item:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(245, 245, 245, 0.06);
   }
-
+  .dropdown-item:hover :global(svg) {
+    color: #fff;
+  }
   .dropdown-item.accent {
-    color: var(--net-red, #e50914);
+    color: var(--net-red);
+    font-weight: 700;
   }
-
-  .dropdown-item.logout:hover {
-    color: #ff4a4a;
+  .dropdown-item.accent :global(svg) {
+    color: var(--net-red);
+  }
+  .dropdown-item.accent:hover {
     background: rgba(229, 9, 20, 0.12);
+    color: var(--net-red);
   }
-
-  /* MOBILE HAMBURGER DRAWER */
+  .dropdown-item.logout:hover {
+    color: #ff5a5f;
+    background: rgba(229, 9, 20, 0.1);
+  }
+  .dropdown-item.logout:hover :global(svg) {
+    color: #ff5a5f;
+  }
   .mobile-menu {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(12, 12, 16, 0.96);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 1.25rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
-    animation: slideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    max-height: calc(100vh - 100% - 60px);
+    overflow-y: auto;
+    animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
-
   @keyframes slideDown {
     from {
       opacity: 0;
-      transform: translateY(-8px);
+      transform: translateY(-10px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-
   .mobile-links-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.25rem;
   }
-
   .mobile-link {
     display: flex;
     align-items: center;
     padding: 0.75rem 1rem;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--net-text-muted, #ccc);
     text-decoration: none;
     font-size: 0.95rem;
-    font-weight: 600;
-    border-radius: 12px;
+    font-weight: 500;
+    border-radius: 8px;
     transition: all 0.2s ease;
   }
-
   .mobile-link:hover, .mobile-link.active {
     color: white;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
   }
-
+  .mobile-link.accent {
+    color: var(--net-red, #ff0055);
+  }
   .donate-mobile-link {
     color: #ff69b4;
-    font-weight: 700;
+    font-weight: 600;
   }
-
+  .donate-mobile-link:hover {
+    background: rgba(255, 105, 180, 0.1) !important;
+    color: #ff8da1;
+  }
   .mobile-heart-wrapper {
     display: inline-flex;
     margin-right: 0.5rem;
     color: #ff69b4;
   }
-
   .mobile-divider {
     border: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     margin: 0.5rem 0;
   }
-
   .mobile-profile-section {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.03);
     padding: 1rem;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
-
   .mobile-user-info {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    margin-bottom: 0.25rem;
   }
-
   .mobile-profile-avatar {
     width: 44px;
     height: 44px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.1);
   }
-
   .mobile-profile-details {
     display: flex;
     flex-direction: column;
   }
-
   .mobile-profile-name {
-    font-weight: 700;
+    font-weight: 600;
     color: white;
     font-size: 0.95rem;
   }
-
   .mobile-profile-email {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--net-text-muted, #888);
   }
-
   .mobile-profile-links {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
   }
-
   .mobile-btn {
     background: none;
     border: none;
@@ -1026,498 +845,109 @@
     text-align: left;
     cursor: pointer;
   }
-
   .mobile-btn.logout {
     color: #ff4a4a;
   }
-
-  /* --- FULL-SCREEN OVERLAY SEARCH MODAL --- */
-  .search-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    background: rgba(4, 4, 8, 0.82);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 1.5rem 1rem;
-    padding-top: max(1.5rem, env(safe-area-inset-top));
-    animation: fadeInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  .mobile-btn.logout:hover {
+    background: rgba(255, 74, 74, 0.08);
   }
 
-  @keyframes fadeInModal {
-    from {
-      opacity: 0;
-      backdrop-filter: blur(0px);
-    }
-    to {
-      opacity: 1;
-      backdrop-filter: blur(20px);
-    }
-  }
-
-  .search-modal {
-    width: 100%;
-    max-width: 680px;
-    background: rgba(14, 14, 20, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 40px rgba(229, 9, 20, 0.15);
-    border-radius: 20px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100vh - 3rem);
-    max-height: calc(100dvh - 3rem);
-    animation: scaleUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  @keyframes scaleUpModal {
-    from {
-      opacity: 0;
-      transform: scale(0.96) translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
-  }
-
-  .search-top-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.85rem 1rem;
-    background: rgba(20, 20, 28, 0.9);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .icon-action-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex: none;
-    transition: all 0.15s ease;
-  }
-
-  .icon-action-btn:hover {
-    background: rgba(229, 9, 20, 0.2);
-    border-color: rgba(229, 9, 20, 0.4);
-    color: #ff4757;
-  }
-
-  .search-input-box {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    flex: 1;
-    background: rgba(10, 10, 14, 0.95);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    border-radius: 14px;
-    padding: 0.5rem 0.9rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .search-input-box:focus-within {
-    border-color: var(--net-red, #e50914);
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.3);
-  }
-
-  .search-input-box input {
-    width: 100%;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1rem;
-    font-weight: 500;
-    outline: none;
-  }
-
-  .search-input-box input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-  }
-
-  .input-search-icon {
-    color: rgba(255, 255, 255, 0.45);
-    flex: none;
-  }
-
-  .clear-input-btn {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.2rem;
-    border-radius: 50%;
-    transition: color 0.15s ease;
-  }
-
-  .clear-input-btn:hover {
-    color: white;
-  }
-
-  .cancel-modal-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    font-weight: 600;
-    font-size: 0.85rem;
-    padding: 0.5rem 0.9rem;
-    border-radius: 10px;
-    cursor: pointer;
-    flex: none;
-    transition: all 0.15s ease;
-  }
-
-  .cancel-modal-btn:hover {
-    background: rgba(229, 9, 20, 0.2);
-    color: #ff4757;
-    border-color: rgba(229, 9, 20, 0.4);
-  }
-
-  .search-spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top-color: var(--net-red, #e50914);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    flex: none;
-  }
-
-  /* MODAL BODY CONTENT */
-  .search-body-content {
-    padding: 1.25rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .custom-scroll::-webkit-scrollbar {
-    width: 5px;
-  }
-  .custom-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-  }
-
-  /* TRENDING SECTION */
-  .search-welcome-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .panel-section-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.82rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #ff4757;
-  }
-
-  .flame-icon {
-    color: #ff4757;
-  }
-
-  .trending-tags-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-  }
-
-  .trending-tag-pill {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 0.45rem 0.85rem;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .trending-tag-pill:hover {
-    background: rgba(229, 9, 20, 0.18);
-    border-color: rgba(229, 9, 20, 0.5);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(229, 9, 20, 0.25);
-  }
-
-  .search-tips {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.45);
-    margin-top: 0.5rem;
-  }
-
-  .tip-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--net-red, #e50914);
-    box-shadow: 0 0 8px var(--net-red, #e50914);
-  }
-
-  .search-tips kbd {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    padding: 0.1rem 0.35rem;
-    font-size: 0.72rem;
-    color: white;
-  }
-
-  /* SUGGESTIONS LIST */
-  .suggestions-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-  }
-
-  .suggestions-header-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.8rem;
-  }
-
-  .header-label {
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--net-red, #e50914);
-  }
-
-  .header-hint {
-    color: rgba(255, 255, 255, 0.45);
-  }
-
-  .suggestions-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .suggestion-card {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-    padding: 0.6rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    cursor: pointer;
-    text-align: left;
-    color: white;
-    transition: all 0.2s ease;
-  }
-
-  .suggestion-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(229, 9, 20, 0.4);
-    transform: translateX(4px);
-  }
-
-  .suggestion-poster {
-    width: 46px;
-    height: 64px;
-    border-radius: 8px;
-    object-fit: cover;
-    flex: none;
-    background: #1a1a20;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  }
-
-  .suggestion-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 0;
-    flex: 1;
-  }
-
-  .suggestion-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .suggestion-jtitle {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.45);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .suggestion-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-    margin-top: 0.1rem;
-  }
-
-  .meta-pill {
-    font-size: 0.68rem;
-    font-weight: 700;
-    padding: 0.15rem 0.45rem;
-    border-radius: 5px;
-    text-transform: uppercase;
-  }
-
-  .type-pill {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .sub-pill {
-    background: rgba(229, 9, 20, 0.18);
-    color: #ff4757;
-    border: 1px solid rgba(229, 9, 20, 0.35);
-  }
-
-  .dub-pill {
-    background: rgba(59, 130, 246, 0.18);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.35);
-  }
-
-  .score-pill {
-    background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
-  }
-
-  .view-full-results-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    margin-top: 0.5rem;
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.2) 0%, rgba(180, 5, 12, 0.3) 100%);
-    border: 1px solid rgba(229, 9, 20, 0.4);
-    color: white;
-    font-weight: 700;
-    font-size: 0.9rem;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .view-full-results-btn:hover {
-    background: var(--net-red, #e50914);
-    box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
-    transform: translateY(-1px);
-  }
-
-  .view-full-results-btn .arrow {
-    transition: transform 0.2s ease;
-  }
-
-  .view-full-results-btn:hover .arrow {
-    transform: translateX(4px);
-  }
-
-  /* STATES */
-  .searching-loader-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.85rem;
-    padding: 3rem 1rem;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 0.92rem;
-  }
-
-  .search-spinner-lg {
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(255, 255, 255, 0.12);
-    border-top-color: var(--net-red, #e50914);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-  }
-
-  .no-results-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.65rem;
-    padding: 2.5rem 1rem;
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .no-results-icon {
-    color: rgba(255, 255, 255, 0.25);
-    margin-bottom: 0.5rem;
-  }
-
-  .no-results-state h3 {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: 700;
-  }
-
-  .no-results-state p {
-    font-size: 0.85rem;
-    max-width: 360px;
-    color: rgba(255, 255, 255, 0.45);
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* MEDIA QUERIES */
   @media (max-width: 1024px) {
-    .hide-mobile { display: none !important; }
+    .hide-mobile { display: none; }
+
+    /* Tighter horizontal padding on tablet/mobile so logo + hamburger
+       don't get pushed off-edge on narrow viewports. */
     .navbar {
-      padding: 0.65rem 1rem;
-      padding-top: max(0.65rem, env(safe-area-inset-top));
+      padding: 0.75rem 1rem;
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
     }
-    .search-modal {
-      height: 100%;
-      max-height: none;
-      border-radius: 0;
+    .nav-inner {
+      gap: 0.75rem;
+    }
+  }
+
+  /* On truly narrow phones (<=360px, e.g. iPhone SE 1st gen), drop the
+     WATCHANIMEZ wordmark so the logo + all action icons fit without
+     overflowing the viewport. iPhone SE 2, iPhone 14, etc. keep the wordmark. */
+  @media (max-width: 360px) {
+    .logo-text {
+      display: none;
+    }
+    .navbar {
+      padding: 0.75rem 0.5rem;
+      padding-left: max(0.5rem, env(safe-area-inset-left));
+      padding-right: max(0.5rem, env(safe-area-inset-right));
+    }
+    .nav-inner {
+      gap: 0.25rem;
+    }
+    .nav-icon-btn {
+      min-width: 40px;
+      min-height: 40px;
+    }
+
+    .search-container.open {
+      position: absolute;
+      top: 100%;
+      left: 1rem;
+      right: 1rem;
+      width: calc(100% - 2rem);
+      margin-top: 0.5rem;
+      z-index: 1001;
+      display: block;
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       border: none;
-    }
-    .search-backdrop {
       padding: 0;
     }
-  }
 
+    .search-container.open .search-box {
+      width: 100%;
+      background: rgba(20, 20, 20, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      border-radius: 12px;
+      padding: 0.6rem 1rem;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-container.open .search-box input {
+      flex: 1;
+      font-size: 1rem;
+      padding: 0.2rem 0;
+      background: none;
+      border: none;
+      color: white;
+      outline: none;
+    }
+
+    .search-container.open .suggestions-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      width: 100%;
+      margin-top: 0.25rem;
+      background: rgba(20, 20, 20, 0.98);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      border-radius: 12px;
+      box-sizing: border-box;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  }
   @media (min-width: 1025px) {
-    .hide-desktop { display: none !important; }
+    .hide-desktop { display: none; }
     .user-profile:hover .profile-dropdown {
       opacity: 1;
       visibility: visible;
