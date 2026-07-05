@@ -67,6 +67,17 @@ check_results_utf8.txt
 nul
 .env*
 
+# Wrangler CLI output files (contain Cloudflare Account ID, email — NEVER commit)
+wrangler-check.txt
+wrangler-out.txt
+wrangler-*.txt
+**/wrangler-*.txt
+
+# Kotlin Gradle build cache (binary artifacts, no source value)
+kotlin/.gradle/
+kotlin/.kotlin/
+kotlin/local.properties
+
 # Backend moved to separate private repo (anime-pro-backend-go) — never track it here
 backend-go/
 go.work
