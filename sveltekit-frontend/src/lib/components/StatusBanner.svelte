@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { BACKEND_URL } from '$lib/api';
   import { X } from 'lucide-svelte';
 
   let visible = $state(false);
@@ -8,18 +7,24 @@
   let dismissed = $state(false);
 
   if (browser) {
-    // Check AniList health once on load
-    fetch(`${BACKEND_URL}/api/v1/anilist/search?q=&page=1&limit=1&sort=POPULARITY_DESC`)
+    // Check AniList directly — if it's down, show banner even when Jikan fallback works
+    fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: '{ Media(id:1,type:ANIME){id} }' })
+    })
       .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          if (body.message?.includes('AniList')) {
-            message = 'AniList API is temporarily down — some content may be limited or use fallback data. Streaming & watch pages are unaffected.';
-            visible = true;
-          }
+        const body = await res.json().catch(() => ({}));
+        if (body.errors || !body.data) {
+          message = 'AniList API is temporarily down — content is served from backup sources. Streaming & watch pages are unaffected.';
+          visible = true;
         }
       })
-      .catch(() => {}); // silently ignore network errors
+      .catch(() => {
+        // CORS block or network error — AniList is unreachable
+        message = 'AniList API is temporarily down — content is served from backup sources. Streaming & watch pages are unaffected.';
+        visible = true;
+      });
   }
 </script>
 
