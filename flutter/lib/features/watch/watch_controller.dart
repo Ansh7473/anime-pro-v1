@@ -1,43 +1,70 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/providers.dart';
 import '../../data/models/stream_source.dart';
 import '../../data/services/api_service.dart';
 
-/// Identifies a specific episode to resolve sources for.
 typedef WatchKey = ({String animeId, int episode});
 
-/// Resolves playable sources for an episode.
-///
-/// Strategy (mirrors the website's parallel approach): hit the aggregate
-/// endpoint first for the fast path; if it yields nothing, query the individual
-/// providers in parallel and use whichever returns sources first. Results are
-/// sorted so native (HLS/file) sources come before embeds, and higher quality
-/// first, so the UI can auto-pick the best stream.
-final watchSourcesProvider = FutureProvider.autoDispose
-    .family<List<StreamSource>, WatchKey>((ref, key) async {
-  final api = ref.watch(apiServiceProvider);
+final watchSourcesProvider = StreamProvider.autoDispose
+    .family<List<StreamSource>, WatchKey>((ref, key) {
+      final api = ref.watch(apiServiceProvider);
+      final controller = StreamController<List<StreamSource>>();
+      final seen = <String>{};
+      final currentSources = <StreamSource>[];
 
-  List<StreamSource> sources =
-      await api.getAggregateSources(key.animeId, key.episode);
+      Future<void> fetchAll() async {
+        final futures = kStreamProviders.map((p) async {
+          try {
+            final res = await api.getProviderSources(
+              p,
+              key.animeId,
+              key.episode,
+            );
+            if (res.isNotEmpty) {
+              bool updated = false;
+              for (final s in res) {
+                if (seen.add(s.url)) {
+                  currentSources.add(s);
+                  updated = true;
+                }
+              }
+              if (updated && !controller.isClosed) {
+                // Sort by native file first, then embeds
+                currentSources.sort((a, b) {
+                  if (!a.isEmbed && b.isEmbed) return -1;
+                  if (a.isEmbed && !b.isEmbed) return 1;
+                  return 0;
+                });
+                controller.add(List.of(currentSources));
+              }
+            }
+          } catch (_) {}
+        });
 
-  // Aggregate is the fast path. Only if it returns nothing do we fan out to the
-  // individual providers in parallel and merge (deduped by URL).
-  if (sources.isEmpty) {
-    final futures = kStreamProviders.map(
-      (p) => api
-          .getProviderSources(p, key.animeId, key.episode)
-          .catchError((_) => <StreamSource>[]),
-    );
-    final results = await Future.wait(futures);
-    final seen = <String>{};
-    for (final s in results.expand((e) => e)) {
-      if (seen.add(s.url)) sources.add(s);
-    }
-  }
+        await Future.wait(futures);
 
-  return sources;
-});
+        if (currentSources.isEmpty) {
+          try {
+            final agg = await api.getAggregateSources(key.animeId, key.episode);
+            for (final s in agg) {
+              if (seen.add(s.url)) currentSources.add(s);
+            }
+            if (!controller.isClosed) {
+              controller.add(List.of(currentSources));
+            }
+          } catch (_) {}
+        }
+        if (!controller.isClosed) controller.close();
+      }
+
+      fetchAll();
+
+      ref.onDispose(controller.close);
+      return controller.stream;
+    });
 
 /// Picks the default source for a preferred language, mirroring the website:
 /// special-case Hindi and English/Dub, otherwise just take the first source
@@ -49,8 +76,9 @@ StreamSource? pickBestSource(List<StreamSource> sources, String preferredLang) {
     final m = sources.where((s) => s.language.contains('hindi'));
     if (m.isNotEmpty) return m.first;
   } else if (lang == 'english' || lang == 'dub') {
-    final m = sources
-        .where((s) => s.language.contains('english') || s.language == 'dub');
+    final m = sources.where(
+      (s) => s.language.contains('english') || s.language == 'dub',
+    );
     if (m.isNotEmpty) return m.first;
   }
   return sources.first;

@@ -1,6 +1,7 @@
 package com.watchanimez.tv.ui.search
 
 import androidx.compose.foundation.BorderStroke
+import com.watchanimez.tv.ui.components.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -131,12 +132,7 @@ fun SearchScreen(
         // Content area
         when {
             isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Searching...", color = AppColors.textMuted, fontSize = 16.sp)
-                }
+                GridLoadingSkeleton()
             }
 
             query.isEmpty() -> {

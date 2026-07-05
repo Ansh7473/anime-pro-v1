@@ -2,6 +2,7 @@ package com.watchanimez.tv.ui.home
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import com.watchanimez.tv.ui.components.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.watchanimez.tv.data.model.Anime
+import com.watchanimez.tv.data.model.WatchHistory
 import com.watchanimez.tv.ui.theme.AppColors
 import kotlinx.coroutines.delay
 
@@ -226,9 +228,8 @@ private fun HomeContent(
         // Continue watching (if present)
         if (uiState.continueWatching.isNotEmpty()) {
             item(key = "continue") {
-                ContentRow(
-                    title = "⏳ Continue Watching",
-                    animes = uiState.continueWatching,
+                ContinueWatchingRow(
+                    items = uiState.continueWatching,
                     onAnimeClick = onAnimeClick,
                 )
             }
@@ -609,71 +610,7 @@ private fun AnimeCard(
 
 @Composable
 private fun LoadingState() {
-    val shimmerColors = listOf(
-        AppColors.card,
-        AppColors.cardHover,
-        AppColors.card,
-    )
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnim by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer-translate",
-    )
-    val shimmerBrush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateAnim - 200f, 0f),
-        end = Offset(translateAnim, 0f),
-    )
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        userScrollEnabled = false,
-    ) {
-        // Hero placeholder
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(380.dp)
-                    .background(shimmerBrush)
-            )
-        }
-
-        // Row placeholders (3 rows)
-        items(3) {
-            Column(modifier = Modifier.padding(top = 20.dp)) {
-                // Title bar placeholder
-                Box(
-                    modifier = Modifier
-                        .padding(start = 48.dp, bottom = 10.dp)
-                        .width(180.dp)
-                        .height(20.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(shimmerBrush)
-                )
-                // Card placeholders
-                Row(
-                    modifier = Modifier.padding(horizontal = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    repeat(6) {
-                        Box(
-                            modifier = Modifier
-                                .width(150.dp)
-                                .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(shimmerBrush)
-                        )
-                    }
-                }
-            }
-        }
-    }
+    HomeLoadingSkeleton()
 }
 
 // ─── Error State ───────────────────────────────────────────────────────────────
@@ -722,6 +659,127 @@ private fun ErrorState(
                     fontWeight = FontWeight.W600,
                 )
             }
+        }
+    }
+}
+
+// ─── Continue Watching Row ────────────────────────────────────────────────────
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun ContinueWatchingRow(
+    items: List<WatchHistory>,
+    onAnimeClick: (Int) -> Unit,
+) {
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Text(
+            text = "⏳ Continue Watching",
+            modifier = Modifier.padding(start = 48.dp, bottom = 12.dp),
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.W700,
+        )
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 48.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(items, key = { it.animeId }) { entry ->
+                val animeIdInt = entry.animeId.toIntOrNull() ?: return@items
+                ContinueWatchingCard(
+                    entry = entry,
+                    onClick = { onAnimeClick(animeIdInt) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun ContinueWatchingCard(
+    entry: WatchHistory,
+    onClick: () -> Unit,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val progress = if (entry.duration > 0) (entry.progress / entry.duration).coerceIn(0.0, 1.0) else 0.0
+
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .width(150.dp)
+            .onFocusChanged { isFocused = it.isFocused },
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = AppColors.card,
+            focusedContainerColor = AppColors.card,
+        ),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(
+                border = BorderStroke(2.dp, AppColors.red),
+                shape = RoundedCornerShape(8.dp),
+            ),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+    ) {
+        Column {
+            // Poster with progress bar + episode badge
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(2f / 3f)
+                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)),
+            ) {
+                AsyncImage(
+                    model = entry.animePoster,
+                    contentDescription = entry.animeTitle,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+
+                // Episode badge
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = "EP ${entry.episodeNumber}",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.W700,
+                    )
+                }
+
+                // Progress bar at bottom of poster
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Color.White.copy(alpha = 0.2f)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(progress.toFloat())
+                            .background(AppColors.red),
+                    )
+                }
+            }
+
+            // Title
+            Text(
+                text = entry.animeTitle ?: "Unknown",
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                color = if (isFocused) Color.White else AppColors.textMuted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.W500,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

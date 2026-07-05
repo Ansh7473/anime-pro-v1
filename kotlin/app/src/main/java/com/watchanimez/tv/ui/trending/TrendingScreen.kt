@@ -1,6 +1,7 @@
 package com.watchanimez.tv.ui.trending
 
 import androidx.compose.foundation.BorderStroke
+import com.watchanimez.tv.ui.components.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -102,9 +103,7 @@ fun TrendingScreen(
 
         // Grid
         if (uiState.isLoading && trending.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Loading...", color = AppColors.textMuted, fontSize = 16.sp)
-            }
+            GridLoadingSkeleton()
         } else if (trending.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No trending anime", color = AppColors.textMuted, fontSize = 16.sp)

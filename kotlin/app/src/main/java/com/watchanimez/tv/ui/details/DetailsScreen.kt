@@ -61,6 +61,10 @@ fun DetailsScreen(
             onBack = onBack,
             onPlay = onPlay,
             onAnimeClick = onAnimeClick,
+            isInWatchlist = uiState.isInWatchlist,
+            isFavorite = uiState.isFavorite,
+            onToggleWatchlist = viewModel::toggleWatchlist,
+            onToggleFavorite = viewModel::toggleFavorite,
         )
         else -> ErrorState(
             message = "Anime not found",
@@ -122,6 +126,10 @@ private fun DetailsContent(
     onBack: () -> Unit,
     onPlay: (Int, Int) -> Unit,
     onAnimeClick: (Int) -> Unit,
+    isInWatchlist: Boolean = false,
+    isFavorite: Boolean = false,
+    onToggleWatchlist: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Full-screen backdrop
@@ -177,6 +185,10 @@ private fun DetailsContent(
                 episodes = episodes,
                 animeId = animeId,
                 onPlay = onPlay,
+                isInWatchlist = isInWatchlist,
+                isFavorite = isFavorite,
+                onToggleWatchlist = onToggleWatchlist,
+                onToggleFavorite = onToggleFavorite,
                 modifier = Modifier.weight(0.42f),
             )
 
@@ -223,6 +235,10 @@ private fun InfoColumn(
     episodes: List<Episode>,
     animeId: Int,
     onPlay: (Int, Int) -> Unit,
+    isInWatchlist: Boolean = false,
+    isFavorite: Boolean = false,
+    onToggleWatchlist: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -305,17 +321,17 @@ private fun InfoColumn(
             // Watchlist button
             var wlFocused by remember { mutableStateOf(false) }
             Surface(
-                onClick = { /* watchlist action */ },
+                onClick = onToggleWatchlist,
                 modifier = Modifier.onFocusChanged { wlFocused = it.isFocused },
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
                 colors = ClickableSurfaceDefaults.colors(
-                    containerColor = Color.White.copy(alpha = 0.12f),
+                    containerColor = if (isInWatchlist) AppColors.red.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.12f),
                     focusedContainerColor = Color.White.copy(alpha = 0.3f),
                 ),
                 scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
             ) {
                 Text(
-                    "+ Watchlist",
+                    if (isInWatchlist) "✓ Watchlist" else "+ Watchlist",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 13.dp),
                     color = if (wlFocused) Color.White else AppColors.textMuted,
                     fontSize = 14.sp,
@@ -326,7 +342,7 @@ private fun InfoColumn(
             // Favorite button
             var favFocused by remember { mutableStateOf(false) }
             Surface(
-                onClick = { /* favorite action */ },
+                onClick = onToggleFavorite,
                 modifier = Modifier.onFocusChanged { favFocused = it.isFocused },
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
                 colors = ClickableSurfaceDefaults.colors(
@@ -336,9 +352,9 @@ private fun InfoColumn(
                 scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
             ) {
                 Text(
-                    "♥",
+                    if (isFavorite) "♥" else "♡",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
-                    color = Color.White,
+                    color = if (isFavorite) AppColors.red else Color.White,
                     fontSize = 16.sp,
                 )
             }

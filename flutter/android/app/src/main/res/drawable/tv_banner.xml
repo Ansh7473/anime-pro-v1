@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV banner (320×180dp) shown on Android TV launcher home screen.
+     Using a simple vector so we don't need a raster asset. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dark background matching app theme -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0A0A0A" />
+            <corners android:radius="4dp" />
+        </shape>
+    </item>
+    <!-- Red accent bar at bottom -->
+    <item android:bottom="0dp" android:top="164dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#E50914" />
+        </shape>
+    </item>
+</layer-list>

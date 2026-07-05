@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -32,37 +33,37 @@ class DetailsScreen extends ConsumerWidget {
     return Scaffold(
       body: anime == null
           ? (details.hasError
-              ? ErrorRetry(
-                  message: 'Could not load this title.',
-                  onRetry: () => ref.invalidate(animeDetailsProvider(id)),
-                )
-              : const CenteredLoader())
+                ? ErrorRetry(
+                    message: 'Could not load this title.',
+                    onRetry: () => ref.invalidate(animeDetailsProvider(id)),
+                  )
+                : const CenteredLoader())
           : (tv
-              ? _buildTvLayout(context, ref, anime, episodes, recs)
-              : CustomScrollView(
-                  slivers: [
-                    SliverAppBar(
-                      expandedHeight: 300,
-                      pinned: true,
-                      backgroundColor: AppColors.bg,
-                      flexibleSpace: FlexibleSpaceBar(
-                        background: _banner(context, anime),
+                ? _buildTvLayout(context, ref, anime, episodes, recs)
+                : CustomScrollView(
+                    slivers: [
+                      SliverAppBar(
+                        expandedHeight: 300,
+                        pinned: true,
+                        backgroundColor: AppColors.bg,
+                        flexibleSpace: FlexibleSpaceBar(
+                          background: _banner(context, anime),
+                        ),
                       ),
-                    ),
-                    SliverToBoxAdapter(child: _header(context, anime)),
-                    SliverToBoxAdapter(
-                      child: _episodes(context, anime, episodes),
-                    ),
-                    SliverToBoxAdapter(
-                      child: recs.maybeWhen(
-                        data: (list) =>
-                            ContentRow(title: 'More Like This', items: list),
-                        orElse: () => const SizedBox.shrink(),
+                      SliverToBoxAdapter(child: _header(context, anime)),
+                      SliverToBoxAdapter(
+                        child: _episodes(context, anime, episodes),
                       ),
-                    ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                  ],
-                )),
+                      SliverToBoxAdapter(
+                        child: recs.maybeWhen(
+                          data: (list) =>
+                              ContentRow(title: 'More Like This', items: list),
+                          orElse: () => const SizedBox.shrink(),
+                        ),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                    ],
+                  )),
     );
   }
 
@@ -73,168 +74,215 @@ class DetailsScreen extends ConsumerWidget {
     AsyncValue<List<Episode>> episodes,
     AsyncValue<List<Anime>> recs,
   ) {
-    return Stack(
-      children: [
-        // 1. Full-screen backdrop image of the anime banner
-        Positioned.fill(
-          child: Image.network(
-            anime.banner ?? anime.poster ?? "",
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(color: AppColors.bg),
-          ),
-        ),
-        // Scrims for visual depth and high contrast/legibility
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Colors.black.withValues(alpha: 0.95),
-                  Colors.black.withValues(alpha: 0.65),
-                  Colors.black.withValues(alpha: 0.2),
-                ],
-                stops: const [0.0, 0.55, 1.0],
+    // ponytail: FocusTraversalGroup with WidgetOrderTraversalPolicy ensures
+    // D-pad moves: Back → Play → Watchlist/Fav → Episodes → Recs.
+    // Upgrade to a custom TraversalPolicy if spatial layout changes.
+    return FocusTraversalGroup(
+      policy: WidgetOrderTraversalPolicy(),
+      child: FocusScope(
+        autofocus: true,
+        child: Stack(
+          children: [
+            // 1. Full-screen backdrop image of the anime banner
+            Positioned.fill(
+              child: Image.network(
+                anime.banner ?? anime.poster ?? "",
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(color: AppColors.bg),
               ),
             ),
-          ),
-        ),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-                  AppColors.bg,
-                  Colors.black.withValues(alpha: 0.4),
-                  Colors.transparent,
-                ],
-                stops: const [0.0, 0.45, 1.0],
-              ),
-            ),
-          ),
-        ),
-
-        // Back button positioned at top-left
-        Positioned(
-          top: 32,
-          left: 48,
-          child: _TvFocusable(
-            borderRadius: 22,
-            onTap: () => context.pop(),
-            builder: (focused) => Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: focused ? Colors.white.withValues(alpha: 0.2) : Colors.black45,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: focused ? Colors.white.withValues(alpha: 0.3) : Colors.transparent,
-                  width: 1.5,
+            // Scrims for visual depth and high contrast/legibility
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.95),
+                      Colors.black.withValues(alpha: 0.65),
+                      Colors.black.withValues(alpha: 0.2),
+                    ],
+                    stops: const [0.0, 0.55, 1.0],
+                  ),
                 ),
               ),
-              child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
             ),
-          ),
-        ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      AppColors.bg,
+                      Colors.black.withValues(alpha: 0.4),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
+                ),
+              ),
+            ),
 
-        // 2. Main Content Split Pane
-        Positioned.fill(
-          top: 100,
-          left: 48,
-          right: 48,
-          bottom: 24,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left Pane (42% width) - fixed metadata & synopsis
-              Expanded(
-                flex: 42,
-                child: SingleChildScrollView(
+            // 2. Main content – single Column so all focusable items share
+            //    one traversal tree (Back, Play, Library, Episodes, Recs).
+            Positioned.fill(
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(48, 24, 48, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 12),
-                      Text(
-                        anime.title,
-                        style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w900,
-                          height: 1.15,
-                          letterSpacing: -0.5,
-                          color: AppColors.text,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Clean details metadata line (Score, year, format, episodes, status)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (anime.score != null)
-                            _chip(true, Icons.star_rounded, anime.score!.toStringAsFixed(1), color: Colors.amber),
-                          if (anime.format != null) _chip(true, null, anime.format!),
-                          if (anime.episodes != null) _chip(true, null, '${anime.episodes} eps'),
-                          if (anime.year != null) _chip(true, null, '${anime.year}'),
-                          if (anime.status != null) _chip(true, null, anime.status!),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // Genres
-                      if (anime.genres.isNotEmpty) ...[
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: anime.genres.map((g) => _chip(true, null, g)).toList(),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                      // Actions (Play E1, Watchlist, Favorite)
-                      _actions(context, anime),
-                      const SizedBox(height: 28),
-                      // Synopsis / Description
-                      if (anime.description != null && anime.description!.isNotEmpty) ...[
-                        Text(
-                          anime.description!,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 15,
-                            height: 1.5,
+                      // Back button – first in order, but NOT autofocused.
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: _TvFocusable(
+                          borderRadius: 22,
+                          onTap: () => context.pop(),
+                          builder: (focused) => Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: focused
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : Colors.black45,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: focused
+                                    ? Colors.white.withValues(alpha: 0.3)
+                                    : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 48),
-              // Right Pane (58% width) - scrollable list of episodes & recommendations
-              Expanded(
-                flex: 58,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _episodes(context, anime, episodes),
-                      const SizedBox(height: 32),
-                      recs.maybeWhen(
-                        data: (list) => list.isEmpty
-                            ? const SizedBox.shrink()
-                            : ContentRow(title: 'More Like This', items: list),
-                        orElse: () => const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Split pane: metadata left, episodes right
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Left Pane (42% width) - fixed metadata & synopsis
+                            Expanded(
+                              flex: 42,
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      anime.title,
+                                      style: const TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.w900,
+                                        height: 1.15,
+                                        letterSpacing: -0.5,
+                                        color: AppColors.text,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // Clean details metadata line
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        if (anime.score != null)
+                                          _chip(
+                                            true,
+                                            Icons.star_rounded,
+                                            anime.score!.toStringAsFixed(1),
+                                            color: Colors.amber,
+                                          ),
+                                        if (anime.format != null)
+                                          _chip(true, null, anime.format!),
+                                        if (anime.episodes != null)
+                                          _chip(
+                                            true,
+                                            null,
+                                            '${anime.episodes} eps',
+                                          ),
+                                        if (anime.year != null)
+                                          _chip(true, null, '${anime.year}'),
+                                        if (anime.status != null)
+                                          _chip(true, null, anime.status!),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    // Genres
+                                    if (anime.genres.isNotEmpty) ...[
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: anime.genres
+                                            .map((g) => _chip(true, null, g))
+                                            .toList(),
+                                      ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                    // Actions (Play E1, Watchlist, Favorite)
+                                    _actions(context, anime),
+                                    const SizedBox(height: 28),
+                                    // Synopsis / Description
+                                    if (anime.description != null &&
+                                        anime.description!.isNotEmpty) ...[
+                                      Text(
+                                        anime.description!,
+                                        style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 15,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 48),
+                            // Right Pane (58% width) - scrollable episodes & recommendations
+                            Expanded(
+                              flex: 58,
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _episodes(context, anime, episodes),
+                                    const SizedBox(height: 32),
+                                    recs.maybeWhen(
+                                      data: (list) => list.isEmpty
+                                          ? const SizedBox.shrink()
+                                          : ContentRow(
+                                              title: 'More Like This',
+                                              items: list,
+                                            ),
+                                      orElse: () => const SizedBox.shrink(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -247,10 +295,7 @@ class DetailsScreen extends ConsumerWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        NetworkPoster(
-          url: a.banner ?? a.poster,
-          memCacheWidth: null,
-        ),
+        NetworkPoster(url: a.banner ?? a.poster, memCacheWidth: null),
         // Top scrim — keeps the back button / status bar readable.
         const DecoratedBox(
           decoration: BoxDecoration(
@@ -339,8 +384,9 @@ class DetailsScreen extends ConsumerWidget {
                     Text(
                       a.title,
                       style: TextStyle(
-                          fontSize: tv ? 30 : 20,
-                          fontWeight: FontWeight.w800),
+                        fontSize: tv ? 30 : 20,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     SizedBox(height: tv ? 14 : 10),
                     Wrap(
@@ -348,9 +394,12 @@ class DetailsScreen extends ConsumerWidget {
                       runSpacing: 8,
                       children: [
                         if (a.score != null)
-                          _chip(tv, Icons.star_rounded,
-                              a.score!.toStringAsFixed(1),
-                              color: Colors.amber),
+                          _chip(
+                            tv,
+                            Icons.star_rounded,
+                            a.score!.toStringAsFixed(1),
+                            color: Colors.amber,
+                          ),
                         if (a.format != null) _chip(tv, null, a.format!),
                         if (a.episodes != null)
                           _chip(tv, null, '${a.episodes} eps'),
@@ -403,7 +452,9 @@ class DetailsScreen extends ConsumerWidget {
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 textStyle: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w800),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -434,8 +485,11 @@ class DetailsScreen extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.play_arrow_rounded,
-                    color: focused ? AppColors.bg : Colors.white, size: 26),
+                Icon(
+                  Icons.play_arrow_rounded,
+                  color: focused ? AppColors.bg : Colors.white,
+                  size: 26,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Play E1',
@@ -456,7 +510,10 @@ class DetailsScreen extends ConsumerWidget {
   }
 
   Widget _episodes(
-      BuildContext context, Anime a, AsyncValue<List<Episode>> episodes) {
+    BuildContext context,
+    Anime a,
+    AsyncValue<List<Episode>> episodes,
+  ) {
     final tv = DeviceInfo.isTv(context);
     // In our TV split layout, the right column is already padded by the parent Positioned.
     // So we don't need horizontal padding on TV!
@@ -487,8 +544,7 @@ class DetailsScreen extends ConsumerWidget {
               ],
             ),
             data: (list) {
-              final count =
-                  list.isNotEmpty ? list.length : (a.episodes ?? 0);
+              final count = list.isNotEmpty ? list.length : (a.episodes ?? 0);
               if (count == 0) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,8 +564,7 @@ class DetailsScreen extends ConsumerWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     clipBehavior: Clip.none,
-                    gridDelegate:
-                        SliverGridDelegateWithMaxCrossAxisExtent(
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: tv ? 96 : 70,
                       mainAxisSpacing: tv ? 14 : 10,
                       crossAxisSpacing: tv ? 14 : 10,
@@ -551,16 +606,20 @@ class DetailsScreen extends ConsumerWidget {
                               color: focused ? Colors.white : AppColors.card,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: focused ? Colors.white : AppColors.cardHover,
+                                color: focused
+                                    ? Colors.white
+                                    : AppColors.cardHover,
                                 width: 2,
                               ),
                               boxShadow: focused
                                   ? [
                                       BoxShadow(
-                                        color: Colors.white.withValues(alpha: 0.2),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         blurRadius: 12,
                                         spreadRadius: 1,
-                                      )
+                                      ),
                                     ]
                                   : null,
                             ),
@@ -596,7 +655,9 @@ class DetailsScreen extends ConsumerWidget {
   Widget _chip(bool tv, IconData? icon, String label, {Color? color}) =>
       Container(
         padding: EdgeInsets.symmetric(
-            horizontal: tv ? 14 : 10, vertical: tv ? 9 : 6),
+          horizontal: tv ? 14 : 10,
+          vertical: tv ? 9 : 6,
+        ),
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(6),
@@ -684,6 +745,11 @@ class _TvFocusableState extends State<_TvFocusable> {
     return FocusableActionDetector(
       autofocus: widget.autofocus,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -703,7 +769,9 @@ class _TvFocusableState extends State<_TvFocusable> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: Border.all(
-                color: _focused ? Colors.white.withValues(alpha: 0.8) : Colors.transparent,
+                color: _focused
+                    ? Colors.white.withValues(alpha: 0.8)
+                    : Colors.transparent,
                 width: 2.0,
               ),
               boxShadow: _focused
@@ -717,7 +785,7 @@ class _TvFocusableState extends State<_TvFocusable> {
                         color: Colors.white.withValues(alpha: 0.15),
                         blurRadius: 18,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -746,11 +814,13 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
   void _snack(String m) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(m),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.card,
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(m),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.card,
+        ),
+      );
   }
 
   Future<void> _toggleWatchlist(bool current) async {
@@ -760,8 +830,11 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
     }
     setState(() => _busyW = true);
     try {
-      final added =
-          await LibraryActions.toggleWatchlist(ref, widget.anime, current);
+      final added = await LibraryActions.toggleWatchlist(
+        ref,
+        widget.anime,
+        current,
+      );
       _snack(added ? 'Added to watchlist' : 'Removed from watchlist');
     } catch (_) {
       _snack('Could not update watchlist');
@@ -777,8 +850,11 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
     }
     setState(() => _busyF = true);
     try {
-      final added =
-          await LibraryActions.toggleFavorite(ref, widget.anime, current);
+      final added = await LibraryActions.toggleFavorite(
+        ref,
+        widget.anime,
+        current,
+      );
       _snack(added ? 'Added to favorites' : 'Removed from favorites');
     } catch (_) {
       _snack('Could not update favorites');
@@ -791,8 +867,7 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
   Widget build(BuildContext context) {
     final tv = DeviceInfo.isTv(context);
     final id = widget.anime.id.toString();
-    final inWatch =
-        ref.watch(watchlistStatusProvider(id)).valueOrNull ?? false;
+    final inWatch = ref.watch(watchlistStatusProvider(id)).valueOrNull ?? false;
     final isFav = ref.watch(favoriteStatusProvider(id)).valueOrNull ?? false;
 
     if (tv) return _buildTv(inWatch, isFav);
@@ -807,7 +882,9 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : Icon(inWatch ? Icons.check_rounded : Icons.add_rounded),
           label: Text(inWatch ? 'In List' : 'Watchlist'),
@@ -815,12 +892,16 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
             foregroundColor: inWatch ? Colors.white70 : AppColors.text,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             side: BorderSide(
-                color: inWatch ? Colors.white38 : AppColors.cardHover,
-                width: 1.5),
-            textStyle:
-                const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              color: inWatch ? Colors.white38 : AppColors.cardHover,
+              width: 1.5,
+            ),
+            textStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -839,7 +920,9 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : Icon(
                       isFav
@@ -884,11 +967,15 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: focused ? AppColors.bg : Colors.white),
+                            strokeWidth: 2,
+                            color: focused ? AppColors.bg : Colors.white,
+                          ),
                         )
                       : Icon(
                           inWatch ? Icons.check_rounded : Icons.add_rounded,
-                          color: focused ? AppColors.bg : (inWatch ? Colors.white70 : AppColors.text),
+                          color: focused
+                              ? AppColors.bg
+                              : (inWatch ? Colors.white70 : AppColors.text),
                           size: 24,
                         ),
                   const SizedBox(width: 8),
@@ -897,7 +984,9 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: focused ? AppColors.bg : (inWatch ? Colors.white70 : AppColors.text),
+                      color: focused
+                          ? AppColors.bg
+                          : (inWatch ? Colors.white70 : AppColors.text),
                     ),
                   ),
                 ],
@@ -926,13 +1015,17 @@ class _LibraryButtonsState extends ConsumerState<_LibraryButtons> {
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: focused ? AppColors.bg : Colors.white),
+                      strokeWidth: 2,
+                      color: focused ? AppColors.bg : Colors.white,
+                    ),
                   )
                 : Icon(
                     isFav
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
-                    color: focused ? (isFav ? AppColors.red : AppColors.bg) : (isFav ? AppColors.red : AppColors.text),
+                    color: focused
+                        ? (isFav ? AppColors.red : AppColors.bg)
+                        : (isFav ? AppColors.red : AppColors.text),
                     size: 28,
                   ),
           ),
@@ -984,8 +1077,7 @@ class _ExpandableSynopsisState extends State<_ExpandableSynopsis> {
           child: Text(
             widget.text,
             maxLines: _expanded ? null : 4,
-            overflow:
-                _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
             style: TextStyle(
               color: AppColors.textMuted,
               height: 1.5,

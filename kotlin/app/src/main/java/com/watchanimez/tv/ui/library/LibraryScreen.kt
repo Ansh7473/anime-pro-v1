@@ -1,6 +1,7 @@
 package com.watchanimez.tv.ui.library
 
 import androidx.compose.animation.animateColorAsState
+import com.watchanimez.tv.ui.components.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -99,23 +100,7 @@ fun LibraryScreen(
         // Content
         when {
             uiState.isLoading -> {
-                // Shimmer placeholders
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    items(10) {
-                        Box(
-                            modifier = Modifier
-                                .width(150.dp)
-                                .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AppColors.cardHover),
-                        )
-                    }
-                }
+                GridLoadingSkeleton()
             }
 
             uiState.error != null -> {

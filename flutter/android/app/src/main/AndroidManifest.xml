@@ -14,7 +14,7 @@
     <application
         android:label="watchanimez"
         android:name="${applicationName}"
-        android:banner="@mipmap/ic_launcher"
+        android:banner="@drawable/tv_banner"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/launcher_icon">
         <activity

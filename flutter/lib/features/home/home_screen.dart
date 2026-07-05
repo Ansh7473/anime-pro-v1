@@ -37,11 +37,18 @@ class HomeScreen extends ConsumerWidget {
       ),
       data: (HomeData data) {
         final activeHero = ref.watch(activeHeroAnimeProvider);
-        final displayAnime = focusedAnime ?? activeHero ?? (data.spotlight.isNotEmpty ? data.spotlight.first : null);
+        final displayAnime =
+            focusedAnime ??
+            activeHero ??
+            (data.spotlight.isNotEmpty ? data.spotlight.first : null);
 
         final entries = data.sections.entries.toList();
-        final moviesIdx = entries.indexWhere((e) => e.key.toLowerCase() == 'movies');
-        final actionIdx = entries.indexWhere((e) => e.key.toLowerCase() == 'action');
+        final moviesIdx = entries.indexWhere(
+          (e) => e.key.toLowerCase() == 'movies',
+        );
+        final actionIdx = entries.indexWhere(
+          (e) => e.key.toLowerCase() == 'action',
+        );
         if (moviesIdx != -1 && actionIdx != -1 && moviesIdx > actionIdx) {
           final movies = entries.removeAt(moviesIdx);
           entries.insert(actionIdx, movies);
@@ -79,10 +86,12 @@ class HomeScreen extends ConsumerWidget {
                 ),
               SliverToBoxAdapter(
                 child: HeroBanner(
-                  items: entries.firstWhere(
-                    (e) => e.key.toLowerCase() == 'movies',
-                    orElse: () => MapEntry('', data.spotlight),
-                  ).value,
+                  items: entries
+                      .firstWhere(
+                        (e) => e.key.toLowerCase() == 'movies',
+                        orElse: () => MapEntry('', data.spotlight),
+                      )
+                      .value,
                   height: heroHeight,
                 ),
               ),
@@ -106,56 +115,61 @@ class HomeScreen extends ConsumerWidget {
         );
 
         if (isTv && displayAnime != null) {
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  child: Image.network(
-                    displayAnime.banner ?? displayAnime.poster ?? "",
-                    key: ValueKey<String>(displayAnime.id.toString() + (displayAnime.banner ?? displayAnime.poster ?? "")),
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (_, _, _) => Container(color: AppColors.bg),
-                  ),
-                ),
-              ),
-              // Cinematic background shading
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.85),
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.black.withValues(alpha: 0.1),
-                      ],
-                      stops: const [0.0, 0.45, 1.0],
+          return _TvFocusRequestor(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    child: Image.network(
+                      displayAnime.banner ?? displayAnime.poster ?? "",
+                      key: ValueKey<String>(
+                        displayAnime.id.toString() +
+                            (displayAnime.banner ?? displayAnime.poster ?? ""),
+                      ),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      errorBuilder: (_, _, _) => Container(color: AppColors.bg),
                     ),
                   ),
                 ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [
-                        AppColors.bg,
-                        Colors.black.withValues(alpha: 0.3),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.35, 1.0],
+                // Cinematic background shading
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.85),
+                          Colors.black.withValues(alpha: 0.5),
+                          Colors.black.withValues(alpha: 0.1),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Positioned.fill(child: mainContent),
-            ],
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          AppColors.bg,
+                          Colors.black.withValues(alpha: 0.3),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.35, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(child: mainContent),
+              ],
+            ),
           );
         }
 
@@ -195,7 +209,10 @@ class _Wordmark extends StatelessWidget {
       TextSpan(
         children: [
           TextSpan(text: 'Watch'),
-          TextSpan(text: 'Animez', style: TextStyle(color: AppColors.red)),
+          TextSpan(
+            text: 'Animez',
+            style: TextStyle(color: AppColors.red),
+          ),
         ],
       ),
       style: TextStyle(
@@ -217,7 +234,10 @@ class _TvFocusRequestor extends StatefulWidget {
 }
 
 class _TvFocusRequestorState extends State<_TvFocusRequestor> {
-  final FocusScopeNode _scopeNode = FocusScopeNode(debugLabel: 'tvFocusRequestorScope');
+  final FocusScopeNode _scopeNode = FocusScopeNode(
+    debugLabel: 'tvFocusRequestorScope',
+  );
+  bool _hasFocused = false;
 
   @override
   void initState() {
@@ -225,28 +245,13 @@ class _TvFocusRequestorState extends State<_TvFocusRequestor> {
     _requestContentFocus();
   }
 
-  @override
-  void didUpdateWidget(covariant _TvFocusRequestor oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _requestContentFocus();
-  }
-
   void _requestContentFocus() {
+    if (_hasFocused) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final primary = FocusManager.instance.primaryFocus;
-        if (primary == null ||
-            primary == FocusManager.instance.rootScope ||
-            primary == _scopeNode ||
-            !_scopeNode.hasFocus) {
-          if (_scopeNode.focusedChild != null) {
-            _scopeNode.focusedChild!.requestFocus();
-          } else if (_scopeNode.children.isNotEmpty) {
-            _scopeNode.children.first.requestFocus();
-          } else {
-            _scopeNode.requestFocus();
-          }
-        }
+      if (!mounted || _hasFocused) return;
+      if (!_scopeNode.hasFocus) {
+        _scopeNode.requestFocus();
+        _hasFocused = true;
       }
     });
   }
@@ -259,10 +264,6 @@ class _TvFocusRequestorState extends State<_TvFocusRequestor> {
 
   @override
   Widget build(BuildContext context) {
-    return FocusScope(
-      node: _scopeNode,
-      autofocus: true,
-      child: widget.child,
-    );
+    return FocusScope(node: _scopeNode, autofocus: true, child: widget.child);
   }
 }

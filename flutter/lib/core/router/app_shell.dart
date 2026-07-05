@@ -13,9 +13,9 @@ const _destinations = [
   (icon: Icons.person_rounded, label: 'Profile'),
 ];
 
-/// Hosts the persistent navigation chrome and the active branch. On phones it
-/// renders a bottom navigation bar; on tablets/TV it renders a left
-/// [NavigationRail] (better for 10-foot/remote use and landscape).
+/// Hosts persistent navigation chrome + active branch. On phones it
+/// renders a bottom navigation bar; on tablets a NavigationRail;
+/// on TV a horizontal top bar (D-pad DOWN goes straight into content).
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.navigationShell});
 
@@ -26,10 +26,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  // Separate focus scopes for the TV rail and the page content so a remote can
-  // hop between them: LEFT from the content's left edge focuses the rail, and
-  // RIGHT from the rail returns to the content. Up/Down stay within each.
-  final FocusScopeNode _railScope = FocusScopeNode(debugLabel: 'tvRail');
+  final FocusScopeNode _navBarScope = FocusScopeNode(debugLabel: 'tvNavBar');
   final FocusScopeNode _contentScope = FocusScopeNode(debugLabel: 'tvContent');
 
   StatefulNavigationShell get navigationShell => widget.navigationShell;
@@ -37,43 +34,23 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    // Seed initial focus into the content scope so the remote has an anchor
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && DeviceInfo.isTv(context)) {
         _contentScope.requestDefaultFocus();
       }
     });
-
-    // Safeguard: listen to focus changes. If focus gets lost completely on TV,
-    // automatically recover focus on the content scope.
     FocusManager.instance.addListener(_handleFocusChange);
   }
 
   void _handleFocusChange() {
-    if (!mounted || !DeviceInfo.isTv(context)) return;
-    final primary = FocusManager.instance.primaryFocus;
-    if (primary == null ||
-        primary == FocusManager.instance.rootScope ||
-        primary == _contentScope ||
-        (_contentScope.hasFocus && _contentScope.focusedChild == null)) {
-      _recoverFocus();
-    }
-  }
-
-  bool _recovering = false;
-  void _recoverFocus() {
-    if (_recovering) return;
-    _recovering = true;
+    if (!mounted) return;
+    if (!DeviceInfo.isTv(context)) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _recovering = false;
-      if (mounted) {
-        final primary = FocusManager.instance.primaryFocus;
-        if (primary == null ||
-            primary == FocusManager.instance.rootScope ||
-            primary == _contentScope ||
-            (_contentScope.hasFocus && _contentScope.focusedChild == null)) {
-          _contentScope.requestDefaultFocus();
-        }
+      if (!mounted) return;
+      final primary = FocusManager.instance.primaryFocus;
+      // Re-grab focus into content if lost
+      if (primary == null || primary == FocusManager.instance.rootScope) {
+        _contentScope.requestDefaultFocus();
       }
     });
   }
@@ -81,13 +58,12 @@ class _AppShellState extends State<AppShell> {
   @override
   void didUpdateWidget(AppShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.navigationShell.currentIndex != oldWidget.navigationShell.currentIndex) {
+    if (widget.navigationShell.currentIndex !=
+        oldWidget.navigationShell.currentIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && DeviceInfo.isTv(context)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _contentScope.requestDefaultFocus();
-            }
+            if (mounted) _contentScope.requestDefaultFocus();
           });
         }
       });
@@ -97,7 +73,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void dispose() {
     FocusManager.instance.removeListener(_handleFocusChange);
-    _railScope.dispose();
+    _navBarScope.dispose();
     _contentScope.dispose();
     super.dispose();
   }
@@ -110,136 +86,138 @@ class _AppShellState extends State<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && DeviceInfo.isTv(context)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _contentScope.requestDefaultFocus();
-          }
+          if (mounted) _contentScope.requestDefaultFocus();
         });
       }
     });
   }
 
-  KeyEventResult _handleRailContentKeys(FocusNode _, KeyEvent event) {
-    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-      return KeyEventResult.ignored;
-    }
-    final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.arrowLeft) {
-      if (_railScope.hasFocus) return KeyEventResult.ignored;
-
-      final primary = FocusManager.instance.primaryFocus;
-      if (primary != null) {
-        // If focusing an editable text field, only allow jumping to sidebar
-        // if the cursor is at the very beginning (index 0).
-        final editableState = primary.context?.findAncestorStateOfType<EditableTextState>();
-        if (editableState != null) {
-          final selection = editableState.textEditingValue.selection;
-          if (selection.baseOffset > 0) {
-            return KeyEventResult.ignored;
-          }
-        }
-
-        // Try to move left within the content scope.
-        final scope = primary.nearestScope;
-        if (scope != null) {
-          final moved = scope.focusInDirection(TraversalDirection.left);
-          if (!moved) {
-            // No focusable widget to the left, focus the sidebar rail!
-            _railScope.requestFocus();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.handled;
-        }
-      }
-      return KeyEventResult.ignored;
-    }
-    if (key == LogicalKeyboardKey.arrowRight && _railScope.hasFocus) {
-      _contentScope.requestDefaultFocus();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final wide = DeviceInfo.of(context) != FormFactor.phone;
-    if (wide) return _buildWide(context);
+    final form = DeviceInfo.of(context);
+    if (form == FormFactor.tv) return _buildTv(context);
+    if (form == FormFactor.tablet) return _buildTablet(context);
     return _buildPhone(context);
   }
 
-  /// Tablet/TV layout: a left [NavigationRail]. On TV it is extended and wider
-  /// with a brand wordmark and larger icons/labels for a 10-foot experience;
-  /// on tablet it stays a compact, labelled rail.
-  Widget _buildWide(BuildContext context) {
-    final isTv = DeviceInfo.isTv(context);
-    final selected = navigationShell.currentIndex;
+  // ─── TV: top bar + content below ───────────────────────────────────────────
 
-    // TV: a custom rail with a clear D-pad focus ring + selected highlight,
-    // because the stock NavigationRail gives almost no focus feedback on a
-    // 10-foot screen (it looked "dead" with a remote).
-    if (isTv) {
-      return Scaffold(
-        body: Focus(
-          canRequestFocus: false,
-          skipTraversal: true,
-          onKeyEvent: _handleRailContentKeys,
-          child: Row(
-            children: [
-              FocusScope(
-                node: _railScope,
-                child: _TvRail(selectedIndex: selected, onSelect: _go),
+  Widget _buildTv(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Content fills the whole screen (under the transparent nav bar)
+          Positioned.fill(
+            child: FocusTraversalGroup(
+              child: FocusScope(
+                node: _contentScope,
+                child: _TvContentWrapper(
+                  onUpAtTop: () => _navBarScope.requestDefaultFocus(),
+                  child: navigationShell,
+                ),
               ),
-              const VerticalDivider(
-                  width: 1, thickness: 1, color: AppColors.card),
-              Expanded(
-                child: FocusScope(node: _contentScope, child: navigationShell),
-              ),
-            ],
+            ),
           ),
-        ),
-      );
-    }
+          // Nav bar overlays top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: FocusTraversalGroup(
+              policy: OrderedTraversalPolicy(),
+              child: FocusScope(
+                node: _navBarScope,
+                child: Actions(
+                  actions: {
+                    DirectionalFocusIntent:
+                        CallbackAction<DirectionalFocusIntent>(
+                          onInvoke: (intent) {
+                            // Drop focus back to content on DOWN
+                            if (intent.direction == TraversalDirection.down) {
+                              _contentScope.requestDefaultFocus();
+                              return null;
+                            }
+                            // Navigate LEFT/RIGHT within nav bar
+                            final primary = FocusManager.instance.primaryFocus;
+                            if (primary != null) {
+                              FocusTraversalGroup.of(
+                                primary.context!,
+                              ).inDirection(primary, intent.direction);
+                            }
+                            return null;
+                          },
+                        ),
+                  },
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black87,
+                          Colors.black54,
+                          Colors.transparent,
+                        ],
+                        stops: [0.0, 0.7, 1.0],
+                      ),
+                    ),
+                    child: SafeArea(
+                      bottom: false,
+                      child: _TvTopBar(
+                        selectedIndex: navigationShell.currentIndex,
+                        onSelect: _go,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  // ─── Tablet: NavigationRail ────────────────────────────────────────────────
+
+  Widget _buildTablet(BuildContext context) {
+    final selected = navigationShell.currentIndex;
     return Scaffold(
       body: Row(
         children: [
           NavigationRail(
-            extended: isTv,
-            minWidth: isTv ? 96 : 72,
-            minExtendedWidth: 220,
+            minWidth: 72,
             backgroundColor: AppColors.bgLite,
             selectedIndex: selected,
             onDestinationSelected: _go,
-            // Extended rails always show labels beside icons; the compact
-            // tablet rail shows labels beneath each icon.
-            labelType:
-                isTv ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+            labelType: NavigationRailLabelType.all,
             indicatorColor: Colors.white24,
             useIndicator: true,
             groupAlignment: -0.85,
-            selectedIconTheme: IconThemeData(
+            selectedIconTheme: const IconThemeData(
               color: AppColors.text,
-              size: isTv ? 30 : 24,
+              size: 24,
             ),
-            unselectedIconTheme: IconThemeData(
+            unselectedIconTheme: const IconThemeData(
               color: AppColors.textMuted,
-              size: isTv ? 30 : 24,
+              size: 24,
             ),
-            selectedLabelTextStyle: TextStyle(
+            selectedLabelTextStyle: const TextStyle(
               color: AppColors.text,
               fontWeight: FontWeight.w700,
-              fontSize: isTv ? 16 : 12,
+              fontSize: 12,
             ),
-            unselectedLabelTextStyle: TextStyle(
+            unselectedLabelTextStyle: const TextStyle(
               color: AppColors.textMuted,
-              fontWeight: FontWeight.w500,
-              fontSize: isTv ? 16 : 12,
+              fontSize: 12,
             ),
-            leading: isTv ? const _Wordmark() : null,
             destinations: _destinations
-                .map((d) => NavigationRailDestination(
-                      icon: Icon(d.icon),
-                      label: Text(d.label),
-                    ))
+                .map(
+                  (d) => NavigationRailDestination(
+                    icon: Icon(d.icon),
+                    label: Text(d.label),
+                  ),
+                )
                 .toList(),
           ),
           const VerticalDivider(width: 1, thickness: 1, color: AppColors.card),
@@ -249,7 +227,8 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
-  /// Phone layout: the existing bottom navigation bar, themed to match.
+  // ─── Phone: bottom nav bar ─────────────────────────────────────────────────
+
   Widget _buildPhone(BuildContext context) {
     return Scaffold(
       body: navigationShell,
@@ -261,53 +240,67 @@ class _AppShellState extends State<AppShell> {
         currentIndex: navigationShell.currentIndex,
         onTap: _go,
         items: _destinations
-            .map((d) => BottomNavigationBarItem(
-                  icon: Icon(d.icon),
-                  label: d.label,
-                ))
+            .map(
+              (d) =>
+                  BottomNavigationBarItem(icon: Icon(d.icon), label: d.label),
+            )
             .toList(),
       ),
     );
   }
 }
 
-/// 'WatchAnimez' brand wordmark shown atop the extended TV rail —
-/// 'Watch' in white, 'Animez' in brand red.
-class _Wordmark extends StatelessWidget {
-  const _Wordmark();
+// ─── TV Content Wrapper ─────────────────────────────────────────────────────
+
+/// Intercepts D-pad UP at the top edge of content and moves focus to nav bar.
+class _TvContentWrapper extends StatelessWidget {
+  const _TvContentWrapper({required this.onUpAtTop, required this.child});
+
+  final VoidCallback onUpAtTop;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: RichText(
-          text: const TextSpan(
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              height: 1.0,
-            ),
-            children: [
-              TextSpan(text: 'Watch', style: TextStyle(color: AppColors.text)),
-              TextSpan(text: 'Animez', style: TextStyle(color: AppColors.red)),
-            ],
-          ),
+    return Actions(
+      actions: {
+        DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
+          onInvoke: (intent) {
+            if (intent.direction == TraversalDirection.up) {
+              // Check if there's a focusable node above in the same scope.
+              final current = FocusManager.instance.primaryFocus;
+              if (current != null) {
+                final moved = FocusTraversalGroup.of(
+                  current.context!,
+                ).inDirection(current, TraversalDirection.up);
+                if (!moved) {
+                  onUpAtTop();
+                  return null;
+                }
+                return null;
+              }
+            }
+            // Let default traversal handle everything else.
+            final primary = FocusManager.instance.primaryFocus;
+            if (primary != null) {
+              FocusTraversalGroup.of(
+                primary.context!,
+              ).inDirection(primary, intent.direction);
+            }
+            return null;
+          },
         ),
-      ),
+      },
+      child: child,
     );
   }
 }
 
+// ─── TV Top Bar ──────────────────────────────────────────────────────────────
 
-
-/// A 10-foot navigation rail for TV. Each destination is a focusable item with
-/// an obvious red focus ring (so the remote position is always clear) and a
-/// solid red pill when selected. Drives [StatefulNavigationShell.goBranch].
-class _TvRail extends StatelessWidget {
-  const _TvRail({required this.selectedIndex, required this.onSelect});
+/// Horizontal top navigation bar for TV. D-pad LEFT/RIGHT switches tabs,
+/// DOWN goes straight into page content — no sidebar focus confusion.
+class _TvTopBar extends StatelessWidget {
+  const _TvTopBar({required this.selectedIndex, required this.onSelect});
 
   final int selectedIndex;
   final ValueChanged<int> onSelect;
@@ -315,30 +308,59 @@ class _TvRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 200,
-      color: AppColors.bgLite,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      color: Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+      child: Row(
         children: [
           const _Wordmark(),
-          const SizedBox(height: 4),
-          for (var i = 0; i < _destinations.length; i++)
-            _TvRailItem(
+          const SizedBox(width: 40),
+          for (var i = 0; i < _destinations.length; i++) ...[
+            _TvTopBarItem(
               icon: _destinations[i].icon,
               label: _destinations[i].label,
               selected: i == selectedIndex,
               autofocus: i == selectedIndex,
               onTap: () => onSelect(i),
             ),
-          const Spacer(),
+            if (i < _destinations.length - 1) const SizedBox(width: 8),
+          ],
         ],
       ),
     );
   }
 }
 
-class _TvRailItem extends StatefulWidget {
-  const _TvRailItem({
+/// 'WatchAnimez' brand wordmark — 'Watch' in white, 'Animez' in red.
+class _Wordmark extends StatelessWidget {
+  const _Wordmark();
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: const TextSpan(
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.3,
+          height: 1.0,
+        ),
+        children: [
+          TextSpan(
+            text: 'Watch',
+            style: TextStyle(color: AppColors.text),
+          ),
+          TextSpan(
+            text: 'Animez',
+            style: TextStyle(color: AppColors.red),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TvTopBarItem extends StatefulWidget {
+  const _TvTopBarItem({
     required this.icon,
     required this.label,
     required this.selected,
@@ -353,10 +375,10 @@ class _TvRailItem extends StatefulWidget {
   final bool autofocus;
 
   @override
-  State<_TvRailItem> createState() => _TvRailItemState();
+  State<_TvTopBarItem> createState() => _TvTopBarItemState();
 }
 
-class _TvRailItemState extends State<_TvRailItem> {
+class _TvTopBarItemState extends State<_TvTopBarItem> {
   bool _focused = false;
 
   @override
@@ -380,30 +402,32 @@ class _TvRailItemState extends State<_TvRailItem> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: active
                 ? Colors.white.withValues(alpha: 0.12)
-                : (_focused ? Colors.white.withValues(alpha: 0.06) : Colors.transparent),
-            borderRadius: BorderRadius.circular(10),
+                : (_focused
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.transparent),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: _focused
-                  ? Colors.white.withValues(alpha: 0.95)
+                  ? Colors.white.withValues(alpha: 0.9)
                   : Colors.transparent,
               width: 2,
             ),
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(widget.icon, color: fg, size: 24),
-              const SizedBox(width: 14),
+              Icon(widget.icon, color: fg, size: 20),
+              const SizedBox(width: 8),
               Text(
                 widget.label,
                 style: TextStyle(
                   color: fg,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                  fontSize: 15,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 14,
                 ),
               ),
             ],
@@ -414,38 +438,35 @@ class _TvRailItemState extends State<_TvRailItem> {
   }
 }
 
+// ─── Focus utilities ─────────────────────────────────────────────────────────
+
 extension FocusScopeNodeX on FocusScopeNode {
   void requestDefaultFocus() {
     bool isChildValid = false;
     if (focusedChild != null && focusedChild!.context != null) {
       bool isOffstage = false;
       focusedChild!.context!.visitAncestorElements((element) {
-        if (element.widget is Offstage) {
-          final offstage = element.widget as Offstage;
-          if (offstage.offstage) {
-            isOffstage = true;
-            return false;
-          }
+        if (element.widget is Offstage &&
+            (element.widget as Offstage).offstage) {
+          isOffstage = true;
+          return false;
         }
         return true;
       });
-      if (!isOffstage) {
-        isChildValid = true;
-      }
+      isChildValid = !isOffstage;
     }
 
     if (isChildValid) {
       focusedChild!.requestFocus();
-    } else {
-      final ctx = context;
-      if (ctx != null) {
-        final policy = FocusTraversalGroup.of(ctx);
-        final first = policy.findFirstFocus(this);
-        if (first != null) {
-          first.requestFocus();
+    } else if (children.isNotEmpty) {
+      for (final child in children) {
+        if (child.canRequestFocus && !child.skipTraversal) {
+          child.requestFocus();
           return;
         }
       }
+      children.first.requestFocus();
+    } else {
       requestFocus();
     }
   }

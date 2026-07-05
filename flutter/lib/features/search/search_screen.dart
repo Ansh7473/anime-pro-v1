@@ -173,7 +173,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                         final parentNode = current.parent;
                                         if (parentNode != null) {
                                           for (final child in parentNode.children) {
-                                            if (child is FocusScopeNode && child.debugLabel == 'tvRail') {
+                                            if (child is FocusScopeNode && child.debugLabel == 'tvNavBar') {
                                               railScope = child;
                                               break;
                                             }
@@ -318,7 +318,7 @@ class _GenreChipState extends State<_GenreChip> {
             final parentNode = current.parent;
             if (parentNode != null) {
               for (final child in parentNode.children) {
-                if (child is FocusScopeNode && child.debugLabel == 'tvRail') {
+                if (child is FocusScopeNode && child.debugLabel == 'tvNavBar') {
                   railScope = child;
                   break;
                 }
@@ -523,7 +523,6 @@ class _SearchTextFieldState extends State<_SearchTextField> {
 
   void _setupKeyEvent() {
     _effectiveFocusNode.onKeyEvent = (node, event) {
-      debugPrint('SearchTextField focusNode onKeyEvent: ${event.logicalKey.keyLabel} (event type: ${event.runtimeType})');
       if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
         return KeyEventResult.ignored;
       }
@@ -538,7 +537,7 @@ class _SearchTextFieldState extends State<_SearchTextField> {
               final parentNode = current.parent;
               if (parentNode != null) {
                 for (final child in parentNode.children) {
-                  if (child is FocusScopeNode && child.debugLabel == 'tvRail') {
+                  if (child is FocusScopeNode && child.debugLabel == 'tvNavBar') {
                     railScope = child;
                     break;
                   }

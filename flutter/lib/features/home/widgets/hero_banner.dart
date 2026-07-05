@@ -56,6 +56,14 @@ class _HeroBannerState extends ConsumerState<HeroBanner> {
         _currentIndex = (_currentIndex + 1) % widget.items.length;
       });
       _updateProvider();
+      // After rotation, re-request focus on TV if nothing is focused.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final primary = FocusManager.instance.primaryFocus;
+        if (primary == null || primary == FocusManager.instance.rootScope) {
+          FocusScope.of(context).nextFocus();
+        }
+      });
     });
   }
 
@@ -101,7 +109,9 @@ class _HeroBannerState extends ConsumerState<HeroBanner> {
                 );
               },
               child: SizedBox.expand(
-                key: ValueKey<String>('hero_img_${anime.id}_${anime.banner ?? anime.poster}'),
+                key: ValueKey<String>(
+                  'hero_img_${anime.id}_${anime.banner ?? anime.poster}',
+                ),
                 child: NetworkPoster(
                   url: anime.banner ?? anime.poster,
                   fit: BoxFit.cover,
@@ -223,8 +233,10 @@ class _HeroBannerState extends ConsumerState<HeroBanner> {
                           autofocus: wide,
                           icon: Icons.play_arrow_rounded,
                           label: 'Play',
-                          onPressed: () =>
-                              context.push('/watch/${anime.id}/1', extra: anime),
+                          onPressed: () => context.push(
+                            '/watch/${anime.id}/1',
+                            extra: anime,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         _HeroActionButton(
@@ -276,7 +288,7 @@ class _HeroActionButtonState extends State<_HeroActionButton> {
   Widget build(BuildContext context) {
     final wide = widget.wide;
     final fontSize = wide ? 16.0 : 15.0;
-    
+
     final bg = widget.primary
         ? (_focused ? const Color(0xFF2C2C2C) : Colors.white)
         : (_focused ? Colors.white30 : Colors.white12);
@@ -285,23 +297,18 @@ class _HeroActionButtonState extends State<_HeroActionButton> {
         ? (_focused ? Colors.white : Colors.black)
         : Colors.white;
 
-    final borderColor = _focused
-        ? Colors.white
-        : Colors.transparent;
-
-    debugPrint('_HeroActionButton(${widget.label}) build: focused=$_focused, bg=$bg, fg=$fg, borderColor=$borderColor');
+    final borderColor = _focused ? Colors.white : Colors.transparent;
 
     return FocusableActionDetector(
       autofocus: widget.autofocus,
       onFocusChange: (v) {
-        debugPrint('_HeroActionButton(${widget.label}) focus change: $v');
         setState(() => _focused = v);
         if (v) {
           Scrollable.maybeOf(context)?.position.animateTo(
-                0,
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOut,
-              );
+            0,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOut,
+          );
         }
       },
       actions: {
@@ -321,16 +328,15 @@ class _HeroActionButtonState extends State<_HeroActionButton> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: EdgeInsets.symmetric(
-              horizontal: wide ? (widget.primary ? 24 : 20) : (widget.primary ? 22 : 18),
+              horizontal: wide
+                  ? (widget.primary ? 24 : 20)
+                  : (widget.primary ? 22 : 18),
               vertical: wide ? 13 : 12,
             ),
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: borderColor,
-                width: 2.0,
-              ),
+              border: Border.all(color: borderColor, width: 2.0),
               boxShadow: _focused
                   ? [
                       BoxShadow(
@@ -385,21 +391,23 @@ class _MetaRow extends StatelessWidget {
     final parts = <Widget>[];
 
     if (anime.score != null) {
-      parts.add(Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star_rounded, color: Colors.amber, size: fs + 4),
-          const SizedBox(width: 3),
-          Text(
-            anime.score!.toStringAsFixed(1),
-            style: TextStyle(
-              color: AppColors.text,
-              fontSize: fs,
-              fontWeight: FontWeight.w700,
+      parts.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star_rounded, color: Colors.amber, size: fs + 4),
+            const SizedBox(width: 3),
+            Text(
+              anime.score!.toStringAsFixed(1),
+              style: TextStyle(
+                color: AppColors.text,
+                fontSize: fs,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
-      ));
+          ],
+        ),
+      );
     }
     if (anime.year != null) parts.add(Text('${anime.year}', style: muted));
     if (anime.format != null && anime.format!.isNotEmpty) {
@@ -414,10 +422,12 @@ class _MetaRow extends StatelessWidget {
     final children = <Widget>[];
     for (var i = 0; i < parts.length; i++) {
       if (i > 0) {
-        children.add(Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text('•', style: muted),
-        ));
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text('•', style: muted),
+          ),
+        );
       }
       children.add(parts[i]);
     }

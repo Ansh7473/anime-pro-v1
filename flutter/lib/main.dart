@@ -1,15 +1,21 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/device/device_info.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/services/continue_watching.dart';
 
 Future<void> main() async {
+  enableFlutterDriverExtension();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Detect platform TV mode (Android TV / Fire TV) early.
+  await DeviceInfo.init();
 
   // Unlock high refresh rate (90/120/144Hz) on Android devices that throttle
   // apps to 60Hz by default. No-op / safely ignored on other platforms.
