@@ -9,6 +9,7 @@
   import { Download, X } from "lucide-svelte";
   import { onMount } from "svelte";
   import { BACKEND_URL } from "$lib/api";
+  import StatusBanner from "$lib/components/StatusBanner.svelte";
 
   let { children } = $props();
 
@@ -106,6 +107,7 @@
   {#if !isWatchPage}
     <div class="tactical-grid"></div>
     <Navbar />
+    <StatusBanner />
 
     <div class="scroll-fab" class:visible={scrolling}>
       <button
