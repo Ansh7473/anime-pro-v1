@@ -342,22 +342,70 @@ export const api = {
 		}
 
 		// Fallback to backend server proxy if client query fails or during SSR
-		const params = new URLSearchParams({
-			q,
-			page: page.toString(),
-			limit: limit.toString(),
-			sort: Array.isArray(filters.sort) ? filters.sort[0] : (filters.sort || 'POPULARITY_DESC')
-		});
-		if (filters.format) params.append('format', filters.format);
-		if (filters.status) params.append('status', filters.status);
-		if (filters.genre) params.append('genre', filters.genre);
+				const params = new URLSearchParams({
+					q,
+					page: page.toString(),
+					limit: limit.toString(),
+					sort: Array.isArray(filters.sort) ? filters.sort[0] : (filters.sort || 'POPULARITY_DESC')
+				});
+				if (filters.format) params.append('format', filters.format);
+				if (filters.status) params.append('status', filters.status);
+				if (filters.genre) params.append('genre', filters.genre);
 
-		const res = await fetchJSON(`${BASE_URL}/search?${params.toString()}`);
-		if (res && res.data) {
-			searchCache.set(cacheKey, { data: res, time: Date.now() });
-		}
-		return res;
-	},
+				try {
+					const res = await fetchJSON(`${BASE_URL}/search?${params.toString()}`);
+					if (res && res.data) {
+						searchCache.set(cacheKey, { data: res, time: Date.now() });
+					}
+					return res;
+				} catch (backendErr) {
+					console.warn('Backend search failed, trying Jikan direct:', backendErr);
+				}
+
+				// Last resort: call Jikan directly from browser (user IP, not VPS rate-limited)
+				if (browser) {
+					try {
+						const jp = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+						if (q.trim()) jp.append('q', q.trim());
+						if (filters.format) jp.append('type', filters.format.toLowerCase());
+						if (filters.status) {
+							const sm: Record<string, string> = { RELEASING: 'airing', FINISHED: 'complete', NOT_YET_RELEASED: 'upcoming' };
+							const js = sm[filters.status.toUpperCase()];
+							if (js) jp.append('status', js);
+						}
+						const jRes = await fetch(`https://api.jikan.moe/v4/anime?${jp.toString()}`);
+						if (jRes.ok) {
+							const jData = await jRes.json();
+							if (jData?.data) {
+								const formatted = {
+									data: jData.data.map((a: any) => ({
+										id: a.mal_id,
+										mal_id: a.mal_id,
+										title: a.title_english || a.title || 'Unknown',
+										poster: a.images?.jpg?.large_image_url || a.images?.jpg?.image_url || '',
+										image: a.images?.jpg?.large_image_url || a.images?.jpg?.image_url || '',
+										score: a.score,
+										rating: a.score,
+										type: a.type === 'Movie' ? 'MOVIE' : 'TV',
+										episodes: a.episodes,
+										status: a.status,
+										synopsis: a.synopsis || '',
+										genres: a.genres?.map((g: any) => g.name) || [],
+										year: a.year,
+									})),
+									pagination: { has_next_page: jData.pagination?.has_next_page ?? false }
+								};
+								searchCache.set(cacheKey, { data: formatted, time: Date.now() });
+								return formatted;
+							}
+						}
+					} catch (jikanErr) {
+						console.warn('Jikan direct search also failed:', jikanErr);
+					}
+				}
+
+				return { data: [], pagination: { has_next_page: false } };
+			},
 
 	getTopAnime: async (format = 'TV', page = 1, limit = 20, sort = 'POPULARITY_DESC', customFetch?: typeof fetch) => {
 		if (browser && !customFetch) {
