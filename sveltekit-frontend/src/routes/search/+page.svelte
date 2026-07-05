@@ -90,7 +90,25 @@
       </div>
     {/if}
   {:else if !loading && query}
-    <p class="empty">No results found for "{query}"</p>
+    <div class="empty-state">
+      <img
+        src="https://media.giphy.com/media/FlGmdHyBjNaMM/giphy.gif"
+        alt="No results anime"
+        class="empty-gif"
+      />
+      <p class="empty-text">No results for <strong>"{query}"</strong></p>
+      <p class="empty-sub">Try a different title or check the spelling</p>
+    </div>
+  {:else if !loading && !query}
+    <div class="empty-state idle-state">
+      <img
+        src="https://media.giphy.com/media/bKDPrNojOoeu4/giphy.gif"
+        alt="Excited anime character"
+        class="empty-gif"
+      />
+      <p class="empty-text">Search for any anime!</p>
+      <p class="empty-sub">Type a title above to find your next obsession</p>
+    </div>
   {/if}
 </div>
 
@@ -131,11 +149,34 @@
     justify-content: center;
     padding: 3rem 0;
   }
-  .empty {
-    color: var(--net-text-muted);
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 3rem 0 4rem;
     text-align: center;
-    padding: 4rem 0;
-    font-size: 1.1rem;
+  }
+  .empty-gif {
+    width: min(220px, 55vw);
+    height: auto;
+    border-radius: 16px;
+    object-fit: cover;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  .idle-state .empty-gif {
+    opacity: 0.85;
+  }
+  .empty-text {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+  }
+  .empty-sub {
+    color: var(--net-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
   }
 
   /* Tablet responsive */

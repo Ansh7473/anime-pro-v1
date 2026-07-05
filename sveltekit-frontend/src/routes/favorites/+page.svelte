@@ -61,7 +61,11 @@
         </div>
     {:else if favorites.length === 0}
         <div class="empty-state glass">
-            <div class="empty-icon">❤️</div>
+            <img
+                src="https://media.giphy.com/media/OIJjL3HdiTXI9aamHb/giphy.gif"
+                alt="Anime character"
+                class="empty-gif"
+            />
             <h2>No favorites yet</h2>
             <p>Start adding anime to your favorites collection!</p>
             <a href="/" class="btn-primary">Browse Anime</a>
@@ -170,9 +174,13 @@
         backdrop-filter: blur(10px);
     }
 
-    .empty-icon {
-        font-size: 4rem;
-        margin-bottom: 1rem;
+    .empty-gif {
+        width: min(200px, 45vw);
+        height: auto;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        object-fit: cover;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
     .empty-state h2 {
@@ -229,9 +237,6 @@
         .empty-state {
             padding: 3rem 1.5rem;
         }
-        .empty-icon {
-            font-size: 3rem;
-        }
         .empty-state h2 {
             font-size: 1.3rem;
         }
@@ -267,9 +272,6 @@
         .error-state,
         .empty-state {
             padding: 2rem 1rem;
-        }
-        .empty-icon {
-            font-size: 2.5rem;
         }
         .empty-state h2 {
             font-size: 1.2rem;

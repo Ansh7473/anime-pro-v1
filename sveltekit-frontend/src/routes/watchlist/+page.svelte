@@ -61,7 +61,11 @@
     </div>
   {:else if watchlist.length === 0}
     <div class="empty-state glass">
-      <div class="empty-icon">📂</div>
+      <img
+        src="https://media.giphy.com/media/byTVPe9Cz5RM4/giphy.gif"
+        alt="Bored anime character waiting"
+        class="empty-gif"
+      />
       <h2>Your watchlist is empty</h2>
       <p>Start adding anime to keep track of what you want to watch!</p>
       <a href="/" class="btn-primary">Browse Anime</a>
@@ -158,9 +162,13 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .empty-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+  .empty-gif {
+    width: min(200px, 45vw);
+    height: auto;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    object-fit: cover;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
   .empty-state h2 {
     margin-bottom: 0.5rem;
@@ -196,9 +204,6 @@
     .error-state {
       padding: 3rem 1.5rem;
     }
-    .empty-icon {
-      font-size: 2.5rem;
-    }
   }
 
   @media (max-width: 480px) {
@@ -225,9 +230,6 @@
     .empty-state,
     .error-state {
       padding: 2rem 1rem;
-    }
-    .empty-icon {
-      font-size: 2rem;
     }
     .empty-state h2 {
       font-size: 1.2rem;

@@ -179,6 +179,10 @@
   <!-- Estimated Airing Schedule (miruro-style) -->
   <AiringSchedule />
 
+  <div class="genre-header-gif">
+    <img src="https://media.giphy.com/media/v38BvJSInBpII/giphy.gif" alt="Epic anime moment" loading="lazy" />
+  </div>
+
   <!-- Browse by Genre -->
   <section class="genre-section">
     <div class="row-header">
@@ -212,6 +216,22 @@
     margin-top: -1rem;
     position: relative;
     z-index: 3;
+  }
+
+  .genre-header-gif {
+    display: flex;
+    justify-content: center;
+    margin-top: 3rem;
+  }
+  .genre-header-gif img {
+    width: 100%;
+    max-width: 800px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 16px;
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    opacity: 0.6;
   }
 
   .extra-rows {

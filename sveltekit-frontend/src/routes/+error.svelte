@@ -61,6 +61,19 @@
   </div>
 
   <div class="error-visual">
+    {#if status === 404}
+      <img
+        src="https://media.giphy.com/media/p4w0AMZJa2EtG/giphy.gif"
+        alt="Shocked anime character"
+        class="error-gif"
+      />
+    {:else}
+      <img
+        src="https://media.giphy.com/media/darauqjZo6FsA/giphy.gif"
+        alt="Panicking anime character"
+        class="error-gif"
+      />
+    {/if}
     <div class="bg-text">{status}</div>
   </div>
 </div>
@@ -166,6 +179,16 @@
     justify-content: center;
     pointer-events: none;
     z-index: 1;
+  }
+
+  .error-gif {
+    position: absolute;
+    width: min(320px, 55vw);
+    height: auto;
+    border-radius: 16px;
+    opacity: 0.18;
+    object-fit: contain;
+    mix-blend-mode: lighten;
   }
 
   .bg-text {
