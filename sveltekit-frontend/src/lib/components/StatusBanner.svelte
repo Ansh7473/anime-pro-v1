@@ -16,13 +16,13 @@
       .then(async (res) => {
         const body = await res.json().catch(() => ({}));
         if (body.errors || !body.data) {
-          message = 'AniList API is temporarily down — content is served from backup sources. Streaming & watch pages are unaffected.';
+          message = 'AniList API is temporarily down search 🔍 may not work — content is served from backup sources you can still use by pasting anime id in the url https://watchanimez.me/anime/youranimeidmalorani/. Streaming & watch pages are unaffected.';
           visible = true;
         }
       })
       .catch(() => {
         // CORS block or network error — AniList is unreachable
-        message = 'AniList API is temporarily down — content is served from backup sources. Streaming & watch pages are unaffected.';
+        message = 'AniList API is temporarily down  search 🔍 may not work — content is served from backup sources you can still use by pasting anime id in the url https://watchanimez.me/anime/youranimeidmalorani/. Streaming & watch pages are unaffected.';
         visible = true;
       });
   }
