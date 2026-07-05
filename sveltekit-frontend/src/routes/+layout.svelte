@@ -7,9 +7,9 @@
   import TVShell from "$lib/components/tv/TVShell.svelte";
   import RegularShell from "$lib/components/RegularShell.svelte";
   import JsonLd from "$lib/components/JsonLd.svelte";
-  import { getSiteJsonLd, SITE_DESCRIPTION, SITE_NAME } from "$lib/seo";
+  import { getSiteJsonLd, SITE_NAME } from "$lib/seo";
   import { SEARCH_ENGINE_META_VERIFICATIONS } from "$lib/seo-verification";
-  
+
   import "../app.css";
   import "../lib/styles/themes.css";
 
@@ -20,7 +20,7 @@
   $effect(() => {
     if (!browser) return;
     const p = page.url.pathname as string;
-    
+
     if ($isTV) {
       if ((p !== '/tv' && !p.startsWith('/tv/')) && !p.startsWith('/anime') && !p.startsWith('/watch') && !p.startsWith('/explore')) {
         goto('/tv', { replaceState: true });
@@ -39,7 +39,6 @@
   <meta property="og:site_name" content={SITE_NAME} />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={data.canonicalUrl} />
-  <meta property="og:description" content={SITE_DESCRIPTION} />
   <meta name="twitter:card" content="summary_large_image" />
   {#each SEARCH_ENGINE_META_VERIFICATIONS as verification}
     <meta name={verification.name} content={verification.content} />
@@ -48,7 +47,7 @@
 
 <JsonLd data={siteJsonLd} />
 
-<div class="app theme-{$themeState.current}" 
+<div class="app theme-{$themeState.current}"
      class:tv-mode={$isTV}
      data-gradients={$themeState.gradients}
      data-effect={$themeState.effect}>

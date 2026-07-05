@@ -1,6 +1,8 @@
 <svelte:head>
   <title>Contact Us — WatchAnimez</title>
   <meta name="description" content="Get in touch with the WatchAnimez team. Send us your questions, feedback, or feature requests." />
+  <meta property="og:title" content="Contact Us — WatchAnimez" />
+  <meta property="og:description" content="Get in touch with the WatchAnimez team. Send us your questions, feedback, or feature requests." />
 </svelte:head>
 
 <script lang="ts">

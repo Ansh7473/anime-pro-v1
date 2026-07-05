@@ -126,6 +126,12 @@ async function queryAnilist(query: string, variables: Record<string, any> = {}) 
 	const cached = aniCacheGet(key);
 	if (cached) return cached;
 
+	// In dev, direct browser→AniList calls are CORS-blocked (localhost origin).
+	// Skip straight to the backend proxy fallback to avoid noisy errors.
+	if (browser && location.hostname === 'localhost') {
+		throw new Error('Skipping direct AniList call on localhost (CORS)');
+	}
+
 	await aniWaitForToken();
 
 	const res = await fetch('https://graphql.anilist.co', {

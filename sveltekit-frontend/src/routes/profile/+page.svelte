@@ -243,6 +243,8 @@
 <svelte:head>
   <title>My Profile — WatchAnimez</title>
   <meta name="description" content="Manage your WatchAnimez profiles, preferences, security settings, and view your favorite anime." />
+  <meta property="og:title" content="My Profile — WatchAnimez" />
+  <meta property="og:description" content="Manage your WatchAnimez profiles, preferences, security settings, and view your favorite anime." />
 </svelte:head>
 
 {#if loading}

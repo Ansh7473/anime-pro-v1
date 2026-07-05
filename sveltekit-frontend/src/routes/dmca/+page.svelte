@@ -1,6 +1,8 @@
 <svelte:head>
   <title>DMCA Policy — WatchAnimez</title>
   <meta name="description" content="WatchAnimez DMCA Policy. Learn about our copyright infringement notification process and takedown procedures." />
+  <meta property="og:title" content="DMCA Policy — WatchAnimez" />
+  <meta property="og:description" content="WatchAnimez DMCA Policy. Learn about our copyright infringement notification process and takedown procedures." />
 </svelte:head>
 
 <div class="page-container container">

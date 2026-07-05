@@ -955,6 +955,7 @@
 
 <svelte:head>
   <title>{anime?.title || "Player"} — Episode {ep} — WatchAnimez</title>
+  <meta name="description" content={anime ? `Watch ${anime.title} Episode ${ep} online for free on WatchAnimez. Stream subbed and dubbed with multiple sources.` : `Watch anime Episode ${ep} online for free on WatchAnimez.`} />
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />

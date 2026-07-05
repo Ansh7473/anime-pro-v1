@@ -144,6 +144,8 @@
     name="description"
     content="Download WatchAnimez apps for Android, Windows, macOS, Linux, and Android TV. Fast, ad-free anime streaming with offline support and cross-device sync."
   />
+  <meta property="og:title" content="Download Apps — WatchAnimez" />
+  <meta property="og:description" content="Download WatchAnimez apps for Android, Windows, macOS, Linux, and Android TV. Fast, ad-free anime streaming with offline support and cross-device sync." />
 </svelte:head>
 
 <div class="dl container">

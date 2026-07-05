@@ -43,11 +43,13 @@
 </script>
 
 <svelte:head>
-  <title>Search Anime - WatchAnimez</title>
+  <title>Search Anime — WatchAnimez</title>
   <meta
     name="description"
     content="Search anime by title on WatchAnimez and discover details, ratings, posters, recommendations, and episode pages."
   />
+  <meta property="og:title" content="Search Anime — WatchAnimez" />
+  <meta property="og:description" content="Search anime by title on WatchAnimez and discover details, ratings, posters, recommendations, and episode pages." />
 </svelte:head>
 
 <div class="search-page container">

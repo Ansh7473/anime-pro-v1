@@ -86,9 +86,6 @@
     const defs = [
       { title: "🆕 New This Season", href: "/explore/seasonal", fn: () => api.getCurrentSeasonal(1, 20) },
       { title: "🚀 Upcoming Anime", href: "/explore/upcoming", fn: () => api.getUpcoming(1, 20) },
-      { title: "😂 Comedy Picks", href: "/explore/comedy", fn: () => api.getByGenre("Comedy", 1, 20) },
-      { title: "🗺️ Adventure Awaits", href: "/explore/adventure", fn: () => api.getByGenre("Adventure", 1, 20) },
-      { title: "✨ Fantasy Worlds", href: "/explore/fantasy", fn: () => api.getByGenre("Fantasy", 1, 20) },
     ];
     const results = await Promise.all(
       defs.map(async (d) => {
@@ -107,15 +104,15 @@
 </script>
 
 <svelte:head>
-  <title>WatchAnimez — Watch Online Anime in Hindi, English, Multi-lang, Japanese for Free | 50+ Sources of Streaming | Leading Website</title>
+  <title>WatchAnimez — Free Anime Streaming in Hindi, English & Japanese</title>
   <meta
     name="description"
-    content="Discover trending, popular, top-rated, seasonal, action, romance, and movie anime on WatchAnimez."
+    content="Stream trending, popular, and top-rated anime for free on WatchAnimez. Watch subbed and dubbed series, movies, and seasonal hits in Hindi, English, and Japanese."
   />
-  <meta property="og:title" content="WatchAnimez — Watch Online Anime in Hindi, English, Multi-lang, Japanese for Free" />
+  <meta property="og:title" content="WatchAnimez — Free Anime Streaming in Hindi, English & Japanese" />
   <meta
     property="og:description"
-    content="Discover trending, popular, top-rated, seasonal, action, romance, and movie anime on WatchAnimez."
+    content="Stream trending, popular, and top-rated anime for free on WatchAnimez. Watch subbed and dubbed series, movies, and seasonal hits in Hindi, English, and Japanese."
   />
 </svelte:head>
 
@@ -167,7 +164,7 @@
 <!-- More discovery sections (client-loaded so they never block first paint) -->
 <div class="home-rows extra-rows">
   {#if extraLoading}
-    {#each Array(3) as _, i (i)}
+    {#each Array(2) as _, i (i)}
       <SkeletonRow />
     {/each}
   {:else}

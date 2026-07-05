@@ -70,6 +70,8 @@
 <svelte:head>
   <title>Anime Release Schedule — WatchAnimez</title>
   <meta name="description" content="Check the WatchAnimez anime release schedule for upcoming episodes, airing times, and new releases this week." />
+  <meta property="og:title" content="Anime Release Schedule — WatchAnimez" />
+  <meta property="og:description" content="Check the WatchAnimez anime release schedule for upcoming episodes, airing times, and new releases this week." />
 </svelte:head>
 
 <div class="schedule-page container">

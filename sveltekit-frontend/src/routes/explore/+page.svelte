@@ -17,6 +17,8 @@
 <svelte:head>
   <title>Explore Anime — WatchAnimez</title>
   <meta name="description" content="Explore anime by category on WatchAnimez — trending, popular, top-rated, seasonal, upcoming, movies, action, and romance." />
+  <meta property="og:title" content="Explore Anime — WatchAnimez" />
+  <meta property="og:description" content="Explore anime by category on WatchAnimez — trending, popular, top-rated, seasonal, upcoming, movies, action, and romance." />
 </svelte:head>
 
 <div class="page container">

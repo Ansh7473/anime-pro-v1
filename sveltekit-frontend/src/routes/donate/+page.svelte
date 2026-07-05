@@ -3,8 +3,10 @@
 </script>
 
 <svelte:head>
-  <title>Support WatchAnimez</title>
+  <title>Support WatchAnimez — Donate</title>
   <meta name="description" content="Support WatchAnimez development, hosting, and keep the platform ad-free for everyone." />
+  <meta property="og:title" content="Support WatchAnimez — Donate" />
+  <meta property="og:description" content="Support WatchAnimez development, hosting, and keep the platform ad-free for everyone." />
 </svelte:head>
 
 <div class="donate-page container">

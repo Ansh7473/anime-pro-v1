@@ -46,6 +46,8 @@
 <svelte:head>
   <title>Login — WatchAnimez</title>
   <meta name="description" content="Sign in to your WatchAnimez account to access your watchlist, favorites, and personalized recommendations." />
+  <meta property="og:title" content="Login — WatchAnimez" />
+  <meta property="og:description" content="Sign in to your WatchAnimez account to access your watchlist, favorites, and personalized recommendations." />
 </svelte:head>
 
 <div class="login-page" class:ready={mounted}>

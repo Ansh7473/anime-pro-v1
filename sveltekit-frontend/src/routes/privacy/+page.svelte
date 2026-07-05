@@ -1,6 +1,8 @@
 <svelte:head>
   <title>Privacy Policy — WatchAnimez</title>
   <meta name="description" content="Read the WatchAnimez Privacy Policy. Learn how we collect, use, and protect your personal information." />
+  <meta property="og:title" content="Privacy Policy — WatchAnimez" />
+  <meta property="og:description" content="Read the WatchAnimez Privacy Policy. Learn how we collect, use, and protect your personal information." />
 </svelte:head>
 
 <div class="page-container container">

@@ -1,6 +1,8 @@
 <svelte:head>
   <title>About Us — WatchAnimez</title>
   <meta name="description" content="Learn about WatchAnimez — our mission, team, and commitment to delivering the best anime streaming experience." />
+  <meta property="og:title" content="About Us — WatchAnimez" />
+  <meta property="og:description" content="Learn about WatchAnimez — our mission, team, and commitment to delivering the best anime streaming experience." />
 </svelte:head>
 
 <div class="page-container container">

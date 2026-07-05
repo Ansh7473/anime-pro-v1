@@ -37,7 +37,8 @@
 </script>
 
 <svelte:head>
-  <title>Sign Up / WatchAnimez</title>
+  <title>Sign Up — WatchAnimez</title>
+  <meta name="description" content="Create your free WatchAnimez account to build a watchlist, save favorites, and get personalized anime recommendations." />
 </svelte:head>
 
 <div class="netflix-page" class:ready={mounted}>

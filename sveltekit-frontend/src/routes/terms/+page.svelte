@@ -1,6 +1,8 @@
 <svelte:head>
   <title>Terms & Conditions — WatchAnimez</title>
   <meta name="description" content="Read the WatchAnimez Terms and Conditions. Understand the rules and guidelines for using our anime streaming platform." />
+  <meta property="og:title" content="Terms & Conditions — WatchAnimez" />
+  <meta property="og:description" content="Read the WatchAnimez Terms and Conditions. Understand the rules and guidelines for using our anime streaming platform." />
 </svelte:head>
 
 <div class="page-container container">

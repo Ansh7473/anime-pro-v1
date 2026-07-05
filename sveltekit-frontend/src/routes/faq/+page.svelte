@@ -1,6 +1,8 @@
 <svelte:head>
   <title>FAQ — WatchAnimez</title>
   <meta name="description" content="Frequently asked questions about WatchAnimez. Find answers about accounts, streaming, apps, privacy, and more." />
+  <meta property="og:title" content="FAQ — WatchAnimez" />
+  <meta property="og:description" content="Frequently asked questions about WatchAnimez. Find answers about accounts, streaming, apps, privacy, and more." />
 </svelte:head>
 
 <script lang="ts">
