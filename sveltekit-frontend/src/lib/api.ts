@@ -26,11 +26,41 @@ const AUTH_URL = `${BACKEND_URL}/api/v1/auth`;
 const USER_URL = `${BACKEND_URL}/api/v1/user`;
 const GENERAL_PROXY = `${STREAMING_URL}/proxy`;
 
+// ─── fetchJSON response cache (browser-only) ─────────────────────────────────
+const _fetchCache = new Map<string, { data: any; ts: number }>();
+const FETCH_CACHE_TTL = 5 * 60_000; // 5 minutes
+
+function fetchCacheGet(url: string): any | null {
+	const entry = _fetchCache.get(url);
+	if (!entry) return null;
+	if (Date.now() - entry.ts > FETCH_CACHE_TTL) return null; // stale but keep for fallback
+	return entry.data;
+}
+
+function fetchCacheGetStale(url: string): any | null {
+	return _fetchCache.get(url)?.data ?? null;
+}
+
+function fetchCacheSet(url: string, data: any): void {
+	if (_fetchCache.size > 200) {
+		const first = _fetchCache.keys().next().value;
+		if (first) _fetchCache.delete(first);
+	}
+	_fetchCache.set(url, { data, ts: Date.now() });
+}
+
 async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof fetch }) {
 	const fetchFn = options?.fetch || fetch;
 	const fetchOptions = { ...options };
 	delete fetchOptions.fetch;
 	const headers = { 'Content-Type': 'application/json', ...fetchOptions.headers };
+	const isGet = !fetchOptions.method || fetchOptions.method === 'GET';
+
+	// Serve from browser cache for GET requests
+	if (browser && isGet) {
+		const cached = fetchCacheGet(url);
+		if (cached) return cached;
+	}
 
 	let lastError: unknown;
 	// Start at the next backend in rotation (per-request distribution),
@@ -47,7 +77,11 @@ async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof f
 			lastError = err; // network/timeout — try the next backend
 			continue;
 		}
-		if (res.ok) return res.json();
+		if (res.ok) {
+			const data = await res.json();
+			if (browser && isGet) fetchCacheSet(url, data);
+			return data;
+		}
 		if (res.status === 401 && browser) clearAuth();
 		// Client errors (4xx) are deterministic — don't retry other backends.
 		if (res.status < 500) {
@@ -55,6 +89,16 @@ async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof f
 		}
 		lastError = new Error(`HTTP ${res.status}: ${res.statusText}`); // 5xx — try next
 	}
+
+	// All backends failed — try stale cache before throwing
+	if (browser && isGet) {
+		const stale = fetchCacheGetStale(url);
+		if (stale) {
+			console.warn('All backends failed, serving stale cached response for:', url);
+			return stale;
+		}
+	}
+
 	throw lastError ?? new Error('All backends failed');
 }
 
