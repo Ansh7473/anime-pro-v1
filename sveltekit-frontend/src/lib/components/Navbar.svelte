@@ -175,7 +175,15 @@
     <!-- BRAND LOGO -->
     <a href="/" class="logo" onclick={() => { closeSearch(); mobileMenuOpen = false; }}>
       <div class="logo-badge">
-        <img src="/favicon-192.png" alt="WatchAnimez" class="logo-img" />
+        <video
+          src="/logo-anim.mp4"
+          class="logo-img"
+          autoplay
+          loop
+          muted
+          playsinline
+          aria-hidden="true"
+        ></video>
         <span class="logo-glow"></span>
       </div>
       <div class="logo-text-wrapper">
@@ -609,12 +617,14 @@
   .logo-img {
     height: 34px;
     width: 34px;
-    object-fit: contain;
+    object-fit: cover;
     border-radius: 9px;
     box-shadow: 0 0 14px rgba(229, 9, 20, 0.5);
     transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     z-index: 2;
+    display: block;
+    overflow: hidden;
   }
 
   .logo-glow {
