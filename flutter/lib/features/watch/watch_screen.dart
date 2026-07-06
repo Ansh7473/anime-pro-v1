@@ -50,14 +50,46 @@ String categoryOf(StreamSource s) {
   return 'Subbed';
 }
 
+/// Map real provider names → neutral display names.
+/// Real names kept as comments so devs know the mapping.
+const _providerDisplayNames = <String, String>{
+  'HiAnime': 'Provider 1', // HiAnime
+  'AniNeko': 'Provider 2', // AniNeko
+  'VidSrc': 'Provider 3', // VidSrc
+  '9anime': 'Provider 4', // 9anime
+  'Animelok': 'Provider 5', // Animelok
+  'DesiDubAnime': 'Provider 6', // DesiDub
+  'DesiDub': 'Provider 6', // DesiDub
+  'AnimeHindiDubbed': 'Provider 7', // AnimeHindiDubbed
+  'AnimeHindiDubbed-WP': 'Provider 7', // AnimeHindiDubbed
+  'AHD (AnimeHindiDubbed)': 'Provider 7', // AnimeHindiDubbed (legacy)
+  'Toonstream': 'Provider 8', // Toonstream
+  'WatchAnimeWorld': 'Provider 9', // WatchAnimeWorld
+  'Aniwaves': 'Provider 10', // Aniwaves
+  'Animen': 'Provider 11', // Animen
+  'AnimixStream': 'Provider 12', // AnimixStream
+  'AnimePahe': 'Provider 13', // AnimePahe
+};
+
+/// Neutralize a raw provider name to "Provider N" display name.
+String _neutralizeProvider(String raw) {
+  // Direct match
+  final direct = _providerDisplayNames[raw];
+  if (direct != null) return direct;
+  // Prefix match for compound names like "Miruro (kiwi)"
+  for (final key in _providerDisplayNames.keys) {
+    if (raw.startsWith(key)) return _providerDisplayNames[key]!;
+  }
+  return 'Provider';
+}
+
 /// provider -> category -> sources, mirroring the website's groupedSources.
 Map<String, Map<String, List<StreamSource>>> groupSources(
   List<StreamSource> sources,
 ) {
   final out = <String, Map<String, List<StreamSource>>>{};
   for (final s in sources) {
-    var prov = s.provider;
-    if (prov == 'AnimeHindiDubbed-WP') prov = 'AHD (AnimeHindiDubbed)';
+    final prov = _neutralizeProvider(s.provider);
     out.putIfAbsent(prov, () => {}).putIfAbsent(categoryOf(s), () => []).add(s);
   }
   return out;

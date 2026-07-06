@@ -21,10 +21,23 @@ data class StreamResult(
 @Singleton
 class StreamRepository @Inject constructor(private val api: AnimeApi) {
 
+    // Order = priority (first = fetched first). Real names in comments.
     private val providers = listOf(
-        "animelok", "miruro", "animetsu", "aniwaves",
-        "animepahe", "nineanime", "desidub", "ahd",
-        "toonstream", "watchanimeworld", "animen", "animixstream",
+        "hianime",          // HiAnime        (Provider 1)
+        "anineko",          // AniNeko        (Provider 2)
+        "vidsrc",           // VidSrc         (Provider 3)
+        "nineanime",        // 9anime         (Provider 4)
+        "animelok",         // Animelok       (Provider 5)
+        "miruro",           // Miruro
+        "animetsu",         // Animetsu
+        "desidub",          // DesiDub        (Provider 6)
+        "ahd",              // AHD            (Provider 7)
+        "toonstream",       // Toonstream     (Provider 8)
+        "watchanimeworld",  // WatchAnimeWorld(Provider 9)
+        "aniwaves",         // Aniwaves       (Provider 10)
+        "animen",           // Animen         (Provider 11)
+        "animixstream",     // AnimixStream   (Provider 12)
+        "animepahe",        // AnimePahe      (Provider 13)
     )
 
     fun getSourcesProgressively(animeId: Int, episode: Int): Flow<StreamResult> = flow {

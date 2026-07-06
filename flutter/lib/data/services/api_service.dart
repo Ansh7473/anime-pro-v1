@@ -5,18 +5,21 @@ import '../models/stream_source.dart';
 import '../models/user.dart';
 
 /// Names of the streaming providers the backend aggregates. Mirrors the
-/// website's `api.ts` provider methods.
+/// website's `api.ts` provider methods. Order = priority (first = fetched first).
 const List<String> kStreamProviders = [
-  'animelok',
-  'nineanime',
-  'desidub',
-  'ahd',
-  'toonstream',
-  'watchanimeworld',
-  'aniwaves',
-  'animen',
-  'animixstream',
-  'animepahe',
+  'hianime', // HiAnime  (Provider 1)
+  'anineko', // AniNeko  (Provider 2)
+  'vidsrc', // VidSrc   (Provider 3)
+  'nineanime', // 9anime   (Provider 4)
+  'animelok', // Animelok (Provider 5)
+  'desidub', // DesiDub  (Provider 6)
+  'ahd', // AHD      (Provider 7)
+  'toonstream', // Toonstream (Provider 8)
+  'watchanimeworld', // WatchAnimeWorld (Provider 9)
+  'aniwaves', // Aniwaves (Provider 10)
+  'animen', // Animen   (Provider 11)
+  'animixstream', // AnimixStream (Provider 12)
+  'animepahe', // AnimePahe (Provider 13)
 ];
 
 /// Grouped home-screen content.
@@ -100,15 +103,18 @@ class ApiService {
     String? genre,
     String? status,
   }) async {
-    final res = await _client.get('/anilist/search', query: {
-      'q': query,
-      'page': page,
-      'limit': limit,
-      'sort': sort,
-      'format': ?format,
-      'genre': ?genre,
-      'status': ?status,
-    });
+    final res = await _client.get(
+      '/anilist/search',
+      query: {
+        'q': query,
+        'page': page,
+        'limit': limit,
+        'sort': sort,
+        'format': ?format,
+        'genre': ?genre,
+        'status': ?status,
+      },
+    );
     return Anime.listFrom(_unwrap(res.data));
   }
 
@@ -119,8 +125,7 @@ class ApiService {
     String format = 'TV',
     int page = 1,
     String sort = 'POPULARITY_DESC',
-  }) =>
-      search('', page: page, format: format, sort: sort);
+  }) => search('', page: page, format: format, sort: sort);
 
   Future<List<Anime>> recommendations(Object id) async {
     final res = await _client.get('/anilist/recommendations/$id');
@@ -131,26 +136,37 @@ class ApiService {
   // Episodes & streaming
   // ---------------------------------------------------------------------------
 
-  Future<List<Episode>> getEpisodes(Object animeId,
-      {int page = 1, int perPage = 50}) async {
-    final res = await _client.get('/streaming/episode-metadata',
-        query: {'animeId': animeId, 'page': page, 'perPage': perPage});
+  Future<List<Episode>> getEpisodes(
+    Object animeId, {
+    int page = 1,
+    int perPage = 50,
+  }) async {
+    final res = await _client.get(
+      '/streaming/episode-metadata',
+      query: {'animeId': animeId, 'page': page, 'perPage': perPage},
+    );
     return Episode.listFrom(_unwrap(res.data));
   }
 
   /// Aggregate sources across all providers (fast path).
-  Future<List<StreamSource>> getAggregateSources(
-      Object animeId, int ep) async {
-    final res = await _client
-        .get('/streaming/sources', query: {'animeId': animeId, 'ep': ep});
+  Future<List<StreamSource>> getAggregateSources(Object animeId, int ep) async {
+    final res = await _client.get(
+      '/streaming/sources',
+      query: {'animeId': animeId, 'ep': ep},
+    );
     return StreamSource.listFrom(_unwrap(res.data));
   }
 
   /// Sources from a single named provider (used for parallel background loads).
   Future<List<StreamSource>> getProviderSources(
-      String provider, Object animeId, int ep) async {
-    final res = await _client.get('/streaming/sources/$provider',
-        query: {'animeId': animeId, 'ep': ep});
+    String provider,
+    Object animeId,
+    int ep,
+  ) async {
+    final res = await _client.get(
+      '/streaming/sources/$provider',
+      query: {'animeId': animeId, 'ep': ep},
+    );
     return StreamSource.listFrom(_unwrap(res.data), provider: provider);
   }
 
@@ -159,14 +175,22 @@ class ApiService {
   // ---------------------------------------------------------------------------
 
   Future<AuthResult> login(String email, String password) async {
-    final res = await _client
-        .post('/auth/login', data: {'email': email, 'password': password});
+    final res = await _client.post(
+      '/auth/login',
+      data: {'email': email, 'password': password},
+    );
     return _authResult(res.data, res.statusCode);
   }
 
-  Future<AuthResult> register(String email, String password, String name) async {
-    final res = await _client.post('/auth/register',
-        data: {'email': email, 'password': password, 'name': name});
+  Future<AuthResult> register(
+    String email,
+    String password,
+    String name,
+  ) async {
+    final res = await _client.post(
+      '/auth/register',
+      data: {'email': email, 'password': password, 'name': name},
+    );
     return _authResult(res.data, res.statusCode);
   }
 
@@ -205,19 +229,28 @@ class ApiService {
   Future<void> addToWatchlist(String token, Map<String, dynamic> data) =>
       _client.post('/user/watchlist', data: data, token: token);
 
-  Future<void> removeFromWatchlist(String token, Object animeId,
-          {Object? profileId}) =>
-      _client.delete('/user/watchlist/$animeId',
-          query: profileId != null ? {'profileId': profileId} : null,
-          token: token);
+  Future<void> removeFromWatchlist(
+    String token,
+    Object animeId, {
+    Object? profileId,
+  }) => _client.delete(
+    '/user/watchlist/$animeId',
+    query: profileId != null ? {'profileId': profileId} : null,
+    token: token,
+  );
 
   /// Whether [animeId] is in the user's watchlist (backend returns
   /// `{inWatchlist, status}`).
-  Future<bool> getWatchlistStatus(String token, Object animeId,
-      {Object? profileId}) async {
-    final res = await _client.get('/user/watchlist/$animeId',
-        query: profileId != null ? {'profileId': profileId} : null,
-        token: token);
+  Future<bool> getWatchlistStatus(
+    String token,
+    Object animeId, {
+    Object? profileId,
+  }) async {
+    final res = await _client.get(
+      '/user/watchlist/$animeId',
+      query: profileId != null ? {'profileId': profileId} : null,
+      token: token,
+    );
     final data = _unwrap(res.data);
     if (data is Map) {
       if (data['inWatchlist'] is bool) return data['inWatchlist'] as bool;
@@ -228,36 +261,49 @@ class ApiService {
   }
 
   Future<List<Anime>> getFavorites(String token, {int? profileId}) async {
-    final res = await _client.get('/user/favorites',
-        query: profileId != null ? {'profileId': profileId} : null,
-        token: token);
+    final res = await _client.get(
+      '/user/favorites',
+      query: profileId != null ? {'profileId': profileId} : null,
+      token: token,
+    );
     return Anime.listFrom(_unwrap(res.data));
   }
 
   Future<void> addToFavorites(String token, Map<String, dynamic> data) =>
       _client.post('/user/favorites', data: data, token: token);
 
-  Future<void> removeFromFavorites(String token, Object animeId,
-          {Object? profileId}) =>
-      _client.delete('/user/favorites/$animeId',
-          query: profileId != null ? {'profileId': profileId} : null,
-          token: token);
+  Future<void> removeFromFavorites(
+    String token,
+    Object animeId, {
+    Object? profileId,
+  }) => _client.delete(
+    '/user/favorites/$animeId',
+    query: profileId != null ? {'profileId': profileId} : null,
+    token: token,
+  );
 
   /// Whether [animeId] is favorited (backend returns `{isFavorite}`).
-  Future<bool> getFavoriteStatus(String token, Object animeId,
-      {Object? profileId}) async {
-    final res = await _client.get('/user/favorites/$animeId',
-        query: profileId != null ? {'profileId': profileId} : null,
-        token: token);
+  Future<bool> getFavoriteStatus(
+    String token,
+    Object animeId, {
+    Object? profileId,
+  }) async {
+    final res = await _client.get(
+      '/user/favorites/$animeId',
+      query: profileId != null ? {'profileId': profileId} : null,
+      token: token,
+    );
     final data = _unwrap(res.data);
     if (data is Map) return data['isFavorite'] == true;
     return false;
   }
 
   Future<List<dynamic>> getHistory(String token, {int? profileId}) async {
-    final res = await _client.get('/user/history',
-        query: profileId != null ? {'profileId': profileId} : null,
-        token: token);
+    final res = await _client.get(
+      '/user/history',
+      query: profileId != null ? {'profileId': profileId} : null,
+      token: token,
+    );
     final data = _unwrap(res.data);
     return data is List ? data : const [];
   }

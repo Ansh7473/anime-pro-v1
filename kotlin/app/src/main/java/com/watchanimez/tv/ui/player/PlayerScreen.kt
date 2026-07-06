@@ -44,6 +44,34 @@ import com.watchanimez.tv.data.model.StreamSource
 import com.watchanimez.tv.data.model.Subtitle
 import com.watchanimez.tv.ui.theme.AppColors
 
+// Map real provider names -> neutral "Provider N" display names.
+private val providerDisplayNames = mapOf(
+    "HiAnime" to "Provider 1",              // HiAnime
+    "AniNeko" to "Provider 2",              // AniNeko
+    "VidSrc" to "Provider 3",               // VidSrc
+    "9anime" to "Provider 4",               // 9anime
+    "Animelok" to "Provider 5",             // Animelok
+    "DesiDubAnime" to "Provider 6",         // DesiDub
+    "DesiDub" to "Provider 6",
+    "AnimeHindiDubbed" to "Provider 7",     // AHD
+    "AnimeHindiDubbed-WP" to "Provider 7",
+    "AHD (AnimeHindiDubbed)" to "Provider 7",
+    "Toonstream" to "Provider 8",           // Toonstream
+    "WatchAnimeWorld" to "Provider 9",      // WatchAnimeWorld
+    "Aniwaves" to "Provider 10",            // Aniwaves
+    "Animen" to "Provider 11",              // Animen
+    "AnimixStream" to "Provider 12",        // AnimixStream
+    "AnimePahe" to "Provider 13",           // AnimePahe
+)
+
+private fun neutralizeProvider(raw: String): String {
+    providerDisplayNames[raw]?.let { return it }
+    for ((key, value) in providerDisplayNames) {
+        if (raw.startsWith(key)) return value
+    }
+    return "Provider"
+}
+
 private fun langColor(lang: String): Color = when (lang) {
     "SUB" -> Color(0xFF3B82F6)     // Blue
     "DUB" -> Color(0xFF22C55E)     // Green
@@ -231,7 +259,7 @@ private fun ControlOverlay(
                     val lang = source.audioLanguage
                     Text(lang, modifier = Modifier.background(langColor(lang), RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.W700)
                     Text(
-                        buildString { source.providerName?.let { append(it) } ?: source.provider?.let { append(it) } ?: append("Source"); source.quality?.let { append(" • $it") }; if (source.isM3U8) append(" • HLS") },
+                        buildString { append(neutralizeProvider(source.providerName ?: source.provider ?: "Source")); source.quality?.let { append(" • $it") }; if (source.isM3U8) append(" • HLS") },
                         color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.W600,
                     )
                 }
@@ -312,8 +340,8 @@ private fun SourceSelectorOverlay(
 
             Spacer(Modifier.height(12.dp))
 
-            // Sources grouped by provider
-            val grouped = sources.groupBy { it.providerName ?: it.provider ?: "Unknown" }
+            // Sources grouped by provider (neutralized names)
+                        val grouped = sources.groupBy { neutralizeProvider(it.providerName ?: it.provider ?: "Unknown") }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 grouped.forEach { (provider, providerSources) ->
                     item(key = "hdr-$provider") {
