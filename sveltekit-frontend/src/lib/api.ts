@@ -738,9 +738,19 @@ export const api = {
 		fetchJSON(`${STREAMING_URL}/sources/animixstream?animeId=${animeId}&ep=${ep}`),
 
 	getAnimePaheSources: (animeId: string, ep: number) =>
-		fetchJSON(`${STREAMING_URL}/sources/animepahe?animeId=${animeId}&ep=${ep}`),
+			fetchJSON(`${STREAMING_URL}/sources/animepahe?animeId=${animeId}&ep=${ep}`),
 
-	getAggregateSources: (animeId: string, ep: number) =>
+		/* ── New AniPlay-sourced providers ── */
+		getHiAnimeSources: (animeId: string, ep: number) =>
+			fetchJSON(`${STREAMING_URL}/sources/hianime?animeId=${animeId}&ep=${ep}`),
+
+		getAniNekoSources: (animeId: string, ep: number) =>
+			fetchJSON(`${STREAMING_URL}/sources/anineko?animeId=${animeId}&ep=${ep}`),
+
+		getVidSrcSources: (animeId: string, ep: number) =>
+			fetchJSON(`${STREAMING_URL}/sources/vidsrc?animeId=${animeId}&ep=${ep}`),
+
+		getAggregateSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources?animeId=${animeId}&ep=${ep}`),
 
 	getAnimelokSlug: (animeId: string) =>

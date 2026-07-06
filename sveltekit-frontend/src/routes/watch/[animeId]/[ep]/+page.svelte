@@ -137,7 +137,26 @@
   }
 
   function sourceLabel(src: any, index = 0): string {
-    const prov = src.provider ? String(src.provider).split(/[\s(]/)[0] : "";
+    // Neutralize provider names so upstream source names are hidden from users
+    const provRenameMap: Record<string, string> = {
+      "HiAnime":             "P1",   // HiAnime
+      "AniNeko":             "P2",   // AniNeko
+      "VidSrc":              "P3",   // VidSrc
+      "9anime":              "P4",   // 9anime
+      "Animelok":            "P5",   // Animelok
+      "DesiDubAnime":        "P6",   // DesiDub
+      "DesiDub":             "P6",   // DesiDub
+      "AnimeHindiDubbed":    "P7",   // AnimeHindiDubbed
+      "AnimeHindiDubbed-WP": "P7",
+      "Toonstream":          "P8",   // Toonstream
+      "WatchAnimeWorld":     "P9",   // WatchAnimeWorld
+      "Aniwaves":            "P10",  // Aniwaves
+      "Animen":              "P11",  // Animen
+      "AnimixStream":        "P12",  // AnimixStream
+      "AnimePahe":           "P13",  // AnimePahe
+    };
+    const rawProv = src.provider ? String(src.provider).split(/[\s(]/)[0] : "";
+    const prov = provRenameMap[rawProv] || rawProv || "";
     const name = src.name ? String(src.name).trim() : "";
     const q = src.quality ? String(src.quality).trim() : "";
     // Prefer the real source name (e.g. "bato Soft Sub", "Hindi Abyess") with
@@ -213,25 +232,60 @@
 
   // Group sources by Provider first, then by Language/Category
   let groupedSources = $derived.by(() => {
-    const providerGroups: Record<string, Record<string, any[]>> = {};
+      const providerGroups: Record<string, Record<string, any[]>> = {};
 
-    for (const src of sources) {
-      let providerName = src.provider || "Unknown Provider";
-      // Cleanup names
-      if (providerName === "AnimeHindiDubbed-WP")
-        providerName = "AHD (AnimeHindiDubbed)";
+      // Map real provider names → neutral display names
+      // Real names kept as comments so devs know the mapping
+      const providerDisplayMap: Record<string, string> = {
+        "HiAnime":              "Provider 1",  // HiAnime
+        "AniNeko":              "Provider 2",  // AniNeko
+        "VidSrc":               "Provider 3",  // VidSrc
+        "9anime":               "Provider 4",  // 9anime
+        "Animelok":             "Provider 5",  // Animelok
+        "DesiDubAnime":         "Provider 6",  // DesiDub
+        "DesiDub":              "Provider 6",  // DesiDub (alt key)
+        "AnimeHindiDubbed":     "Provider 7",  // AnimeHindiDubbed
+        "AnimeHindiDubbed-WP":  "Provider 7",  // AnimeHindiDubbed (alt key)
+        "AHD (AnimeHindiDubbed)": "Provider 7", // AnimeHindiDubbed (legacy)
+        "Toonstream":           "Provider 8",  // Toonstream
+        "WatchAnimeWorld":      "Provider 9",  // WatchAnimeWorld
+        "Aniwaves":             "Provider 10", // Aniwaves
+        "Animen":               "Provider 11", // Animen
+        "AnimixStream":         "Provider 12", // AnimixStream
+        "AnimePahe":            "Provider 13", // AnimePahe
+      };
+
+      for (const src of sources) {
+        let providerName = src.provider || "Unknown Provider";
+
+        // Neutralize: map real name → "Provider N" (hide upstream source names)
+        // If provider string contains a known key (e.g. "Miruro (kiwi)"), match prefix
+        const directMatch = providerDisplayMap[providerName];
+        if (directMatch) {
+          providerName = directMatch;
+        } else {
+          // Check prefix match for compound names like "Miruro (kiwi)"
+          const prefix = Object.keys(providerDisplayMap).find(k => providerName.startsWith(k));
+          if (prefix) {
+            providerName = providerDisplayMap[prefix];
+          } else {
+            // Fallback: generic neutral name
+            providerName = "Provider";
+          }
+        }
 
       let cat = "Subbed";
       const lang = (src.language || "").toLowerCase();
       const type = (src.type || "").toLowerCase();
       const c = (src.category || "").toLowerCase();
-      const provLow = providerName.toLowerCase();
+      // Use original provider name (before rename) for category detection
+      const rawProv = (src.provider || "").toLowerCase();
 
       if (
         lang.includes("hindi") ||
         c === "hindi" ||
         ((lang.includes("multi") || lang === "multi-audio") &&
-          (provLow.includes("desidub") || provLow.includes("hindi")))
+          (rawProv.includes("desidub") || rawProv.includes("hindi")))
       ) {
         cat = "Hindi Dub";
       } else if (lang.includes("english") || c === "dub" || type === "dub") {
@@ -719,17 +773,22 @@
     }
 
     const providerConfigs = [
-      { name: "9anime", fetcher: api.getNineAnimeSources },
-      { name: "Animelok", fetcher: api.getAnimelokSources },
-      { name: "DesiDub", fetcher: api.getDesiDubSources },
-      { name: "AnimeHindiDubbed", fetcher: api.getAHDSources },
-      { name: "Toonstream", fetcher: api.getToonstreamSources },
-      { name: "WatchAnimeWorld", fetcher: api.getWatchAnimeWorldSources },
-      { name: "Aniwaves", fetcher: api.getAniwavesSources },
-      { name: "Animen", fetcher: api.getAnimenSources },
-      { name: "AnimixStream", fetcher: api.getAnimixStreamSources },
-      { name: "AnimePahe", fetcher: api.getAnimePaheSources },
-    ];
+          // New AniPlay-sourced providers (highest priority — listed first)
+          { name: "Provider 1", fetcher: api.getHiAnimeSources },    // HiAnime
+          { name: "Provider 2", fetcher: api.getAniNekoSources },    // AniNeko
+          { name: "Provider 3", fetcher: api.getVidSrcSources },     // VidSrc
+          // Existing providers
+          { name: "Provider 4", fetcher: api.getNineAnimeSources },  // 9anime
+          { name: "Provider 5", fetcher: api.getAnimelokSources },   // Animelok
+          { name: "Provider 6", fetcher: api.getDesiDubSources },    // DesiDub
+          { name: "Provider 7", fetcher: api.getAHDSources },        // AnimeHindiDubbed
+          { name: "Provider 8", fetcher: api.getToonstreamSources }, // Toonstream
+          { name: "Provider 9", fetcher: api.getWatchAnimeWorldSources },  // WatchAnimeWorld
+          { name: "Provider 10", fetcher: api.getAniwavesSources },  // Aniwaves
+          { name: "Provider 11", fetcher: api.getAnimenSources },    // Animen
+          { name: "Provider 12", fetcher: api.getAnimixStreamSources }, // AnimixStream
+          { name: "Provider 13", fetcher: api.getAnimePaheSources }, // AnimePahe
+        ];
 
     let autoStarted = false;
     let providersFinished = 0;
