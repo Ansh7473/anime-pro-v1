@@ -1,1 +1,0 @@
-add seo based sitemap
