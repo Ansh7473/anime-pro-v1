@@ -11,6 +11,7 @@ export function GET() {
 		'Disallow: /watchlist/',
 		'Disallow: /favorites/',
 		'Disallow: /tv/',
+				'Disallow: /logo-anim.mp4',
 		'',
 		`Sitemap: ${SITE_ORIGIN}/sitemap.xml`
 	].join('\n');

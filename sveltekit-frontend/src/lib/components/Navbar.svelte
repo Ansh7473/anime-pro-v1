@@ -1,16 +1,16 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
-  import { 
-    Download, 
-    Heart, 
-    User, 
-    Bookmark, 
-    Tv, 
-    LogOut, 
-    LogIn, 
-    UserPlus, 
-    Search, 
-    X, 
+  import {
+    Download,
+    Heart,
+    User,
+    Bookmark,
+    Tv,
+    LogOut,
+    LogIn,
+    UserPlus,
+    Search,
+    X,
     Sparkles,
     ArrowLeft,
     TrendingUp,
@@ -172,18 +172,24 @@
 
 <nav class="navbar" class:scrolled>
   <div class="nav-inner">
-    <!-- BRAND LOGO -->
-    <a href="/" class="logo" onclick={() => { closeSearch(); mobileMenuOpen = false; }}>
-      <div class="logo-badge">
-        <video
-          src="/logo-anim.mp4"
-          class="logo-img"
-          autoplay
-          loop
-          muted
-          playsinline
-          aria-hidden="true"
-        ></video>
+    <!-- BRAND LOGO (decorative animation, not video content) -->
+        <a href="/" class="logo" onclick={() => { closeSearch(); mobileMenuOpen = false; }}>
+          <div class="logo-badge">
+            <!--
+              aria-hidden + role=presentation tells crawlers this is decorative, not video content.
+              data-nosnippet prevents Google from indexing this as a video result.
+            -->
+            <video
+              src="/logo-anim.mp4"
+              class="logo-img"
+              autoplay
+              loop
+              muted
+              playsinline
+              aria-hidden="true"
+              role="presentation"
+              data-nosnippet
+            ></video>
         <span class="logo-glow"></span>
       </div>
       <div class="logo-text-wrapper">
@@ -206,7 +212,7 @@
     <!-- ACTION BUTTONS -->
     <div class="nav-actions">
       <!-- QUICK SEARCH TRIGGER (DESKTOP) -->
-      <button 
+      <button
         class="search-bar-trigger hide-mobile"
         onclick={toggleSearch}
         aria-label="Open search"
@@ -217,9 +223,9 @@
       </button>
 
       <!-- MOBILE SEARCH ICON -->
-      <button 
-        class="nav-icon-btn search-trigger-btn hide-desktop" 
-        onclick={toggleSearch} 
+      <button
+        class="nav-icon-btn search-trigger-btn hide-desktop"
+        onclick={toggleSearch}
         aria-label="Search Anime"
       >
         <Search size={20} />
@@ -429,9 +435,9 @@
 <!-- HIGH-PERFORMANCE FULL-SCREEN OVERLAY SEARCH MODAL -->
 {#if searchOpen}
   <div class="search-backdrop" onclick={closeSearch} role="dialog" aria-modal="true">
-    <div 
-      class="search-modal glass" 
-      bind:this={searchContainer} 
+    <div
+      class="search-modal glass"
+      bind:this={searchContainer}
       onclick={(e) => e.stopPropagation()}
     >
       <!-- MODAL TOP BAR -->
