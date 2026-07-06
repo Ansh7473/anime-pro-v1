@@ -9,6 +9,7 @@
   import SkeletonRow from "$lib/components/SkeletonRow.svelte";
   import HomeMarketing from "$lib/components/HomeMarketing.svelte";
   import AiringSchedule from "$lib/components/AiringSchedule.svelte";
+  import { rankByPreference } from "$lib/knnRecommend";
 
   let { data } = $props();
 
@@ -146,6 +147,10 @@
           {/each}
         </div>
       </section>
+    {/if}
+
+    {#if continueWatching.length > 0 && (homeData?.popular?.length || homeData?.trending?.length)}
+      <Row title="🎯 Recommended For You" items={rankByPreference([...(homeData?.popular || []), ...(homeData?.trending || [])], continueWatching.map((w) => w.anime || w))} />
     {/if}
 
     <Row title="🔥 Trending Now" items={homeData?.trending || []} href="/explore/trending" />

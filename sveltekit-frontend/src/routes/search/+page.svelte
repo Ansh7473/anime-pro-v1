@@ -4,6 +4,7 @@
   import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { page } from "$app/state";
   import { onMount } from "svelte";
+  import { searchAndRankAnime, expandAlias } from "$lib/searchEngine";
 
   let query = $state("");
   let results: any[] = $state([]);
@@ -23,8 +24,10 @@
     if (!query.trim()) return;
     loading = true;
     try {
-      const res = await api.search(query, p, 24);
-      results = p === 1 ? res.data : [...results, ...res.data];
+      const res = await api.search(expandAlias(query), p, 24);
+            // Re-rank API results using fused search (alias/trigram/levenshtein/tfidf)
+            const ranked = searchAndRankAnime(query, res.data || []);
+            results = p === 1 ? ranked : [...results, ...ranked];
       hasNext = res.pagination?.has_next_page || false;
       currentPage = p;
     } catch (e) {
