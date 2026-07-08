@@ -60,6 +60,48 @@
   let sources: any[] = $state([]);
   let episodes: any[] = $state([]);
   let selectedSource: any = $state(null);
+  let userOverride = false; // set true when user manually picks a server
+
+  // ── Last-server persistence ────────────────────────────────────────
+  // The user's last manually-selected server is saved to localStorage
+  // and reused as the default for every episode (incl. auto-next)
+  // until they pick a different one.
+  const SERVER_PREF_KEY = "watch_last_server";
+
+  function saveServerPref(src: any) {
+    if (!src) return;
+    try {
+      localStorage.setItem(
+        SERVER_PREF_KEY,
+        JSON.stringify({ provider: src.provider || "", name: src.name || "" }),
+      );
+    } catch {}
+  }
+
+  function loadServerPref(): { provider: string; name: string } | null {
+    try {
+      const raw = localStorage.getItem(SERVER_PREF_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  function matchServerPref(
+    s: any,
+    pref: { provider: string; name: string } | null,
+  ): boolean {
+    if (!pref) return false;
+    const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const name = (s.name || "").toLowerCase();
+    const prefProv = (pref.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const prefName = (pref.name || "").toLowerCase();
+    return (
+      (prefProv === "" || prov.includes(prefProv)) &&
+      (prefName === "" || name.includes(prefName))
+    );
+  }
 
   let isEmbedPlayer = $derived.by(() => {
     if (!selectedSource) return false;
@@ -170,6 +212,7 @@
       "Animen":              "P11",  // Animen
       "AnimixStream":        "P12",  // AnimixStream
       "AnimePahe":           "P13",  // AnimePahe
+      "Tatakai":             "P14",  // Tatakai
     };
     const rawProv = src.provider ? String(src.provider).split(/[\s(]/)[0] : "";
     const prov = provRenameMap[rawProv] || rawProv || "";
@@ -782,6 +825,7 @@
     error = "";
     sources = [];
     selectedSource = null;
+    userOverride = false;
     cancelCountdown();
 
     if (hls) {
@@ -790,6 +834,8 @@
     }
 
     const providerConfigs = [
+          // Tatakai (self-hosted TatakaiAPI animeya) — default/first
+          { name: "Provider 0", fetcher: api.getTatakaiSources },   // Tatakai
           // New AniPlay-sourced providers (highest priority — listed first)
           { name: "Provider 1", fetcher: api.getHiAnimeSources },    // HiAnime
           { name: "Provider 2", fetcher: api.getAniNekoSources },    // AniNeko
@@ -810,26 +856,76 @@
     let autoStarted = false;
     let providersFinished = 0;
 
-    const choosePreferredSource = (providerSources: any[]) => {
+    // ── Server priority selection ─────────────────────────────────────
+    // Picks the best source from all collected sources, in priority order.
+    // For Sub/English/Multi audio: P14 Vidnest Multi → P14 Pahe → P4 (9anime)
+    // For Hindi audio: P6 (DesiDub) Abyss → then sub priorities
+    const pickByPriority = (pool: any[]): any | null => {
+      if (!pool || pool.length === 0) return null;
+
+      // 0. Last-user-selected server (highest priority — persists across episodes)
+      const saved = loadServerPref();
+      if (saved) {
+        const match = pool.find((s: any) => matchServerPref(s, saved));
+        if (match) return match;
+      }
+
       const preferredLang = ($auth.currentProfile?.language || "multi").toLowerCase();
+      const isHindi = preferredLang === "hindi";
 
-      if (preferredLang === "hindi") {
-        return providerSources.find(
-          (s: any) =>
-            (s.language || "").toLowerCase().includes("hindi") ||
-            (s.category || "").toLowerCase() === "hindi",
+      // Match helper: provider name + source name contains a keyword
+      const match = (s: any, provKey: string, nameKey: string) => {
+        const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const name = (s.name || "").toLowerCase();
+        const provMatch = provKey === "" || prov.includes(provKey.toLowerCase().replace(/[^a-z0-9]/g, ""));
+        const nameMatch = nameKey === "" || name.includes(nameKey.toLowerCase());
+        return provMatch && nameMatch;
+      };
+
+      let candidates = pool;
+      if (isHindi) {
+        // Hindi: filter to hindi sources, prioritize P6 Abyss (DesiDub)
+        const hindi = pool.filter((s: any) =>
+          (s.language || "").toLowerCase().includes("hindi") ||
+          (s.category || "").toLowerCase() === "hindi",
         );
+        if (hindi.length > 0) {
+          // Priority: DesiDub with name containing "abyss"
+          const abyss = hindi.find((s: any) =>
+            match(s, "desidub", "abyss") || match(s, "desidubanime", "abyss")
+          );
+          if (abyss) return abyss;
+          return hindi[0]; // first available hindi source
+        }
+        // No hindi sources — fall through to sub priorities
       }
 
-      if (preferredLang === "english" || preferredLang === "dub") {
-        return providerSources.find(
-          (s: any) =>
-            (s.language || "").toLowerCase().includes("english") ||
-            (s.type || "").toLowerCase() === "dub",
-        );
-      }
+      // Sub/English/Multi priority order
+      // 1. P14 · Vidnest Multi (Tatakai, name "Vidnest Multi")
+      const vidnest = candidates.find((s: any) => match(s, "tatakai", "vidnest"));
+      if (vidnest) return vidnest;
+      // 2. P14 · Pahe (Tatakai, name "Pahe")
+      const pahe = candidates.find((s: any) => match(s, "tatakai", "pahe"));
+      if (pahe) return pahe;
+      // 3. P4 · Server 1 (9anime — any source)
+      const nineAnime = candidates.find((s: any) => {
+        const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        return prov.includes("9anime") || prov.includes("nineanime");
+      });
+      if (nineAnime) return nineAnime;
+      // Fallback: first available non-hindi source
+      const sub = candidates.filter((s: any) =>
+        !(s.language || "").toLowerCase().includes("hindi") &&
+        (s.category || "").toLowerCase() !== "hindi",
+      );
+      if (sub.length > 0) return sub[0];
+      return candidates[0];
+    };
 
-      return null;
+    const choosePreferredSource = (providerSources: any[]) => {
+      // Use priority picker on the new sources; falls back to null if none match
+      // (caller will use first source as final fallback)
+      return pickByPriority(providerSources);
     };
 
     const addProviderSources = (config: (typeof providerConfigs)[number], res: any) => {
@@ -888,6 +984,27 @@
     );
 
     if (loadId !== currentLoadId) return;
+
+    // After all providers finish, re-evaluate the best source by priority.
+    // Only switch if the user hasn't manually picked a server.
+    if (!userOverride && sources.length > 0) {
+      const best = pickByPriority(sources);
+      if (best && best.url !== selectedSource?.url) {
+        console.log(`[Player] Switching to priority source: ${best.name}`);
+        selectedSource = best;
+        const isEmbed =
+          selectedSource.isEmbed ||
+          selectedSource.type === "iframe" ||
+          selectedSource.url.includes("embed") ||
+          !selectedSource.url.includes(".m3u8");
+        if (!isEmbed) {
+          initPlayer(selectedSource.url);
+        } else if (videoElement) {
+          videoElement.pause();
+          videoElement.src = "";
+        }
+      }
+    }
 
     sourceLoading = false;
     if (sources.length === 0) {
@@ -1000,6 +1117,13 @@
 
   function handleSourceChange(src: any) {
     selectedSource = src;
+  }
+
+  // User manually selected a server — prevent priority auto-switching
+  function userSelectSource(src: any) {
+    userOverride = true;
+    saveServerPref(src);
+    handleSourceChange(src);
   }
 
   // Tactical Monitoring Heartbeat
@@ -1208,7 +1332,7 @@
         </button>
         {#if showServers && Object.keys(groupedSources).length > 0}
           <div class="section-content">
-            <WatchServers {sources} {groupedSources} {selectedSource} onSelect={handleSourceChange} />
+            <WatchServers {sources} {groupedSources} {selectedSource} onSelect={userSelectSource} />
           </div>
         {/if}
       </div>

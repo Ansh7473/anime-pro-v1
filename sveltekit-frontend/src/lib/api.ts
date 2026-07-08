@@ -750,6 +750,9 @@ export const api = {
 		getVidSrcSources: (animeId: string, ep: number) =>
 			fetchJSON(`${STREAMING_URL}/sources/vidsrc?animeId=${animeId}&ep=${ep}`),
 
+		getTatakaiSources: (animeId: string, ep: number) =>
+			fetchJSON(`${STREAMING_URL}/sources/tatakai?animeId=${animeId}&ep=${ep}`),
+
 		getAggregateSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources?animeId=${animeId}&ep=${ep}`),
 
