@@ -39,7 +39,9 @@
       <button class="row-arrow left" onclick={() => scrollBy(-1)} aria-label="Scroll left">‹</button>
       <div class="row-scroll" bind:this={scrollContainer}>
         {#each uniqueItems as anime (anime.id || anime.mal_id || Math.random())}
-          <AnimeCard {anime} />
+          <div class="card-slot">
+            <AnimeCard {anime} />
+          </div>
         {/each}
       </div>
       <button class="row-arrow right" onclick={() => scrollBy(1)} aria-label="Scroll right">›</button>
@@ -100,6 +102,10 @@
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
+  .card-slot {
+    flex: 0 0 160px;
+    scroll-snap-align: start;
+  }
   .row-scroll::-webkit-scrollbar {
     display: none;
   }
@@ -137,6 +143,7 @@
     .row-title { font-size: 1rem; }
     .accent-bar { height: 16px; }
     .row-scroll { gap: 0.5rem; padding: 0.3rem 0.75rem; scroll-padding-inline: 0.75rem; }
+    .card-slot { flex: 0 0 clamp(150px, 42vw, 200px); }
     .row-arrow { display: none; }
   }
 
@@ -146,5 +153,6 @@
     .row-title { font-size: 0.92rem; }
     .accent-bar { height: 14px; width: 3px; }
     .row-scroll { gap: 0.4rem; padding: 0.3rem 0.5rem; scroll-padding-inline: 0.5rem; }
+    .card-slot { flex: 0 0 clamp(140px, 44vw, 180px); }
   }
 </style>
