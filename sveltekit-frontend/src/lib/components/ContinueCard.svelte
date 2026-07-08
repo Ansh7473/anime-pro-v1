@@ -32,7 +32,7 @@
   .resume-card {
     display: block;
     flex-shrink: 0;
-    width: 132px;
+    width: 160px;
     cursor: pointer;
     text-decoration: none;
     scroll-snap-align: start;
@@ -129,12 +129,12 @@
   }
 
   @media (max-width: 768px) {
-    .resume-card { width: 120px; }
+    .resume-card { width: clamp(150px, 42vw, 200px); }
     .card-poster { border-radius: 10px; }
   }
 
   @media (max-width: 480px) {
-    .resume-card { width: 105px; }
+    .resume-card { width: clamp(140px, 44vw, 180px); }
     .card-poster { border-radius: 8px; }
     .card-title { font-size: 0.72rem; }
   }

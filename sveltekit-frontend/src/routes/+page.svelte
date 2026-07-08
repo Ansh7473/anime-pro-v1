@@ -9,12 +9,15 @@
   import SkeletonRow from "$lib/components/SkeletonRow.svelte";
   import HomeMarketing from "$lib/components/HomeMarketing.svelte";
   import AiringSchedule from "$lib/components/AiringSchedule.svelte";
-  import { rankByPreference } from "$lib/knnRecommend";
 
   let { data } = $props();
 
   // Personalized data is fetched on the client only (depends on auth).
   let continueWatching: any[] = $state([]);
+
+  // Hero banner: one random pick from each of 3 categories, shuffled per session.
+  // Categories: New This Season, Romance & Slice of Life, Top Movies.
+  let heroItems = $state<any[]>([]);
 
   // Reactive refetch for profile-specific data
   $effect(() => {
@@ -85,8 +88,8 @@
 
   onMount(async () => {
     const defs = [
-      { title: "🆕 New This Season", href: "/explore/seasonal", fn: () => api.getCurrentSeasonal(1, 20) },
-      { title: "🚀 Upcoming Anime", href: "/explore/upcoming", fn: () => api.getUpcoming(1, 20) },
+      { title: "Upcoming Anime", href: "/explore/upcoming", fn: () => api.getUpcoming(1, 20) },
+      { title: "New This Season", href: "/explore/seasonal", fn: () => api.getCurrentSeasonal(1, 20) },
     ];
     const results = await Promise.all(
       defs.map(async (d) => {
@@ -101,6 +104,35 @@
     );
     extraSections = results.filter((s) => s.items.length > 0);
     extraLoading = false;
+
+    // Build the random hero: 1 random pick from each of the 3 categories, then shuffle.
+    // Math.random() runs client-only here, so every page refresh re-rolls the order.
+    try {
+      const homeData: any = await Promise.resolve(data.homeData);
+      const newThisSeason =
+        results.find((r) => r.title === "New This Season")?.items || [];
+      const romance = homeData?.romance || [];
+      const movies = homeData?.movies || [];
+
+      const pools: any[][] = [newThisSeason, romance, movies].filter(
+        (p) => p.length > 0,
+      );
+      if (pools.length === 0) {
+        heroItems = homeData?.trending || homeData?.popular || [];
+        return;
+      }
+
+      const picks = pools.map((pool) => pool[Math.floor(Math.random() * pool.length)]);
+
+      // Fisher–Yates shuffle so the displayed order is random each session.
+      for (let i = picks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [picks[i], picks[j]] = [picks[j], picks[i]];
+      }
+      heroItems = picks;
+    } catch (e) {
+      console.warn("Failed to build random hero:", e);
+    }
   });
 </script>
 
@@ -127,8 +159,8 @@
     {/each}
   </div>
 {:then homeData}
-  <!-- Hero Slider Carousel — pass top trending as items -->
-  <HeroBanner items={homeData?.trending || homeData?.popular || []} />
+  <!-- Hero Slider Carousel — 3 random picks (one per category), shuffled per session -->
+  <HeroBanner items={heroItems.length > 0 ? heroItems : (homeData?.trending || homeData?.popular || [])} />
 
   <div class="home-rows">
     <!-- Recent Watches (logged in + has history) -->
@@ -149,16 +181,21 @@
       </section>
     {/if}
 
-    {#if continueWatching.length > 0 && (homeData?.popular?.length || homeData?.trending?.length)}
-      <Row title="🎯 Recommended For You" items={rankByPreference([...(homeData?.popular || []), ...(homeData?.trending || [])], continueWatching.map((w) => w.anime || w))} />
+    <!-- Seasonal + Upcoming (client-loaded, slotted high so fresh content is visible early) -->
+    {#if extraLoading}
+      {#each Array(2) as _, i (i)}
+        <SkeletonRow />
+      {/each}
+    {:else}
+      {#each extraSections as s (s.title)}
+        <Row title={s.title} items={s.items} href={s.href} />
+      {/each}
     {/if}
 
-    <Row title="🔥 Trending Now" items={homeData?.trending || []} href="/explore/trending" />
-    <Row title="⭐ Most Popular" items={homeData?.popular || []} href="/explore/popular" />
-    <Row title="🏆 Top Rated" items={homeData?.topRated || []} href="/explore/highest-rated" />
-    <Row title="⚔️ Action Masters" items={homeData?.action || []} href="/explore/action" />
-    <Row title="💕 Romance & Slice of Life" items={homeData?.romance || []} href="/explore/romance" />
-    <Row title="🎬 Top Movies" items={homeData?.movies || []} href="/explore/movies" />
+    <Row title="Most Popular" items={homeData?.popular || []} href="/explore/popular" />
+    <Row title="Top Rated" items={homeData?.topRated || []} href="/explore/highest-rated" />
+    <Row title="Romance & Slice of Life" items={homeData?.romance || []} href="/explore/romance" />
+    <Row title="Top Movies" items={homeData?.movies || []} href="/explore/movies" />
   </div>
 {:catch}
   <div class="loading-screen">
@@ -168,16 +205,6 @@
 
 <!-- More discovery sections (client-loaded so they never block first paint) -->
 <div class="home-rows extra-rows">
-  {#if extraLoading}
-    {#each Array(2) as _, i (i)}
-      <SkeletonRow />
-    {/each}
-  {:else}
-    {#each extraSections as s (s.title)}
-      <Row title={s.title} items={s.items} href={s.href} />
-    {/each}
-  {/if}
-
   <!-- Estimated Airing Schedule (miruro-style) -->
   <AiringSchedule />
 
@@ -188,7 +215,7 @@
   <!-- Browse by Genre -->
   <section class="genre-section">
     <div class="row-header">
-      <h2 class="row-title">🎯 Browse by Genre</h2>
+      <h2 class="row-title">Browse by Genre</h2>
       <a href="/explore" class="view-all">Explore All</a>
     </div>
     <div class="genre-grid">
@@ -216,6 +243,7 @@
 
   .home-rows {
     margin-top: -1rem;
+    padding: 0 2rem;
     position: relative;
     z-index: 3;
   }
@@ -338,6 +366,7 @@
     gap: 0.75rem;
     overflow-x: auto;
     padding: 0.4rem 1rem;
+    scroll-padding-inline: 1rem;
     scrollbar-width: none;
     -ms-overflow-style: none;
     scroll-snap-type: x mandatory;
@@ -350,6 +379,7 @@
   @media (max-width: 768px) {
     .home-rows {
       margin-top: 0;
+      padding: 0;
     }
     .continue-section {
       margin-bottom: 1.5rem;
@@ -367,6 +397,7 @@
     .continue-scroll {
       gap: 0.85rem;
       padding: 0.4rem 0.75rem;
+      scroll-padding-inline: 0.75rem;
     }
   }
 
@@ -390,6 +421,7 @@
     .continue-scroll {
       gap: 0.75rem;
       padding: 0.3rem 0.5rem;
+      scroll-padding-inline: 0.5rem;
     }
   }
 </style>

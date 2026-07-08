@@ -94,6 +94,7 @@
     gap: 0.75rem;
     overflow-x: auto;
     padding: 0.4rem 1rem;
+    scroll-padding-inline: 1rem;
     scroll-snap-type: x mandatory;
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -135,7 +136,7 @@
     .row-header { padding: 0 0.75rem; margin-bottom: 0.5rem; }
     .row-title { font-size: 1rem; }
     .accent-bar { height: 16px; }
-    .row-scroll { gap: 0.5rem; padding: 0.3rem 0.75rem; }
+    .row-scroll { gap: 0.5rem; padding: 0.3rem 0.75rem; scroll-padding-inline: 0.75rem; }
     .row-arrow { display: none; }
   }
 
@@ -144,6 +145,6 @@
     .row-header { padding: 0 0.5rem; margin-bottom: 0.4rem; }
     .row-title { font-size: 0.92rem; }
     .accent-bar { height: 14px; width: 3px; }
-    .row-scroll { gap: 0.4rem; padding: 0.3rem 0.5rem; }
+    .row-scroll { gap: 0.4rem; padding: 0.3rem 0.5rem; scroll-padding-inline: 0.5rem; }
   }
 </style>

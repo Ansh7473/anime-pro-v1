@@ -31,7 +31,7 @@
     stopAutoplay();
     interval = setInterval(() => {
       if (!paused) next();
-    }, 4000);
+    }, 3000);
   }
   function stopAutoplay() {
     if (interval) clearInterval(interval);
@@ -387,8 +387,8 @@
   /* Mobile */
   @media (max-width: 768px) {
     .hero {
-      height: 58vh;
-      min-height: 380px;
+      height: 45vh;
+      min-height: 300px;
     }
     .hero-content {
       padding: 1.5rem 1.25rem;
@@ -421,8 +421,8 @@
 
   @media (max-width: 480px) {
     .hero {
-      height: 52vh;
-      min-height: 340px;
+      height: 42vh;
+      min-height: 270px;
     }
     .hero-content {
       padding: 1rem 0.85rem;

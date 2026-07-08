@@ -2,6 +2,9 @@
 <html lang="en">
 
 <head>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" />
 	<script>(function (s) { s.dataset.zone = '11242007', s.src = 'https://al5sm.com/tag.min.js' })([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 	
 	<script>
@@ -31,7 +34,6 @@
 
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-	<meta name="text-scale" content="scale" />
 	<meta name="theme-color" content="#0a0a0a" />
 	<meta name="application-name" content="WatchAnimez" />
 	<meta name="mobile-web-app-capable" content="yes" />
@@ -48,7 +50,8 @@
 </head>
 
 <body data-sveltekit-preload-data="hover">
-	<div class="app-root">%sveltekit.body%</div>
+	<a href="#main" class="skip-link">Skip to content</a>
+	<main class="app-root" id="main">%sveltekit.body%</main>
 </body>
 
 </html>

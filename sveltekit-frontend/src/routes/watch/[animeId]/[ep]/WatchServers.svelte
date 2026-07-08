@@ -21,13 +21,33 @@
       [string, Record<string, any[]>]
     >,
   );
+
+  // Auto-open the provider containing the currently-selected source (or first).
+  $effect(() => {
+    if (openProvider !== null) return; // respect manual toggles once set
+    if (selectedSource?.url) {
+      // providerEntries use neutralized names ("Provider N"); match on source url
+      const hit = providerEntries.find(([, cats]) =>
+        Object.values(cats).some((list) =>
+          list.some((s) => s.url === selectedSource.url),
+        ),
+      );
+      if (hit) {
+        openProvider = hit[0];
+        return;
+      }
+    }
+    if (providerEntries.length > 0) {
+      openProvider = providerEntries[0][0];
+    }
+  });
 </script>
 
 <div class="server-selection">
   <div class="server-header">
     <div class="server-title-group">
       <div class="server-icon-wrapper">
-        <Server size={18} class="server-icon" />
+        <Server size={18} class="server-icon" aria-hidden="true" />
       </div>
       <div>
         <h3>Select Server</h3>
@@ -54,6 +74,7 @@
           onclick={() =>
             (openProvider = openProvider === provider ? null : provider)}
           aria-expanded={openProvider === provider}
+          aria-controls={`panel-${provider}`}
         >
           <span class="prov-name">{provider}</span>
           <span class="provider-summary">
@@ -64,23 +85,27 @@
             <ChevronDown
               size={15}
               class={`provider-chevron ${openProvider === provider ? "rotated" : ""}`}
+              aria-hidden="true"
             />
           </span>
         </button>
-        <div class="provider-sources" class:expanded={openProvider === provider}>
+        <div id={`panel-${provider}`} class="provider-sources" class:expanded={openProvider === provider}>
           <div class="quality-tabs">
             {#each Object.entries(categories) as [category, categorySources]}
               <div class="category-group">
                 <span class="cat-label">{category}</span>
-                <div class="source-chips">
+                <div class="source-chips" role="radiogroup" aria-label={`${category} sources`}>
                   {#each categorySources as src}
                     <button
                       class="source-chip"
                       class:active={selectedSource?.url === src.url}
+                      role="radio"
+                      aria-checked={selectedSource?.url === src.url}
                       onclick={() => onSelect(src)}
                     >
                       {src.name || "Default"}
                       {#if src.quality}<span class="q">{src.quality}</span>{/if}
+                      {#if selectedSource?.url === src.url}<span class="q q-rec">Recommended</span>{/if}
                     </button>
                   {/each}
                 </div>
@@ -171,7 +196,7 @@
 
   .provider-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 0.75rem;
   }
   .provider-card {
@@ -240,7 +265,7 @@
       margin-top 0.25s ease;
   }
   .provider-sources.expanded {
-    max-height: 900px;
+    max-height: 2000px;
     opacity: 1;
     margin-top: 0.85rem;
   }
@@ -281,7 +306,7 @@
     gap: 0.5rem;
   }
   .source-chip {
-    padding: 9px 14px;
+    padding: 10px 14px;
     background: var(--surface-btn);
     border: 1px solid var(--hairline);
     border-radius: var(--radius-inner);
@@ -313,6 +338,18 @@
     color: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
+  .source-chip .q-rec {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: color-mix(in srgb, var(--accent) 75%, #fff);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+    text-transform: none;
+  }
+
+  .source-chip:focus-visible,
+  .provider-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
   :global(.tv-mode) .source-chip:focus-visible {
     background: #fff;
@@ -320,6 +357,11 @@
     transform: scale(1.1);
   }
 
+  @media (max-width: 480px) {
+    .provider-grid {
+      grid-template-columns: 1fr;
+    }
+  }
   @media (max-width: 768px) {
     .server-header {
       flex-direction: column;

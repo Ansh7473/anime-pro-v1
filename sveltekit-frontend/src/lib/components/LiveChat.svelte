@@ -22,6 +22,7 @@
   let isOpen = $state(isInline);
   let connected = $state(false);
   let chatEndRef: HTMLDivElement | null = $state(null);
+  let messagesContainerRef: HTMLDivElement | null = $state(null);
   let chatType = $state("Live Chat"); // Visual only for YT feel
 
   onMount(() => {
@@ -79,8 +80,12 @@
   }
 
   function scrollToBottom() {
-    if (chatEndRef) {
-      setTimeout(() => chatEndRef?.scrollIntoView({ behavior: "smooth" }), 50);
+    if (messagesContainerRef) {
+      setTimeout(
+        () =>
+          (messagesContainerRef!.scrollTop = messagesContainerRef!.scrollHeight),
+        50,
+      );
     }
   }
 
@@ -93,29 +98,31 @@
   <button
     class="sidebar-toggle"
     onclick={() => (isOpen = !isOpen)}
+    aria-expanded={isOpen}
+    aria-controls="live-chat-panel"
     title={isOpen ? "Collapse Chat" : "Expand Chat"}
   >
     {#if isOpen}
-      <ChevronRight size={20} />
+      <ChevronRight size={20} aria-hidden="true" />
     {:else}
-      <ChevronLeft size={20} />
+      <ChevronLeft size={20} aria-hidden="true" />
       <span class="vertical-text">CHAT</span>
     {/if}
   </button>
 
   {#if isOpen || isInline}
-    <div class="chat-main glass-panel">
+    <div class="chat-main glass-panel" id="live-chat-panel">
       <!-- YouTube Style Header -->
       <div class="chat-header">
         <div class="header-top">
           <div class="chat-selector">
             <span>{chatType}</span>
-            <ChevronLeft size={14} class="rotate-down" />
+            <ChevronLeft size={14} class="rotate-down" aria-hidden="true" />
           </div>
           <div class="header-actions">
-            <button class="icon-btn"><Settings size={16} /></button>
+            <button class="icon-btn"><Settings size={16} aria-hidden="true" /></button>
             <button class="icon-btn" onclick={() => isInline ? onClose?.() : (isOpen = false)}
-              ><X size={18} /></button
+              ><X size={18} aria-hidden="true" /></button
             >
           </div>
         </div>
@@ -129,7 +136,7 @@
       <div class="messages-area">
         {#if messages.length === 0}
           <div class="welcome-banner">
-            <div class="welcome-icon"><MessageSquare size={32} /></div>
+            <div class="welcome-icon"><MessageSquare size={32} aria-hidden="true" /></div>
             <h3>Welcome to Live Chat!</h3>
             <p>
               Remember to guard your privacy and abide by our community
@@ -138,8 +145,8 @@
           </div>
         {/if}
 
-        <div class="message-feed">
-          {#each messages as msg}
+        <div class="message-feed" bind:this={messagesContainerRef} role="log" aria-live="polite">
+          {#each messages as msg (msg.id || msg.timestamp)}
             <div class="yt-message">
               <img
                 src={getProxiedImage(
@@ -185,6 +192,7 @@
               <input
                 type="text"
                 placeholder="Say something..."
+                aria-label="Send a message"
                 bind:value={newMessage}
                 onkeydown={handleKeydown}
                 maxlength="200"
@@ -198,7 +206,7 @@
                   onclick={sendMessage}
                   disabled={!newMessage.trim() || !connected}
                 >
-                  <Send size={18} />
+                  <Send size={18} aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -244,6 +252,19 @@
 
   .chat-container.closed {
     transform: translateX(332px);
+  }
+
+  /* On narrower screens, take the chat out of fixed positioning so it flows
+     in-page and doesn't overlap the player/sidebar. */
+  @media (max-width: 1100px) {
+    .chat-container {
+      position: static;
+      width: 100%;
+      height: 460px;
+      right: auto;
+      top: auto;
+      transform: none;
+    }
   }
 
   .chat-container.inline.closed {

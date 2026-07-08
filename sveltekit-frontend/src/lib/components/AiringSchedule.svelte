@@ -212,7 +212,7 @@
   }
   .airing-card {
     flex-shrink: 0;
-    width: 132px;
+    width: 160px;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -274,8 +274,8 @@
   }
   .airing-skel {
     flex-shrink: 0;
-    width: 132px;
-    height: 232px;
+    width: 160px;
+    height: 280px;
     border-radius: 10px;
     background: linear-gradient(
       90deg,
@@ -309,19 +309,19 @@
     }
     .airing-card,
     .airing-skel {
-      width: 116px;
+      width: clamp(150px, 42vw, 200px);
     }
     .airing-skel {
-      height: 205px;
+      height: 320px;
     }
   }
   @media (max-width: 480px) {
     .airing-card,
     .airing-skel {
-      width: 104px;
+      width: clamp(140px, 44vw, 180px);
     }
     .airing-skel {
-      height: 185px;
+      height: 300px;
     }
     .airing-title {
       font-size: 1rem;

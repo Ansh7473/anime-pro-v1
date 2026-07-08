@@ -68,9 +68,9 @@
     }
 
     try {
-      const res = await api.toggleReaction($auth.token || '', { 
-        animeId, 
-        episode, 
+      const res = await api.toggleReaction($auth.token || '', {
+        animeId,
+        episode,
         type,
         profileId: gid // Use guestId as a temporary identifier if no token
       });
@@ -83,16 +83,18 @@
 
 <div class="reactions-container">
   {#each emojis as emoji}
-    <button 
-      class="reaction-btn" 
+    <button
+      class="reaction-btn"
       class:active={userReaction === emoji.type}
+      aria-pressed={userReaction === emoji.type}
       onclick={() => toggle(emoji.type)}
       aria-label={`React with ${emoji.label}`}
     >
-      <emoji.icon 
-        size={20} 
+      <emoji.icon
+        size={20}
+        aria-hidden="true"
         strokeWidth={userReaction === emoji.type ? 2.5 : 2}
-        color={userReaction === emoji.type ? emoji.color : 'rgba(255,255,255,0.5)'} 
+        color={userReaction === emoji.type ? emoji.color : 'rgba(255,255,255,0.5)'}
       />
       <span class="count">{counts[emoji.type] || 0}</span>
       <span class="tooltip">{emoji.label}</span>
@@ -162,5 +164,23 @@
   .reaction-btn:hover .tooltip {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 640px) {
+    .reactions-container {
+      gap: 0.35rem;
+      padding: 0.35rem;
+      border-radius: 14px;
+      flex-wrap: wrap;
+      width: 100%;
+      justify-content: center;
+    }
+    .reaction-btn {
+      padding: 0.6rem 0.75rem;
+      min-height: 44px;
+      font-size: 0.82rem;
+      gap: 0.35rem;
+    }
+    .tooltip { display: none; }
   }
 </style>

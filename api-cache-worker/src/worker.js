@@ -25,6 +25,13 @@ export default {
       "Access-Control-Max-Age": "86400",
     };
 
+    // Cache headers for successful responses — tells Cloudflare edge to cache
+    const cacheHeaders = {
+      "Cache-Control": `public, max-age=120, s-maxage=${ttl}, stale-while-revalidate=86400, stale-if-error=86400`,
+      "CDN-Cache-Control": `public, s-maxage=${ttl}, stale-while-revalidate=86400, stale-if-error=86400`,
+      Vary: "Origin",
+    };
+
     // Preflight
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
@@ -39,25 +46,35 @@ export default {
       // ─── AniList GraphQL ────────────────────────────────────────
       if (url.pathname === "/anilist" && request.method === "POST") {
         const body = await request.text();
-        const key = "al:" + await sha256(body);
+        const key = "al:" + (await sha256(body));
 
         // Check KV cache
         const cached = await env.CACHE.get(key);
         if (cached) {
-          return json(JSON.parse(cached), corsHeaders, { "X-Cache": "HIT" });
+          return json(JSON.parse(cached), corsHeaders, {
+            "X-Cache": "HIT",
+            ...cacheHeaders,
+          });
         }
 
         // Forward to AniList
         const res = await fetch(env.ANILIST_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
           body,
         });
 
         if (!res.ok) {
           return new Response(res.body, {
             status: res.status,
-            headers: { ...corsHeaders, "X-Cache": "ERROR" },
+            headers: {
+              ...corsHeaders,
+              "X-Cache": "ERROR",
+              "Cache-Control": "no-store",
+            },
           });
         }
 
@@ -69,7 +86,7 @@ export default {
             "Content-Type": "application/json",
             ...corsHeaders,
             "X-Cache": "MISS",
-            "Cache-Control": `public, max-age=${ttl}`,
+            ...cacheHeaders,
           },
         });
       }
@@ -78,24 +95,31 @@ export default {
       if (url.pathname.startsWith("/jikan/")) {
         const jikanPath = url.pathname.slice(7); // strip "/jikan/"
         const qs = url.search || "";
-        const key = "jk:" + await sha256(jikanPath + qs);
+        const key = "jk:" + (await sha256(jikanPath + qs));
 
         // Check KV cache
         const cached = await env.CACHE.get(key);
         if (cached) {
-          return json(JSON.parse(cached), corsHeaders, { "X-Cache": "HIT" });
+          return json(JSON.parse(cached), corsHeaders, {
+            "X-Cache": "HIT",
+            ...cacheHeaders,
+          });
         }
 
         // Forward to Jikan
         const jikanUrl = `${env.JIKAN_URL}/${jikanPath}${qs}`;
         const res = await fetch(jikanUrl, {
-          headers: { "Accept": "application/json" },
+          headers: { Accept: "application/json" },
         });
 
         if (!res.ok) {
           return new Response(res.body, {
             status: res.status,
-            headers: { ...corsHeaders, "X-Cache": "ERROR" },
+            headers: {
+              ...corsHeaders,
+              "X-Cache": "ERROR",
+              "Cache-Control": "no-store",
+            },
           });
         }
 
@@ -106,14 +130,24 @@ export default {
             "Content-Type": "application/json",
             ...corsHeaders,
             "X-Cache": "MISS",
-            "Cache-Control": `public, max-age=${ttl}`,
+            ...cacheHeaders,
           },
         });
       }
 
-      return json({ error: "Not found. Use /anilist (POST) or /jikan/* (GET)" }, corsHeaders, {}, 404);
+      return json(
+        { error: "Not found. Use /anilist (POST) or /jikan/* (GET)" },
+        corsHeaders,
+        {},
+        404,
+      );
     } catch (err) {
-      return json({ error: err.message }, corsHeaders, {}, 500);
+      return json(
+        { error: err.message },
+        corsHeaders,
+        { "Cache-Control": "no-store" },
+        500,
+      );
     }
   },
 };
@@ -121,8 +155,14 @@ export default {
 // ─── Helpers ────────────────────────────────────────────────────────
 
 async function sha256(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(text),
+  );
+  return [...new Uint8Array(buf)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32);
 }
 
 function json(data, corsHeaders, extra = {}, status = 200) {

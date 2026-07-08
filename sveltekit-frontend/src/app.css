@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
 :root {
   --net-red: #E50914; /* WatchAnimez Signature Red */
   --net-red-hover: #F40612;
@@ -16,6 +14,10 @@
   --radius-lg: 8px;
   --radius-xl: 12px;
   --net-gradient: linear-gradient(135deg, var(--net-red) 0%, #7c040a 100%);
+  --tv-focus-border: #e50914;
+  --tv-focus-glow: rgba(229, 9, 19, 0.35);
+  --tv-overscan-x: 48px;
+  --tv-overscan-y: 48px;
 }
 
 /* --- THEME CUSTOMIZATION ENGINE --- */
@@ -44,7 +46,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-[data-effect="neon"] :root {
+:root[data-effect="neon"] {
   --tactical-glow: 0 0 15px var(--net-red);
 }
 [data-effect="neon"] .btn-primary {
@@ -67,9 +69,9 @@
 
 /* Global TV Compatibility & Focus Management */
 :focus-visible {
-  outline: 4px solid var(--tv-focus-border);
+  outline: 4px solid var(--tv-focus-border, #e50914);
   outline-offset: 4px;
-  box-shadow: var(--tv-focus-glow);
+  box-shadow: var(--tv-focus-glow, rgba(229, 9, 19, 0.35));
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -86,10 +88,10 @@
 
 .tv-mode .container {
   max-width: 100%;
-  padding-left: var(--tv-overscan-x);
-  padding-right: var(--tv-overscan-x);
-  padding-top: var(--tv-overscan-y);
-  padding-bottom: var(--tv-overscan-y);
+  padding-left: var(--tv-overscan-x, 48px);
+  padding-right: var(--tv-overscan-x, 48px);
+  padding-top: var(--tv-overscan-y, 48px);
+  padding-bottom: var(--tv-overscan-y, 48px);
   margin: 0;
 }
 
@@ -104,7 +106,12 @@
 
 html {
   font-size: 16px;
-  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
@@ -368,7 +375,13 @@ img {
 
 @media (max-width: 768px) {
   button,
-  a {
+  [role="button"],
+  a[class*="btn"],
+  .source-chip,
+  .ctrl-btn,
+  .deck-nav-btn,
+  .deck-toggle,
+  .provider-toggle {
     min-height: 44px;
     min-width: 44px;
   }
@@ -430,6 +443,21 @@ img {
 
 .text-responsive-2xl {
   font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  background: #000;
+  color: #fff;
+  border-radius: 0 0 8px 0;
+}
+
+.skip-link:focus {
+  left: 0;
 }
 
 /* Hide on specific breakpoints */

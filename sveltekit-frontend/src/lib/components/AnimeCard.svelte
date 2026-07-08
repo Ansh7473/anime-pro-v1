@@ -178,16 +178,16 @@
   }
 
   @media (max-width: 768px) {
-    .card { width: 140px; }
-    .card.small { width: 110px; }
-    .card.large { width: 180px; }
+    .card { width: clamp(150px, 42vw, 200px); }
+    .card.small { width: clamp(120px, 34vw, 160px); }
+    .card.large { width: clamp(180px, 52vw, 240px); }
     .card-title { font-size: 0.78rem; }
   }
 
   @media (max-width: 480px) {
-    .card { width: 110px; }
-    .card.small { width: 95px; }
-    .card.large { width: 140px; }
+    .card { width: clamp(140px, 44vw, 180px); }
+    .card.small { width: clamp(110px, 36vw, 150px); }
+    .card.large { width: clamp(160px, 54vw, 220px); }
     .card-title { font-size: 0.72rem; }
     .card-poster { border-radius: 10px; }
     .score-badge { font-size: 0.6rem; padding: 1px 5px; }

@@ -78,6 +78,11 @@ kotlin/.gradle/
 kotlin/.kotlin/
 kotlin/local.properties
 
+# Android Gradle build cache (binary artifacts, no source value)
+anime_pro_tv/android/.gradle/
+anime_pro_tv/android/.kotlin/
+anime_pro_tv/android/local.properties
+
 # Backend moved to separate private repo (anime-pro-backend-go) — never track it here
 backend-go/
 go.work

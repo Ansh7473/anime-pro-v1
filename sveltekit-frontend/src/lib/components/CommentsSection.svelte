@@ -140,24 +140,28 @@
 <div class="comments-section">
   <div class="comments-header">
     <div class="ch-titles">
-      <span class="ch-kicker"><MessageCircle size={13} /> The Anime Community</span>
+      <span class="ch-kicker"><MessageCircle size={13} aria-hidden="true" /> The Anime Community</span>
       <h3>Comments <span class="comment-count">{comments.length}</span></h3>
     </div>
     <div class="ch-tabs" role="tablist">
       <button
+        id="comments-tab-anime"
         class="ch-tab"
         class:active={activeScope === 'anime'}
         role="tab"
         aria-selected={activeScope === 'anime'}
+        aria-controls="comments-panel-anime"
         onclick={() => setScope('anime')}
       >
         Anime
       </button>
       <button
+        id="comments-tab-episode"
         class="ch-tab"
         class:active={activeScope === 'episode'}
         role="tab"
         aria-selected={activeScope === 'episode'}
+        aria-controls="comments-panel-episode"
         onclick={() => setScope('episode')}
       >
         EP {episode}
@@ -172,6 +176,7 @@
       <div class="input-wrapper">
         <textarea
           placeholder="What are your thoughts on this episode?"
+          aria-label="Write a comment"
           bind:value={newComment}
           rows="2"
         ></textarea>
@@ -194,7 +199,13 @@
   </div>
 
   <!-- Comments List -->
-  <div class="comments-list">
+  <div
+    id="comments-panel-{activeScope}"
+    class="comments-list"
+    role="tabpanel"
+    aria-labelledby="comments-tab-{activeScope}"
+    aria-live="polite"
+  >
     {#if loading}
       {#each Array(3) as _}
         <div class="comment-skeleton"></div>
@@ -220,11 +231,11 @@
 
             <div class="comment-actions">
               <button class="action-btn" onclick={() => replyingTo = comment.id}>
-                <Reply size={14} /> Reply
+                <Reply size={14} aria-hidden="true" /> Reply
               </button>
               {#if $auth.user?.id === comment.userId}
                 <button class="action-btn delete" onclick={() => deleteComment(comment.id)}>
-                  <Trash2 size={14} /> Delete
+                  <Trash2 size={14} aria-hidden="true" /> Delete
                 </button>
               {/if}
             </div>
@@ -234,6 +245,7 @@
               <div class="input-container reply-input">
                 <textarea
                   placeholder="Write a reply..."
+                  aria-label="Write a reply"
                   bind:value={replyText}
                   rows="1"
                 ></textarea>
@@ -244,7 +256,7 @@
                     onclick={() => postComment(comment.id)}
                     disabled={!replyText.trim() || processing}
                   >
-                    Post Reply
+                    {processing && replyingTo === comment.id ? 'Posting...' : 'Post Reply'}
                   </button>
                 </div>
               </div>
@@ -269,7 +281,7 @@
                       {#if $auth.user?.id === reply.userId}
                         <div class="comment-actions">
                           <button class="action-btn delete" onclick={() => deleteComment(reply.id)}>
-                            <Trash2 size={14} /> Delete
+                            <Trash2 size={14} aria-hidden="true" /> Delete
                           </button>
                         </div>
                       {/if}
@@ -289,18 +301,21 @@
   /* Flat, miruro-style discussion panel. Uses the watch-page design tokens
      (inherited from .player-page) with safe fallbacks. */
   .comments-section {
-    --c-surface: var(--surface-1, #0e0e0e);
-    --c-surface-2: var(--surface-2, #141414);
-    --c-btn: var(--surface-btn, #202020);
-    --c-btn-hover: var(--surface-btn-hover, #292929);
-    --c-line: var(--hairline, rgba(245, 245, 245, 0.1));
-    --c-line-strong: var(--hairline-strong, rgba(245, 245, 245, 0.16));
+    --c-surface: var(--surface-1, rgba(14, 14, 20, 0.5));
+    --c-surface-2: var(--surface-2, rgba(255, 255, 255, 0.02));
+    --c-btn: var(--surface-btn, rgba(255, 255, 255, 0.04));
+    --c-btn-hover: var(--surface-btn-hover, rgba(255, 255, 255, 0.08));
+    --c-line: var(--hairline, rgba(255, 255, 255, 0.05));
+    --c-line-strong: var(--hairline-strong, rgba(255, 255, 255, 0.1));
     --c-accent: var(--net-red, #e50914);
     --c-txt: var(--txt, #e8e8e8);
-    --c-dim: var(--txt-dim, #696969);
-    --c-radius: var(--radius-card, 10px);
-    --c-radius-in: var(--radius-inner, 8px);
+    --c-dim: var(--txt-dim, #a3a3a3);
+    --c-radius: var(--radius-card, 20px);
+    --c-radius-in: var(--radius-inner, 10px);
+  }
 
+  /* ── Layout & Wrapper ─────────────────────────── */
+  .comments-section {
     margin-top: 1rem;
     display: flex;
     flex-direction: column;
@@ -309,7 +324,9 @@
     background: var(--c-surface);
     border: 1px solid var(--c-line);
     border-radius: var(--c-radius);
-    padding: 1rem;
+    padding: 2rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
   .comments-header {
@@ -384,27 +401,38 @@
   }
 
   .user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     flex-shrink: 0;
     object-fit: cover;
-    border: 1px solid var(--c-line);
-    background: var(--c-surface-2);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .user-avatar:hover {
+    border-color: var(--c-accent);
+    transform: scale(1.05);
   }
   .user-avatar.sm {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    border-width: 1.5px;
   }
 
   .input-container {
     display: flex;
-    gap: 0.85rem;
-    background: var(--c-surface-2);
-    border: 1px solid var(--c-line);
-    border-radius: var(--c-radius);
-    padding: 0.85rem;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.15rem;
+    transition: border-color 0.22s ease, box-shadow 0.22s ease;
+  }
+  .input-container:focus-within {
+    border-color: rgba(229, 9, 20, 0.35);
+    box-shadow: 0 0 0 1px rgba(229, 9, 20, 0.2);
   }
   .input-wrapper {
     flex: 1;
@@ -416,10 +444,10 @@
 
   textarea {
     width: 100%;
-    background: var(--c-surface);
-    border: 1px solid var(--c-line);
-    border-radius: var(--c-radius-in);
-    padding: 0.7rem 0.8rem;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
     color: var(--c-txt);
     font-family: inherit;
     font-size: 0.9rem;
@@ -509,27 +537,34 @@
   }
 
   .comments-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
 
   .comment-card {
     display: flex;
-    gap: 0.85rem;
-    background: var(--c-surface-2);
-    border: 1px solid var(--c-line);
-    border-radius: var(--c-radius);
-    padding: 0.85rem 1rem;
-    transition: border-color 0.18s ease;
+    gap: 1rem;
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 1.25rem 0;
+    transition: all 0.2s ease;
+  }
+  .comment-card:last-child {
+    border-bottom: none;
   }
   .comment-card:hover {
-    border-color: var(--c-line-strong);
+    border-color: rgba(255, 255, 255, 0.08);
   }
   .comment-card.reply {
-    gap: 0.65rem;
-    margin-top: 0.6rem;
-    background: var(--c-surface);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 0.65rem 0.85rem;
   }
 
   .comment-body {
