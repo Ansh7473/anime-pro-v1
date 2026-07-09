@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -63,24 +64,41 @@ class LibraryScreen extends ConsumerWidget {
       child: Builder(
         builder: (context) {
           final isTv = DeviceInfo.isTv(context);
-          return Scaffold(
-            appBar: AppBar(
-              titleSpacing: isTv ? 48 : null,
-              toolbarHeight: isTv ? 72 : null,
-              title: Text(
-                'My Library',
-                style: isTv
-                    ? const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)
-                    : null,
-              ),
-              bottom: _LibraryTabBar(isTv: isTv),
-            ),
-            body: TabBarView(
+          Widget body = TabBarView(
+            children: [
+              _Grid(provider: watchlistProvider),
+              _Grid(provider: favoritesProvider),
+            ],
+          );
+
+          if (isTv) {
+            body = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Grid(provider: watchlistProvider),
-                _Grid(provider: favoritesProvider),
+                const SizedBox(height: 80), // Clear TV top nav rail
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 48, vertical: 12),
+                  child: Text(
+                    'My Library',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.text,
+                    ),
+                  ),
+                ),
+                _LibraryTabBar(isTv: true),
+                Expanded(child: body),
               ],
+            );
+          }
+
+          return Scaffold(
+            appBar: isTv ? null : AppBar(
+              title: const Text('My Library'),
+              bottom: _LibraryTabBar(isTv: false),
             ),
+            body: body,
           );
         },
       ),
@@ -198,6 +216,11 @@ class _TvTabState extends State<_TvTab> {
     return FocusableActionDetector(
       autofocus: widget.autofocus,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -321,6 +344,11 @@ class _TvFocusableButtonState extends State<_TvFocusableButton> {
     return FocusableActionDetector(
       autofocus: widget.autofocus,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {

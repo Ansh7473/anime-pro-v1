@@ -35,14 +35,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     _syncToProfile(auth.profile);
+    final isTv = DeviceInfo.isTv(context);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        title: const Text('Profile'),
-      ),
+      appBar: isTv
+          ? null
+          : AppBar(
+              backgroundColor: AppColors.bg,
+              elevation: 0,
+              title: const Text('Profile'),
+            ),
       body: auth.isAuthenticated
           ? _SignedInView(
               auth: auth,
@@ -173,6 +176,18 @@ class _SignedInView extends StatelessWidget {
         32,
       ),
       children: [
+        if (isTv) ...[
+          const SizedBox(height: 60), // Clear TV top nav rail
+          const Text(
+            'Profile',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              color: AppColors.text,
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
         _HeaderCard(
           name: displayName,
           email: user.email,
@@ -580,6 +595,11 @@ class _SwitchTileState extends State<_SwitchTile> {
     return FocusableActionDetector(
       autofocus: widget.autofocus,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -673,6 +693,11 @@ class _NavTileState extends State<_NavTile> {
     return FocusableActionDetector(
       autofocus: false,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {

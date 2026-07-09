@@ -685,12 +685,13 @@ class _TvFocusableState extends State<_TvFocusable> {
       },
       child: InkWell(
         onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
           child: AnimatedContainer(
+            clipBehavior: Clip.antiAlias,
             duration: const Duration(milliseconds: 150),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.borderRadius),

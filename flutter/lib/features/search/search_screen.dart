@@ -108,6 +108,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            if (isTv) const SizedBox(height: 80),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 hPad,
@@ -631,7 +632,7 @@ class _SearchTextFieldState extends State<_SearchTextField> {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: _focused ? Colors.white : Colors.transparent,
+          color: _focused ? Colors.white : AppColors.card,
           width: 2.2,
         ),
         boxShadow: _focused

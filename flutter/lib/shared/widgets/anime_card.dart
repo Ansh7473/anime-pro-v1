@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -88,6 +89,11 @@ class _AnimeCardState extends ConsumerState<AnimeCard> {
             curve: Curves.easeOut,
           );
         }
+      },
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
       },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(

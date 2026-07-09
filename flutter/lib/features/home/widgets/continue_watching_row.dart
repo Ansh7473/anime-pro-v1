@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/device/device_info.dart';
@@ -106,6 +107,11 @@ class _ResumeCardState extends State<_ResumeCard> {
             curve: Curves.easeOut,
           );
         }
+      },
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
       },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -115,12 +116,18 @@ class _TvFocusable extends StatefulWidget {
     required this.builder,
     this.borderRadius = 8,
     this.autofocus = false,
+    this.stretch = false,
+    this.onKey,
+    this.focusNode,
   });
 
   final VoidCallback? onTap;
   final Widget Function(bool focused) builder;
   final double borderRadius;
   final bool autofocus;
+  final bool stretch;
+  final FocusOnKeyEventCallback? onKey;
+  final FocusNode? focusNode;
 
   @override
   State<_TvFocusable> createState() => _TvFocusableState();
@@ -128,6 +135,39 @@ class _TvFocusable extends StatefulWidget {
 
 class _TvFocusableState extends State<_TvFocusable> {
   bool _focused = false;
+  FocusNode? _localFocusNode;
+
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ??
+      (_localFocusNode ??= FocusNode(debugLabel: 'tvFocusable'));
+
+  @override
+  void initState() {
+    super.initState();
+    _effectiveFocusNode.onKeyEvent = (node, event) {
+      if (widget.onKey != null) {
+        return widget.onKey!(node, event);
+      }
+      return KeyEventResult.ignored;
+    };
+  }
+
+  @override
+  void didUpdateWidget(_TvFocusable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _effectiveFocusNode.onKeyEvent = (node, event) {
+      if (widget.onKey != null) {
+        return widget.onKey!(node, event);
+      }
+      return KeyEventResult.ignored;
+    };
+  }
+
+  @override
+  void dispose() {
+    _localFocusNode?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,9 +180,15 @@ class _TvFocusableState extends State<_TvFocusable> {
     }
     final enabled = widget.onTap != null;
     return FocusableActionDetector(
+      focusNode: _effectiveFocusNode,
       enabled: enabled,
       autofocus: widget.autofocus && enabled,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -153,33 +199,61 @@ class _TvFocusableState extends State<_TvFocusable> {
       },
       child: InkWell(
         onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.borderRadius + 2),
-              border: Border.all(
-                color: _focused
-                    ? Colors.white.withValues(alpha: 0.8)
-                    : Colors.transparent,
-                width: 2.5,
-              ),
-              boxShadow: _focused
-                  ? [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        blurRadius: 16,
-                        spreadRadius: 1,
+          child: widget.stretch
+              ? SizedBox(
+                  width: double.infinity,
+                  child: AnimatedContainer(
+                    clipBehavior: Clip.antiAlias,
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(widget.borderRadius + 2),
+                      border: Border.all(
+                        color: _focused
+                            ? Colors.white.withValues(alpha: 0.8)
+                            : Colors.transparent,
+                        width: 2.5,
                       ),
-                    ]
-                  : null,
-            ),
-            child: widget.builder(_focused),
-          ),
+                      boxShadow: _focused
+                          ? [
+                              BoxShadow(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                blurRadius: 16,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: widget.builder(_focused),
+                  ),
+                )
+              : AnimatedContainer(
+                  clipBehavior: Clip.antiAlias,
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(widget.borderRadius + 2),
+                    border: Border.all(
+                      color: _focused
+                          ? Colors.white.withValues(alpha: 0.8)
+                          : Colors.transparent,
+                      width: 2.5,
+                    ),
+                    boxShadow: _focused
+                        ? [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              blurRadius: 16,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: widget.builder(_focused),
+                ),
         ),
       ),
     );
@@ -209,6 +283,40 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
   bool _initializing = false;
   String? _error;
 
+  bool _sidebarOpen = false; // Collapsed by default on TV
+  bool _controlsVisible = true; // Visible by default
+  bool _isFullscreen = false; // Spans 100% viewport width and height
+  Timer? _controlsTimer;
+  final FocusNode _playerFocusNode = FocusNode(debugLabel: 'tvPlayerFocus');
+  final FocusNode _playButtonFocus = FocusNode(debugLabel: 'tvPlayBtnFocus');
+
+  double _cursorX = 640.0;
+  double _cursorY = 360.0;
+
+  void _resetControlsTimer() {
+    _controlsTimer?.cancel();
+    if (!_controlsVisible) {
+      setState(() => _controlsVisible = true);
+    }
+    _controlsTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted && !_sidebarOpen) {
+        setState(() {
+          _controlsVisible = false;
+        });
+        _playerFocusNode.requestFocus();
+      }
+    });
+  }
+
+  KeyEventResult _handlePlayerKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      _resetControlsTimer();
+      _playButtonFocus.requestFocus();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -225,10 +333,17 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
         }
       });
     }
+    final tv = DeviceInfo.isTv(context);
+    if (tv) {
+      _resetControlsTimer();
+    }
   }
 
   @override
   void dispose() {
+    _controlsTimer?.cancel();
+    _playerFocusNode.dispose();
+    _playButtonFocus.dispose();
     _disposePlayers();
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
@@ -386,95 +501,163 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
           }
 
           if (tv) {
+            final playerPane = Container(
+              color: Colors.black,
+              child: Stack(
+                children: [
+                  Center(
+                    child: _isFullscreen
+                        ? SizedBox.expand(child: _player())
+                        : AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: _player(),
+                          ),
+                  ),
+                  if (_current?.isEmbed == true && _controlsVisible) ...[
+                    Positioned(
+                      left: _cursorX - 12,
+                      top: _cursorY - 12,
+                      child: IgnorePointer(
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.4),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 24,
+                      bottom: 24,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _buildFloatingActions(),
+                          const SizedBox(width: 16),
+                          _buildVirtualDpad(),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (!_controlsVisible)
+                    Focus(
+                      focusNode: _playerFocusNode,
+                      autofocus: true,
+                      onKeyEvent: _handlePlayerKeyEvent,
+                      child: const SizedBox.shrink(),
+                    ),
+                ],
+              ),
+            );
+
             return TvRemoteHandler(
               onBack: () => context.pop(),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Left: Player (takes up 62% width)
+                  // Left: Player pane (dynamic 100% or 62% width)
                   Expanded(
-                    flex: 62,
-                    child: Container(
-                      color: Colors.black,
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: _player(),
-                        ),
-                      ),
-                    ),
+                    flex: _sidebarOpen ? 62 : 100,
+                    child: playerPane,
                   ),
-                  // Right: Scrollable Controls Sidebar (takes up 38% width)
-                  Expanded(
-                    flex: 38,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF101010),
-                        border: Border(
-                          left: BorderSide(color: Colors.white12, width: 1),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                            child: Text(
-                              widget.anime?.title ?? 'Watch',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.text,
+                  // Right: Scrollable Controls Sidebar (dynamic auto-collapse)
+                  if (_sidebarOpen)
+                    Expanded(
+                      flex: 38,
+                      child: Focus(
+                        onFocusChange: (hasFocus) {
+                          if (!hasFocus && mounted) {
+                            setState(() => _sidebarOpen = false);
+                          }
+                        },
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF101010),
+                            border: Border(
+                              left: BorderSide(color: Colors.white12, width: 1),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                                child: Text(
+                                  widget.anime?.title ?? 'Watch',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.text,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          _EpisodeNavBar(
-                            episode: widget.episode,
-                            maxEp: maxEp,
-                            onPrev: () => _goToEpisode(widget.episode - 1),
-                            onNext: () => _goToEpisode(widget.episode + 1),
-                          ),
-                          Expanded(
-                            child: ListView(
-                              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                              children: [
-                                _ServerPanel(
-                                  sources: sources,
-                                  current: _current,
-                                  onSelect: _select,
+                              _EpisodeNavBar(
+                                episode: widget.episode,
+                                maxEp: maxEp,
+                                onPrev: () => _goToEpisode(widget.episode - 1),
+                                onNext: () => _goToEpisode(widget.episode + 1),
+                              ),
+                              Expanded(
+                                child: ListView(
+                                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                                  children: [
+                                    _ServerPanel(
+                                      sources: sources,
+                                      current: _current,
+                                      onSelect: _select,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _EpisodesPanel(
+                                      episodes: episodes,
+                                      loading: episodesAsync.isLoading,
+                                      maxEp: maxEp,
+                                      currentEp: widget.episode,
+                                      onSelect: _goToEpisode,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    recs.maybeWhen(
+                                      data: (list) => list.isEmpty
+                                          ? const SizedBox.shrink()
+                                          : Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 8,
+                                              ),
+                                              child: ContentRow(
+                                                title: 'Recommended',
+                                                items: list,
+                                              ),
+                                            ),
+                                      orElse: () => const SizedBox.shrink(),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 20),
-                                _EpisodesPanel(
-                                  episodes: episodes,
-                                  loading: episodesAsync.isLoading,
-                                  maxEp: maxEp,
-                                  currentEp: widget.episode,
-                                  onSelect: _goToEpisode,
-                                ),
-                                const SizedBox(height: 16),
-                                recs.maybeWhen(
-                                  data: (list) => list.isEmpty
-                                      ? const SizedBox.shrink()
-                                      : Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 8,
-                                          ),
-                                          child: ContentRow(
-                                            title: 'Recommended',
-                                            items: list,
-                                          ),
-                                        ),
-                                  orElse: () => const SizedBox.shrink(),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             );
@@ -539,7 +722,11 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
     }
     Widget content;
     if (_current?.isEmbed == true && _web != null) {
-      content = WebViewWidget(controller: _web!);
+      content = Focus(
+        canRequestFocus: DeviceInfo.isTv(context),
+        descendantsAreFocusable: DeviceInfo.isTv(context),
+        child: WebViewWidget(controller: _web!),
+      );
     } else if (_current != null && !_current!.isEmbed) {
       content = CustomPlayer(
         url: _current!.url,
@@ -573,6 +760,223 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
     }
     // On TV, CustomPlayer handles its own D-pad controls.
     return content;
+  }
+
+
+  void _triggerVirtualClick() {
+    if (_web == null) return;
+    final js = '''
+      (function() {
+        var canvasW = 1280;
+        var canvasH = 720;
+        var x = ($_cursorX / canvasW) * window.innerWidth;
+        var y = ($_cursorY / canvasH) * window.innerHeight;
+        
+        console.log("VIRTUAL CLICK: target at coordinate (" + x + ", " + y + ")");
+        var el = document.elementFromPoint(x, y);
+        if (el) {
+          console.log("VIRTUAL CLICK: Found element " + el.tagName + " with class '" + el.className + "'");
+          el.click();
+          var ev = new MouseEvent('click', {
+            clientX: x,
+            clientY: y,
+            bubbles: true,
+            cancelable: true,
+            view: window
+          });
+          el.dispatchEvent(ev);
+          
+          if (el.tagName === 'IFRAME') {
+            console.log("VIRTUAL CLICK: Target is iframe, focusing and attempting inner click");
+            el.focus();
+            try {
+              var innerEl = el.contentWindow.document.elementFromPoint(x, y);
+              if (innerEl) {
+                console.log("VIRTUAL CLICK: Found inner element " + innerEl.tagName + " inside iframe");
+                innerEl.click();
+                var innerEv = new MouseEvent('click', {
+                  clientX: x,
+                  clientY: y,
+                  bubbles: true,
+                  cancelable: true
+                });
+                innerEl.dispatchEvent(innerEv);
+              }
+            } catch(e) {
+              console.log("VIRTUAL CLICK: Error accessing iframe document: " + e.message);
+            }
+          }
+          return "clicked";
+        }
+        console.log("VIRTUAL CLICK: No element found at coordinate");
+        return "not_found";
+      })()
+    ''';
+    _web?.runJavaScript(js);
+  }
+
+  Widget _buildVirtualDpad() {
+    return Container(
+      width: 150,
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white12, width: 1.5),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 4,
+            left: 50,
+            child: _dpadBtn(
+              icon: Icons.arrow_upward_rounded,
+              onTap: () {
+                _resetControlsTimer();
+                setState(() {
+                  _cursorY = (_cursorY - 20).clamp(0.0, 720.0);
+                });
+              },
+            ),
+          ),
+          Positioned(
+            bottom: 4,
+            left: 50,
+            child: _dpadBtn(
+              icon: Icons.arrow_downward_rounded,
+              onTap: () {
+                _resetControlsTimer();
+                setState(() {
+                  _cursorY = (_cursorY + 20).clamp(0.0, 720.0);
+                });
+              },
+            ),
+          ),
+          Positioned(
+            top: 50,
+            left: 4,
+            child: _dpadBtn(
+              icon: Icons.arrow_back_rounded,
+              onTap: () {
+                _resetControlsTimer();
+                setState(() {
+                  _cursorX = (_cursorX - 30).clamp(0.0, 1280.0);
+                });
+              },
+            ),
+          ),
+          Positioned(
+            top: 50,
+            right: 4,
+            child: _dpadBtn(
+              icon: Icons.arrow_forward_rounded,
+              onTap: () {
+                _resetControlsTimer();
+                setState(() {
+                  _cursorX = (_cursorX + 30).clamp(0.0, 1280.0);
+                });
+              },
+            ),
+          ),
+          Positioned(
+            top: 50,
+            left: 50,
+            child: _dpadBtn(
+              focusNode: _playButtonFocus,
+              icon: Icons.circle,
+              size: 20,
+              onTap: () {
+                _resetControlsTimer();
+                _triggerVirtualClick();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dpadBtn({
+    required IconData icon,
+    required VoidCallback onTap,
+    FocusNode? focusNode,
+    double size = 24,
+  }) {
+    return _TvFocusable(
+      onTap: onTap,
+      focusNode: focusNode,
+      borderRadius: 25,
+      builder: (focused) => Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: focused ? Colors.white : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: focused ? Colors.black : Colors.white,
+          size: size,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingActions() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _tvWebButton(
+          icon: _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+          tooltip: 'Fullscreen',
+          onPressed: () {
+            _resetControlsTimer();
+            setState(() {
+              _isFullscreen = !_isFullscreen;
+              if (_isFullscreen) {
+                _sidebarOpen = false;
+              }
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        _tvWebButton(
+          icon: Icons.menu_rounded,
+          tooltip: 'Toggle Sidebar',
+          onPressed: () {
+            _resetControlsTimer();
+            setState(() {
+              _sidebarOpen = !_sidebarOpen;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _tvWebButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return _TvFocusable(
+      onTap: onPressed,
+      borderRadius: 10,
+      builder: (focused) => Container(
+        width: 48,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: focused ? Colors.white : AppColors.card,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(
+          icon,
+          color: focused ? Colors.black : Colors.white,
+          size: 24,
+        ),
+      ),
+    );
   }
 }
 
@@ -757,9 +1161,10 @@ class _ServerPanelState extends State<_ServerPanel> {
       ),
       padding: EdgeInsets.all(tv ? 24 : 14),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _TvFocusable(
+            stretch: true,
             borderRadius: 14,
             onTap: () => setState(() => _collapsed = !_collapsed),
             builder: (_) => Padding(
@@ -791,7 +1196,17 @@ class _ServerPanelState extends State<_ServerPanel> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        if (!tv) ...[
+                        if (tv) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${widget.sources.length} sources  •  ${providers.length} providers',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ] else ...[
                           const SizedBox(height: 2),
                           Text(
                             'Choose your preferred streaming source',
@@ -804,9 +1219,11 @@ class _ServerPanelState extends State<_ServerPanel> {
                       ],
                     ),
                   ),
-                  _statBadge('${widget.sources.length}', 'Sources', tv),
-                  const SizedBox(width: 8),
-                  _statBadge('${providers.length}', 'Providers', tv),
+                  if (!tv) ...[
+                    _statBadge('${widget.sources.length}', 'Sources', tv),
+                    const SizedBox(width: 8),
+                    _statBadge('${providers.length}', 'Providers', tv),
+                  ],
                   if (tv) ...[
                     const SizedBox(width: 12),
                     AnimatedRotation(
@@ -890,8 +1307,10 @@ class _ServerPanelState extends State<_ServerPanel> {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _TvFocusable(
+            stretch: true,
             borderRadius: 12,
             onTap: () => setState(() => _open = open ? null : provider),
             builder: (focused) => AnimatedContainer(
@@ -1129,19 +1548,42 @@ class _EpisodesPanel extends StatefulWidget {
 
 class _EpisodesPanelState extends State<_EpisodesPanel> {
   static const _perPage = 50;
-  int _page = 0;
+
   bool _gridView = true;
   String _filter = '';
-  final FocusNode _rangeFocus = FocusNode();
+  int _page = 0;
+
+  final FocusNode _rangeFocus = FocusNode(debugLabel: 'episodesRange');
+  final FocusNode _filterFocus = FocusNode(debugLabel: 'episodesFilter');
+  bool _filterFocused = false;
 
   @override
   void initState() {
     super.initState();
+    _filterFocus.addListener(_onFilterFocusChange);
+    _filterFocus.onKeyEvent = (node, event) {
+      if (event is KeyDownEvent || event is KeyRepeatEvent) {
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          final success = FocusTraversalGroup.of(node.context!).inDirection(node, TraversalDirection.down);
+          if (success) return KeyEventResult.handled;
+        } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          final success = FocusTraversalGroup.of(node.context!).inDirection(node, TraversalDirection.up);
+          if (success) return KeyEventResult.handled;
+        }
+      }
+      return KeyEventResult.ignored;
+    };
     _page = widget.currentEp > 0 ? (widget.currentEp - 1) ~/ _perPage : 0;
+  }
+
+  void _onFilterFocusChange() {
+    setState(() => _filterFocused = _filterFocus.hasFocus);
   }
 
   @override
   void dispose() {
+    _filterFocus.removeListener(_onFilterFocusChange);
+    _filterFocus.dispose();
     _rangeFocus.dispose();
     super.dispose();
   }
@@ -1179,7 +1621,7 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
       ),
       padding: EdgeInsets.all(tv ? 24 : 14),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
@@ -1251,22 +1693,45 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
               ),
             )
           else ...[
-            TextField(
-              onChanged: (v) => setState(() => _filter = v),
-              style: TextStyle(fontSize: tv ? 17 : 14),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: 'Filter episodes…',
-                prefixIcon: Icon(Icons.search, size: tv ? 22 : 18),
-                filled: true,
-                fillColor: AppColors.card,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: tv ? 16 : 12,
-                  vertical: tv ? 14 : 10,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _filterFocused ? Colors.white : (tv ? AppColors.card : Colors.transparent),
+                  width: 2.2,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
+                boxShadow: _filterFocused
+                    ? [
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: TextField(
+                focusNode: _filterFocus,
+                onChanged: (v) => setState(() => _filter = v),
+                style: TextStyle(fontSize: tv ? 17 : 14),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Filter episodes…',
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: _filterFocused ? Colors.white : AppColors.textMuted,
+                    size: tv ? 22 : 18,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.card,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: tv ? 16 : 12,
+                    vertical: tv ? 14 : 10,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                 ),
               ),
             ),

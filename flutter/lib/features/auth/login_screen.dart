@@ -428,7 +428,7 @@ class _TvTextFieldState extends State<_TvTextField> {
         color: AppColors.bgLite,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: _focused ? Colors.white : Colors.transparent,
+          color: _focused ? Colors.white : AppColors.bgLite,
           width: 2.2,
         ),
         boxShadow: _focused
