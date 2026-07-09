@@ -36,8 +36,10 @@ export function expandAlias(query: string): string {
 }
 
 function titleStrings(anime: any): string[] {
-	const t = anime.title ?? {};
-	return [t.english, t.romaji, t.native, ...(anime.synonyms ?? [])].filter(Boolean) as string[];
+	const t = anime.title;
+	if (typeof t === 'string') return [t, ...(anime.synonyms ?? [])].filter(Boolean) as string[];
+	const obj = t ?? {};
+	return [obj.english, obj.romaji, obj.native, obj.userPreferred, ...(anime.synonyms ?? [])].filter(Boolean) as string[];
 }
 
 // --- Layer 1: Alias/Synonym matching (weight 0.35) ---
@@ -93,8 +95,8 @@ function dice(a: Set<string>, b: Set<string>): number {
 function diceScore(query: string, anime: any): number {
 	const qTri = trigrams(query);
 	let best = 0;
-	for (const t of [anime.title?.english, anime.title?.romaji].filter(Boolean)) {
-		best = Math.max(best, dice(qTri, trigrams(t!)));
+	for (const t of titleStrings(anime)) {
+		best = Math.max(best, dice(qTri, trigrams(t)));
 	}
 	return best;
 }
