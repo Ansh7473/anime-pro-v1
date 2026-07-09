@@ -20,6 +20,9 @@ const List<String> kStreamProviders = [
   'animen', // Animen   (Provider 11)
   'animixstream', // AnimixStream (Provider 12)
   'animepahe', // AnimePahe (Provider 13)
+  'tatakai', // Tatakai  (Provider 14)
+  'miruro', // Miruro   (Provider 15)
+  'animetsu', // Animetsu (Provider 16)
 ];
 
 /// Grouped home-screen content.
