@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,10 +86,12 @@ class DetailsScreen extends ConsumerWidget {
           children: [
             // 1. Full-screen backdrop image of the anime banner
             Positioned.fill(
-              child: Image.network(
-                anime.banner ?? anime.poster ?? "",
+              child: CachedNetworkImage(
+                imageUrl: anime.banner ?? anime.poster ?? "",
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(color: AppColors.bg),
+                fadeInDuration: const Duration(milliseconds: 300),
+                placeholder: (_, _) => Container(color: AppColors.bg),
+                errorWidget: (_, _, _) => Container(color: AppColors.bg),
               ),
             ),
             // Scrims for visual depth and high contrast/legibility
@@ -560,87 +563,7 @@ class DetailsScreen extends ConsumerWidget {
                 children: [
                   _SectionTitle('Episodes ($count)'),
                   SizedBox(height: tv ? 16 : 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    clipBehavior: Clip.none,
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: tv ? 96 : 70,
-                      mainAxisSpacing: tv ? 14 : 10,
-                      crossAxisSpacing: tv ? 14 : 10,
-                      childAspectRatio: 1.4,
-                    ),
-                    itemCount: count,
-                    itemBuilder: (_, i) {
-                      final ep = i + 1;
-                      void open() =>
-                          context.push('/watch/${a.id}/$ep', extra: a);
-
-                      final tile = Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppColors.card,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.cardHover,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          '$ep',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: tv ? 20 : 15,
-                            color: AppColors.text,
-                          ),
-                        ),
-                      );
-
-                      if (tv) {
-                        return _TvFocusable(
-                          borderRadius: 10,
-                          onTap: open,
-                          builder: (focused) => Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: focused ? Colors.white : AppColors.card,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: focused
-                                    ? Colors.white
-                                    : AppColors.cardHover,
-                                width: 2,
-                              ),
-                              boxShadow: focused
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        blurRadius: 12,
-                                        spreadRadius: 1,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Text(
-                              '$ep',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 20,
-                                color: focused ? AppColors.bg : AppColors.text,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      return InkWell(
-                        onTap: open,
-                        borderRadius: BorderRadius.circular(10),
-                        child: tile,
-                      );
-                    },
-                  ),
+                  _EpisodeGrid(animeId: a.id, anime: a, count: count, isTv: tv),
                 ],
               );
             },
@@ -742,8 +665,10 @@ class _TvFocusableState extends State<_TvFocusable> {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = widget.onTap != null;
     return FocusableActionDetector(
-      autofocus: widget.autofocus,
+      enabled: enabled,
+      autofocus: widget.autofocus && enabled,
       onFocusChange: (v) => setState(() => _focused = v),
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
@@ -758,8 +683,9 @@ class _TvFocusableState extends State<_TvFocusable> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(8),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -793,6 +719,148 @@ class _TvFocusableState extends State<_TvFocusable> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Episode grid with lazy cap — renders first 100 episodes eagerly,
+/// then a "Show all" button to expand. Prevents memory blowup on
+/// long series (1000+ eps) where shrinkWrap GridView renders all tiles.
+class _EpisodeGrid extends StatefulWidget {
+  const _EpisodeGrid({
+    required this.animeId,
+    required this.anime,
+    required this.count,
+    required this.isTv,
+  });
+
+  final int animeId;
+  final Anime anime;
+  final int count;
+  final bool isTv;
+
+  @override
+  State<_EpisodeGrid> createState() => _EpisodeGridState();
+}
+
+class _EpisodeGridState extends State<_EpisodeGrid> {
+  static const _cap = 100;
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = _expanded ? widget.count : widget.count.clamp(0, _cap);
+    final showButton = widget.count > _cap && !_expanded;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          clipBehavior: Clip.none,
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: widget.isTv ? 96 : 70,
+            mainAxisSpacing: widget.isTv ? 14 : 10,
+            crossAxisSpacing: widget.isTv ? 14 : 10,
+            childAspectRatio: 1.4,
+          ),
+          itemCount: visible,
+          itemBuilder: (_, i) {
+            final ep = i + 1;
+            void open() => context.push(
+              '/watch/${widget.animeId}/$ep',
+              extra: widget.anime,
+            );
+
+            final tile = Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.cardHover, width: 1),
+              ),
+              child: Text(
+                '$ep',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: widget.isTv ? 20 : 15,
+                  color: AppColors.text,
+                ),
+              ),
+            );
+
+            if (widget.isTv) {
+              return _TvFocusable(
+                borderRadius: 10,
+                onTap: open,
+                builder: (focused) => Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: focused ? Colors.white : AppColors.card,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: focused ? Colors.white : AppColors.cardHover,
+                      width: 2,
+                    ),
+                    boxShadow: focused
+                        ? [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              blurRadius: 12,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    '$ep',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 20,
+                      color: focused ? AppColors.bg : AppColors.text,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return InkWell(
+              onTap: open,
+              borderRadius: BorderRadius.circular(10),
+              child: tile,
+            );
+          },
+        ),
+        if (showButton)
+          Padding(
+            padding: EdgeInsets.only(top: widget.isTv ? 16 : 12),
+            child: Center(
+              child: InkWell(
+                onTap: () => setState(() => _expanded = true),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widget.isTv ? 24 : 16,
+                    vertical: widget.isTv ? 12 : 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.cardHover),
+                  ),
+                  child: Text(
+                    'Show all ${widget.count} episodes',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      fontSize: widget.isTv ? 16 : 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1052,9 +1120,8 @@ class _ExpandableSynopsisState extends State<_ExpandableSynopsis> {
   @override
   Widget build(BuildContext context) {
     final tv = DeviceInfo.isTv(context);
-    final toggle = GestureDetector(
+    final toggle = InkWell(
       onTap: () => setState(() => _expanded = !_expanded),
-      behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Text(

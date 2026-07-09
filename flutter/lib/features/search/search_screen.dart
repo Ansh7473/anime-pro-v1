@@ -38,15 +38,15 @@ const _genres = <String>[
 
 /// Search results for a [SearchQuery]. With no query and no genre it returns
 /// popular titles; otherwise it searches, optionally filtered by genre.
-final searchResultsProvider =
-    FutureProvider.autoDispose.family<List<Anime>, SearchQuery>((ref, q) {
-  final api = ref.watch(apiServiceProvider);
-  final query = q.query.trim();
-  final genre = q.genre;
-  if (query.isEmpty && genre == null) return api.topAnime();
-  if (genre != null) return api.search(query, genre: genre);
-  return api.search(query);
-});
+final searchResultsProvider = FutureProvider.autoDispose
+    .family<List<Anime>, SearchQuery>((ref, q) {
+      final api = ref.watch(apiServiceProvider);
+      final query = q.query.trim();
+      final genre = q.genre;
+      if (query.isEmpty && genre == null) return api.topAnime();
+      if (genre != null) return api.search(query, genre: genre);
+      return api.search(query);
+    });
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -62,8 +62,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String? _genre;
 
   final FocusNode _searchFocusNode = FocusNode(debugLabel: 'tvSearchField');
-  final FocusScopeNode _genreScopeNode = FocusScopeNode(debugLabel: 'tvGenreFilters');
-  final FocusScopeNode _resultsScopeNode = FocusScopeNode(debugLabel: 'tvSearchResults');
+  final FocusScopeNode _genreScopeNode = FocusScopeNode(
+    debugLabel: 'tvGenreFilters',
+  );
+  final FocusScopeNode _resultsScopeNode = FocusScopeNode(
+    debugLabel: 'tvSearchResults',
+  );
 
   @override
   void initState() {
@@ -105,11 +109,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(hPad, isTv ? 20 : 12, hPad, isTv ? 12 : 8),
+              padding: EdgeInsets.fromLTRB(
+                hPad,
+                isTv ? 20 : 12,
+                hPad,
+                isTv ? 12 : 8,
+              ),
               child: _SearchTextField(
                 controller: _controller,
                 onChanged: _onChanged,
-                onSubmitted: (v) => setState(() => _query = v),
+                onSubmitted: (v) {
+                  setState(() => _query = v);
+                  _genreScopeNode.requestDefaultFocus();
+                },
                 isTv: isTv,
                 focusNode: _searchFocusNode,
                 nextFocusScope: _genreScopeNode,
@@ -144,36 +156,49 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ),
                         ),
                         SliverPadding(
-                          padding:
-                              EdgeInsets.fromLTRB(hPad, 4, hPad, isTv ? 32 : 16),
+                          padding: EdgeInsets.fromLTRB(
+                            hPad,
+                            4,
+                            hPad,
+                            isTv ? 32 : 16,
+                          ),
                           sliver: SliverGrid(
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: columns,
-                              childAspectRatio: 0.56,
-                              mainAxisSpacing: isTv ? 24 : 14,
-                              crossAxisSpacing: isTv ? 20 : 12,
-                            ),
+                                  crossAxisCount: columns,
+                                  childAspectRatio: 0.56,
+                                  mainAxisSpacing: isTv ? 24 : 14,
+                                  crossAxisSpacing: isTv ? 20 : 12,
+                                ),
                             delegate: SliverChildBuilderDelegate(
                               (_, i) => AnimeCard(
                                 anime: list[i],
                                 onKey: (node, event) {
-                                  if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                                  if (event is! KeyDownEvent &&
+                                      event is! KeyRepeatEvent) {
                                     return KeyEventResult.ignored;
                                   }
-                                  if (event.logicalKey == LogicalKeyboardKey.arrowUp && i < columns) {
+                                  if (event.logicalKey ==
+                                          LogicalKeyboardKey.arrowUp &&
+                                      i < columns) {
                                     _genreScopeNode.requestDefaultFocus();
                                     return KeyEventResult.handled;
                                   }
-                                  if (event.logicalKey == LogicalKeyboardKey.arrowLeft && (i % columns == 0)) {
+                                  if (event.logicalKey ==
+                                          LogicalKeyboardKey.arrowLeft &&
+                                      (i % columns == 0)) {
                                     FocusNode? current = node;
                                     FocusScopeNode? railScope;
                                     while (current != null) {
-                                      if (current is FocusScopeNode && current.debugLabel == 'tvContent') {
+                                      if (current is FocusScopeNode &&
+                                          current.debugLabel == 'tvContent') {
                                         final parentNode = current.parent;
                                         if (parentNode != null) {
-                                          for (final child in parentNode.children) {
-                                            if (child is FocusScopeNode && child.debugLabel == 'tvNavBar') {
+                                          for (final child
+                                              in parentNode.children) {
+                                            if (child is FocusScopeNode &&
+                                                child.debugLabel ==
+                                                    'tvNavBar') {
                                               railScope = child;
                                               break;
                                             }
@@ -232,8 +257,7 @@ class _GenreFilterRow extends StatelessWidget {
     final hPad = isTv ? 48.0 : 16.0;
     final childList = ListView.separated(
       scrollDirection: Axis.horizontal,
-      padding:
-          EdgeInsets.symmetric(horizontal: hPad, vertical: isTv ? 8 : 6),
+      padding: EdgeInsets.symmetric(horizontal: hPad, vertical: isTv ? 8 : 6),
       itemCount: _genres.length,
       separatorBuilder: (_, _) => SizedBox(width: isTv ? 12 : 8),
       itemBuilder: (_, i) {
@@ -255,17 +279,11 @@ class _GenreFilterRow extends StatelessWidget {
     if (focusScopeNode != null) {
       return SizedBox(
         height: isTv ? 60 : 44,
-        child: FocusScope(
-          node: focusScopeNode,
-          child: childList,
-        ),
+        child: FocusScope(node: focusScopeNode, child: childList),
       );
     }
 
-    return SizedBox(
-      height: isTv ? 60 : 44,
-      child: childList,
-    );
+    return SizedBox(height: isTv ? 60 : 44, child: childList);
   }
 }
 
@@ -333,11 +351,13 @@ class _GenreChipState extends State<_GenreChip> {
           return KeyEventResult.handled;
         }
       }
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp && widget.upFocusNode != null) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+          widget.upFocusNode != null) {
         widget.upFocusNode!.requestFocus();
         return KeyEventResult.handled;
       }
-      if (event.logicalKey == LogicalKeyboardKey.arrowDown && widget.downFocusNode != null) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+          widget.downFocusNode != null) {
         widget.downFocusNode!.requestDefaultFocus();
         return KeyEventResult.handled;
       }
@@ -365,6 +385,11 @@ class _GenreChipState extends State<_GenreChip> {
       focusNode: _focusNode,
       autofocus: widget.autofocus,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -373,8 +398,9 @@ class _GenreChipState extends State<_GenreChip> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(20),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -385,22 +411,27 @@ class _GenreChipState extends State<_GenreChip> {
             alignment: Alignment.center,
             padding: EdgeInsets.symmetric(horizontal: isTv ? 22 : 16),
             decoration: BoxDecoration(
-              color: selected ? Colors.white.withValues(alpha: 0.15) : AppColors.card,
+              color: selected
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : AppColors.card,
               borderRadius: BorderRadius.circular(isTv ? 26 : 20),
               border: Border.all(
                 color: _focused
                     ? Colors.white.withValues(alpha: 0.95)
-                    : (selected ? Colors.white.withValues(alpha: 0.5) : AppColors.cardHover),
+                    : (selected
+                          ? Colors.white.withValues(alpha: 0.5)
+                          : AppColors.cardHover),
                 width: _focused ? 2.5 : 1.5,
               ),
               boxShadow: (selected || _focused)
                   ? [
                       BoxShadow(
-                        color: Colors.white
-                            .withValues(alpha: _focused ? 0.15 : 0.1),
+                        color: Colors.white.withValues(
+                          alpha: _focused ? 0.15 : 0.1,
+                        ),
                         blurRadius: _focused ? 18 : 14,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -409,7 +440,9 @@ class _GenreChipState extends State<_GenreChip> {
               style: TextStyle(
                 fontSize: isTv ? 16 : 13,
                 fontWeight: FontWeight.w600,
-                color: (selected || _focused) ? AppColors.text : AppColors.textMuted,
+                color: (selected || _focused)
+                    ? AppColors.text
+                    : AppColors.textMuted,
               ),
             ),
           ),
@@ -430,7 +463,11 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          isTv ? 48 : 16, isTv ? 14 : 8, isTv ? 48 : 16, isTv ? 14 : 10),
+        isTv ? 48 : 16,
+        isTv ? 14 : 8,
+        isTv ? 48 : 16,
+        isTv ? 14 : 10,
+      ),
       child: Row(
         children: [
           Container(
@@ -467,8 +504,7 @@ class _EmptyResults extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.search_off_rounded,
-              color: AppColors.textMuted, size: 48),
+          Icon(Icons.search_off_rounded, color: AppColors.textMuted, size: 48),
           SizedBox(height: 12),
           Text(
             'No results found',
@@ -507,7 +543,9 @@ class _SearchTextField extends StatefulWidget {
 
 class _SearchTextFieldState extends State<_SearchTextField> {
   FocusNode? _localFocusNode;
-  FocusNode get _effectiveFocusNode => widget.focusNode ?? (_localFocusNode ??= FocusNode(debugLabel: 'tvSearchField_local'));
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ??
+      (_localFocusNode ??= FocusNode(debugLabel: 'tvSearchField_local'));
   bool _focused = false;
 
   @override
@@ -529,15 +567,19 @@ class _SearchTextFieldState extends State<_SearchTextField> {
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
         final text = widget.controller.text;
         final selection = widget.controller.selection;
-        if (text.isEmpty || (selection.isCollapsed && selection.baseOffset <= 0) || selection.baseOffset == -1) {
+        if (text.isEmpty ||
+            (selection.isCollapsed && selection.baseOffset <= 0) ||
+            selection.baseOffset == -1) {
           FocusNode? current = node;
           FocusScopeNode? railScope;
           while (current != null) {
-            if (current is FocusScopeNode && current.debugLabel == 'tvContent') {
+            if (current is FocusScopeNode &&
+                current.debugLabel == 'tvContent') {
               final parentNode = current.parent;
               if (parentNode != null) {
                 for (final child in parentNode.children) {
-                  if (child is FocusScopeNode && child.debugLabel == 'tvNavBar') {
+                  if (child is FocusScopeNode &&
+                      child.debugLabel == 'tvNavBar') {
                     railScope = child;
                     break;
                   }
@@ -598,7 +640,7 @@ class _SearchTextFieldState extends State<_SearchTextField> {
                   color: Colors.white.withValues(alpha: 0.15),
                   blurRadius: 10,
                   spreadRadius: 1,
-                )
+                ),
               ]
             : null,
       ),
@@ -607,10 +649,7 @@ class _SearchTextFieldState extends State<_SearchTextField> {
         controller: widget.controller,
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
-        style: TextStyle(
-          fontSize: isTv ? 18 : 15,
-          color: AppColors.text,
-        ),
+        style: TextStyle(fontSize: isTv ? 18 : 15, color: AppColors.text),
         textInputAction: TextInputAction.search,
         autofocus: isTv,
         decoration: InputDecoration(

@@ -55,11 +55,18 @@ class ContinueWatchingRow extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
-            padding: EdgeInsets.fromLTRB(hPad, isTv ? 9 : 0, hPad, isTv ? 9 : 0),
+            padding: EdgeInsets.fromLTRB(
+              hPad,
+              isTv ? 9 : 0,
+              hPad,
+              isTv ? 9 : 0,
+            ),
             itemCount: items.length,
             separatorBuilder: (_, _) => SizedBox(width: isTv ? 14 : 12),
-            itemBuilder: (_, i) =>
-                SizedBox(width: itemWidth, child: _ResumeCard(p: items[i])),
+            itemBuilder: (_, i) => SizedBox(
+              width: itemWidth,
+              child: _ResumeCard(p: items[i]),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -81,9 +88,9 @@ class _ResumeCardState extends State<_ResumeCard> {
   bool _focused = false;
 
   void _resume() => context.push(
-        '/watch/${widget.p.animeId}/${widget.p.episode}',
-        extra: widget.p.toAnime(),
-      );
+    '/watch/${widget.p.animeId}/${widget.p.episode}',
+    extra: widget.p.toAnime(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -101,13 +108,16 @@ class _ResumeCardState extends State<_ResumeCard> {
         }
       },
       actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) {
-          _resume();
-          return null;
-        }),
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            _resume();
+            return null;
+          },
+        ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: _resume,
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -130,7 +140,7 @@ class _ResumeCardState extends State<_ResumeCard> {
                               color: Colors.white.withValues(alpha: 0.15),
                               blurRadius: 16,
                               spreadRadius: 0,
-                            )
+                            ),
                           ]
                         : null,
                   ),
@@ -149,8 +159,11 @@ class _ResumeCardState extends State<_ResumeCard> {
                             shape: BoxShape.circle,
                           ),
                           padding: const EdgeInsets.all(8),
-                          child: const Icon(Icons.play_arrow_rounded,
-                              color: Colors.white, size: 28),
+                          child: const Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
                       ),
                       // Episode badge.
@@ -159,14 +172,13 @@ class _ResumeCardState extends State<_ResumeCard> {
                         bottom: 6,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 3),
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: Colors.white24,
-                              width: 1,
-                            ),
+                            border: Border.all(color: Colors.white24, width: 1),
                           ),
                           child: Text(
                             'EP ${p.episode}',

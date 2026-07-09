@@ -513,6 +513,7 @@ class _BottomBar extends StatefulWidget {
 
 class _BottomBarState extends State<_BottomBar> {
   bool _disposed = false;
+  bool _isFullscreen = false;
 
   /// Last video position we rebuilt for. Throttles position-driven
   /// rebuilds to ~4fps so the seek bar stays smooth without rebuilding
@@ -538,7 +539,28 @@ class _BottomBarState extends State<_BottomBar> {
   void dispose() {
     _disposed = true;
     widget.controller.removeListener(_onTick);
+    // Restore orientations + system UI when leaving the player.
+    if (_isFullscreen) {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     super.dispose();
+  }
+
+  void _toggleFullscreen() {
+    if (_isFullscreen) {
+      // Exit fullscreen — restore portrait + landscape, show system UI
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    } else {
+      // Enter fullscreen — force landscape, hide system UI
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+    setState(() => _isFullscreen = !_isFullscreen);
   }
 
   void _onTick() {
@@ -630,14 +652,11 @@ class _BottomBarState extends State<_BottomBar> {
                 // Fullscreen toggle (no-op on TV, meaningful on mobile)
                 if (!widget.isTv)
                   _FocusableIconButton(
-                    icon: Icons.fullscreen_rounded,
-                    tooltip: 'Fullscreen',
-                    onPressed: () {
-                      // Toggle immersive mode
-                      SystemChrome.setEnabledSystemUIMode(
-                        SystemUiMode.immersiveSticky,
-                      );
-                    },
+                    icon: _isFullscreen
+                        ? Icons.fullscreen_exit_rounded
+                        : Icons.fullscreen_rounded,
+                    tooltip: _isFullscreen ? 'Exit fullscreen' : 'Fullscreen',
+                    onPressed: _toggleFullscreen,
                   ),
               ],
             ),

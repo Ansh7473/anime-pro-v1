@@ -62,9 +62,7 @@ class _AppShellState extends State<AppShell> {
         oldWidget.navigationShell.currentIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && DeviceInfo.isTv(context)) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _contentScope.requestDefaultFocus();
-          });
+          _contentScope.requestDefaultFocus();
         }
       });
     }
@@ -85,9 +83,7 @@ class _AppShellState extends State<AppShell> {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && DeviceInfo.isTv(context)) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _contentScope.requestDefaultFocus();
-        });
+        _contentScope.requestDefaultFocus();
       }
     });
   }
@@ -261,34 +257,26 @@ class _TvContentWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Actions(
-      actions: {
-        DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
-          onInvoke: (intent) {
-            if (intent.direction == TraversalDirection.up) {
-              // Check if there's a focusable node above in the same scope.
-              final current = FocusManager.instance.primaryFocus;
-              if (current != null) {
-                final moved = FocusTraversalGroup.of(
-                  current.context!,
-                ).inDirection(current, TraversalDirection.up);
-                if (!moved) {
-                  onUpAtTop();
-                  return null;
-                }
-                return null;
-              }
-            }
-            // Let default traversal handle everything else.
-            final primary = FocusManager.instance.primaryFocus;
-            if (primary != null) {
-              FocusTraversalGroup.of(
-                primary.context!,
-              ).inDirection(primary, intent.direction);
-            }
-            return null;
-          },
-        ),
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+        // Only intercept UP when at the top of content — pass to nav bar.
+        if (event.logicalKey != LogicalKeyboardKey.arrowUp) {
+          return KeyEventResult.ignored;
+        }
+        final current = FocusManager.instance.primaryFocus;
+        if (current == null) return KeyEventResult.ignored;
+        final moved = FocusTraversalGroup.of(
+          current.context!,
+        ).inDirection(current, TraversalDirection.up);
+        if (!moved) {
+          onUpAtTop();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.handled;
       },
       child: child,
     );
@@ -319,7 +307,6 @@ class _TvTopBar extends StatelessWidget {
               icon: _destinations[i].icon,
               label: _destinations[i].label,
               selected: i == selectedIndex,
-              autofocus: i == selectedIndex,
               onTap: () => onSelect(i),
             ),
             if (i < _destinations.length - 1) const SizedBox(width: 8),
@@ -365,14 +352,12 @@ class _TvTopBarItem extends StatefulWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.autofocus = false,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final bool autofocus;
 
   @override
   State<_TvTopBarItem> createState() => _TvTopBarItemState();
@@ -388,8 +373,12 @@ class _TvTopBarItemState extends State<_TvTopBarItem> {
         ? Colors.white
         : (_focused ? AppColors.text : AppColors.textMuted);
     return FocusableActionDetector(
-      autofocus: widget.autofocus,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -398,8 +387,9 @@ class _TvTopBarItemState extends State<_TvTopBarItem> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(8),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -458,15 +448,22 @@ extension FocusScopeNodeX on FocusScopeNode {
 
     if (isChildValid) {
       focusedChild!.requestFocus();
-    } else if (children.isNotEmpty) {
+    } else {
+      // Find the first focusable, non-skipped descendant.
       for (final child in children) {
         if (child.canRequestFocus && !child.skipTraversal) {
           child.requestFocus();
           return;
         }
       }
-      children.first.requestFocus();
-    } else {
+      // No direct child is focusable — try descending into scopes.
+      for (final child in children) {
+        if (child is FocusScopeNode && child.children.isNotEmpty) {
+          child.requestDefaultFocus();
+          return;
+        }
+      }
+      // Last resort: focus the scope itself.
       requestFocus();
     }
   }

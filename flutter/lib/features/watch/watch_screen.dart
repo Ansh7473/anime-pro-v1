@@ -151,8 +151,9 @@ class _TvFocusableState extends State<_TvFocusable> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(8),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),

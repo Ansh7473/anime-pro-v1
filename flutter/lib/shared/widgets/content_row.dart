@@ -49,6 +49,8 @@ class ContentRow extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: titleSize,
                   fontWeight: FontWeight.w700,
@@ -64,7 +66,12 @@ class ContentRow extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
-            padding: EdgeInsets.fromLTRB(hPad, isTv ? 9 : 0, hPad, isTv ? 9 : 0),
+            padding: EdgeInsets.fromLTRB(
+              hPad,
+              isTv ? 9 : 0,
+              hPad,
+              isTv ? 9 : 0,
+            ),
             itemCount: items.length,
             separatorBuilder: (_, _) => SizedBox(width: isTv ? 14 : 12),
             itemBuilder: (_, i) => SizedBox(

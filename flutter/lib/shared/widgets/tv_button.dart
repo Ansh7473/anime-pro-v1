@@ -48,8 +48,9 @@ class _TvButtonState extends State<TvButton> {
             const ActivateIntent(),
         const SingleActivator(LogicalKeyboardKey.enter): const ActivateIntent(),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onPressed,
+        borderRadius: BorderRadius.circular(8),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),

@@ -33,9 +33,14 @@ class _AnimeCardState extends ConsumerState<AnimeCard> {
   bool _focused = false;
   FocusNode? _localFocusNode;
 
-  FocusNode get _effectiveFocusNode => widget.focusNode ?? (_localFocusNode ??= FocusNode(debugLabel: 'animeCard_${widget.anime.title}'));
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ??
+      (_localFocusNode ??= FocusNode(
+        debugLabel: 'animeCard_${widget.anime.title}',
+      ));
 
-  void _open() => context.push('/anime/${widget.anime.id}', extra: widget.anime);
+  void _open() =>
+      context.push('/anime/${widget.anime.id}', extra: widget.anime);
 
   @override
   void initState() {
@@ -75,7 +80,7 @@ class _AnimeCardState extends ConsumerState<AnimeCard> {
         if (v && DeviceInfo.isTv(context)) {
           // Update the global focused anime provider so the Home screen dynamic backdrop changes
           ref.read(focusedAnimeProvider.notifier).state = widget.anime;
-          
+
           Scrollable.ensureVisible(
             context,
             alignment: 0.5,
@@ -92,8 +97,9 @@ class _AnimeCardState extends ConsumerState<AnimeCard> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: _open,
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -117,7 +123,7 @@ class _AnimeCardState extends ConsumerState<AnimeCard> {
                               color: Colors.white.withValues(alpha: 0.15),
                               blurRadius: 18,
                               spreadRadius: 1,
-                            )
+                            ),
                           ]
                         : null,
                   ),
@@ -141,7 +147,9 @@ class _AnimeCardState extends ConsumerState<AnimeCard> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: _focused ? Colors.white.withValues(alpha: 0.9) : Colors.transparent,
+                              color: _focused
+                                  ? Colors.white.withValues(alpha: 0.9)
+                                  : Colors.transparent,
                               width: 2.2,
                             ),
                           ),
@@ -173,25 +181,25 @@ class _AnimeCardState extends ConsumerState<AnimeCard> {
   }
 
   Widget _scoreBadge(double score) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.75),
-          borderRadius: BorderRadius.circular(6),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.75),
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star_rounded, color: Colors.amber, size: 13),
+        const SizedBox(width: 2),
+        Text(
+          score.toStringAsFixed(1),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.text,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.star_rounded, color: Colors.amber, size: 13),
-            const SizedBox(width: 2),
-            Text(
-              score.toStringAsFixed(1),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text,
-              ),
-            ),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 }

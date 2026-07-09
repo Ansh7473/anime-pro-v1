@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -99,7 +100,9 @@ class _SignedOutView extends StatelessWidget {
               'Your profiles, progress and preferences, everywhere.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: AppColors.textMuted, fontSize: isTv ? 16 : 13),
+                color: AppColors.textMuted,
+                fontSize: isTv ? 16 : 13,
+              ),
             ),
             const SizedBox(height: 28),
             SizedBox(
@@ -118,8 +121,9 @@ class _SignedOutView extends StatelessWidget {
                 child: Text(
                   'Sign in',
                   style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: isTv ? 18 : 15),
+                    fontWeight: FontWeight.w700,
+                    fontSize: isTv ? 18 : 15,
+                  ),
                 ),
               ),
             ),
@@ -152,7 +156,10 @@ class _SignedInView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTv = DeviceInfo.isTv(context);
-    final user = auth.user!;
+    final user = auth.user;
+    if (user == null) {
+      return const _SignedOutView();
+    }
     final displayName = (user.name?.trim().isNotEmpty ?? false)
         ? user.name!.trim()
         : user.email;
@@ -160,7 +167,11 @@ class _SignedInView extends StatelessWidget {
 
     return ListView(
       padding: EdgeInsets.fromLTRB(
-          isTv ? 48 : 20, isTv ? 20 : 12, isTv ? 48 : 20, 32),
+        isTv ? 48 : 20,
+        isTv ? 20 : 12,
+        isTv ? 48 : 20,
+        32,
+      ),
       children: [
         _HeaderCard(
           name: displayName,
@@ -276,11 +287,13 @@ class _HeaderCard extends StatelessWidget {
             height: avatarSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: hasImage ? null : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF2E2E2E), Color(0xFF1F1F1F)],
-              ),
+              gradient: hasImage
+                  ? null
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF2E2E2E), Color(0xFF1F1F1F)],
+                    ),
               image: hasImage
                   ? DecorationImage(
                       image: NetworkImage(avatar!),
@@ -379,8 +392,9 @@ class _ProfileAvatarState extends State<_ProfileAvatar> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(16),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -395,11 +409,13 @@ class _ProfileAvatarState extends State<_ProfileAvatar> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.cardHover,
-                    gradient: hasImage ? null : const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF2E2E2E), Color(0xFF1F1F1F)],
-                    ),
+                    gradient: hasImage
+                        ? null
+                        : const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF2E2E2E), Color(0xFF1F1F1F)],
+                          ),
                     image: hasImage
                         ? DecorationImage(
                             image: NetworkImage(profile.avatar!),
@@ -413,7 +429,7 @@ class _ProfileAvatarState extends State<_ProfileAvatar> {
                               color: Colors.white.withValues(alpha: 0.15),
                               blurRadius: 16,
                               spreadRadius: 1,
-                            )
+                            ),
                           ]
                         : null,
                   ),
@@ -541,7 +557,9 @@ class _SwitchTileState extends State<_SwitchTile> {
       inactiveThumbColor: AppColors.textMuted,
       inactiveTrackColor: AppColors.cardHover,
       contentPadding: EdgeInsets.symmetric(
-          horizontal: isTv ? 20 : 16, vertical: isTv ? 8 : 4),
+        horizontal: isTv ? 20 : 16,
+        vertical: isTv ? 8 : 4,
+      ),
       secondary: Icon(widget.icon, color: Colors.white, size: isTv ? 28 : 24),
       title: Text(
         widget.title,
@@ -553,8 +571,7 @@ class _SwitchTileState extends State<_SwitchTile> {
       ),
       subtitle: Text(
         widget.subtitle,
-        style: TextStyle(
-            color: AppColors.textMuted, fontSize: isTv ? 14 : 12),
+        style: TextStyle(color: AppColors.textMuted, fontSize: isTv ? 14 : 12),
       ),
     );
 
@@ -586,7 +603,7 @@ class _SwitchTileState extends State<_SwitchTile> {
                     color: Colors.white.withValues(alpha: 0.15),
                     blurRadius: 14,
                     spreadRadius: 1,
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -624,7 +641,9 @@ class _NavTileState extends State<_NavTile> {
     final tile = ListTile(
       onTap: widget.onTap,
       contentPadding: EdgeInsets.symmetric(
-          horizontal: isTv ? 20 : 16, vertical: isTv ? 8 : 4),
+        horizontal: isTv ? 20 : 16,
+        vertical: isTv ? 8 : 4,
+      ),
       leading: Icon(widget.icon, color: Colors.white, size: isTv ? 28 : 24),
       title: Text(
         widget.title,
@@ -638,13 +657,15 @@ class _NavTileState extends State<_NavTile> {
         widget.subtitle,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-            color: AppColors.textMuted, fontSize: isTv ? 14 : 12),
+        style: TextStyle(color: AppColors.textMuted, fontSize: isTv ? 14 : 12),
       ),
       trailing: widget.onTap == null
           ? null
-          : Icon(Icons.chevron_right_rounded,
-              color: AppColors.textMuted, size: isTv ? 28 : 24),
+          : Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+              size: isTv ? 28 : 24,
+            ),
     );
 
     if (!isTv) return tile;
@@ -675,7 +696,7 @@ class _NavTileState extends State<_NavTile> {
                     color: Colors.white.withValues(alpha: 0.15),
                     blurRadius: 14,
                     spreadRadius: 1,
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -723,6 +744,11 @@ class _SignOutButtonState extends State<_SignOutButton> {
 
     return FocusableActionDetector(
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -731,8 +757,9 @@ class _SignOutButtonState extends State<_SignOutButton> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onSignOut,
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedScale(
           scale: _focused ? 1.03 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -742,25 +769,32 @@ class _SignOutButtonState extends State<_SignOutButton> {
             padding: const EdgeInsets.symmetric(vertical: 18),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: _focused ? Colors.white.withValues(alpha: 0.12) : Colors.transparent,
+              color: _focused
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _focused ? Colors.white : Colors.white24, width: 2.5),
+              border: Border.all(
+                color: _focused ? Colors.white : Colors.white24,
+                width: 2.5,
+              ),
               boxShadow: _focused
                   ? [
                       BoxShadow(
                         color: Colors.white.withValues(alpha: 0.15),
                         blurRadius: 18,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : null,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.logout_rounded,
-                    size: 22,
-                    color: _focused ? Colors.white : Colors.white70),
+                Icon(
+                  Icons.logout_rounded,
+                  size: 22,
+                  color: _focused ? Colors.white : Colors.white70,
+                ),
                 const SizedBox(width: 10),
                 Text(
                   'Sign out',

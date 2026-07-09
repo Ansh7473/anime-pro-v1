@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../core/device/device_info.dart';
 import '../../core/theme/app_colors.dart';
 
 /// A shimmering poster-shaped placeholder used in loading rows/grids.
@@ -60,9 +61,8 @@ class RowSkeleton extends StatelessWidget {
 class CenteredLoader extends StatelessWidget {
   const CenteredLoader({super.key});
   @override
-  Widget build(BuildContext context) => const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
+  Widget build(BuildContext context) =>
+      const Center(child: CircularProgressIndicator(color: Colors.white));
 }
 
 /// A friendly error state with a retry action.
@@ -79,8 +79,11 @@ class ErrorRetry extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded,
-                color: AppColors.textMuted, size: 40),
+            const Icon(
+              Icons.wifi_off_rounded,
+              color: AppColors.textMuted,
+              size: 40,
+            ),
             const SizedBox(height: 12),
             Text(
               message ?? 'Something went wrong.',
@@ -88,7 +91,11 @@ class ErrorRetry extends StatelessWidget {
               style: const TextStyle(color: AppColors.textMuted),
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+              onPressed: onRetry,
+              autofocus: DeviceInfo.isTv(context),
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),

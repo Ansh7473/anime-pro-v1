@@ -24,30 +24,26 @@ final appRouter = GoRouter(
       builder: (context, state, navigationShell) =>
           AppShell(navigationShell: navigationShell),
       branches: [
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: '/home',
-            builder: (_, _) => const HomeScreen(),
-          ),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: '/search',
-            builder: (_, _) => const SearchScreen(),
-          ),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: '/library',
-            builder: (_, _) => const LibraryScreen(),
-          ),
-        ]),
-        StatefulShellBranch(routes: [
-          GoRoute(
-            path: '/profile',
-            builder: (_, _) => const ProfileScreen(),
-          ),
-        ]),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/search', builder: (_, _) => const SearchScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/library', builder: (_, _) => const LibraryScreen()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
+          ],
+        ),
       ],
     ),
     GoRoute(
@@ -73,4 +69,29 @@ final appRouter = GoRouter(
       builder: (_, _) => const LoginScreen(),
     ),
   ],
+  errorBuilder: (context, state) => Scaffold(
+    backgroundColor: Colors.black,
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 48,
+            color: Colors.white54,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Page not found',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => context.go('/home'),
+            child: const Text('Go Home'),
+          ),
+        ],
+      ),
+    ),
+  ),
 );

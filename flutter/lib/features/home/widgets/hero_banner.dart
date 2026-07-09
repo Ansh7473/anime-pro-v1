@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -304,12 +305,21 @@ class _HeroActionButtonState extends State<_HeroActionButton> {
       onFocusChange: (v) {
         setState(() => _focused = v);
         if (v) {
-          Scrollable.maybeOf(context)?.position.animateTo(
-            0,
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOut,
-          );
+          // Only scroll to top if hero isn't already visible.
+          final pos = Scrollable.maybeOf(context)?.position;
+          if (pos != null && pos.pixels > 0) {
+            pos.animateTo(
+              0,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOut,
+            );
+          }
         }
+      },
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
       },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
@@ -319,8 +329,9 @@ class _HeroActionButtonState extends State<_HeroActionButton> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onPressed,
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -431,6 +442,11 @@ class _MetaRow extends StatelessWidget {
       }
       children.add(parts[i]);
     }
-    return Row(mainAxisSize: MainAxisSize.min, children: children);
+    return Wrap(
+      spacing: 0,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: children,
+    );
   }
 }

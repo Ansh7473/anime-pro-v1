@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -121,8 +122,9 @@ class HomeScreen extends ConsumerWidget {
                 Positioned.fill(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 400),
-                    child: Image.network(
-                      displayAnime.banner ?? displayAnime.poster ?? "",
+                    child: CachedNetworkImage(
+                      imageUrl:
+                          displayAnime.banner ?? displayAnime.poster ?? "",
                       key: ValueKey<String>(
                         displayAnime.id.toString() +
                             (displayAnime.banner ?? displayAnime.poster ?? ""),
@@ -130,7 +132,9 @@ class HomeScreen extends ConsumerWidget {
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
-                      errorBuilder: (_, _, _) => Container(color: AppColors.bg),
+                      fadeInDuration: const Duration(milliseconds: 300),
+                      placeholder: (_, _) => Container(color: AppColors.bg),
+                      errorWidget: (_, _, _) => Container(color: AppColors.bg),
                     ),
                   ),
                 ),

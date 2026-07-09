@@ -105,7 +105,10 @@ class _LibraryTabBar extends StatelessWidget implements PreferredSizeWidget {
         indicatorColor: Colors.white,
         labelColor: AppColors.text,
         unselectedLabelColor: AppColors.textMuted,
-        tabs: [Tab(text: 'Watchlist'), Tab(text: 'Favorites')],
+        tabs: [
+          Tab(text: 'Watchlist'),
+          Tab(text: 'Favorites'),
+        ],
       );
     }
     return _TvTabBar(controller: DefaultTabController.of(context));
@@ -122,14 +125,20 @@ class _TvTabBar extends StatefulWidget {
 }
 
 class _TvTabBarState extends State<_TvTabBar> {
+  int _lastIndex = -1;
+
   @override
   void initState() {
     super.initState();
+    _lastIndex = widget.controller.index;
     widget.controller.addListener(_onChange);
   }
 
   void _onChange() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (widget.controller.index == _lastIndex) return;
+    _lastIndex = widget.controller.index;
+    setState(() {});
   }
 
   @override
@@ -197,8 +206,9 @@ class _TvTabState extends State<_TvTab> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(10),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -207,22 +217,27 @@ class _TvTabState extends State<_TvTab> {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             decoration: BoxDecoration(
-              color: selected ? Colors.white.withValues(alpha: 0.15) : AppColors.card,
+              color: selected
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : AppColors.card,
               borderRadius: BorderRadius.circular(26),
               border: Border.all(
                 color: _focused
                     ? Colors.white
-                    : (selected ? Colors.white.withValues(alpha: 0.4) : AppColors.cardHover),
+                    : (selected
+                          ? Colors.white.withValues(alpha: 0.4)
+                          : AppColors.cardHover),
                 width: _focused ? 2.5 : 1.5,
               ),
               boxShadow: (selected || _focused)
                   ? [
                       BoxShadow(
-                        color: Colors.white
-                            .withValues(alpha: _focused ? 0.15 : 0.08),
+                        color: Colors.white.withValues(
+                          alpha: _focused ? 0.15 : 0.08,
+                        ),
                         blurRadius: _focused ? 18 : 12,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -257,9 +272,13 @@ class _Grid extends ConsumerWidget {
       data: (list) {
         if (list.isEmpty) {
           return Center(
-            child: Text('Nothing here yet.',
-                style: TextStyle(
-                    color: AppColors.textMuted, fontSize: isTv ? 18 : 14)),
+            child: Text(
+              'Nothing here yet.',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: isTv ? 18 : 14,
+              ),
+            ),
           );
         }
         return GridView.builder(
@@ -310,8 +329,9 @@ class _TvFocusableButtonState extends State<_TvFocusableButton> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onPressed,
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedScale(
           scale: _focused ? 1.05 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -320,7 +340,9 @@ class _TvFocusableButtonState extends State<_TvFocusableButton> {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             decoration: BoxDecoration(
-              color: _focused ? Colors.white : Colors.white.withValues(alpha: 0.08),
+              color: _focused
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: _focused ? const Color(0xFF181818) : Colors.white24,
@@ -332,7 +354,7 @@ class _TvFocusableButtonState extends State<_TvFocusableButton> {
                         color: Colors.white.withValues(alpha: 0.2),
                         blurRadius: 12,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -351,4 +373,3 @@ class _TvFocusableButtonState extends State<_TvFocusableButton> {
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/device/device_info.dart';
 import '../../core/theme/app_colors.dart';
@@ -184,7 +185,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         await auth.login(emailText, passwordText);
       }
       if (mounted && ref.read(authProvider).isAuthenticated) {
-        Navigator.of(context).maybePop();
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       setState(() => _error = e.toString());
@@ -203,10 +208,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         elevation: 0,
         leading: isTv
             ? Padding(
-                padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
+                padding: const EdgeInsets.only(
+                  left: 16.0,
+                  top: 8.0,
+                  bottom: 8.0,
+                ),
                 child: _TvAppBarBackButton(
                   focusNode: _backNode,
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () =>
+                      context.canPop() ? context.pop() : context.go('/'),
                 ),
               )
             : null,
@@ -219,12 +229,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             node: _loginScope,
             child: Container(
               constraints: const BoxConstraints(maxWidth: 420),
-              padding: isTv ? const EdgeInsets.all(36) : const EdgeInsets.all(24),
+              padding: isTv
+                  ? const EdgeInsets.all(36)
+                  : const EdgeInsets.all(24),
               decoration: isTv
                   ? BoxDecoration(
                       color: AppColors.card,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     )
                   : null,
               child: Column(
@@ -240,8 +254,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         letterSpacing: -0.5,
                       ),
                       children: [
-                        TextSpan(text: 'Watch', style: TextStyle(color: AppColors.text)),
-                        TextSpan(text: 'Animez', style: TextStyle(color: AppColors.red)),
+                        TextSpan(
+                          text: 'Watch',
+                          style: TextStyle(color: AppColors.text),
+                        ),
+                        TextSpan(
+                          text: 'Animez',
+                          style: TextStyle(color: AppColors.red),
+                        ),
                       ],
                     ),
                   ),
@@ -261,6 +281,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     hintText: 'Email',
                     keyboardType: TextInputType.emailAddress,
                     autofocus: !_isRegister,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _passwordNode.requestFocus(),
                   ),
                   const SizedBox(height: 14),
                   _TvTextField(
@@ -268,6 +290,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     focusNode: _passwordNode,
                     hintText: 'Password',
                     obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submit(),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -323,6 +347,8 @@ class _TvTextField extends StatefulWidget {
     this.keyboardType = TextInputType.text,
     this.autofocus = false,
     this.focusNode,
+    this.textInputAction,
+    this.onSubmitted,
   });
 
   final TextEditingController controller;
@@ -331,6 +357,8 @@ class _TvTextField extends StatefulWidget {
   final TextInputType keyboardType;
   final bool autofocus;
   final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   State<_TvTextField> createState() => _TvTextFieldState();
@@ -338,7 +366,8 @@ class _TvTextField extends StatefulWidget {
 
 class _TvTextFieldState extends State<_TvTextField> {
   FocusNode? _localFocusNode;
-  FocusNode get _effectiveFocusNode => widget.focusNode ?? (_localFocusNode ??= FocusNode());
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ?? (_localFocusNode ??= FocusNode());
   bool _focused = false;
 
   @override
@@ -408,7 +437,7 @@ class _TvTextFieldState extends State<_TvTextField> {
                   color: Colors.white.withValues(alpha: 0.15),
                   blurRadius: 10,
                   spreadRadius: 1,
-                )
+                ),
               ]
             : null,
       ),
@@ -418,11 +447,16 @@ class _TvTextFieldState extends State<_TvTextField> {
         controller: widget.controller,
         obscureText: widget.obscureText,
         keyboardType: widget.keyboardType,
+        textInputAction: widget.textInputAction,
+        onSubmitted: widget.onSubmitted,
         style: const TextStyle(color: AppColors.text, fontSize: 16),
         decoration: InputDecoration(
           hintText: widget.hintText,
           hintStyle: const TextStyle(color: AppColors.textMuted),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
@@ -460,6 +494,11 @@ class _TvButtonState extends State<_TvButton> {
       return FocusableActionDetector(
         focusNode: widget.focusNode,
         onFocusChange: (v) => setState(() => _focused = v),
+        shortcuts: const {
+          SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+        },
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
@@ -468,8 +507,9 @@ class _TvButtonState extends State<_TvButton> {
             },
           ),
         },
-        child: GestureDetector(
+        child: InkWell(
           onTap: widget.onPressed,
+          borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -491,6 +531,11 @@ class _TvButtonState extends State<_TvButton> {
     return FocusableActionDetector(
       focusNode: widget.focusNode,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -499,8 +544,9 @@ class _TvButtonState extends State<_TvButton> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onPressed,
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedScale(
           scale: _focused ? 1.03 : 1.0,
           duration: const Duration(milliseconds: 150),
@@ -525,7 +571,7 @@ class _TvButtonState extends State<_TvButton> {
                         color: Colors.white.withValues(alpha: 0.15),
                         blurRadius: 14,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -545,10 +591,7 @@ class _TvButtonState extends State<_TvButton> {
 }
 
 class _TvAppBarBackButton extends StatefulWidget {
-  const _TvAppBarBackButton({
-    required this.onPressed,
-    this.focusNode,
-  });
+  const _TvAppBarBackButton({required this.onPressed, this.focusNode});
 
   final VoidCallback onPressed;
   final FocusNode? focusNode;
@@ -565,6 +608,11 @@ class _TvAppBarBackButtonState extends State<_TvAppBarBackButton> {
     return FocusableActionDetector(
       focusNode: widget.focusNode,
       onFocusChange: (v) => setState(() => _focused = v),
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+      },
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -573,12 +621,15 @@ class _TvAppBarBackButtonState extends State<_TvAppBarBackButton> {
           },
         ),
       },
-      child: GestureDetector(
+      child: InkWell(
         onTap: widget.onPressed,
+        borderRadius: BorderRadius.circular(20),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
-            color: _focused ? Colors.white : Colors.white.withValues(alpha: 0.08),
+            color: _focused
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.08),
             shape: BoxShape.circle,
             border: Border.all(
               color: _focused ? Colors.white : Colors.transparent,
