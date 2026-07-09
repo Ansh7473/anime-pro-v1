@@ -89,9 +89,19 @@ class _CustomPlayerState extends State<CustomPlayer> {
   // Controller listener
   // ─────────────────────────────────────────────────────────────
 
+  bool _wasPlaying = false;
+
   void _onVideoTick() {
     if (_disposed) return;
-    setState(() {}); // rebuild time/slider
+    // Only rebuild the main tree for play/pause state changes (center
+    // button + bottom-bar play icon). Position-driven UI (seek bar +
+    // timestamp) is handled by _BottomBar's own throttled listener to
+    // avoid 60fps full-tree rebuilds that cause video stutter.
+    final playing = _controller.value.isPlaying;
+    if (playing != _wasPlaying) {
+      _wasPlaying = playing;
+      setState(() {});
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -260,12 +270,13 @@ class _CustomPlayerState extends State<CustomPlayer> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Video
+              // Video — RepaintBoundary isolates the video texture
+              // from overlay repaints, preventing GPU surface invalidation.
               if (_initialized)
                 Center(
                   child: AspectRatio(
                     aspectRatio: _controller.value.aspectRatio,
-                    child: VideoPlayer(_controller),
+                    child: RepaintBoundary(child: VideoPlayer(_controller)),
                   ),
                 )
               else
@@ -477,7 +488,7 @@ class _TopBar extends StatelessWidget {
 // Bottom bar
 // ═══════════════════════════════════════════════════════════════════
 
-class _BottomBar extends StatelessWidget {
+class _BottomBar extends StatefulWidget {
   const _BottomBar({
     required this.controller,
     required this.isTv,
@@ -497,8 +508,50 @@ class _BottomBar extends StatelessWidget {
   final VoidCallback onInteraction;
 
   @override
+  State<_BottomBar> createState() => _BottomBarState();
+}
+
+class _BottomBarState extends State<_BottomBar> {
+  bool _disposed = false;
+
+  /// Last video position we rebuilt for. Throttles position-driven
+  /// rebuilds to ~4fps so the seek bar stays smooth without rebuilding
+  /// the entire player tree 60 times per second.
+  Duration _lastUpdate = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTick);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BottomBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onTick);
+      widget.controller.addListener(_onTick);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    widget.controller.removeListener(_onTick);
+    super.dispose();
+  }
+
+  void _onTick() {
+    if (_disposed) return;
+    final pos = widget.controller.value.position;
+    if (pos - _lastUpdate < const Duration(milliseconds: 250)) return;
+    _lastUpdate = pos;
+    if (!_disposed) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final value = controller.value;
+    final value = widget.controller.value;
     final position = value.position;
     final duration = value.duration;
     final durationMs = duration.inMilliseconds;
@@ -529,8 +582,8 @@ class _BottomBar extends StatelessWidget {
                     : 0,
                 max: durationMs > 0 ? durationMs.toDouble() : 1,
                 onChanged: (v) {
-                  controller.seekTo(Duration(milliseconds: v.toInt()));
-                  onInteraction();
+                  widget.controller.seekTo(Duration(milliseconds: v.toInt()));
+                  widget.onInteraction();
                 },
               ),
             ),
@@ -543,39 +596,39 @@ class _BottomBar extends StatelessWidget {
                   style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),
                 const Spacer(),
-                if (onPrev != null)
+                if (widget.onPrev != null)
                   _FocusableIconButton(
                     icon: Icons.skip_previous_rounded,
                     tooltip: 'Previous',
-                    onPressed: onPrev!,
+                    onPressed: widget.onPrev!,
                   ),
                 _FocusableIconButton(
                   icon: Icons.replay_10_rounded,
                   tooltip: 'Rewind 10s',
-                  onPressed: () => onSeek(const Duration(seconds: -10)),
+                  onPressed: () => widget.onSeek(const Duration(seconds: -10)),
                 ),
                 _FocusableIconButton(
                   icon: value.isPlaying
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                   tooltip: value.isPlaying ? 'Pause' : 'Play',
-                  onPressed: onTogglePlay,
+                  onPressed: widget.onTogglePlay,
                   size: 36,
                 ),
                 _FocusableIconButton(
                   icon: Icons.forward_10_rounded,
                   tooltip: 'Forward 10s',
-                  onPressed: () => onSeek(const Duration(seconds: 10)),
+                  onPressed: () => widget.onSeek(const Duration(seconds: 10)),
                 ),
-                if (onNext != null)
+                if (widget.onNext != null)
                   _FocusableIconButton(
                     icon: Icons.skip_next_rounded,
                     tooltip: 'Next',
-                    onPressed: onNext!,
+                    onPressed: widget.onNext!,
                   ),
                 const Spacer(),
                 // Fullscreen toggle (no-op on TV, meaningful on mobile)
-                if (!isTv)
+                if (!widget.isTv)
                   _FocusableIconButton(
                     icon: Icons.fullscreen_rounded,
                     tooltip: 'Fullscreen',
