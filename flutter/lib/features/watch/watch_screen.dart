@@ -789,10 +789,19 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
     }
     Widget content;
     if (_current?.isEmbed == true && _web != null) {
+      // Hybrid composition renders the WebView as a native Android view
+      // instead of a virtual display texture — eliminates video stutter.
+      final webViewWidget = WebViewWidget.fromPlatformCreationParams(
+        params:
+            AndroidWebViewWidgetCreationParams.fromPlatformWebViewWidgetCreationParams(
+              PlatformWebViewWidgetCreationParams(controller: _web!.platform),
+              displayWithHybridComposition: true,
+            ),
+      );
       content = Focus(
         canRequestFocus: DeviceInfo.isTv(context),
         descendantsAreFocusable: DeviceInfo.isTv(context),
-        child: WebViewWidget(controller: _web!),
+        child: webViewWidget,
       );
     } else if (_current != null && !_current!.isEmbed) {
       content = CustomPlayer(
