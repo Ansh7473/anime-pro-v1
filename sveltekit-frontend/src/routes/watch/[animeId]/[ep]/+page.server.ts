@@ -15,10 +15,10 @@ export const load: PageServerLoad = async ({ params, fetch, setHeaders }) => {
 		api.getRecommendations(animeId, fetch)
 	]);
 
-	// Cache the watch page HTML at the edge for 10 min (browser 2 min).
+	// Cache the watch page HTML at the edge for 1 hour (browser 5 min).
 	// Anime metadata + episode lists change rarely; SWR keeps it fresh.
 	setHeaders({
-		'Cache-Control': 'public, max-age=120, s-maxage=600, stale-while-revalidate=3600, stale-if-error=86400'
+		'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=3600, stale-if-error=86400'
 	});
 
 	return {

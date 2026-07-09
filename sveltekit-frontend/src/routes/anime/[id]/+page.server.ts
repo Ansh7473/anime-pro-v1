@@ -7,10 +7,17 @@ export const load: PageServerLoad = async ({ params, fetch, setHeaders }) => {
   try {
     const anime = await withSeoTimeout(api.getAnime(params.id, fetch), null);
 
-    // Cache anime detail pages longer — data rarely changes
+    // Cache anime detail pages for 1 day at edge — anime metadata rarely changes.
+    // Browser gets 5 min so users see updates (new episodes) without hard refresh.
     if (anime) {
       setHeaders({
-        'Cache-Control': 'public, max-age=120, s-maxage=900, stale-while-revalidate=3600, stale-if-error=86400'
+        'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400, stale-if-error=86400'
+      });
+    } else {
+      // Cache 404/null responses briefly so repeated requests for dead IDs
+      // don't hit origin.
+      setHeaders({
+        'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
       });
     }
 
