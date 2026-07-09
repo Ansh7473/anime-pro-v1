@@ -53,12 +53,12 @@
     });
   });
 
-  let anime: any = $state(null);
+  let anime: any = $state(data.ssrAnime ?? null);
   let posterColor = $state(""); // dominant poster color as "r, g, b"
-  let recommendations: any[] = $state([]);
+  let recommendations: any[] = $state(data.ssrRecommendations ?? []);
   let relatedItems: any[] = $state([]);
   let sources: any[] = $state([]);
-  let episodes: any[] = $state([]);
+  let episodes: any[] = $state(data.ssrEpisodes ?? []);
   let selectedSource: any = $state(null);
   let userOverride = false; // set true when user manually picks a server
 
@@ -696,34 +696,40 @@
   }
 
   onMount(async () => {
-    try {
-      const [animeRes, metaRes, recsRes] = await Promise.all([
-        api.getAnime(animeId),
-        api.getEpisodeMetadata(animeId, 1, 2000), // Increase to load all episodes
-        api.getRecommendations(animeId),
-      ]);
-      anime = animeRes;
-      extractPosterColor(getProxiedImage(anime?.image || anime?.poster));
-      episodes = metaRes?.data?.episodes || [];
-      recommendations = recsRes || [];
-
-      // Build the Related list: prefer real relations, but if they're missing or
-      // junk (no title/poster), fall back to random genre-matched anime.
-      await buildRelated();
-
-      // Auto-select pagination page that contains the current episode
-      if (ep > 0 && episodes.length > 0) {
-        const pageIdx = Math.floor((ep - 1) / EPISODES_PER_PAGE);
-        if (pageIdx >= 0 && pageIdx < totalPages) {
-          currentEpPage = pageIdx;
-        }
+    // If SSR already provided anime/episodes/recs, skip the API calls.
+    // Only fetch client-side if SSR failed or returned empty.
+    const needFetch = !anime || episodes.length === 0;
+    if (needFetch) {
+      try {
+        const [animeRes, metaRes, recsRes] = await Promise.all([
+          api.getAnime(animeId),
+          api.getEpisodeMetadata(animeId, 1, 2000),
+          api.getRecommendations(animeId),
+        ]);
+        anime = animeRes;
+        episodes = metaRes?.data?.episodes || [];
+        recommendations = recsRes || [];
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      loading = false;
     }
 
+    // Always run these client-side (need DOM / anime data)
+    if (anime) extractPosterColor(getProxiedImage(anime?.image || anime?.poster));
+
+    // Build the Related list: prefer real relations, but if they're missing or
+    // junk (no title/poster), fall back to random genre-matched anime.
+    await buildRelated();
+
+    // Auto-select pagination page that contains the current episode
+    if (ep > 0 && episodes.length > 0) {
+      const pageIdx = Math.floor((ep - 1) / EPISODES_PER_PAGE);
+      if (pageIdx >= 0 && pageIdx < totalPages) {
+        currentEpPage = pageIdx;
+      }
+    }
+
+    loading = false;
     checkResumeProgress();
   });
 

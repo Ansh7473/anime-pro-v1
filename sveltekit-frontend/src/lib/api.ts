@@ -518,8 +518,8 @@ export const api = {
 		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
 	},
 
-	getRecommendations: async (id: string | number) => {
-		if (browser) {
+	getRecommendations: async (id: string | number, customFetch?: typeof fetch) => {
+		if (browser && !customFetch) {
 			try {
 				const numId = parseInt(String(id), 10);
 				const recFields = `recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
@@ -549,7 +549,7 @@ export const api = {
 			}
 		}
 		try {
-			const res = await fetchJSON(`${BASE_URL}/recommendations/${id}`);
+			const res = await fetchJSON(`${BASE_URL}/recommendations/${id}`, { fetch: customFetch });
 			return res?.data?.map(transformMedia) || [];
 		} catch { return []; }
 	},
@@ -716,8 +716,8 @@ export const api = {
 	},
 
 	// Streaming
-	getEpisodeMetadata: (animeId: string | number, page = 1, perPage = 50) =>
-		fetchJSON(`${STREAMING_URL}/episode-metadata?animeId=${animeId}&page=${page}&perPage=${perPage}`),
+	getEpisodeMetadata: (animeId: string | number, page = 1, perPage = 50, customFetch?: typeof fetch) =>
+		fetchJSON(`${STREAMING_URL}/episode-metadata?animeId=${animeId}&page=${page}&perPage=${perPage}`, { fetch: customFetch }),
 
 	getAnimelokSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources/animelok?animeId=${animeId}&ep=${ep}`),
