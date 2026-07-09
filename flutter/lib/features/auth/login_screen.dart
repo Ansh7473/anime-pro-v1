@@ -453,6 +453,7 @@ class _TvTextFieldState extends State<_TvTextField> {
         decoration: InputDecoration(
           hintText: widget.hintText,
           hintStyle: const TextStyle(color: AppColors.textMuted),
+          filled: false,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,

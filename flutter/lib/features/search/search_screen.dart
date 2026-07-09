@@ -659,6 +659,7 @@ class _SearchTextFieldState extends State<_SearchTextField> {
             fontSize: isTv ? 18 : 15,
             color: AppColors.textMuted,
           ),
+          filled: false,
           contentPadding: EdgeInsets.symmetric(
             horizontal: 16,
             vertical: isTv ? 16 : 12,

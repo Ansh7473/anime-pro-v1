@@ -211,7 +211,9 @@ class _TvFocusableState extends State<_TvFocusable> {
                     clipBehavior: Clip.antiAlias,
                     duration: const Duration(milliseconds: 150),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(widget.borderRadius + 2),
+                      borderRadius: BorderRadius.circular(
+                        widget.borderRadius + 2,
+                      ),
                       border: Border.all(
                         color: _focused
                             ? Colors.white.withValues(alpha: 0.8)
@@ -235,7 +237,9 @@ class _TvFocusableState extends State<_TvFocusable> {
                   clipBehavior: Clip.antiAlias,
                   duration: const Duration(milliseconds: 150),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(widget.borderRadius + 2),
+                    borderRadius: BorderRadius.circular(
+                      widget.borderRadius + 2,
+                    ),
                     border: Border.all(
                       color: _focused
                           ? Colors.white.withValues(alpha: 0.8)
@@ -308,6 +312,24 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
     });
   }
 
+  void _toggleFullscreen() {
+    if (_isFullscreen) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+        DeviceOrientation.portraitUp,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
+    setState(() => _isFullscreen = !_isFullscreen);
+  }
+
   KeyEventResult _handlePlayerKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       _resetControlsTimer();
@@ -326,17 +348,17 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
       DeviceOrientation.portraitUp,
     ]);
     final a = widget.anime;
-    if (a != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref.read(continueWatchingProvider.notifier).record(a, widget.episode);
-        }
-      });
-    }
-    final tv = DeviceInfo.isTv(context);
-    if (tv) {
-      _resetControlsTimer();
-    }
+    final recorder = a != null
+        ? ref.read(continueWatchingProvider.notifier)
+        : null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (recorder != null && a != null) {
+        recorder.record(a, widget.episode);
+      }
+      final tv = DeviceInfo.isTv(context);
+      if (tv) _resetControlsTimer();
+    });
   }
 
   @override
@@ -463,6 +485,30 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
 
     final hPad = tv ? 48.0 : 12.0;
 
+    // Mobile fullscreen embed player — fills screen in landscape.
+    if (_isFullscreen && !tv) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            Positioned.fill(child: _player()),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.fullscreen_exit_rounded,
+                  color: Colors.white,
+                ),
+                onPressed: _toggleFullscreen,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: tv
@@ -508,10 +554,7 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
                   Center(
                     child: _isFullscreen
                         ? SizedBox.expand(child: _player())
-                        : AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: _player(),
-                          ),
+                        : AspectRatio(aspectRatio: 16 / 9, child: _player()),
                   ),
                   if (_current?.isEmbed == true && _controlsVisible) ...[
                     Positioned(
@@ -575,10 +618,7 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Left: Player pane (dynamic 100% or 62% width)
-                  Expanded(
-                    flex: _sidebarOpen ? 62 : 100,
-                    child: playerPane,
-                  ),
+                  Expanded(flex: _sidebarOpen ? 62 : 100, child: playerPane),
                   // Right: Scrollable Controls Sidebar (dynamic auto-collapse)
                   if (_sidebarOpen)
                     Expanded(
@@ -600,7 +640,12 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                                padding: const EdgeInsets.fromLTRB(
+                                  24,
+                                  24,
+                                  24,
+                                  8,
+                                ),
                                 child: Text(
                                   widget.anime?.title ?? 'Watch',
                                   maxLines: 2,
@@ -620,7 +665,12 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
                               ),
                               Expanded(
                                 child: ListView(
-                                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    8,
+                                    24,
+                                    24,
+                                  ),
                                   children: [
                                     _ServerPanel(
                                       sources: sources,
@@ -668,7 +718,24 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
               SizedBox(
                 height: playerHeight,
                 width: double.infinity,
-                child: _player(),
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _player()),
+                    if (_current?.isEmbed == true)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.fullscreen_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: _toggleFullscreen,
+                        ),
+                      ),
+                  ],
+                ),
               ),
               _EpisodeNavBar(
                 episode: widget.episode,
@@ -762,16 +829,16 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
     return content;
   }
 
-
   void _triggerVirtualClick() {
     if (_web == null) return;
-    final js = '''
+    final js =
+        '''
       (function() {
         var canvasW = 1280;
         var canvasH = 720;
         var x = ($_cursorX / canvasW) * window.innerWidth;
         var y = ($_cursorY / canvasH) * window.innerHeight;
-        
+
         console.log("VIRTUAL CLICK: target at coordinate (" + x + ", " + y + ")");
         var el = document.elementFromPoint(x, y);
         if (el) {
@@ -785,7 +852,7 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
             view: window
           });
           el.dispatchEvent(ev);
-          
+
           if (el.tagName === 'IFRAME') {
             console.log("VIRTUAL CLICK: Target is iframe, focusing and attempting inner click");
             el.focus();
@@ -927,16 +994,17 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _tvWebButton(
-          icon: _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+          icon: _isFullscreen
+              ? Icons.fullscreen_exit_rounded
+              : Icons.fullscreen_rounded,
           tooltip: 'Fullscreen',
           onPressed: () {
             _resetControlsTimer();
-            setState(() {
-              _isFullscreen = !_isFullscreen;
-              if (_isFullscreen) {
-                _sidebarOpen = false;
-              }
-            });
+            final wasFs = _isFullscreen;
+            _toggleFullscreen();
+            if (!wasFs) {
+              setState(() => _sidebarOpen = false);
+            }
           },
         ),
         const SizedBox(height: 12),
@@ -1431,13 +1499,17 @@ class _ServerPanelState extends State<_ServerPanel> {
                   ),
                 ),
                 SizedBox(width: tv ? 8 : 6),
-                Text(
-                  category.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: tv ? 13 : 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: Colors.white70,
+                Flexible(
+                  child: Text(
+                    category.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: tv ? 13 : 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: Colors.white70,
+                    ),
                   ),
                 ),
               ],
@@ -1492,12 +1564,16 @@ class _ServerPanelState extends State<_ServerPanel> {
               color: active ? Colors.white : AppColors.textMuted,
             ),
             SizedBox(width: tv ? 8 : 6),
-            Text(
-              sourceLabel(s, index),
-              style: TextStyle(
-                fontSize: tv ? 16 : 13,
-                fontWeight: FontWeight.w600,
-                color: active ? Colors.white : AppColors.text,
+            Flexible(
+              child: Text(
+                sourceLabel(s, index),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: tv ? 16 : 13,
+                  fontWeight: FontWeight.w600,
+                  color: active ? Colors.white : AppColors.text,
+                ),
               ),
             ),
             if (s.quality.isNotEmpty && s.quality.toLowerCase() != 'auto') ...[
@@ -1564,10 +1640,14 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
     _filterFocus.onKeyEvent = (node, event) {
       if (event is KeyDownEvent || event is KeyRepeatEvent) {
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          final success = FocusTraversalGroup.of(node.context!).inDirection(node, TraversalDirection.down);
+          final success = FocusTraversalGroup.of(
+            node.context!,
+          ).inDirection(node, TraversalDirection.down);
           if (success) return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-          final success = FocusTraversalGroup.of(node.context!).inDirection(node, TraversalDirection.up);
+          final success = FocusTraversalGroup.of(
+            node.context!,
+          ).inDirection(node, TraversalDirection.up);
           if (success) return KeyEventResult.handled;
         }
       }
@@ -1698,7 +1778,9 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: _filterFocused ? Colors.white : (tv ? AppColors.card : Colors.transparent),
+                  color: _filterFocused
+                      ? Colors.white
+                      : (tv ? AppColors.card : Colors.transparent),
                   width: 2.2,
                 ),
                 boxShadow: _filterFocused

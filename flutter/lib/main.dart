@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,7 +10,6 @@ import 'core/theme/app_theme.dart';
 import 'data/services/continue_watching.dart';
 
 Future<void> main() async {
-  enableFlutterDriverExtension();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Detect platform TV mode (Android TV / Fire TV) early.
