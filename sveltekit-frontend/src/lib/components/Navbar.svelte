@@ -23,6 +23,7 @@
   import { page } from "$app/state";
   import { onMount } from "svelte";
   import { isTV } from "$lib/stores/device";
+  import { expandAlias, searchAndRankAnime } from "$lib/searchEngine";
 
   let scrolled = $state(false);
   let searchOpen = $state(false);
@@ -123,6 +124,7 @@
   });
 
   // Svelte 5 Debounced Search Effect
+  let searchReqId = 0;
   $effect(() => {
     if (searchQuery.trim().length < 2) {
       suggestions = [];
@@ -130,19 +132,27 @@
       return;
     }
 
+    const reqId = ++searchReqId;
     const timer = setTimeout(async () => {
       isSearching = true;
       try {
-        const res = await api.search(searchQuery.trim());
-        suggestions = res?.data ? res.data.slice(0, 6) : [];
+        // Expand abbreviations ("aot" → "attack on titan") before hitting the API,
+        // then re-rank results with the 4-layer fuzzy engine so the most relevant
+        // titles surface first — not just the most popular.
+        const expanded = expandAlias(searchQuery.trim());
+        const res = await api.search(expanded);
+        // Ignore stale results from a cancelled/older debounce cycle
+        if (reqId !== searchReqId) return;
+        const ranked = searchAndRankAnime(searchQuery.trim(), res?.data || []);
+        suggestions = ranked.slice(0, 6);
         showSuggestions = true;
       } catch (err) {
-        console.error("Search error:", err);
-        suggestions = [];
+        if (reqId === searchReqId) console.error("Search error:", err);
+        if (reqId === searchReqId) suggestions = [];
       } finally {
-        isSearching = false;
+        if (reqId === searchReqId) isSearching = false;
       }
-    }, 350);
+    }, 400);
 
     return () => clearTimeout(timer);
   });

@@ -4,7 +4,11 @@ import type { PageServerLoad } from './$types';
 
 const fallbackHomeData = { trending: [], popular: [], topRated: [], action: [], romance: [], movies: [] };
 
-export const load: PageServerLoad = ({ fetch }) => {
+export const load: PageServerLoad = ({ fetch, setHeaders }) => {
+	// Home data (trending/popular) changes occasionally, not minute-to-minute.
+	setHeaders({
+		'Cache-Control': 'public, max-age=120, s-maxage=600, stale-while-revalidate=3600, stale-if-error=86400'
+	});
 	// Return the promise WITHOUT awaiting so SvelteKit streams it.
 	// The HTML shell (hero + row skeletons) is flushed and painted immediately,
 	// then the resolved data is streamed in and swapped via {#await} on the page.

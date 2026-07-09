@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { clearAuth } from '$lib/stores/auth';
+import { expandAlias } from '$lib/searchEngine';
 
 
 // Set VITE_BACKEND_URL to override with a single backend (e.g. local dev).
@@ -72,7 +73,13 @@ async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof f
 		const target = url.replace(BACKEND_URL, backend);
 		let res: Response;
 		try {
-			res = await fetchFn(target, { ...fetchOptions, headers });
+			const fetchOpts: RequestInit = { ...fetchOptions, headers };
+			// On Cloudflare SSR, cache non-auth GET subrequests at the edge
+			// so SSR loads don't hit origin on every request.
+			if (!browser && isGet && !(headers as Record<string, string>).Authorization) {
+				(fetchOpts as any).cf = { cacheEverything: true };
+			}
+			res = await fetchFn(target, fetchOpts);
 		} catch (err) {
 			lastError = err; // network/timeout — try the next backend
 			continue;
@@ -291,6 +298,8 @@ export const api = {
 	},
 
 	search: async (q: string, page = 1, limit = 20, filters: any = {}) => {
+		// Expand abbreviations ("aot" → "attack on titan") before hitting any API
+		const expanded = expandAlias(q);
 		const cacheKey = `${q.trim().toLowerCase()}:${page}:${limit}:${filters.sort?.[0] || filters.sort || ''}:${filters.format || ''}:${filters.status || ''}:${filters.genre || ''}`;
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.time < SEARCH_CACHE_TTL) {
@@ -319,7 +328,7 @@ export const api = {
 					perPage: limit,
 					sort: Array.isArray(filters.sort) ? filters.sort : [filters.sort || 'POPULARITY_DESC']
 				};
-				if (q.trim()) variables.search = q.trim();
+				if (expanded.trim()) variables.search = expanded.trim();
 				if (filters.format) variables.format = filters.format.toUpperCase();
 				if (filters.status) variables.status = filters.status.toUpperCase();
 				if (filters.genre) variables.genre = filters.genre;
@@ -343,7 +352,7 @@ export const api = {
 
 		// Fallback to backend server proxy if client query fails or during SSR
 				const params = new URLSearchParams({
-					q,
+					q: expanded,
 					page: page.toString(),
 					limit: limit.toString(),
 					sort: Array.isArray(filters.sort) ? filters.sort[0] : (filters.sort || 'POPULARITY_DESC')
@@ -366,7 +375,7 @@ export const api = {
 				if (browser) {
 					try {
 						const jp = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
-						if (q.trim()) jp.append('q', q.trim());
+						if (expanded.trim()) jp.append('q', expanded.trim());
 						if (filters.format) jp.append('type', filters.format.toLowerCase());
 						if (filters.status) {
 							const sm: Record<string, string> = { RELEASING: 'airing', FINISHED: 'complete', NOT_YET_RELEASED: 'upcoming' };

@@ -2,7 +2,10 @@
  * Anime API Cache Worker
  *
  * Cloudflare Worker that sits between the frontend and AniList/Jikan APIs.
- * Caches all responses in KV so users never hit rate limits.
+ * Caches responses in two layers:
+ *   1. Cache API (caches.default) — free, per-datacenter, no daily limits
+ *   2. KV (CACHE namespace) — global, durable, but writes capped at 1000/day
+ *      on the free plan, so the Cache API front-loads most reads.
  *
  * Routes:
  *   POST /anilist          → proxy to AniList GraphQL (cached by query hash)
@@ -11,12 +14,13 @@
  */
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "";
     const allowed = (env.ALLOWED_ORIGINS || "").split(",");
     const corsOrigin = allowed.includes(origin) ? origin : allowed[0] || "*";
     const ttl = parseInt(env.CACHE_TTL || "1800", 10);
+    const edgeCache = caches.default;
 
     const corsHeaders = {
       "Access-Control-Allow-Origin": corsOrigin,
@@ -39,7 +43,7 @@ export default {
 
     // Health
     if (url.pathname === "/health") {
-      return json({ status: "ok", cache: "kv" }, corsHeaders);
+      return json({ status: "ok", cache: "edge+kv" }, corsHeaders);
     }
 
     try {
@@ -48,16 +52,31 @@ export default {
         const body = await request.text();
         const key = "al:" + (await sha256(body));
 
-        // Check KV cache
-        const cached = await env.CACHE.get(key);
-        if (cached) {
-          return json(JSON.parse(cached), corsHeaders, {
-            "X-Cache": "HIT",
+        // Cache API key — synthetic GET request (Cache API only matches GET)
+        const cacheReq = new Request(`https://edge.cache/anilist/${key}`, { method: "GET" });
+
+        // 1. Edge cache (free, per-datacenter)
+        const edgeHit = await edgeCache.match(cacheReq);
+        if (edgeHit) {
+          return new Response(await edgeHit.text(), {
+            headers: { "Content-Type": "application/json", ...corsHeaders, "X-Cache": "EDGE-HIT", ...cacheHeaders },
+          });
+        }
+
+        // 2. KV cache (global, durable)
+        const kvHit = await env.CACHE.get(key);
+        if (kvHit) {
+          // Backfill edge cache so subsequent requests in this datacenter hit edge.
+          ctx.waitUntil(edgeCache.put(cacheReq, new Response(kvHit, {
+            headers: { "Content-Type": "application/json", ...cacheHeaders },
+          })));
+          return json(JSON.parse(kvHit), corsHeaders, {
+            "X-Cache": "KV-HIT",
             ...cacheHeaders,
           });
         }
 
-        // Forward to AniList
+        // 3. Forward to AniList (POST — no cf cache options apply)
         const res = await fetch(env.ANILIST_URL, {
           method: "POST",
           headers: {
@@ -68,6 +87,20 @@ export default {
         });
 
         if (!res.ok) {
+          // Cache 404s briefly — non-existent anime won't appear 60s later.
+          if (res.status === 404) {
+            const data = await res.text();
+            ctx.waitUntil(Promise.all([
+              edgeCache.put(cacheReq, new Response(data, {
+                headers: { "Content-Type": "application/json", "Cache-Control": "public, s-maxage=60" },
+              })),
+              env.CACHE.put(key, data, { expirationTtl: 60 }),
+            ]));
+            return new Response(data, {
+              status: 404,
+              headers: { "Content-Type": "application/json", ...corsHeaders, "X-Cache": "MISS-404", "Cache-Control": "public, max-age=30, s-maxage=60" },
+            });
+          }
           return new Response(res.body, {
             status: res.status,
             headers: {
@@ -79,8 +112,13 @@ export default {
         }
 
         const data = await res.text();
-        // Cache in KV with TTL
-        await env.CACHE.put(key, data, { expirationTtl: ttl });
+        // 4. Store in edge cache + KV (async, non-blocking)
+        ctx.waitUntil(Promise.all([
+          edgeCache.put(cacheReq, new Response(data, {
+            headers: { "Content-Type": "application/json", ...cacheHeaders },
+          })),
+          env.CACHE.put(key, data, { expirationTtl: ttl }),
+        ]));
         return new Response(data, {
           headers: {
             "Content-Type": "application/json",
@@ -97,22 +135,50 @@ export default {
         const qs = url.search || "";
         const key = "jk:" + (await sha256(jikanPath + qs));
 
-        // Check KV cache
-        const cached = await env.CACHE.get(key);
-        if (cached) {
-          return json(JSON.parse(cached), corsHeaders, {
-            "X-Cache": "HIT",
+        const cacheReq = new Request(`https://edge.cache/jikan/${key}`, { method: "GET" });
+
+        // 1. Edge cache (free, per-datacenter)
+        const edgeHit = await edgeCache.match(cacheReq);
+        if (edgeHit) {
+          return new Response(await edgeHit.text(), {
+            headers: { "Content-Type": "application/json", ...corsHeaders, "X-Cache": "EDGE-HIT", ...cacheHeaders },
+          });
+        }
+
+        // 2. KV cache (global, durable)
+        const kvHit = await env.CACHE.get(key);
+        if (kvHit) {
+          ctx.waitUntil(edgeCache.put(cacheReq, new Response(kvHit, {
+            headers: { "Content-Type": "application/json", ...cacheHeaders },
+          })));
+          return json(JSON.parse(kvHit), corsHeaders, {
+            "X-Cache": "KV-HIT",
             ...cacheHeaders,
           });
         }
 
-        // Forward to Jikan
+        // 3. Forward to Jikan (GET — add cf options to cache origin at edge)
         const jikanUrl = `${env.JIKAN_URL}/${jikanPath}${qs}`;
         const res = await fetch(jikanUrl, {
           headers: { Accept: "application/json" },
+          cf: { cacheEverything: true, cacheTtl: ttl },
         });
 
         if (!res.ok) {
+          // Cache 404s briefly — non-existent anime won't appear 60s later.
+          if (res.status === 404) {
+            const data = await res.text();
+            ctx.waitUntil(Promise.all([
+              edgeCache.put(cacheReq, new Response(data, {
+                headers: { "Content-Type": "application/json", "Cache-Control": "public, s-maxage=60" },
+              })),
+              env.CACHE.put(key, data, { expirationTtl: 60 }),
+            ]));
+            return new Response(data, {
+              status: 404,
+              headers: { "Content-Type": "application/json", ...corsHeaders, "X-Cache": "MISS-404", "Cache-Control": "public, max-age=30, s-maxage=60" },
+            });
+          }
           return new Response(res.body, {
             status: res.status,
             headers: {
@@ -124,7 +190,13 @@ export default {
         }
 
         const data = await res.text();
-        await env.CACHE.put(key, data, { expirationTtl: ttl });
+        // 4. Store in edge cache + KV (async, non-blocking)
+        ctx.waitUntil(Promise.all([
+          edgeCache.put(cacheReq, new Response(data, {
+            headers: { "Content-Type": "application/json", ...cacheHeaders },
+          })),
+          env.CACHE.put(key, data, { expirationTtl: ttl }),
+        ]));
         return new Response(data, {
           headers: {
             "Content-Type": "application/json",
