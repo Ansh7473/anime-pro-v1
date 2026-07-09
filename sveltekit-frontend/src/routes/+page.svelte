@@ -88,7 +88,8 @@
 
   onMount(async () => {
     // Use SSR-provided seasonal data (no client-side API calls)
-    const sections = [data.seasonal].filter(
+    const seasonal = await data.seasonal;
+    const sections = [seasonal].filter(
       (s: any) => s && s.items && s.items.length > 0,
     );
     extraSections = sections;
@@ -98,7 +99,7 @@
     // Math.random() runs client-only here, so every page refresh re-rolls the order.
     try {
       const homeData: any = await Promise.resolve(data.homeData);
-      const newThisSeason = data.seasonal?.items || [];
+      const newThisSeason = seasonal?.items || [];
       const romance = homeData?.romance || [];
       const movies = homeData?.movies || [];
 
