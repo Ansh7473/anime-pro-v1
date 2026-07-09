@@ -26,14 +26,38 @@ class UpdateInfo {
 
 /// Checks if a newer Android release exists on GitHub (via backend).
 ///
-/// Resolves the installed app version from `package_info_plus` and compares
-/// against the latest "android" platform release. The user can dismiss a
-/// notification for a specific version — it won't show again until a newer
-/// one appears.
+/// The app version (from pubspec, bumped in CI via build number) is compared
+/// against the latest release tag. After installing an update, the versions
+/// match → no notification.
 class UpdateChecker {
   static const _kDismissedKey = 'dismissed_release_version';
 
-  /// Fetch and compare. Returns [UpdateInfo.none] if up-to-date or dismissed.
+  /// Parse a version string into comparable integers.
+  /// e.g. "android-v1.0.0+42" → [1, 0, 0, 42]
+  /// e.g. "1.0.0+42" → [1, 0, 0, 42]
+  static List<int> _parseVersion(String v) {
+    var s = v
+        .replaceAll(RegExp(r'^android-v', caseSensitive: false), '')
+        .replaceAll(RegExp(r'^v', caseSensitive: false), '');
+    return s
+        .split(RegExp(r'[.+-]'))
+        .where((p) => p.isNotEmpty)
+        .where((p) => int.tryParse(p) != null)
+        .map(int.parse)
+        .toList();
+  }
+
+  /// True if [releaseVersion] is strictly newer than [installedVersion].
+  static bool _isNewer(String releaseVersion, String installedVersion) {
+    final a = _parseVersion(releaseVersion);
+    final b = _parseVersion(installedVersion);
+    for (var i = 0; i < a.length && i < b.length; i++) {
+      if (a[i] > b[i]) return true;
+      if (a[i] < b[i]) return false;
+    }
+    return a.length > b.length;
+  }
+
   static Future<UpdateInfo> check(ApiService api) async {
     try {
       final releases = await api.getLatestReleases();
@@ -45,13 +69,14 @@ class UpdateChecker {
         return UpdateInfo.none;
       }
 
-      // Get the real installed app version.
+      // Get the real installed app version (e.g. "1.0.0+42").
       final info = await PackageInfo.fromPlatform();
-      final installedVersion = '${info.version}+${info.buildNumber}';
+      final installed = '${info.version}+${info.buildNumber}';
 
-      if (!latest.isNewerThan(installedVersion)) return UpdateInfo.none;
+      // Release not newer than installed? Up-to-date.
+      if (!_isNewer(latest.version, installed)) return UpdateInfo.none;
 
-      // Check if user already dismissed this version.
+      // Already dismissed this exact version?
       final prefs = await SharedPreferences.getInstance();
       final dismissed = prefs.getString(_kDismissedKey);
       if (dismissed == latest.version) return UpdateInfo.none;
@@ -66,7 +91,6 @@ class UpdateChecker {
     }
   }
 
-  /// Marks [version] as dismissed so the notification won't show again.
   static Future<void> dismiss(String version) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kDismissedKey, version);

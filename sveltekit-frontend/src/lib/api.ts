@@ -923,9 +923,6 @@ export function getProxiedUrl(url: string, referer = ''): string {
 
 export function getProxiedImage(url: string, fallback = ''): string {
 	if (!url) return fallback;
-	// Use our smart proxy for external images to handle CORS and self-healing
-	if (url.startsWith('http') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
-		return `${GENERAL_PROXY}?url=${encodeURIComponent(url)}`;
-	}
-	return url || fallback;
+	// <img> tags don't need CORS for display — load directly from CDN.
+	return url;
 }

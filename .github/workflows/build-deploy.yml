@@ -371,6 +371,17 @@ jobs:
         working-directory: flutter
         run: flutter pub get
 
+      - name: Bump Build Number
+        working-directory: flutter
+        run: |
+          # Set build number to GitHub run number for version tracking.
+          # pubspec version becomes e.g. 1.0.0+42 where 42 = run number.
+          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')
+          NEW_VERSION="${BASE}+${{ github.run_number }}"
+          sed -i "s/^version:.*/version: ${NEW_VERSION}/" pubspec.yaml
+          echo "App version: ${NEW_VERSION}"
+          echo "app_version=${NEW_VERSION}" >> $GITHUB_ENV
+
       - name: Run Flutter Analyzer
         working-directory: flutter
         run: flutter analyze
@@ -450,6 +461,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Read App Version
+        id: ver
+        working-directory: flutter
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "App version from pubspec: ${VERSION}"
+
       - uses: actions/download-artifact@v4
         with: { name: watchanimez-flutter-android-apk, path: flutter-android-build }
 
@@ -465,10 +484,8 @@ jobs:
             echo "tag=${{ github.ref_name }}-android" >> $GITHUB_OUTPUT
             echo "name=WatchAnimez ${{ github.ref_name }} Android" >> $GITHUB_OUTPUT
           else
-            SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-            DATE=$(date -u '+%Y.%m.%d')
-            echo "tag=android-v${DATE}-${SHA}" >> $GITHUB_OUTPUT
-            echo "name=WatchAnimez Android ${DATE} (${SHA})" >> $GITHUB_OUTPUT
+            echo "tag=android-v${{ steps.ver.outputs.version }}" >> $GITHUB_OUTPUT
+            echo "name=WatchAnimez v${{ steps.ver.outputs.version }} Android" >> $GITHUB_OUTPUT
           fi
 
       - uses: softprops/action-gh-release@v2
@@ -477,6 +494,7 @@ jobs:
           name: ${{ steps.tag.outputs.name }}
           body: |
             Flutter Android app (works on both mobile and Android TV).
+            Version: v${{ steps.ver.outputs.version }}
             Built from commit ${{ github.sha }}.
           draft: false
           prerelease: false

@@ -4,8 +4,19 @@
 <head>
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" />
-	<script>(function (s) { s.dataset.zone = '11242007', s.src = 'https://al5sm.com/tag.min.js' })([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+	<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" />
+	<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" /></noscript>
+	<script>
+		// Defer ad script until after first paint to avoid blocking HTML parsing
+		window.addEventListener('load', function() {
+			setTimeout(function() {
+				var s = document.createElement('script');
+				s.dataset.zone = '11242007';
+				s.src = 'https://al5sm.com/tag.min.js';
+				document.body.appendChild(s);
+			}, 2000);
+		});
+	</script>
 	
 	<script>
 			// Suppress SvelteKit router warning about history.pushState / history.replaceState conflict
@@ -20,14 +31,20 @@
 				};
 			})();
 	</script>
-	<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-34LBR99BLW"></script>
+	<!-- Google tag (gtag.js) — deferred to avoid blocking first paint -->
 	<script>
 		window.dataLayer = window.dataLayer || [];
 		function gtag() { dataLayer.push(arguments); }
 		gtag('js', new Date());
-
 		gtag('config', 'G-34LBR99BLW');
+		window.addEventListener('load', function() {
+			setTimeout(function() {
+				var s = document.createElement('script');
+				s.async = true;
+				s.src = 'https://www.googletagmanager.com/gtag/js?id=G-34LBR99BLW';
+				document.body.appendChild(s);
+			}, 1500);
+		});
 	</script>
 
 

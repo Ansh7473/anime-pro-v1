@@ -40,7 +40,7 @@ class HomeScreen extends ConsumerWidget {
                 'Update available: ${info.version}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              duration: const Duration(seconds: 10),
+              duration: const Duration(seconds: 12),
               action: SnackBarAction(
                 label: 'Download',
                 onPressed: () {

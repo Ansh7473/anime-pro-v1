@@ -87,30 +87,18 @@
   let extraLoading = $state(true);
 
   onMount(async () => {
-    const defs = [
-      { title: "Upcoming Anime", href: "/explore/upcoming", fn: () => api.getUpcoming(1, 20) },
-      { title: "New This Season", href: "/explore/seasonal", fn: () => api.getCurrentSeasonal(1, 20) },
-    ];
-    const results = await Promise.all(
-      defs.map(async (d) => {
-        try {
-          const r: any = await d.fn();
-          const items = r?.data || r?.results || (Array.isArray(r) ? r : []);
-          return { title: d.title, href: d.href, items };
-        } catch {
-          return { title: d.title, href: d.href, items: [] };
-        }
-      }),
+    // Use SSR-provided seasonal data (no client-side API calls)
+    const sections = [data.seasonal].filter(
+      (s: any) => s && s.items && s.items.length > 0,
     );
-    extraSections = results.filter((s) => s.items.length > 0);
+    extraSections = sections;
     extraLoading = false;
 
     // Build the random hero: 1 random pick from each of the 3 categories, then shuffle.
     // Math.random() runs client-only here, so every page refresh re-rolls the order.
     try {
       const homeData: any = await Promise.resolve(data.homeData);
-      const newThisSeason =
-        results.find((r) => r.title === "New This Season")?.items || [];
+      const newThisSeason = data.seasonal?.items || [];
       const romance = homeData?.romance || [];
       const movies = homeData?.movies || [];
 
