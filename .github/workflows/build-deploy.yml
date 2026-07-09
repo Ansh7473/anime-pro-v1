@@ -371,13 +371,13 @@ jobs:
         working-directory: flutter
         run: flutter pub get
 
-      - name: Bump Build Number
+      - name: Bump Version
         working-directory: flutter
         run: |
-          # Set build number to GitHub run number for version tracking.
-          # pubspec version becomes e.g. 1.0.0+42 where 42 = run number.
-          BASE=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')
-          NEW_VERSION="${BASE}+${{ github.run_number }}"
+          # Date-based versioning: YYYY.M.D+run_number
+          # Matches the release tag format so the app can compare versions.
+          DATE=$(date -u '+%Y.%-m.%-d')
+          NEW_VERSION="${DATE}+${{ github.run_number }}"
           sed -i "s/^version:.*/version: ${NEW_VERSION}/" pubspec.yaml
           echo "App version: ${NEW_VERSION}"
           echo "app_version=${NEW_VERSION}" >> $GITHUB_ENV

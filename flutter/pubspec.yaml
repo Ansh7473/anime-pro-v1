@@ -1,7 +1,7 @@
 name: watchanimez
 description: "WatchAnimez — premium cross-platform anime streaming (phone, TV, iOS)."
 publish_to: "none"
-version: 1.0.0+1
+version: 2026.7.9+846
 
 environment:
   sdk: ^3.12.2
