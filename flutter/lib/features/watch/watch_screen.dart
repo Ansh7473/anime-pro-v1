@@ -31,10 +31,11 @@ const String _kAntiPopupJs = '''
     var a = e.target && e.target.closest ? e.target.closest('a[target="_blank"]') : null;
     if (a) { a.removeAttribute('target'); }
   }, true);
+  // Strip existing target=_blank links once after load.
+  // Avoids a persistent MutationObserver that fires on every DOM
+  // change during video playback — a major performance drain.
   try {
-    new MutationObserver(function(){
-      document.querySelectorAll('a[target="_blank"]').forEach(function(a){ a.removeAttribute('target'); });
-    }).observe(document.documentElement, { childList: true, subtree: true });
+    document.querySelectorAll('a[target="_blank"]').forEach(function(a){ a.removeAttribute('target'); });
   } catch(e){}
 })();
 ''';
@@ -475,7 +476,7 @@ class _WatchScreenState extends ConsumerState<WatchScreen> {
     final mq = MediaQuery.of(context);
     final playerHeight = (mq.size.width * 9 / 16).clamp(
       0.0,
-      mq.size.height * 0.62,
+      mq.size.height * 0.58,
     );
 
     final episodes = episodesAsync.valueOrNull ?? const <Episode>[];
