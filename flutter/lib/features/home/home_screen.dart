@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/device/device_info.dart';
 import '../../core/providers/providers.dart';
@@ -12,6 +13,9 @@ import '../../shared/widgets/content_row.dart';
 import '../../shared/widgets/loading.dart';
 import 'widgets/continue_watching_row.dart';
 import 'widgets/hero_banner.dart';
+
+/// Current app version (must match pubspec.yaml).
+const String kAppVersion = '1.0.0';
 
 /// The Home tab: a featured hero followed by content rows. Works for both phone
 /// (scroll/touch) and TV (D-pad focus traverses cards within rows).
@@ -25,6 +29,35 @@ class HomeScreen extends ConsumerWidget {
     final focusedAnime = ref.watch(focusedAnimeProvider);
     final isTv = DeviceInfo.isTv(context);
     final screenHeight = MediaQuery.of(context).size.height;
+
+    // Check for app updates on first load.
+    ref.listen<AsyncValue<List<ReleaseEntry>>>(releasesProvider, (_, next) {
+      next.whenData((releases) {
+        final android = releases.where((r) => r.platform == 'android').toList();
+        if (android.isEmpty) return;
+        final latest = android.first;
+        if (latest.version.isNotEmpty &&
+            latest.isNewerThan(kAppVersion) &&
+            latest.downloadUrl.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Update available: ${latest.version}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                duration: const Duration(seconds: 8),
+                action: SnackBarAction(
+                  label: 'Download',
+                  onPressed: () => _openUrl(latest.downloadUrl),
+                ),
+              ),
+            );
+          });
+        }
+      });
+    });
     // TV is landscape, so clamp the hero so it doesn't eat the whole screen.
     final heroHeight = isTv
         ? (screenHeight * 0.5).clamp(240.0, 320.0)
@@ -183,6 +216,15 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(body: body);
   }
+}
+
+/// Opens [url] in the external browser.
+Future<void> _openUrl(String url) async {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return;
+  try {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {}
 }
 
 class _HomeLoading extends StatelessWidget {

@@ -101,8 +101,10 @@
   }
 
   function verText(rel: { version?: string; size?: string }) {
-    const v = (rel.version || "").trim();
-    const ver = !v ? "" : /^\d/.test(v) ? `v${v}` : v.charAt(0).toUpperCase() + v.slice(1);
+    let v = (rel.version || '').trim();
+    // Strip platform prefix from date-based tags (e.g. "android-v2026.07.09-abc1234" -> "v2026.07.09-abc1234")
+    v = v.replace(/^(android|desktop|tv)-/i, '');
+    const ver = !v ? '' : /^\d/.test(v) ? `v${v}` : v.charAt(0).toUpperCase() + v.slice(1);
     return rel.size ? (ver ? `${ver} · ${rel.size}` : rel.size) : ver;
   }
 

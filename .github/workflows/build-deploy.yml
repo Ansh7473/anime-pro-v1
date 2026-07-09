@@ -15,8 +15,38 @@ permissions:
   contents: write
 
 jobs:
+  detect-changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      desktop: ${{ steps.filter.outputs.desktop }}
+      flutter-mobile: ${{ steps.filter.outputs.flutter-mobile }}
+      flutter-tv: ${{ steps.filter.outputs.flutter-tv }}
+      android-capacitor: ${{ steps.filter.outputs.android-capacitor }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'sveltekit-frontend/**'
+              - 'api-cache-worker/**'
+            desktop:
+              - 'desktop-app/**'
+              - 'sveltekit-frontend/**'
+              - 'api-cache-worker/**'
+            flutter-mobile:
+              - 'flutter/**'
+            flutter-tv:
+              - 'anime_pro_tv/**'
+            android-capacitor:
+              - 'android-app/**'
   deploy-frontend:
     name: Deploy SvelteKit Frontend to Cloudflare
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -120,6 +150,8 @@ jobs:
 
   build-desktop:
     name: Build Desktop App (Windows)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.desktop == 'true'
     runs-on: windows-latest
     steps:
       - name: Checkout Code
@@ -172,6 +204,8 @@ jobs:
 
   build-desktop-mac:
     name: Build Desktop App (macOS)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.desktop == 'true'
     runs-on: macos-latest
     steps:
       - name: Checkout Code
@@ -221,6 +255,8 @@ jobs:
 
   build-desktop-linux:
     name: Build Desktop App (Linux)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.desktop == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -275,6 +311,8 @@ jobs:
 
   build-android:
     name: Build Android App (APK)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.android-capacitor == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -313,6 +351,8 @@ jobs:
 
   build-flutter-android:
     name: Build Flutter Android App (APK)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.flutter-mobile == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -351,6 +391,8 @@ jobs:
 
   build-tv:
     name: Build Flutter TV App (APK)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.flutter-tv == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -387,58 +429,25 @@ jobs:
           name: watchanimez-tv-apk
           path: anime_pro_tv/build/app/outputs/flutter-apk/app-debug.apk
 
-  release:
-    name: Create GitHub Release
-    needs: [build-desktop, build-desktop-mac, build-desktop-linux, build-android, build-flutter-android, build-tv, deploy-frontend]
+  release-desktop:
+    name: Release Desktop (Electron)
+    needs: [build-desktop, build-desktop-mac, build-desktop-linux]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: always() &&
+        github.event_name == 'push' &&
+        (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) &&
+        needs.build-desktop.result != 'skipped'
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Download Desktop Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: watchanimez-windows-installer
-          path: desktop-build
+      - uses: actions/download-artifact@v4
+        with: { name: watchanimez-windows-installer, path: desktop-build }
+      - uses: actions/download-artifact@v4
+        with: { name: watchanimez-mac-installer, path: mac-build }
+      - uses: actions/download-artifact@v4
+        with: { name: watchanimez-linux-installer, path: linux-build }
 
-      - name: Download Mac Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: watchanimez-mac-installer
-          path: mac-build
-
-      - name: Download Linux Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: watchanimez-linux-installer
-          path: linux-build
-
-      - name: Download Android Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: watchanimez-android-apk
-          path: android-build
-
-      - name: Download Flutter Android Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: watchanimez-flutter-android-apk
-          path: flutter-android-build
-
-      - name: Download TV Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: watchanimez-tv-apk
-          path: tv-build
-
-      - name: Download IndexNow Log
-        uses: actions/download-artifact@v4
-        with:
-          name: indexnow-log
-          path: indexnow-log
-
-      - name: Prepare Release Files
+      - name: Prepare Desktop Release Files
         run: |
           mkdir release-assets
           cp desktop-build/*.exe release-assets/ || true
@@ -446,34 +455,119 @@ jobs:
           cp mac-build/*.zip release-assets/ || true
           cp linux-build/*.AppImage release-assets/ || true
           cp linux-build/*.deb release-assets/ || true
-          cp android-build/*.apk release-assets/WatchAnimez-Android.apk || true
-          cp flutter-android-build/*.apk release-assets/WatchAnimez-Android-2.apk || true
-          cp tv-build/*.apk release-assets/WatchAnimez-TV.apk || true
-          cp indexnow-log/indexnow-log.txt release-assets/ || true
 
-      - name: Generate Release Body
+      - name: Generate Version Tag
+        id: tag
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            if [ -f RELEASE_NOTES.md ]; then
-              cat RELEASE_NOTES.md > release_body.txt
-            else
-              echo -e "### WatchAnimez ${{ github.ref_name }}\n\nProfessional release of WatchAnimez." > release_body.txt
-            fi
+            echo "tag=${{ github.ref_name }}-desktop" >> $GITHUB_OUTPUT
+            echo "name=WatchAnimez ${{ github.ref_name }} Desktop" >> $GITHUB_OUTPUT
           else
-            echo -e "### Automated Latest Builds\nThis release contains the latest automated builds compiled from the \`main\` branch.\n\n* **Windows Desktop**: \`WatchAnimez-Setup-*.exe\`\n* **macOS Desktop**: \`WatchAnimez-Mac-*.dmg\` / \`*.zip\`\n* **Linux Desktop**: \`WatchAnimez-Linux-*.AppImage\` / \`*.deb\`\n* **Android Mobile**: \`WatchAnimez-Android.apk\`\n* **Android Mobile 2**: \`WatchAnimez-Android-2.apk\`\n* **Android TV**: \`WatchAnimez-TV.apk\`" > release_body.txt
+            SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            DATE=$(date -u '+%Y.%m.%d')
+            echo "tag=desktop-v${DATE}-${SHA}" >> $GITHUB_OUTPUT
+            echo "name=WatchAnimez Desktop ${DATE} (${SHA})" >> $GITHUB_OUTPUT
           fi
-        shell: bash
 
-      - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'latest' }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && format('WatchAnimez {0}', github.ref_name) || 'WatchAnimez Latest Builds' }}
-          body_path: release_body.txt
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.name }}
+          body: |
+            Desktop builds (Windows, macOS, Linux) — Electron app.
+            Built from commit ${{ github.sha }}.
           draft: false
           prerelease: false
-          make_latest: true
-          files: |
-            release-assets/*
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-flutter-mobile:
+    name: Release Flutter Mobile (Android)
+    needs: [build-flutter-android]
+    runs-on: ubuntu-latest
+    if: always() &&
+        github.event_name == 'push' &&
+        (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) &&
+        needs.build-flutter-android.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with: { name: watchanimez-flutter-android-apk, path: flutter-android-build }
+
+      - name: Prepare Flutter Mobile Release Files
+        run: |
+          mkdir release-assets
+          cp flutter-android-build/*.apk release-assets/WatchAnimez-Android-2.apk || true
+
+      - name: Generate Version Tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${{ github.ref_name }}-android" >> $GITHUB_OUTPUT
+            echo "name=WatchAnimez ${{ github.ref_name }} Android" >> $GITHUB_OUTPUT
+          else
+            SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            DATE=$(date -u '+%Y.%m.%d')
+            echo "tag=android-v${DATE}-${SHA}" >> $GITHUB_OUTPUT
+            echo "name=WatchAnimez Android ${DATE} (${SHA})" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.name }}
+          body: |
+            Flutter Android mobile app.
+            Built from commit ${{ github.sha }}.
+          draft: false
+          prerelease: false
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-flutter-tv:
+    name: Release Flutter TV (Android TV)
+    needs: [build-tv]
+    runs-on: ubuntu-latest
+    if: always() &&
+        github.event_name == 'push' &&
+        (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) &&
+        needs.build-tv.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with: { name: watchanimez-tv-apk, path: tv-build }
+
+      - name: Prepare TV Release Files
+        run: |
+          mkdir release-assets
+          cp tv-build/*.apk release-assets/WatchAnimez-TV.apk || true
+
+      - name: Generate Version Tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "tag=${{ github.ref_name }}-tv" >> $GITHUB_OUTPUT
+            echo "name=WatchAnimez ${{ github.ref_name }} Android TV" >> $GITHUB_OUTPUT
+          else
+            SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            DATE=$(date -u '+%Y.%m.%d')
+            echo "tag=tv-v${DATE}-${SHA}" >> $GITHUB_OUTPUT
+            echo "name=WatchAnimez Android TV ${DATE} (${SHA})" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.name }}
+          body: |
+            Flutter Android TV app.
+            Built from commit ${{ github.sha }}.
+          draft: false
+          prerelease: false
+          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

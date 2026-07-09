@@ -314,6 +314,21 @@ class ApiService {
   Future<void> updateHistory(String token, Map<String, dynamic> data) =>
       _client.post('/user/history', data: data, token: token);
 
+  // ---------------------------------------------------------------------------
+  // Releases (GitHub releases via backend proxy)
+  // ---------------------------------------------------------------------------
+
+  Future<List<ReleaseEntry>> getLatestReleases() async {
+    final res = await _client.get('/releases/latest');
+    final data = _unwrap(res.data);
+    if (data is List) {
+      return data
+          .map((e) => ReleaseEntry.fromJson((e as Map).cast<String, dynamic>()))
+          .toList();
+    }
+    return const [];
+  }
+
   static String _titleCase(String s) {
     final spaced = s
         .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}')
@@ -323,6 +338,71 @@ class ApiService {
         .where((w) => w.isNotEmpty)
         .map((w) => w[0].toUpperCase() + w.substring(1))
         .join(' ');
+  }
+}
+
+/// Latest release asset for a platform (from GitHub releases via backend).
+class ReleaseEntry {
+  const ReleaseEntry({
+    required this.platform,
+    required this.version,
+    required this.downloadUrl,
+    this.size = '',
+    this.updatedAt = '',
+  });
+
+  factory ReleaseEntry.fromJson(Map<String, dynamic> json) => ReleaseEntry(
+    platform: json['platform']?.toString() ?? '',
+    version: json['version']?.toString() ?? '',
+    downloadUrl: json['download_url']?.toString() ?? '',
+    size: json['size']?.toString() ?? '',
+    updatedAt: json['updated_at']?.toString() ?? '',
+  );
+
+  final String platform;
+  final String version;
+  final String downloadUrl;
+  final String size;
+  final String updatedAt;
+
+  /// Parsed version integers (strips platform prefix + leading 'v').
+  /// e.g. "android-v2026.07.09-abc1234" -> [2026, 7, 9]
+  /// e.g. "v1.2.0" -> [1, 2, 0]
+  List<int> get versionParts {
+    var v = version.replaceAll(
+      RegExp(r'^(android|desktop|tv)-', caseSensitive: false),
+      '',
+    );
+    v = v.replaceAll(RegExp(r'^v'), '');
+    return v
+        .split(RegExp(r'[.+-]'))
+        .where((s) => s.isNotEmpty)
+        .where(
+          (s) => int.tryParse(s) != null,
+        ) // skip non-numeric like "abc1234"
+        .map((s) => int.parse(s))
+        .toList();
+  }
+
+  /// True if this entry's version is newer than [otherVersion].
+  bool isNewerThan(String otherVersion) {
+    final a = versionParts;
+    var bRaw = otherVersion.replaceAll(
+      RegExp(r'^(android|desktop|tv)-', caseSensitive: false),
+      '',
+    );
+    bRaw = bRaw.replaceAll(RegExp(r'^v'), '');
+    final bParts = bRaw
+        .split(RegExp(r'[.+-]'))
+        .where((s) => s.isNotEmpty)
+        .where((s) => int.tryParse(s) != null)
+        .map((s) => int.parse(s))
+        .toList();
+    for (var i = 0; i < a.length && i < bParts.length; i++) {
+      if (a[i] > bParts[i]) return true;
+      if (a[i] < bParts[i]) return false;
+    }
+    return a.length > bParts.length;
   }
 }
 

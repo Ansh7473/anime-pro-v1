@@ -9,8 +9,9 @@ import '../network/api_client.dart';
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
 /// High-level typed API.
-final apiServiceProvider =
-    Provider<ApiService>((ref) => ApiService(ref.watch(apiClientProvider)));
+final apiServiceProvider = Provider<ApiService>(
+  (ref) => ApiService(ref.watch(apiClientProvider)),
+);
 
 /// Home screen content (sections + spotlight). Auto-disposed when unused.
 final homeProvider = FutureProvider.autoDispose<HomeData>((ref) {
@@ -19,26 +20,33 @@ final homeProvider = FutureProvider.autoDispose<HomeData>((ref) {
 });
 
 /// Full details for a single anime.
-final animeDetailsProvider =
-    FutureProvider.autoDispose.family<Anime?, String>((ref, id) {
+final animeDetailsProvider = FutureProvider.autoDispose.family<Anime?, String>((
+  ref,
+  id,
+) {
   return ref.watch(apiServiceProvider).getAnime(id);
 });
 
 /// Episode list for an anime.
-final episodesProvider =
-    FutureProvider.autoDispose.family<List<Episode>, String>((ref, id) {
-  return ref.watch(apiServiceProvider).getEpisodes(id);
-});
+final episodesProvider = FutureProvider.autoDispose
+    .family<List<Episode>, String>((ref, id) {
+      return ref.watch(apiServiceProvider).getEpisodes(id);
+    });
 
 /// Recommendations for an anime.
-final recommendationsProvider =
-    FutureProvider.autoDispose.family<List<Anime>, String>((ref, id) {
-  return ref.watch(apiServiceProvider).recommendations(id);
-});
+final recommendationsProvider = FutureProvider.autoDispose
+    .family<List<Anime>, String>((ref, id) {
+      return ref.watch(apiServiceProvider).recommendations(id);
+    });
 
 /// Tracks the currently focused anime on the Home screen for dynamic backdrops.
 final focusedAnimeProvider = StateProvider<Anime?>((ref) => null);
 
-/// Tracks the active anime in the rotating Hero Banner.
+/// Tracks the active anime of the rotating Hero Banner.
 final activeHeroAnimeProvider = StateProvider<Anime?>((ref) => null);
 
+/// Latest releases from GitHub (via backend). Cached for the session.
+final releasesProvider = FutureProvider.autoDispose<List<ReleaseEntry>>((ref) {
+  ref.keepAlive();
+  return ref.watch(apiServiceProvider).getLatestReleases();
+});
