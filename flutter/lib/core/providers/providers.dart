@@ -44,9 +44,3 @@ final focusedAnimeProvider = StateProvider<Anime?>((ref) => null);
 
 /// Tracks the active anime of the rotating Hero Banner.
 final activeHeroAnimeProvider = StateProvider<Anime?>((ref) => null);
-
-/// Latest releases from GitHub (via backend). Cached for the session.
-final releasesProvider = FutureProvider.autoDispose<List<ReleaseEntry>>((ref) {
-  ref.keepAlive();
-  return ref.watch(apiServiceProvider).getLatestReleases();
-});

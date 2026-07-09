@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/device/device_info.dart';
 import '../../core/providers/providers.dart';
+import '../../core/services/update_checker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/services/api_service.dart';
 import '../../data/services/continue_watching.dart';
@@ -13,9 +14,6 @@ import '../../shared/widgets/content_row.dart';
 import '../../shared/widgets/loading.dart';
 import 'widgets/continue_watching_row.dart';
 import 'widgets/hero_banner.dart';
-
-/// Current app version (must match pubspec.yaml).
-const String kAppVersion = '1.0.0';
 
 /// The Home tab: a featured hero followed by content rows. Works for both phone
 /// (scroll/touch) and TV (D-pad focus traverses cards within rows).
@@ -31,31 +29,28 @@ class HomeScreen extends ConsumerWidget {
     final screenHeight = MediaQuery.of(context).size.height;
 
     // Check for app updates on first load.
-    ref.listen<AsyncValue<List<ReleaseEntry>>>(releasesProvider, (_, next) {
-      next.whenData((releases) {
-        final android = releases.where((r) => r.platform == 'android').toList();
-        if (android.isEmpty) return;
-        final latest = android.first;
-        if (latest.version.isNotEmpty &&
-            latest.isNewerThan(kAppVersion) &&
-            latest.downloadUrl.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Update available: ${latest.version}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                duration: const Duration(seconds: 8),
-                action: SnackBarAction(
-                  label: 'Download',
-                  onPressed: () => _openUrl(latest.downloadUrl),
-                ),
+    ref.listen<AsyncValue<UpdateInfo>>(updateCheckProvider, (_, next) {
+      next.whenData((info) {
+        if (!info.hasUpdate) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Update available: ${info.version}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-            );
-          });
-        }
+              duration: const Duration(seconds: 10),
+              action: SnackBarAction(
+                label: 'Download',
+                onPressed: () {
+                  UpdateChecker.dismiss(info.version);
+                  _openUrl(info.downloadUrl);
+                },
+              ),
+            ),
+          );
+        });
       });
     });
     // TV is landscape, so clamp the hero so it doesn't eat the whole screen.
