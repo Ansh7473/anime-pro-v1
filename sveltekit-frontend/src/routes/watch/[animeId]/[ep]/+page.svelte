@@ -1508,20 +1508,6 @@
     overflow-x: hidden;
     padding-bottom: 5rem;
   }
-  .page-background {
-    position: fixed; inset: 0;
-    background-size: cover; background-position: center 20%;
-    filter: blur(6px) saturate(1.2) brightness(0.35);
-    z-index: 0; transform: scale(1.12); opacity: 0.7;
-  }
-  .page-overlay {
-    position: fixed; inset: 0;
-    background:
-      radial-gradient(120% 80% at 80% -10%, rgba(var(--poster-tint), 0.16), transparent 50%),
-      radial-gradient(100% 60% at 15% 0%, rgba(var(--poster-tint), 0.10), transparent 55%),
-      linear-gradient(to bottom, transparent 0%, transparent 45%, color-mix(in srgb, var(--net-bg, #050505) 60%, transparent) 72%, var(--net-bg, #050505) 96%);
-    z-index: 1;
-  }
   .watch-container { max-width: 1720px; margin: 0 auto; padding: 0 1rem; }
 
   /* Top Nav */
