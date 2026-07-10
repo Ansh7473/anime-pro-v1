@@ -351,6 +351,9 @@ jobs:
     needs: detect-changes
     if: needs.detect-changes.outputs.flutter == 'true'
     runs-on: ubuntu-latest
+    # Expose the exact version baked into the APK so the release job tags match.
+    outputs:
+      app_version: ${{ steps.bump.outputs.version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -372,15 +375,20 @@ jobs:
         run: flutter pub get
 
       - name: Bump Version
+        id: bump
         working-directory: flutter
         run: |
           # Date-based versioning: YYYY.M.D+run_number
-          # Matches the release tag format so the app can compare versions.
+          # This exact string is embedded in the APK (versionName+versionCode) and
+          # MUST be the same value used for the GitHub release tag, or the in-app
+          # update checker will keep prompting after install.
           DATE=$(date -u '+%Y.%-m.%-d')
           NEW_VERSION="${DATE}+${{ github.run_number }}"
           sed -i "s/^version:.*/version: ${NEW_VERSION}/" pubspec.yaml
           echo "App version: ${NEW_VERSION}"
-          echo "app_version=${NEW_VERSION}" >> $GITHUB_ENV
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          # Sidecar so the release job can read the APK version even if outputs fail.
+          echo "${NEW_VERSION}" > app_version.txt
 
       - name: Run Flutter Analyzer
         working-directory: flutter
@@ -391,11 +399,20 @@ jobs:
         working-directory: flutter
         run: flutter build apk --debug --android-skip-build-dependency-validation
 
+      - name: Stage release artifacts
+        working-directory: flutter
+        run: |
+          mkdir -p release-staging
+          cp build/app/outputs/flutter-apk/app-debug.apk release-staging/WatchAnimez-Android-2.apk
+          cp app_version.txt release-staging/app_version.txt
+          # Sanity: package_info / aapt versionCode must equal build number after +
+          echo "Staged version: $(cat release-staging/app_version.txt)"
+
       - name: Upload Flutter APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: watchanimez-flutter-android-apk
-          path: flutter/build/app/outputs/flutter-apk/app-debug.apk
+          path: flutter/release-staging/*
 
   release-desktop:
     name: Release Desktop (Electron)
@@ -459,33 +476,51 @@ jobs:
         (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) &&
         needs.build-flutter-android.result == 'success'
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Read App Version
-        id: ver
-        working-directory: flutter
-        run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "App version from pubspec: ${VERSION}"
-
       - uses: actions/download-artifact@v4
         with: { name: watchanimez-flutter-android-apk, path: flutter-android-build }
+
+      - name: Resolve App Version (must match APK)
+        id: ver
+        run: |
+          # Prefer the version that was actually baked into the APK during build.
+          VERSION="${{ needs.build-flutter-android.outputs.app_version }}"
+          if [ -z "$VERSION" ] && [ -f flutter-android-build/app_version.txt ]; then
+            VERSION=$(tr -d '[:space:]' < flutter-android-build/app_version.txt)
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not resolve APK version from build job outputs or app_version.txt"
+            exit 1
+          fi
+          # Validate pubspec-style name/build (e.g. 2026.7.10+164)
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+(\.[0-9]+)*\+[0-9]+$'; then
+            echo "::error::Invalid app version format: $VERSION"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved APK/release version: ${VERSION}"
 
       - name: Prepare Flutter Release Files
         run: |
           mkdir release-assets
-          cp flutter-android-build/*.apk release-assets/WatchAnimez-Android-2.apk || true
+          # Prefer the already-named staged APK; fall back to any .apk in the artifact.
+          if [ -f flutter-android-build/WatchAnimez-Android-2.apk ]; then
+            cp flutter-android-build/WatchAnimez-Android-2.apk release-assets/WatchAnimez-Android-2.apk
+          else
+            cp flutter-android-build/*.apk release-assets/WatchAnimez-Android-2.apk
+          fi
+          test -f release-assets/WatchAnimez-Android-2.apk
 
       - name: Generate Version Tag
         id: tag
         run: |
+          VERSION="${{ steps.ver.outputs.version }}"
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "tag=${{ github.ref_name }}-android" >> $GITHUB_OUTPUT
-            echo "name=WatchAnimez ${{ github.ref_name }} Android" >> $GITHUB_OUTPUT
+            # Still embed the real APK version so the update checker can compare.
+            echo "tag=${{ github.ref_name }}-android-v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "name=WatchAnimez ${{ github.ref_name }} Android (v${VERSION})" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=android-v${{ steps.ver.outputs.version }}" >> $GITHUB_OUTPUT
-            echo "name=WatchAnimez v${{ steps.ver.outputs.version }} Android" >> $GITHUB_OUTPUT
+            echo "tag=android-v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "name=WatchAnimez v${VERSION} Android" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: softprops/action-gh-release@v2
@@ -495,6 +530,7 @@ jobs:
           body: |
             Flutter Android app (works on both mobile and Android TV).
             Version: v${{ steps.ver.outputs.version }}
+            This tag matches the APK versionName+versionCode exactly.
             Built from commit ${{ github.sha }}.
           draft: false
           prerelease: false

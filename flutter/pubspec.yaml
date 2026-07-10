@@ -1,7 +1,9 @@
 name: watchanimez
 description: "WatchAnimez — premium cross-platform anime streaming (phone, TV, iOS)."
 publish_to: "none"
-version: 2026.7.9+846
+# CI overwrites this on every Flutter Android build with YYYY.M.D+run_number
+# and tags the GitHub release with the same string (must stay in lockstep).
+version: 2026.7.9+163
 
 environment:
   sdk: ^3.12.2
