@@ -309,8 +309,8 @@
     .page-subtitle { font-size: 0.9rem; }
     .header-badge { display: none; }
     .anime-grid {
-      gap: 1rem;
-      grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+      gap: 0.95rem 0.7rem;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
     }
     .pagination { gap: 1rem; }
     .page-btn { padding: 0.6rem 1rem; font-size: 0.8rem; }
@@ -323,14 +323,15 @@
       font-size: 0.8rem;
     }
     .anime-grid {
-      gap: 0.85rem;
-      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+      gap: 0.85rem 0.6rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
   @media (max-width: 360px) {
     .anime-grid {
-      grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+      gap: 0.7rem 0.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>

@@ -245,6 +245,10 @@
     .footer-grid {
       grid-template-columns: 1fr 1fr;
     }
+    /* Clear fixed mobile bottom nav + home indicator */
+    .site-footer {
+      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
   }
 
   @media (max-width: 600px) {
@@ -256,9 +260,6 @@
       flex-direction: column;
       text-align: center;
       gap: 1rem;
-    }
-    .site-footer {
-      padding-bottom: 80px;
     }
   }
 </style>

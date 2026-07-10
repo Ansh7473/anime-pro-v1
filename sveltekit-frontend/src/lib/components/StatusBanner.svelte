@@ -3,7 +3,6 @@
   import { X } from 'lucide-svelte';
 
   let visible = $state(false);
-  let message = $state('');
   let dismissed = $state(false);
 
   if (browser) {
@@ -16,13 +15,11 @@
       .then(async (res) => {
         const body = await res.json().catch(() => ({}));
         if (body.errors || !body.data) {
-          message = 'AniList API is temporarily down search 🔍 may not work — content is served from backup sources you can still use by pasting anime id in the url https://watchanimez.me/anime/youranimeidmalorani/. Streaming & watch pages are unaffected.';
           visible = true;
         }
       })
       .catch(() => {
         // CORS block or network error — AniList is unreachable
-        message = 'AniList API is temporarily down  search 🔍 may not work — content is served from backup sources you can still use by pasting anime id in the url https://watchanimez.me/anime/youranimeidmalorani/. Streaming & watch pages are unaffected.';
         visible = true;
       });
   }
@@ -31,8 +28,12 @@
 {#if visible && !dismissed}
   <div class="status-banner" role="alert">
     <div class="status-content">
-      <span class="status-icon">⚠️</span>
-      <p class="status-text">{message}</p>
+      <span class="status-icon" aria-hidden="true">⚠️</span>
+      <p class="status-text">
+        Search may be limited while AniList is down. Streaming still works.
+        <a class="status-link" href="/search">Try search</a>
+        or open an anime by ID in the URL.
+      </p>
       <button class="status-close" onclick={() => dismissed = true} aria-label="Dismiss">
         <X size={16} />
       </button>
@@ -45,15 +46,17 @@
     background: linear-gradient(90deg, rgba(255, 160, 0, 0.15), rgba(255, 100, 0, 0.1));
     border-bottom: 1px solid rgba(255, 160, 0, 0.25);
     position: fixed;
-    top: 64px;
+    /* Match navbar height + notch */
+    top: calc(64px + env(safe-area-inset-top, 0px));
     left: 0;
     right: 0;
     z-index: 999;
   }
 
-  @media (max-width: 768px) {
+  /* Align with Navbar mobile breakpoint (1024) */
+  @media (max-width: 1024px) {
     .status-banner {
-      top: 56px;
+      top: calc(56px + env(safe-area-inset-top, 0px));
     }
   }
 
@@ -63,7 +66,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.6rem 1rem;
+    padding: 0.55rem 1rem;
   }
 
   .status-icon {
@@ -77,6 +80,18 @@
     margin: 0;
     flex: 1;
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .status-link {
+    color: #ffd27a;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   .status-close {
@@ -84,10 +99,13 @@
     border: none;
     color: rgba(255, 200, 100, 0.6);
     cursor: pointer;
-    padding: 0.25rem;
+    padding: 0.35rem;
+    min-width: 36px;
+    min-height: 36px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
     transition: color 0.15s;
   }
 
@@ -98,6 +116,10 @@
   @media (max-width: 640px) {
     .status-text {
       font-size: 0.75rem;
+    }
+    .status-content {
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
     }
   }
 </style>

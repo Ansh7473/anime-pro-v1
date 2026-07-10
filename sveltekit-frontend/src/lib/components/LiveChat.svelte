@@ -227,23 +227,35 @@
   }
 
   .chat-container {
-    width: 380px;
-    height: calc(100vh - 80px);
+    width: 360px;
+    max-width: calc(100vw - 2rem);
+    height: calc(100vh - 100px);
+    height: calc(100dvh - 100px);
+    max-height: 720px;
     position: fixed;
-    right: 20px;
-    top: 100px;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    top: max(88px, env(safe-area-inset-top, 0px) + 72px);
     z-index: 50;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Keep chat from covering the main theater on mid-width desktops */
+    pointer-events: none;
+  }
+
+  .chat-container .glass-panel,
+  .chat-container .sidebar-toggle {
+    pointer-events: auto;
   }
 
   .chat-container.inline {
     position: relative;
     width: 100%;
-    height: 600px;
+    max-width: 100%;
+    height: min(600px, 70dvh);
     right: auto;
     top: auto;
     z-index: 1;
     margin-top: 2rem;
+    pointer-events: auto;
   }
 
   .chat-container.inline .sidebar-toggle {
@@ -251,11 +263,25 @@
   }
 
   .chat-container.closed {
-    transform: translateX(332px);
+    transform: translateX(calc(100% - 28px));
   }
 
   /* On narrower screens, take the chat out of fixed positioning so it flows
      in-page and doesn't overlap the player/sidebar. */
+  @media (max-width: 1280px) {
+    .chat-container:not(.inline) {
+      position: static;
+      width: 100%;
+      max-width: 100%;
+      height: 460px;
+      max-height: none;
+      right: auto;
+      top: auto;
+      transform: none;
+      pointer-events: auto;
+    }
+  }
+
   @media (max-width: 1100px) {
     .chat-container {
       position: static;
@@ -264,6 +290,7 @@
       right: auto;
       top: auto;
       transform: none;
+      pointer-events: auto;
     }
   }
 

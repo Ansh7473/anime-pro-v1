@@ -595,6 +595,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .logout-btn {
+    flex-shrink: 0;
   }
   .user-card-left {
     display: flex;
@@ -996,10 +1000,19 @@
 
   @media (max-width: 480px) {
     .page-title { font-size: 1.3rem; }
+    .user-card-top {
+      flex-direction: column;
+      align-items: stretch;
+    }
     .user-card-left { gap: 0.85rem; }
     .user-avatar { width: 50px; height: 50px; font-size: 1.25rem; }
     .user-name { font-size: 1.05rem; }
-    .logout-btn { padding: 0.5rem 0.85rem; }
+    .logout-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 0.55rem 0.85rem;
+      min-height: 44px;
+    }
     .card { padding: 1.15rem; }
     .stat-num { font-size: 1rem; }
   }

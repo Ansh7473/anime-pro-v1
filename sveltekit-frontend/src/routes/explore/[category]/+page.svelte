@@ -143,8 +143,8 @@
       margin-bottom: 1.25rem;
     }
     .grid {
-      gap: 1rem;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.95rem 0.7rem;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
     }
     .center {
       padding: 1.5rem 0;
@@ -160,8 +160,8 @@
       margin-bottom: 1rem;
     }
     .grid {
-      gap: 0.85rem;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 0.85rem 0.6rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .center {
       padding: 1.25rem 0;
@@ -173,8 +173,8 @@
       font-size: 1.2rem;
     }
     .grid {
-      gap: 0.7rem;
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 0.7rem 0.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>

@@ -1823,26 +1823,30 @@
     .bookmark-alert {
       flex-direction: row;
       justify-content: space-between;
-      gap: 0.4rem;
-      padding: 0.4rem 0.5rem;
-      padding-top: max(0.6rem, env(safe-area-inset-top));
-      font-size: 0.65rem;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.55rem 0.65rem;
+      padding-top: max(0.65rem, env(safe-area-inset-top));
+      font-size: 0.78rem;
       border-radius: 0;
       width: 100%;
     }
     .bookmark-alert-content {
-      gap: 0.3rem;
+      gap: 0.35rem;
       flex: 1;
       min-width: 0;
+      line-height: 1.35;
     }
     .bookmark-alert-actions {
-      gap: 0.5rem;
+      gap: 0.45rem;
       flex-shrink: 0;
+      align-items: center;
     }
     .bookmark-alert-btn {
-      padding: 0.18rem 0.45rem;
-      font-size: 0.65rem;
-      border-radius: 4px;
+      padding: 0.3rem 0.55rem;
+      font-size: 0.72rem;
+      border-radius: 6px;
+      min-height: 32px;
     }
   }
   @media (max-width: 480px) {

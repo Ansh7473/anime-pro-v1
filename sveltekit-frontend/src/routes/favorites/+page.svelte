@@ -226,8 +226,8 @@
             font-size: 0.95rem;
         }
         .favorites-grid {
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+            gap: 1.1rem 0.75rem;
         }
         .btn-remove {
             width: 32px;
@@ -258,10 +258,11 @@
             font-size: 0.9rem;
         }
         .favorites-grid {
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem 0.65rem;
         }
         .item-actions {
+            opacity: 1;
             top: 6px;
             right: 6px;
         }
@@ -289,8 +290,8 @@
             font-size: 1.4rem;
         }
         .favorites-grid {
-            grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
-            gap: 0.8rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem 0.5rem;
         }
         .btn-remove {
             width: 28px;

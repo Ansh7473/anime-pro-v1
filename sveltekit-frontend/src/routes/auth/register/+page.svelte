@@ -48,7 +48,7 @@
     <div class="gradient-overlay"></div>
   </div>
 
-  <main class="login-wrapper">
+  <div class="login-wrapper">
     <div class="login-card glass">
       <header class="login-header">
         <h1>Create Account</h1>
@@ -122,7 +122,7 @@
         </div>
       </footer>
     </div>
-  </main>
+  </div>
 </div>
 
 <style>

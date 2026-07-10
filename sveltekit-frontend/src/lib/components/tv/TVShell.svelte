@@ -166,7 +166,7 @@
     </div>
   </nav>
 
-  <main class="tv-layout-main">
+  <main class="tv-layout-main" id="page-main">
     <div class="tv-layout-scroll">
       <div class="tv-overscan-layer">
         {@render children()}
@@ -179,6 +179,7 @@
   .tv-shell-container {
     display: flex;
     min-height: 100vh;
+    min-height: 100dvh;
     background: #050505;
     color: white;
     overflow: hidden;

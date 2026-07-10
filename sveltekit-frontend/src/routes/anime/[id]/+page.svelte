@@ -430,6 +430,7 @@
   .detail-actions {
     margin-top: 1.5rem;
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
   }
   .detail-studios {

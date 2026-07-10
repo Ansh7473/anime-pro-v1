@@ -104,7 +104,7 @@
   </div>
 
   <!-- Content -->
-  <main class="content-area">
+  <div class="content-area">
     {#if loading}
       <div class="anime-grid">
         <SkeletonGrid count={18} />
@@ -133,7 +133,7 @@
         {/each}
       </div>
     {/if}
-  </main>
+  </div>
 </div>
 
 <style>
@@ -288,8 +288,8 @@
     }
     .day-label { font-size: 0.8rem; }
     .anime-grid {
-      gap: 1rem;
-      grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+      gap: 0.95rem 0.7rem;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
     }
   }
 
@@ -302,15 +302,16 @@
     .day-label { font-size: 0.75rem; }
     .day-date { font-size: 0.65rem; }
     .anime-grid {
-      gap: 0.85rem;
-      grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+      gap: 0.85rem 0.6rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .episode-info { font-size: 0.7rem; }
   }
 
   @media (max-width: 360px) {
     .anime-grid {
-      grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+      gap: 0.7rem 0.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>

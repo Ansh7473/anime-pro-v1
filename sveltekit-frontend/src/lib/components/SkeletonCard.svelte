@@ -12,55 +12,90 @@
   .sk-card {
     flex-shrink: 0;
     width: 160px;
-    border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 6px;
+    border-radius: 12px;
   }
-  .sk-card.small { width: 130px; }
-  .sk-card.large { width: 220px; }
+  .sk-card.small {
+    width: 130px;
+  }
+  .sk-card.large {
+    width: 220px;
+  }
 
   .sk-img {
     aspect-ratio: 2 / 3;
     width: 100%;
-    border-radius: calc(var(--radius-lg) - 2px);
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
   }
   .sk-line {
     height: 0.7rem;
     border-radius: 4px;
-    margin-top: 0.5rem;
+    margin-top: 0.55rem;
   }
   .sk-line.short {
-    width: 60%;
+    width: 62%;
+    margin-top: 0.35rem;
   }
 
-  /* Shimmer effect — GPU-friendly background animation */
   .shimmer {
     background: linear-gradient(
       100deg,
       rgba(255, 255, 255, 0.04) 30%,
-      rgba(255, 255, 255, 0.10) 50%,
+      rgba(255, 255, 255, 0.1) 50%,
       rgba(255, 255, 255, 0.04) 70%
     );
     background-size: 200% 100%;
     animation: shimmer 1.4s ease-in-out infinite;
   }
   @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
-    .shimmer { animation: none; }
+    .shimmer {
+      animation: none;
+    }
   }
 
   @media (max-width: 768px) {
-    .sk-card { width: 140px; padding: 4px; }
-    .sk-card.small { width: 110px; }
-    .sk-card.large { width: 180px; }
+    .sk-card {
+      width: clamp(148px, 41vw, 188px);
+    }
+    .sk-card.small {
+      width: clamp(120px, 34vw, 150px);
+    }
+    .sk-card.large {
+      width: clamp(170px, 48vw, 210px);
+    }
+    .sk-img {
+      border-radius: 11px;
+    }
   }
   @media (max-width: 480px) {
-    .sk-card { width: 110px; }
-    .sk-card.small { width: 95px; }
-    .sk-card.large { width: 140px; }
+    .sk-card {
+      width: clamp(132px, 42.5vw, 168px);
+    }
+    .sk-card.small {
+      width: clamp(110px, 36vw, 140px);
+    }
+    .sk-card.large {
+      width: clamp(148px, 48vw, 180px);
+    }
+    .sk-img {
+      border-radius: 10px;
+    }
+    .sk-line {
+      height: 0.62rem;
+    }
+  }
+  @media (max-width: 360px) {
+    .sk-card {
+      width: 42vw;
+    }
   }
 </style>

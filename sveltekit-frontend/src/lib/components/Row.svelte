@@ -5,7 +5,16 @@
     title,
     items = [],
     href = "",
-  } = $props<{ title: string; items: any[]; href?: string }>();
+    eyebrow = "",
+    showRank = false,
+  } = $props<{
+    title: string;
+    items: any[];
+    href?: string;
+    eyebrow?: string;
+    showRank?: boolean;
+  }>();
+
   let scrollContainer: HTMLDivElement | undefined = $state();
 
   let uniqueItems = $derived.by(() => {
@@ -19,140 +28,370 @@
     });
   });
 
+  const countLabel = $derived(
+    uniqueItems.length > 0 ? `${Math.min(uniqueItems.length, 24)}+` : "",
+  );
+
   function scrollBy(dir: number) {
-    scrollContainer?.scrollBy({ left: dir * 400, behavior: "smooth" });
+    const amount = scrollContainer?.clientWidth
+      ? scrollContainer.clientWidth * 0.85
+      : 400;
+    scrollContainer?.scrollBy({ left: dir * amount, behavior: "smooth" });
   }
 </script>
 
 {#if uniqueItems.length > 0}
-  <section class="row-section">
+  <section class="row-section" class:ranked={showRank}>
     <div class="row-header">
       <div class="row-title-group">
-        <span class="accent-bar"></span>
-        <h2 class="row-title">{title}</h2>
+        <span class="accent-bar" aria-hidden="true"></span>
+        <div class="title-stack">
+          {#if eyebrow}
+            <span class="row-eyebrow">{eyebrow}</span>
+          {/if}
+          <div class="title-line">
+            <h2 class="row-title">{title}</h2>
+            {#if countLabel}
+              <span class="count-pill" aria-hidden="true">{countLabel}</span>
+            {/if}
+          </div>
+        </div>
       </div>
       {#if href}
-        <a {href} class="row-see-all" aria-label="See all {title.toLowerCase()}">See All →</a>
+        <a {href} class="row-see-all" aria-label="See all {title.toLowerCase()}">
+          See all
+          <span class="see-arrow" aria-hidden="true">→</span>
+        </a>
       {/if}
     </div>
+
     <div class="row-wrapper">
-      <button class="row-arrow left" onclick={() => scrollBy(-1)} aria-label="Scroll left">‹</button>
+      <button class="row-arrow left" onclick={() => scrollBy(-1)} aria-label="Scroll left"
+        >‹</button
+      >
       <div class="row-scroll" bind:this={scrollContainer}>
-        {#each uniqueItems as anime (anime.id || anime.mal_id || Math.random())}
+        {#each uniqueItems as anime, i (anime.id || anime.mal_id || `${title}-${i}`)}
           <div class="card-slot">
-            <AnimeCard {anime} />
+            <AnimeCard {anime} rank={showRank ? i + 1 : 0} />
           </div>
         {/each}
       </div>
-      <button class="row-arrow right" onclick={() => scrollBy(1)} aria-label="Scroll right">›</button>
+      <button class="row-arrow right" onclick={() => scrollBy(1)} aria-label="Scroll right"
+        >›</button
+      >
+      <div class="edge-fade left" aria-hidden="true"></div>
+      <div class="edge-fade right" aria-hidden="true"></div>
     </div>
   </section>
 {/if}
 
 <style>
   .row-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
   }
+  .row-section.ranked {
+    padding: 1rem 0 0.35rem;
+    background: linear-gradient(
+      180deg,
+      rgba(229, 9, 20, 0.06) 0%,
+      rgba(255, 255, 255, 0.015) 42%,
+      transparent 100%
+    );
+    border-top: 1px solid rgba(229, 9, 20, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    margin-bottom: 1.75rem;
+  }
+
   .row-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1rem;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.75rem;
+    gap: 0.75rem;
   }
   .row-title-group {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+  .title-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+  }
+  .row-eyebrow {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(229, 9, 20, 0.95);
+    line-height: 1.2;
+  }
+  .title-line {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
   }
   .accent-bar {
-    width: 4px;
-    height: 18px;
-    background: white;
-    border-radius: 2px;
+    width: 3px;
+    height: 1.65rem;
+    background: linear-gradient(180deg, #fff 0%, var(--net-red, #e50914) 100%);
+    border-radius: 99px;
     flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(229, 9, 20, 0.35);
   }
   .row-title {
-    font-size: 1.1rem;
+    font-size: 1.14rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+    line-height: 1.15;
+  }
+  .count-pill {
+    flex-shrink: 0;
+    font-size: 0.62rem;
     font-weight: 700;
-    color: white;
-    letter-spacing: 0.01em;
+    color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
   }
   .row-see-all {
-    color: #a3a3a3;
-    font-size: 0.82rem;
-    font-weight: 500;
-    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.78rem;
+    font-weight: 700;
     text-decoration: none;
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 0.4rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    transition:
+      color 0.2s,
+      background 0.2s,
+      border-color 0.2s,
+      transform 0.15s;
   }
-  .row-see-all:hover {
-    color: white;
+  .see-arrow {
+    transition: transform 0.2s ease;
   }
+  @media (hover: hover) and (pointer: fine) {
+    .row-see-all:hover {
+      color: #fff;
+      background: rgba(229, 9, 20, 0.14);
+      border-color: rgba(229, 9, 20, 0.4);
+    }
+    .row-see-all:hover .see-arrow {
+      transform: translateX(2px);
+    }
+  }
+  .row-see-all:active {
+    transform: scale(0.97);
+  }
+
   .row-wrapper {
     position: relative;
   }
   .row-scroll {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.9rem;
     overflow-x: auto;
-    padding: 0.4rem 1rem;
+    padding: 0.45rem 1rem 1rem;
     scroll-padding-inline: 1rem;
     scroll-snap-type: x mandatory;
     -ms-overflow-style: none;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
   .card-slot {
-    flex: 0 0 160px;
+    flex: 0 0 164px;
+    width: 164px;
     scroll-snap-align: start;
+    min-width: 0;
   }
   .row-scroll::-webkit-scrollbar {
     display: none;
   }
+
+  .edge-fade {
+    position: absolute;
+    top: 0;
+    bottom: 0.6rem;
+    width: 28px;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+  }
+  .edge-fade.left {
+    left: 0;
+    background: linear-gradient(to right, var(--net-bg, #070708), transparent);
+  }
+  .edge-fade.right {
+    right: 0;
+    background: linear-gradient(to left, var(--net-bg, #070708), transparent);
+  }
+  @media (min-width: 769px) {
+    .edge-fade {
+      opacity: 1;
+      width: 48px;
+    }
+  }
+
   .row-arrow {
     position: absolute;
-    top: 50%;
+    top: 40%;
     transform: translateY(-50%);
     z-index: 5;
-    width: 36px;
-    height: 72px;
-    border-radius: 6px;
-    background: rgba(20, 20, 20, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    width: 38px;
+    height: 68px;
+    border-radius: 10px;
+    background: rgba(14, 14, 16, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.45rem;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     cursor: pointer;
-    transition: opacity 0.3s, background 0.2s;
+    backdrop-filter: blur(8px);
+    transition:
+      opacity 0.25s,
+      background 0.2s,
+      border-color 0.2s;
   }
   .row-wrapper:hover .row-arrow {
     opacity: 1;
   }
-  .row-arrow.left { left: 0; }
-  .row-arrow.right { right: 0; }
+  .row-arrow.left {
+    left: 0.35rem;
+  }
+  .row-arrow.right {
+    right: 0.35rem;
+  }
   .row-arrow:hover {
     background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.22);
   }
 
   @media (max-width: 768px) {
-    .row-section { margin-bottom: 1.25rem; }
-    .row-header { padding: 0 0.75rem; margin-bottom: 0.5rem; }
-    .row-title { font-size: 1rem; }
-    .accent-bar { height: 16px; }
-    .row-scroll { gap: 0.5rem; padding: 0.3rem 0.75rem; scroll-padding-inline: 0.75rem; }
-    .card-slot { flex: 0 0 clamp(150px, 42vw, 200px); }
-    .row-arrow { display: none; }
+    .row-section {
+      margin-bottom: 1.55rem;
+    }
+    .row-section.ranked {
+      margin-bottom: 1.4rem;
+      padding: 0.9rem 0 0.25rem;
+    }
+    .row-header {
+      padding: 0 0.9rem;
+      margin-bottom: 0.6rem;
+    }
+    .row-title {
+      font-size: 1.05rem;
+    }
+    .row-eyebrow {
+      font-size: 0.62rem;
+    }
+    .accent-bar {
+      height: 1.55rem;
+    }
+    .row-scroll {
+      gap: 0.72rem;
+      padding: 0.35rem 0.9rem 0.9rem;
+      scroll-padding-inline: 0.9rem;
+      scroll-snap-type: x proximity;
+    }
+    .card-slot {
+      flex: 0 0 clamp(142px, 40vw, 178px);
+      width: clamp(142px, 40vw, 178px);
+    }
+    .row-arrow {
+      display: none;
+    }
+    .edge-fade {
+      opacity: 0.85;
+      width: 20px;
+    }
+    .row-see-all {
+      font-size: 0.74rem;
+      padding: 0.35rem 0.6rem;
+    }
   }
 
   @media (max-width: 480px) {
-    .row-section { margin-bottom: 1rem; }
-    .row-header { padding: 0 0.5rem; margin-bottom: 0.4rem; }
-    .row-title { font-size: 0.92rem; }
-    .accent-bar { height: 14px; width: 3px; }
-    .row-scroll { gap: 0.4rem; padding: 0.3rem 0.5rem; scroll-padding-inline: 0.5rem; }
-    .card-slot { flex: 0 0 clamp(140px, 44vw, 180px); }
+    .row-section {
+      margin-bottom: 1.35rem;
+    }
+    .row-header {
+      padding: 0 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .row-title {
+      font-size: 1rem;
+    }
+    .row-eyebrow {
+      font-size: 0.58rem;
+      letter-spacing: 0.07em;
+    }
+    .count-pill {
+      font-size: 0.58rem;
+      padding: 0.12rem 0.35rem;
+    }
+    .accent-bar {
+      height: 1.4rem;
+      width: 2.5px;
+    }
+    .row-scroll {
+      gap: 0.65rem;
+      padding: 0.3rem 0.75rem 0.8rem;
+      scroll-padding-inline: 0.75rem;
+    }
+    .card-slot {
+      flex: 0 0 clamp(128px, 41vw, 158px);
+      width: clamp(128px, 41vw, 158px);
+    }
+    .row-see-all {
+      font-size: 0.72rem;
+      padding: 0.32rem 0.55rem;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .card-slot {
+      flex: 0 0 41vw;
+      width: 41vw;
+    }
+    .row-scroll {
+      gap: 0.55rem;
+      padding-inline: 0.65rem;
+      scroll-padding-inline: 0.65rem;
+    }
+    .row-header {
+      padding: 0 0.65rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .row-see-all,
+    .see-arrow,
+    .row-arrow {
+      transition: none;
+    }
   }
 </style>

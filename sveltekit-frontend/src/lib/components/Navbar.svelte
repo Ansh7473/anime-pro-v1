@@ -14,9 +14,7 @@
     Sparkles,
     ArrowLeft,
     TrendingUp,
-    Film,
-    Tv2,
-    Flame
+    Flame,
   } from 'lucide-svelte';
   import { auth, logoutUser } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
@@ -37,15 +35,18 @@
   let searchContainer: HTMLElement = $state(null!);
   let profileContainer: HTMLElement = $state(null!);
   let searchInput: HTMLInputElement = $state(null!);
+  let isMac = $state(false);
 
-  const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/latest", label: "Latest" },
-    { href: "/schedule", label: "Schedule" },
-    { href: "/tv-series", label: "TV Series" },
-    { href: "/movies", label: "Movies" },
-    { href: "/intel", label: "Blog" },
-  ];
+  // Primary browse links live in the home quick-rail + bottom nav —
+  // top bar keeps logo, search, and account only.
+  function isNavActive(href: string) {
+    if (href === "/") return page.url.pathname === "/";
+    return page.url.pathname === href || page.url.pathname.startsWith(href + "/");
+  }
+
+  function closeMobileMenu() {
+    mobileMenuOpen = false;
+  }
 
   const trendingSearches = [
     "Solo Leveling",
@@ -158,6 +159,7 @@
   });
 
   onMount(() => {
+    isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform) || navigator.userAgent.includes('Mac');
     const handleClick = (e: MouseEvent) => {
       if (profileContainer && !profileContainer.contains(e.target as Node)) {
         profileOpen = false;
@@ -168,12 +170,16 @@
         e.preventDefault();
         toggleSearch();
       }
+      if (e.key === "Escape" && mobileMenuOpen) {
+        mobileMenuOpen = false;
+      }
     };
     window.addEventListener("click", handleClick);
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => {
       window.removeEventListener("click", handleClick);
       window.removeEventListener("keydown", handleGlobalKeyDown);
+      document.body.style.overflow = "";
     };
   });
 </script>
@@ -208,18 +214,7 @@
       </div>
     </a>
 
-    <!-- DESKTOP NAV LINKS -->
-    <div class="nav-links hide-mobile">
-      {#each navLinks as link}
-        <a
-          href={link.href}
-          class="nav-link"
-          class:active={page.url.pathname === link.href}>{link.label}</a
-        >
-      {/each}
-    </div>
-
-    <!-- ACTION BUTTONS -->
+    <!-- ACTION BUTTONS (browse links live under hero / bottom nav) -->
     <div class="nav-actions">
       <!-- QUICK SEARCH TRIGGER (DESKTOP) -->
       <button
@@ -229,7 +224,7 @@
       >
         <Search size={16} class="search-trigger-icon" />
         <span class="search-trigger-text">Search anime...</span>
-        <kbd class="search-shortcut">⌘K</kbd>
+        <kbd class="search-shortcut">{isMac ? '⌘K' : 'Ctrl+K'}</kbd>
       </button>
 
       <!-- MOBILE SEARCH ICON -->
@@ -341,8 +336,15 @@
       <!-- HAMBURGER MENU TOGGLE -->
       <button
         class="nav-icon-btn hamburger hide-desktop"
-        onclick={() => { mobileMenuOpen = !mobileMenuOpen; if (mobileMenuOpen) searchOpen = false; }}
-        aria-label="Toggle menu">
+        class:menu-open={mobileMenuOpen}
+        onclick={() => {
+          mobileMenuOpen = !mobileMenuOpen;
+          if (mobileMenuOpen) searchOpen = false;
+        }}
+        aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="mobile-nav-menu"
+      >
         {#if mobileMenuOpen}<X size={22} />{:else}☰{/if}
       </button>
     </div>
@@ -350,94 +352,128 @@
 
   <!-- MOBILE HAMBURGER DRAWER -->
   {#if mobileMenuOpen}
-    <div class="mobile-menu glass">
-      <div class="mobile-links-grid">
-        {#each navLinks as link}
+    <button
+      type="button"
+      class="mobile-menu-backdrop"
+      aria-label="Close menu"
+      onclick={closeMobileMenu}
+    ></button>
+
+    <div
+      id="mobile-nav-menu"
+      class="mobile-menu"
+      role="navigation"
+      aria-label="Mobile navigation"
+    >
+      <div class="mobile-menu-scroll">
+        <p class="mobile-section-label">Apps & support</p>
+        <div class="mobile-action-row">
           <a
-            href={link.href}
-            class="mobile-link"
-            class:active={page.url.pathname === link.href}
-            onclick={() => (mobileMenuOpen = false)}>{link.label}</a
+            href="/download"
+            class="mobile-action-chip download-chip"
+            class:active={isNavActive("/download")}
+            onclick={closeMobileMenu}
           >
-        {/each}
+            <Download size={17} />
+            <span>Download Apps</span>
+          </a>
+          <a
+            href="/donate"
+            class="mobile-action-chip donate-chip"
+            class:active={isNavActive("/donate")}
+            onclick={closeMobileMenu}
+          >
+            <Heart size={17} fill="currentColor" />
+            <span>Donate</span>
+          </a>
+        </div>
 
-        <a
-          href="/donate"
-          class="mobile-link donate-mobile-link"
-          onclick={() => (mobileMenuOpen = false)}
-        >
-          <span class="mobile-heart-wrapper">
-            <Heart size={16} fill="currentColor" />
-          </span>
-          Donate / Support
-        </a>
-      </div>
-
-      <hr class="mobile-divider" />
-
-      {#if $auth.user}
-        <div class="mobile-profile-section">
-          <div class="mobile-user-info">
-            <img
-              src={getProxiedImage(
-                ($auth.currentProfile?.avatar) ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user?.email || 'guest'}`,
-              )}
-              alt="Profile"
-              class="mobile-profile-avatar"
-            />
-            <div class="mobile-profile-details">
-              <span class="mobile-profile-name">{$auth.currentProfile?.name || "User"}</span>
-              <span class="mobile-profile-email">{$auth.user.email}</span>
+        <p class="mobile-section-label">Account</p>
+        {#if $auth.user}
+          <div class="mobile-profile-section">
+            <div class="mobile-user-info">
+              <img
+                src={getProxiedImage(
+                  $auth.currentProfile?.avatar ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${$auth.user?.email || "guest"}`,
+                )}
+                alt=""
+                class="mobile-profile-avatar"
+              />
+              <div class="mobile-profile-details">
+                <span class="mobile-profile-name">{$auth.currentProfile?.name || "User"}</span>
+                <span class="mobile-profile-email">{$auth.user.email}</span>
+              </div>
             </div>
-          </div>
-          <div class="mobile-profile-links">
-            <a href="/profile" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>My Profile</a>
-            <a href="/watchlist" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>Watchlist</a>
-            <a href="/favorites" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>Favorites</a>
+            <div class="mobile-account-grid">
+              <a href="/profile" class="mobile-account-btn" onclick={closeMobileMenu}>
+                <User size={16} /> Profile
+              </a>
+              <a href="/watchlist" class="mobile-account-btn" onclick={closeMobileMenu}>
+                <Bookmark size={16} /> Watchlist
+              </a>
+              <a href="/favorites" class="mobile-account-btn" onclick={closeMobileMenu}>
+                <Heart size={16} /> Favorites
+              </a>
+              <button
+                type="button"
+                class="mobile-account-btn"
+                onclick={() => {
+                  isTV.set(true);
+                  document.body.classList.add("tv-mode");
+                  closeMobileMenu();
+                }}
+              >
+                <Tv size={16} /> TV Mode
+              </button>
+            </div>
             <button
-               class="mobile-link mobile-btn"
-               onclick={() => {
-                 isTV.set(true);
-                 document.body.classList.add('tv-mode');
-                 mobileMenuOpen = false;
-               }}>TV Mode Hub</button>
-            <button
-              class="mobile-link mobile-btn logout"
+              type="button"
+              class="mobile-logout-btn"
               onclick={() => {
-                mobileMenuOpen = false;
+                closeMobileMenu();
                 logoutUser();
                 goto("/");
-              }}>Logout</button
+              }}
             >
+              <LogOut size={16} /> Logout
+            </button>
           </div>
-        </div>
-      {:else}
-        <div class="mobile-profile-section">
-          <div class="mobile-user-info">
-            <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest&backgroundColor=b6e3f4"
-              alt="Guest"
-              class="mobile-profile-avatar"
-            />
-            <div class="mobile-user-details">
-              <span class="mobile-profile-name">Guest User</span>
-              <span class="mobile-profile-email">Not logged in</span>
+        {:else}
+          <div class="mobile-profile-section">
+            <div class="mobile-user-info">
+              <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest&backgroundColor=b6e3f4"
+                alt=""
+                class="mobile-profile-avatar"
+              />
+              <div class="mobile-profile-details">
+                <span class="mobile-profile-name">Guest User</span>
+                <span class="mobile-profile-email">Sign in to save progress</span>
+              </div>
+            </div>
+            <div class="mobile-account-grid">
+              <a href="/auth/login" class="mobile-account-btn" onclick={closeMobileMenu}>
+                <LogIn size={16} /> Login
+              </a>
+              <a href="/auth/register" class="mobile-account-btn accent" onclick={closeMobileMenu}>
+                <UserPlus size={16} /> Sign Up
+              </a>
+              <button
+                type="button"
+                class="mobile-account-btn full-span"
+                onclick={() => {
+                  isTV.set(true);
+                  document.body.classList.add("tv-mode");
+                  closeMobileMenu();
+                }}
+              >
+                <Tv size={16} /> TV Mode Hub
+              </button>
             </div>
           </div>
-          <div class="mobile-profile-links">
-            <a href="/auth/login" class="mobile-link" onclick={() => (mobileMenuOpen = false)}>Login</a>
-            <a href="/auth/register" class="mobile-link accent" onclick={() => (mobileMenuOpen = false)}>Sign Up</a>
-            <button
-               class="mobile-link mobile-btn"
-               onclick={() => {
-                 isTV.set(true);
-                 document.body.classList.add('tv-mode');
-                 mobileMenuOpen = false;
-               }}>TV Mode Hub</button>
-          </div>
-        </div>
-      {/if}
+        {/if}
+      </div>
     </div>
   {/if}
 </nav>
@@ -686,50 +722,7 @@
     margin-top: 2px;
   }
 
-  /* NAV LINKS */
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1;
-  }
-
-  .nav-link {
-    position: relative;
-    color: rgba(255, 255, 255, 0.72);
-    font-weight: 600;
-    font-size: 0.92rem;
-    transition: color 0.2s ease;
-    text-decoration: none;
-    padding: 0.4rem 0;
-    white-space: nowrap;
-  }
-
-  .nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: var(--net-red, #e50914);
-    border-radius: 2px;
-    box-shadow: 0 0 10px rgba(229, 9, 20, 0.8);
-    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .nav-link:hover, .nav-link.active {
-    color: #ffffff;
-  }
-
-  .nav-link.active::after, .nav-link:hover::after {
-    width: 100%;
-  }
-
-  /* ACTIONS & BUTTONS */
+  /* ACTIONS — logo left, tools right (browse lives under hero / bottom nav) */
   .nav-actions {
     display: flex;
     align-items: center;
@@ -939,27 +932,77 @@
   }
 
   /* MOBILE HAMBURGER DRAWER */
+  .hamburger.menu-open {
+    color: #fff;
+    background: rgba(229, 9, 20, 0.2);
+    border-color: rgba(229, 9, 20, 0.45);
+  }
+
+  /*
+    Backdrop is absolute (not fixed) because navbar uses backdrop-filter,
+    which creates a containing block and breaks viewport-fixed overlays.
+  */
+  .mobile-menu-backdrop {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 100dvh;
+    z-index: 998;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.58);
+    animation: menuFadeIn 0.18s ease forwards;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   .mobile-menu {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(12, 12, 16, 0.96);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    z-index: 999;
+    background: rgba(10, 10, 14, 0.98);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.25rem 1rem;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.75);
+    animation: slideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    /* Leave room for top bar + bottom tab bar on phones */
+    max-height: min(
+      78dvh,
+      calc(100dvh - 56px - env(safe-area-inset-top, 0px) - 72px - env(safe-area-inset-bottom, 0px))
+    );
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
-    animation: slideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    overflow: hidden;
+  }
+
+  .mobile-menu-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0.85rem 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  @keyframes menuFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes slideDown {
     from {
       opacity: 0;
-      transform: translateY(-8px);
+      transform: translateY(-10px);
     }
     to {
       opacity: 1;
@@ -967,60 +1010,94 @@
     }
   }
 
-  .mobile-links-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
+  .mobile-section-label {
+    margin: 0.35rem 0.15rem 0.1rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42);
   }
 
-  .mobile-link {
+  .mobile-section-label:first-child {
+    margin-top: 0;
+  }
+
+  /* Download + Donate chips side by side */
+  .mobile-action-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .mobile-action-chip {
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
-    color: rgba(255, 255, 255, 0.75);
-    text-decoration: none;
-    font-size: 0.95rem;
-    font-weight: 600;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 48px;
+    min-width: 0;
+    padding: 0.65rem 0.7rem;
     border-radius: 12px;
-    transition: all 0.2s ease;
-  }
-
-  .mobile-link:hover, .mobile-link.active {
-    color: white;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .donate-mobile-link {
-    color: #ff69b4;
+    font-size: 0.84rem;
     font-weight: 700;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .mobile-heart-wrapper {
-    display: inline-flex;
-    margin-right: 0.5rem;
-    color: #ff69b4;
+  .mobile-action-chip span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .mobile-divider {
-    border: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    margin: 0.5rem 0;
+  .mobile-action-chip:active {
+    transform: scale(0.98);
   }
 
+  .download-chip {
+    color: #7dd3fc;
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.28);
+  }
+
+  .download-chip.active {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(125, 211, 252, 0.55);
+  }
+
+  .donate-chip {
+    color: #ff8cc8;
+    background: rgba(255, 105, 180, 0.1);
+    border-color: rgba(255, 105, 180, 0.28);
+  }
+
+  .donate-chip.active {
+    background: rgba(255, 105, 180, 0.2);
+    border-color: rgba(255, 140, 200, 0.55);
+  }
+
+  /* Account card */
   .mobile-profile-section {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.04);
-    padding: 1rem;
+    background: rgba(255, 255, 255, 0.035);
+    padding: 0.85rem;
     border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .mobile-user-info {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-width: 0;
   }
 
   .mobile-profile-avatar {
@@ -1028,41 +1105,107 @@
     height: 44px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+    background: #1a1a1c;
+    border: 2px solid rgba(255, 255, 255, 0.14);
   }
 
   .mobile-profile-details {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
   }
 
   .mobile-profile-name {
     font-weight: 700;
     color: white;
     font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .mobile-profile-email {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .mobile-profile-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+  .mobile-account-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
   }
 
-  .mobile-btn {
-    background: none;
-    border: none;
-    width: 100%;
-    text-align: left;
+  .mobile-account-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    min-width: 0;
+    padding: 0.55rem 0.5rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    text-decoration: none;
     cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .mobile-btn.logout {
-    color: #ff4a4a;
+  .mobile-account-btn:active {
+    transform: scale(0.98);
+  }
+
+  .mobile-account-btn.accent {
+    color: #fff;
+    background: rgba(229, 9, 20, 0.2);
+    border-color: rgba(229, 9, 20, 0.4);
+  }
+
+  .mobile-account-btn.full-span {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+    background: rgba(229, 9, 20, 0.08);
+    border: 1px solid rgba(229, 9, 20, 0.22);
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-logout-btn:active {
+    transform: scale(0.98);
+    background: rgba(229, 9, 20, 0.16);
   }
 
   /* --- FULL-SCREEN OVERLAY SEARCH MODAL --- */
@@ -1534,24 +1677,47 @@
 
   /* MEDIA QUERIES */
   @media (max-width: 1024px) {
-    .hide-mobile { display: none !important; }
+    .hide-mobile {
+      display: none !important;
+    }
     .navbar {
-      padding: 0.65rem 1rem;
-      padding-top: max(0.65rem, env(safe-area-inset-top));
-      padding-left: max(1rem, env(safe-area-inset-left));
-      padding-right: max(1rem, env(safe-area-inset-right));
+      padding: 0.55rem 0.85rem;
+      padding-top: max(0.55rem, env(safe-area-inset-top));
+      padding-left: max(0.85rem, env(safe-area-inset-left));
+      padding-right: max(0.85rem, env(safe-area-inset-right));
     }
-    /* On mobile, remove absolute centering since nav-links are hidden */
-    .nav-links {
-      position: static;
-      transform: none;
-    }
-    /* On mobile: logo left, actions right */
     .nav-inner {
       justify-content: space-between;
+      gap: 0.5rem;
+      min-height: 44px;
     }
     .nav-actions {
       margin-left: auto;
+      gap: 0.35rem;
+    }
+    .nav-icon-btn {
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+    }
+    .logo {
+      gap: 0.55rem;
+      min-width: 0;
+    }
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+    }
+    .logo-img {
+      height: 30px;
+      width: 30px;
+      border-radius: 8px;
+    }
+    .logo-text {
+      font-size: 1.15rem;
+    }
+    .logo-text-wrapper {
+      min-width: 0;
     }
     .search-modal {
       height: 100%;
@@ -1564,6 +1730,40 @@
     }
   }
 
+  @media (max-width: 480px) {
+    .navbar {
+      padding: 0.5rem 0.7rem;
+      padding-top: max(0.5rem, env(safe-area-inset-top));
+      padding-left: max(0.7rem, env(safe-area-inset-left));
+      padding-right: max(0.7rem, env(safe-area-inset-right));
+    }
+    .logo-text {
+      font-size: 1.05rem;
+    }
+    .mobile-menu-scroll {
+      padding-inline: 0.7rem;
+    }
+    .mobile-action-chip {
+      font-size: 0.8rem;
+      padding: 0.6rem 0.55rem;
+    }
+    .mobile-account-btn {
+      font-size: 0.76rem;
+      gap: 0.3rem;
+      padding: 0.5rem 0.4rem;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .mobile-action-row,
+    .mobile-account-grid {
+      gap: 0.35rem;
+    }
+    .mobile-action-chip span {
+      font-size: 0.76rem;
+    }
+  }
+
   @media (min-width: 1025px) {
     .hide-desktop { display: none !important; }
     .user-profile:hover .profile-dropdown {
@@ -1573,14 +1773,8 @@
     }
   }
 
-  /* Tablet: slightly tighter spacing */
+  /* Tablet / smaller desktop: compact search trigger */
   @media (max-width: 1200px) and (min-width: 1025px) {
-    .nav-links {
-      gap: 1rem;
-    }
-    .nav-link {
-      font-size: 0.85rem;
-    }
     .search-bar-trigger {
       padding: 0.4rem 0.7rem;
       font-size: 0.8rem;

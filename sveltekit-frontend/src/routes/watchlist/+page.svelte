@@ -194,8 +194,8 @@
       font-size: 0.95rem;
     }
     .watchlist-grid {
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      gap: 1.1rem 0.75rem;
     }
     .btn-remove {
       padding: 0.35rem 0.7rem;
@@ -221,8 +221,8 @@
       font-size: 0.9rem;
     }
     .watchlist-grid {
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.9rem 0.65rem;
     }
     .btn-remove {
       padding: 0.3rem 0.6rem;
@@ -242,8 +242,8 @@
       font-size: 1.4rem;
     }
     .watchlist-grid {
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 0.8rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem 0.5rem;
     }
     .btn-remove {
       padding: 0.25rem 0.5rem;

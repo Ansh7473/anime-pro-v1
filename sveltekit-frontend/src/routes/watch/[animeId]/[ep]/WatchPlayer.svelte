@@ -270,13 +270,15 @@
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none; z-index: 100;
   }
-  .video-container:hover .controls-overlay { opacity: 1; transform: translateY(0); }
+  .video-container:hover .controls-overlay,
+  .video-container:focus-within .controls-overlay { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
   .top-controls-hub {
     position: absolute; top: 12px; right: 12px; z-index: 50;
     opacity: 0; transition: opacity 0.3s;
   }
-  .video-container:hover .top-controls-hub { opacity: 1; }
+  .video-container:hover .top-controls-hub,
+  .video-container:focus-within .top-controls-hub { opacity: 1; }
   .controls-group {
     display: flex; gap: 0.5rem;
     background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
@@ -291,7 +293,13 @@
   .ctrl-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
   .ctrl-btn.active { color: var(--accent, #e50914); }
   @media (pointer: coarse) {
-    .ctrl-btn { width: 44px; height: 44px; }
+    .ctrl-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+    .top-controls-hub,
+    .controls-overlay {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
   }
 
   /* Resume & Countdown */
@@ -350,19 +358,40 @@
     .video-container { border-radius: 0; }
     .top-controls-hub {
       opacity: 1;
-      top: 8px;
-      right: 8px;
+      top: max(8px, env(safe-area-inset-top, 0px));
+      right: max(8px, env(safe-area-inset-right, 0px));
+    }
+    .controls-overlay {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+      padding: 3rem 0.75rem 1rem;
     }
     .controls-group {
-      padding: 0.2rem;
-      gap: 0.25rem;
+      padding: 0.25rem;
+      gap: 0.3rem;
       border-radius: 8px;
     }
     .ctrl-btn {
-      width: 28px !important;
-      height: 28px !important;
-      min-width: 0 !important;
-      min-height: 0 !important;
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+    .resume-popup {
+      left: 50%;
+      right: auto;
+      width: calc(100% - 1.5rem);
+      max-width: 360px;
+      bottom: max(64px, env(safe-area-inset-bottom, 0px) + 48px);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .next-countdown {
+      right: 0.75rem;
+      left: 0.75rem;
+      bottom: max(64px, env(safe-area-inset-bottom, 0px) + 48px);
+      flex-wrap: wrap;
     }
   }
 </style>

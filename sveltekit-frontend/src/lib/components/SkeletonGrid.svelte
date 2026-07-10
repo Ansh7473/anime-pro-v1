@@ -16,15 +16,15 @@
 
 <style>
   .sk-grid-card {
-    border-radius: var(--radius-lg, 12px);
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 6px;
+    border-radius: 12px;
+    min-width: 0;
   }
   .sk-img {
     width: 100%;
     aspect-ratio: 2 / 3;
-    border-radius: calc(var(--radius-lg, 12px) - 2px);
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
   }
   .sk-line {
     height: 0.7rem;
