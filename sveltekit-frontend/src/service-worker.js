@@ -9,17 +9,27 @@ self.addEventListener('install', (event) => {
 		await cache.addAll(ASSETS);
 	}
 
+	// Activate this new SW immediately instead of waiting for all old tabs to
+	// close. Without this, a deploy leaves users pinned to the previous build
+	// (stale JS chunks) until every tab is closed — which is why "pushed code"
+	// didn't reach users.
+	self.skipWaiting();
 	event.waitUntil(addFilesToCache());
 });
 
 self.addEventListener('activate', (event) => {
-	async function deleteOldCaches() {
+	async function activate() {
+		// Purge every cache that isn't the current version so stale build assets
+		// can never be served again.
 		for (const key of await caches.keys()) {
 			if (key !== CACHE) await caches.delete(key);
 		}
+		// Take control of already-open pages right now so they start using the
+		// fresh build without needing a manual hard-refresh.
+		await self.clients.claim();
 	}
 
-	event.waitUntil(deleteOldCaches());
+	event.waitUntil(activate());
 });
 
 self.addEventListener('fetch', (event) => {
