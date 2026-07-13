@@ -24,18 +24,21 @@ final animeDetailsProvider = FutureProvider.autoDispose.family<Anime?, String>((
   ref,
   id,
 ) {
+  ref.keepAlive(); // reuse across details <-> watch navigations
   return ref.watch(apiServiceProvider).getAnime(id);
 });
 
-/// Episode list for an anime.
+/// Episode list for an anime (AniList-backed, session-cached in ApiService).
 final episodesProvider = FutureProvider.autoDispose
     .family<List<Episode>, String>((ref, id) {
+      ref.keepAlive();
       return ref.watch(apiServiceProvider).getEpisodes(id);
     });
 
 /// Recommendations for an anime.
 final recommendationsProvider = FutureProvider.autoDispose
     .family<List<Anime>, String>((ref, id) {
+      ref.keepAlive();
       return ref.watch(apiServiceProvider).recommendations(id);
     });
 

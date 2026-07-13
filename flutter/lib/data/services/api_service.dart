@@ -1,3 +1,4 @@
+import '../../core/network/anilist_client.dart';
 import '../../core/network/api_client.dart';
 import '../models/anime.dart';
 import '../models/episode.dart';
@@ -39,9 +40,15 @@ class HomeData {
 /// High-level API surface. Each method unwraps the backend's `{ data: ... }`
 /// envelope and maps to domain models.
 class ApiService {
-  ApiService(this._client);
+  ApiService(this._client, {AniListClient? anilist})
+      : _anilist = anilist ?? AniListClient();
 
   final ApiClient _client;
+  final AniListClient _anilist;
+
+  // Episode lists change rarely — memoize per anime id for the session.
+  final Map<String, ({List<Episode> episodes, DateTime ts})> _episodeCache = {};
+  static const _episodeCacheTtl = Duration(minutes: 30);
 
   static dynamic _unwrap(dynamic data) {
     if (data is Map && data.containsKey('data')) return data['data'];
@@ -91,6 +98,25 @@ class ApiService {
   }
 
   Future<Anime?> getAnime(Object id) async {
+    // Prefer direct AniList (device IP quota, fast CDN). Backend is fallback.
+    final numId = int.tryParse(id.toString());
+    if (numId != null) {
+      try {
+        const fields = '''
+          id idMal
+          title { romaji english native userPreferred }
+          coverImage { extraLarge large }
+          bannerImage description format status episodes
+          averageScore seasonYear season genres popularity
+          studios(isMain: true) { nodes { name } }
+          nextAiringEpisode { episode airingAt }
+        ''';
+        final media = await _anilist.mediaByAnyId(numId, fields: fields);
+        if (media != null) return Anime.fromJson(media);
+      } catch (_) {
+        // fall through
+      }
+    }
     final res = await _client.get('/anilist/anime/$id');
     final data = _unwrap(res.data);
     if (data is Map) return Anime.fromJson(data.cast<String, dynamic>());
@@ -131,6 +157,38 @@ class ApiService {
   }) => search('', page: page, format: format, sort: sort);
 
   Future<List<Anime>> recommendations(Object id) async {
+    final numId = int.tryParse(id.toString());
+    if (numId != null) {
+      try {
+        const recFields = '''
+          recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
+            nodes {
+              mediaRecommendation {
+                id idMal
+                title { romaji english native userPreferred }
+                coverImage { extraLarge large }
+                bannerImage description format status episodes
+                averageScore seasonYear season genres popularity
+              }
+            }
+          }
+        ''';
+        final media = await _anilist.mediaByAnyId(numId, fields: recFields);
+        final nodes = media?['recommendations']?['nodes'];
+        if (nodes is List) {
+          final list = nodes
+              .whereType<Map>()
+              .map((n) => n['mediaRecommendation'])
+              .whereType<Map>()
+              .map((m) => Anime.fromJson(m.cast<String, dynamic>()))
+              .where((a) => a.id != 0)
+              .toList();
+          if (list.isNotEmpty) return list;
+        }
+      } catch (_) {
+        // fall through
+      }
+    }
     final res = await _client.get('/anilist/recommendations/$id');
     return Anime.listFrom(_unwrap(res.data));
   }
@@ -139,16 +197,61 @@ class ApiService {
   // Episodes & streaming
   // ---------------------------------------------------------------------------
 
+  /// Episode list from AniList (fast CDN) with backend scraper fallback.
+  /// Mirrors the website's `getEpisodeMetadata` change.
   Future<List<Episode>> getEpisodes(
     Object animeId, {
     int page = 1,
     int perPage = 50,
   }) async {
+    final cacheKey = animeId.toString();
+    final cached = _episodeCache[cacheKey];
+    if (cached != null &&
+        DateTime.now().difference(cached.ts) < _episodeCacheTtl &&
+        cached.episodes.isNotEmpty) {
+      return cached.episodes;
+    }
+
+    // 1) AniList — count from episodes / nextAiringEpisode (reliable).
+    try {
+      final numId = int.tryParse(animeId.toString());
+      if (numId != null) {
+        final media = await _anilist.mediaByAnyId(
+          numId,
+          fields: 'id idMal episodes nextAiringEpisode { episode }',
+        );
+        if (media != null) {
+          final totalEps = (media['episodes'] as num?)?.toInt() ?? 0;
+          final nextEp =
+              (media['nextAiringEpisode'] is Map)
+                  ? (media['nextAiringEpisode']['episode'] as num?)?.toInt()
+                  : null;
+          final aired = (nextEp != null && nextEp > 1) ? nextEp - 1 : 0;
+          final total = aired > 0 ? aired : totalEps;
+          if (total > 0) {
+            final list = List<Episode>.generate(
+              total,
+              (i) => Episode(number: i + 1, title: 'Episode ${i + 1}'),
+            );
+            _episodeCache[cacheKey] = (episodes: list, ts: DateTime.now());
+            return list;
+          }
+        }
+      }
+    } catch (_) {
+      // fall through to backend
+    }
+
+    // 2) Backend scraper fallback (slow path).
     final res = await _client.get(
       '/streaming/episode-metadata',
       query: {'animeId': animeId, 'page': page, 'perPage': perPage},
     );
-    return Episode.listFrom(_unwrap(res.data));
+    final list = Episode.listFrom(_unwrap(res.data));
+    if (list.isNotEmpty) {
+      _episodeCache[cacheKey] = (episodes: list, ts: DateTime.now());
+    }
+    return list;
   }
 
   /// Aggregate sources across all providers (fast path).

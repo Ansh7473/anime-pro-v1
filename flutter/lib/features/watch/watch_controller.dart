@@ -8,14 +8,40 @@ import '../../data/services/api_service.dart';
 
 typedef WatchKey = ({String animeId, int episode});
 
+// Session-level source memo so back/forward + auto-next return is instant
+// instead of re-scraping all ~16 providers. Mirrors the web _sourceCache.
+final Map<String, List<StreamSource>> _sourceCache = {};
+String _sourceCacheKey(WatchKey k) => '${k.animeId}:${k.episode}';
+
 final watchSourcesProvider = StreamProvider.autoDispose
     .family<List<StreamSource>, WatchKey>((ref, key) {
+      // Keep alive across brief nav out so the cache is useful.
+      final link = ref.keepAlive();
+      // Drop after 15 min idle so memory doesn't grow unbounded.
+      Timer? disposeTimer;
+      ref.onCancel(() {
+        disposeTimer = Timer(const Duration(minutes: 15), link.close);
+      });
+      ref.onResume(() => disposeTimer?.cancel());
+      ref.onDispose(() => disposeTimer?.cancel());
+
       final api = ref.watch(apiServiceProvider);
       final controller = StreamController<List<StreamSource>>();
       final seen = <String>{};
       final currentSources = <StreamSource>[];
+      final cacheKey = _sourceCacheKey(key);
 
       Future<void> fetchAll() async {
+        // Cache hit — emit immediately, skip the provider fan-out.
+        final cached = _sourceCache[cacheKey];
+        if (cached != null && cached.isNotEmpty) {
+          if (!controller.isClosed) {
+            controller.add(List.of(cached));
+            controller.close();
+          }
+          return;
+        }
+
         final futures = kStreamProviders.map((p) async {
           try {
             final res = await api.getProviderSources(
@@ -56,6 +82,10 @@ final watchSourcesProvider = StreamProvider.autoDispose
               controller.add(List.of(currentSources));
             }
           } catch (_) {}
+        }
+
+        if (currentSources.isNotEmpty) {
+          _sourceCache[cacheKey] = List.of(currentSources);
         }
         if (!controller.isClosed) controller.close();
       }
