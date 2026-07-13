@@ -177,12 +177,11 @@ async function queryAnilist(query: string, variables: Record<string, any> = {}) 
 	const cached = aniCacheGet(key);
 	if (cached) return cached;
 
-	// In dev, direct browser→AniList calls are CORS-blocked (localhost origin).
-	// Skip straight to the backend proxy fallback to avoid noisy errors.
-	if (browser && location.hostname === 'localhost') {
-		throw new Error('Skipping direct AniList call on localhost (CORS)');
-	}
-
+	// AniList's GraphQL endpoint sends permissive CORS headers
+	// (access-control-allow-origin: *), so direct browser calls work from any
+	// origin including localhost. We call it directly everywhere — it's a fast
+	// CDN and uses the user's own IP quota — and fall back to the backend proxy
+	// only if this throws.
 	await aniWaitForToken();
 
 	const res = await fetch('https://graphql.anilist.co', {
@@ -252,6 +251,79 @@ function getCurrentSeason() {
 let homeCache: any = null;
 let homeCacheTime = 0;
 const CACHE_TTL = 60_000;
+
+// ─── AniList episode list ────────────────────────────────────────────────────
+// Builds an episode list from AniList: episode count drives how many rows to
+// show, and streamingEpisodes supplies titles/thumbnails where available.
+// Works during SSR (customFetch → AniList directly) and in the browser
+// (queryAnilist, which is rate-limited + cached).
+const _episodesCache = new Map<string, { data: any; ts: number }>();
+const EPISODES_CACHE_TTL = 30 * 60 * 1000; // 30 min — episode lists change rarely
+
+async function getEpisodesFromAnilist(
+	animeId: string | number,
+	customFetch?: typeof fetch
+): Promise<{ data: { episodes: any[] } } | null> {
+	const cacheKey = String(animeId);
+	const cached = _episodesCache.get(cacheKey);
+	if (cached && Date.now() - cached.ts < EPISODES_CACHE_TTL) return cached.data;
+
+	const numId = parseInt(String(animeId), 10);
+	if (isNaN(numId)) return null;
+
+	const epFields = `id idMal episodes nextAiringEpisode { episode }`;
+
+	// The incoming id may be an AniList id OR a MAL id, and we can't tell which.
+	// We must NOT alias both lookups in one query: if one id 404s, AniList aborts
+	// the WHOLE query and returns null for both. So try each as its own query.
+	const runQuery = async (query: string): Promise<any> => {
+		if (browser && !customFetch) {
+			const data = await queryAnilist(query, { id: numId });
+			return data?.Media ?? null;
+		}
+		const fetchFn = customFetch || fetch;
+		const res = await fetchFn('https://graphql.anilist.co', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+			body: JSON.stringify({ query, variables: { id: numId } })
+		});
+		if (!res.ok) return null;
+		const json = await res.json();
+		return json.data?.Media ?? null;
+	};
+
+	let media: any = null;
+	try {
+		media = await runQuery(`query($id: Int) { Media(idMal: $id, type: ANIME) { ${epFields} } }`);
+	} catch { /* try AniList id next */ }
+	if (!media) {
+		try {
+			media = await runQuery(`query($id: Int) { Media(id: $id, type: ANIME) { ${epFields} } }`);
+		} catch { /* fall through */ }
+	}
+
+	if (!media) return null;
+
+	// Prefer the aired episode count; fall back to the total episode count.
+	// (streamingEpisodes is unreliable — it's reverse-ordered and can span
+	//  multiple seasons — so we don't use it for counting or titles.)
+	const airedCount = media.nextAiringEpisode?.episode
+		? media.nextAiringEpisode.episode - 1
+		: 0;
+	const total = airedCount > 0 ? airedCount : (media.episodes || 0);
+	if (total <= 0) return null;
+
+	const episodes = Array.from({ length: total }, (_, i) => ({
+		number: i + 1,
+		title: `Episode ${i + 1}`,
+		image: '',
+		thumbnail: ''
+	}));
+
+	const result = { data: { episodes } };
+	_episodesCache.set(cacheKey, { data: result, ts: Date.now() });
+	return result;
+}
 
 // Search Cache
 const searchCache = new Map<string, { data: any; time: number }>();
@@ -716,8 +788,23 @@ export const api = {
 	},
 
 	// Streaming
-	getEpisodeMetadata: (animeId: string | number, page = 1, perPage = 50, customFetch?: typeof fetch) =>
-		fetchJSON(`${STREAMING_URL}/episode-metadata?animeId=${animeId}&page=${page}&perPage=${perPage}`, { fetch: customFetch }),
+	// Episode list is sourced from AniList (episode count + streamingEpisodes for
+	// titles/thumbnails) instead of the slow streaming-scraper backend. AniList is
+	// fast and CDN-cached; we only fall back to the backend if AniList has no data.
+	getEpisodeMetadata: async (animeId: string | number, page = 1, perPage = 50, customFetch?: typeof fetch) => {
+		// Skip the direct AniList call from a localhost browser (CORS-blocked);
+		// SSR already populates the list, so the client rarely reaches here.
+		const canUseAnilist = !(browser && location.hostname === 'localhost');
+		if (canUseAnilist) {
+			try {
+				const anilist = await getEpisodesFromAnilist(animeId, customFetch);
+				if (anilist && anilist.data.episodes.length > 0) return anilist;
+			} catch (err) {
+				console.warn('AniList episode metadata failed, falling back to backend:', err);
+			}
+		}
+		return fetchJSON(`${STREAMING_URL}/episode-metadata?animeId=${animeId}&page=${page}&perPage=${perPage}`, { fetch: customFetch });
+	},
 
 	getAnimelokSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources/animelok?animeId=${animeId}&ep=${ep}`),

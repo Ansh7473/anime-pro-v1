@@ -4,12 +4,15 @@
 <head>
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" />
-	<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" /></noscript>
+	<link rel="stylesheet" media="print" onload="this.media='all'"
+		href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" />
+	<noscript>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" />
+	</noscript>
 	<script>
 		// Defer ad script until after first paint to avoid blocking HTML parsing
-		window.addEventListener('load', function() {
-			setTimeout(function() {
+		window.addEventListener('load', function () {
+			setTimeout(function () {
 				var s = document.createElement('script');
 				s.dataset.zone = '11242007';
 				s.src = 'https://al5sm.com/tag.min.js';
@@ -17,19 +20,19 @@
 			}, 2000);
 		});
 	</script>
-	
+
 	<script>
-			// Suppress SvelteKit router warning about history.pushState / history.replaceState conflict
-			// triggered by third-party tracking scripts like Google Analytics (gtag.js)
-			(function () {
-				const originalWarn = console.warn;
-				console.warn = function (...args) {
-					if (args[0] && typeof args[0] === 'string' && args[0].includes('history.pushState') && args[0].includes('history.replaceState')) {
-						return;
-					}
-					originalWarn.apply(console, args);
-				};
-			})();
+		// Suppress SvelteKit router warning about history.pushState / history.replaceState conflict
+		// triggered by third-party tracking scripts like Google Analytics (gtag.js)
+		(function () {
+			const originalWarn = console.warn;
+			console.warn = function (...args) {
+				if (args[0] && typeof args[0] === 'string' && args[0].includes('history.pushState') && args[0].includes('history.replaceState')) {
+					return;
+				}
+				originalWarn.apply(console, args);
+			};
+		})();
 	</script>
 	<!-- Google tag (gtag.js) — deferred to avoid blocking first paint -->
 	<script>
@@ -37,8 +40,8 @@
 		function gtag() { dataLayer.push(arguments); }
 		gtag('js', new Date());
 		gtag('config', 'G-34LBR99BLW');
-		window.addEventListener('load', function() {
-			setTimeout(function() {
+		window.addEventListener('load', function () {
+			setTimeout(function () {
 				var s = document.createElement('script');
 				s.async = true;
 				s.src = 'https://www.googletagmanager.com/gtag/js?id=G-34LBR99BLW';

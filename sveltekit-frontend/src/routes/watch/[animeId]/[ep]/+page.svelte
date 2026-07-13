@@ -42,6 +42,14 @@
   let ep = $state(0);
   let currentLoadId = 0;
 
+  // ── Per-episode source cache ──────────────────────────────────────────
+  // Collecting sources means fanning out to ~14 live provider endpoints, which
+  // is the slowest part of loading an episode. Cache the merged result per
+  // anime+episode for the session so back/forward, auto-next return, and
+  // re-selecting the same episode are instant instead of re-scraping.
+  const _sourceCache = new Map<string, any[]>();
+  const sourceCacheKey = (a: string | number, e: number) => `${a}:${e}`;
+
   $effect(() => {
     const dataEp = parseInt(tempEpUrl as string) || 1;
     // Use untrack to avoid infinite loops if loadSources changes other tracked state
@@ -825,6 +833,65 @@
     img.src = src;
   }
 
+  // ── Server priority selection ─────────────────────────────────────
+  // Picks the best source from a pool, in priority order.
+  // For Sub/English/Multi audio: Vidnest Multi → Pahe → 9anime.
+  // For Hindi audio: DesiDub Abyss → then sub priorities.
+  // Hoisted to component scope so both loadSources() and the per-episode
+  // source cache path can reuse it.
+  function pickByPriority(pool: any[]): any | null {
+    if (!pool || pool.length === 0) return null;
+
+    // 0. Last-user-selected server (highest priority — persists across episodes)
+    const saved = loadServerPref();
+    if (saved) {
+      const m = pool.find((s: any) => matchServerPref(s, saved));
+      if (m) return m;
+    }
+
+    const preferredLang = ($auth.currentProfile?.language || "multi").toLowerCase();
+    const isHindi = preferredLang === "hindi";
+
+    const match = (s: any, provKey: string, nameKey: string) => {
+      const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const name = (s.name || "").toLowerCase();
+      const provMatch = provKey === "" || prov.includes(provKey.toLowerCase().replace(/[^a-z0-9]/g, ""));
+      const nameMatch = nameKey === "" || name.includes(nameKey.toLowerCase());
+      return provMatch && nameMatch;
+    };
+
+    const candidates = pool;
+    if (isHindi) {
+      const hindi = pool.filter((s: any) =>
+        (s.language || "").toLowerCase().includes("hindi") ||
+        (s.category || "").toLowerCase() === "hindi",
+      );
+      if (hindi.length > 0) {
+        const abyss = hindi.find((s: any) =>
+          match(s, "desidub", "abyss") || match(s, "desidubanime", "abyss")
+        );
+        if (abyss) return abyss;
+        return hindi[0];
+      }
+    }
+
+    const vidnest = candidates.find((s: any) => match(s, "tatakai", "vidnest"));
+    if (vidnest) return vidnest;
+    const pahe = candidates.find((s: any) => match(s, "tatakai", "pahe"));
+    if (pahe) return pahe;
+    const nineAnime = candidates.find((s: any) => {
+      const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      return prov.includes("9anime") || prov.includes("nineanime");
+    });
+    if (nineAnime) return nineAnime;
+    const sub = candidates.filter((s: any) =>
+      !(s.language || "").toLowerCase().includes("hindi") &&
+      (s.category || "").toLowerCase() !== "hindi",
+    );
+    if (sub.length > 0) return sub[0];
+    return candidates[0];
+  }
+
   async function loadSources() {
     const loadId = ++currentLoadId;
     sourceLoading = true;
@@ -837,6 +904,18 @@
     if (hls) {
       hls.destroy();
       hls = null;
+    }
+
+    // Cache hit: reuse this episode's already-collected sources instead of
+    // re-scraping all providers. Instant on back/forward and auto-next return.
+    const cacheKey = sourceCacheKey(animeId, ep);
+    const cachedSources = _sourceCache.get(cacheKey);
+    if (cachedSources && cachedSources.length > 0) {
+      sources = cachedSources;
+      const best = pickByPriority(cachedSources) || cachedSources[0];
+      selectedSource = best;
+      sourceLoading = false;
+      return;
     }
 
     const providerConfigs = [
@@ -863,70 +942,8 @@
     let providersFinished = 0;
 
     // ── Server priority selection ─────────────────────────────────────
-    // Picks the best source from all collected sources, in priority order.
-    // For Sub/English/Multi audio: P14 Vidnest Multi → P14 Pahe → P4 (9anime)
-    // For Hindi audio: P6 (DesiDub) Abyss → then sub priorities
-    const pickByPriority = (pool: any[]): any | null => {
-      if (!pool || pool.length === 0) return null;
-
-      // 0. Last-user-selected server (highest priority — persists across episodes)
-      const saved = loadServerPref();
-      if (saved) {
-        const match = pool.find((s: any) => matchServerPref(s, saved));
-        if (match) return match;
-      }
-
-      const preferredLang = ($auth.currentProfile?.language || "multi").toLowerCase();
-      const isHindi = preferredLang === "hindi";
-
-      // Match helper: provider name + source name contains a keyword
-      const match = (s: any, provKey: string, nameKey: string) => {
-        const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const name = (s.name || "").toLowerCase();
-        const provMatch = provKey === "" || prov.includes(provKey.toLowerCase().replace(/[^a-z0-9]/g, ""));
-        const nameMatch = nameKey === "" || name.includes(nameKey.toLowerCase());
-        return provMatch && nameMatch;
-      };
-
-      let candidates = pool;
-      if (isHindi) {
-        // Hindi: filter to hindi sources, prioritize P6 Abyss (DesiDub)
-        const hindi = pool.filter((s: any) =>
-          (s.language || "").toLowerCase().includes("hindi") ||
-          (s.category || "").toLowerCase() === "hindi",
-        );
-        if (hindi.length > 0) {
-          // Priority: DesiDub with name containing "abyss"
-          const abyss = hindi.find((s: any) =>
-            match(s, "desidub", "abyss") || match(s, "desidubanime", "abyss")
-          );
-          if (abyss) return abyss;
-          return hindi[0]; // first available hindi source
-        }
-        // No hindi sources — fall through to sub priorities
-      }
-
-      // Sub/English/Multi priority order
-      // 1. P14 · Vidnest Multi (Tatakai, name "Vidnest Multi")
-      const vidnest = candidates.find((s: any) => match(s, "tatakai", "vidnest"));
-      if (vidnest) return vidnest;
-      // 2. P14 · Pahe (Tatakai, name "Pahe")
-      const pahe = candidates.find((s: any) => match(s, "tatakai", "pahe"));
-      if (pahe) return pahe;
-      // 3. P4 · Server 1 (9anime — any source)
-      const nineAnime = candidates.find((s: any) => {
-        const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        return prov.includes("9anime") || prov.includes("nineanime");
-      });
-      if (nineAnime) return nineAnime;
-      // Fallback: first available non-hindi source
-      const sub = candidates.filter((s: any) =>
-        !(s.language || "").toLowerCase().includes("hindi") &&
-        (s.category || "").toLowerCase() !== "hindi",
-      );
-      if (sub.length > 0) return sub[0];
-      return candidates[0];
-    };
+    // (pickByPriority is hoisted to component scope so the per-episode cache
+    //  path can reuse it.)
 
     const choosePreferredSource = (providerSources: any[]) => {
       // Use priority picker on the new sources; falls back to null if none match
@@ -955,22 +972,11 @@
       if (!autoStarted) {
         const candidate = choosePreferredSource(uniqueNewSources) || uniqueNewSources[0];
         if (candidate) {
+          // Just set the source — the selectedSource $effect owns player init,
+          // so playback starts exactly once (no double HLS load).
           selectedSource = candidate;
           autoStarted = true;
           sourceLoading = false;
-
-          const isEmbed =
-            selectedSource.isEmbed ||
-            selectedSource.type === "iframe" ||
-            selectedSource.url.includes("embed") ||
-            !selectedSource.url.includes(".m3u8");
-
-          if (!isEmbed) {
-            initPlayer(selectedSource.url);
-          } else if (videoElement) {
-            videoElement.pause();
-            videoElement.src = "";
-          }
         }
       }
     };
@@ -991,30 +997,26 @@
 
     if (loadId !== currentLoadId) return;
 
-    // After all providers finish, re-evaluate the best source by priority.
-    // Only switch if the user hasn't manually picked a server.
-    if (!userOverride && sources.length > 0) {
+    // After all providers finish, pick the best source ONLY if nothing has
+    // started playing yet. We never yank an already-playing source out from
+    // under the viewer just because a lower-priority provider replied later —
+    // that used to restart playback mid-stream. Each provider batch already
+    // runs through pickByPriority on arrival, so the first good match wins.
+    if (!userOverride && !autoStarted && sources.length > 0) {
       const best = pickByPriority(sources);
-      if (best && best.url !== selectedSource?.url) {
-        console.log(`[Player] Switching to priority source: ${best.name}`);
+      if (best) {
+        console.log(`[Player] Selecting priority source: ${best.name}`);
         selectedSource = best;
-        const isEmbed =
-          selectedSource.isEmbed ||
-          selectedSource.type === "iframe" ||
-          selectedSource.url.includes("embed") ||
-          !selectedSource.url.includes(".m3u8");
-        if (!isEmbed) {
-          initPlayer(selectedSource.url);
-        } else if (videoElement) {
-          videoElement.pause();
-          videoElement.src = "";
-        }
       }
     }
 
     sourceLoading = false;
     if (sources.length === 0) {
       error = "No sources found for this episode on any provider.";
+    } else {
+      // Memoize this episode's sources so a return visit skips the provider
+      // fan-out entirely (see the cache-hit short-circuit at the top).
+      _sourceCache.set(sourceCacheKey(animeId, ep), sources);
     }
   }
 
@@ -1091,23 +1093,40 @@
     }
   }
 
+  // Single owner of player initialization: whenever the *active source URL*
+  // changes (or the video element mounts), (re)initialize exactly once.
+  // loadSources() no longer calls initPlayer directly — it only sets
+  // selectedSource — so a source can never be initialized twice.
+  let lastInitUrl = "";
   $effect(() => {
-    if (selectedSource) {
-      const isEmbed =
-        selectedSource.isEmbed ||
-        selectedSource.url.includes("embed") ||
-        selectedSource.type === "iframe" ||
-        !selectedSource.url.includes(".m3u8");
-      if (!isEmbed && videoElement) {
-        initPlayer(selectedSource.url);
-      } else if (videoElement) {
-        if (hls) hls.destroy();
+    const src = selectedSource;
+    if (!src) {
+      lastInitUrl = "";
+      return;
+    }
+    const url = src.url;
+    const isEmbed =
+      src.isEmbed ||
+      src.type === "iframe" ||
+      url.includes("embed") ||
+      !url.includes(".m3u8");
+
+    untrack(() => {
+      if (!videoElement) return;
+      if (isEmbed) {
+        if (hls) { hls.destroy(); hls = null; }
         videoElement.pause();
         videoElement.src = "";
         videoElement.removeAttribute("src");
         videoElement.load();
+        lastInitUrl = "";
+        return;
       }
-    }
+      // Native/HLS source — only (re)init when the URL actually changed.
+      if (url === lastInitUrl) return;
+      lastInitUrl = url;
+      initPlayer(url);
+    });
   });
 
   function changeEp(newEp: number) {

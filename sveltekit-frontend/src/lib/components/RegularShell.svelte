@@ -127,7 +127,7 @@
     <PullToRefresh>
       <main class="main-content" id="page-main">
         {#key page.url.pathname}
-          <div in:fly={{ y: 8, duration: 400, delay: 200 }} out:fly={{ y: -8, duration: 200 }}>
+          <div class="page-fade">
             {@render children()}
           </div>
         {/key}
@@ -181,6 +181,21 @@
     min-height: 100vh;
     min-height: 100dvh;
     flex: 1;
+  }
+
+  /* Lightweight page-enter fade. Replaces the old JS fly transition that gated
+     every navigation behind a 200ms delay + 400ms animation (~600ms of the new
+     page being invisible). This is a GPU-only opacity fade, 150ms, no delay, so
+     content is visible immediately and navigation feels instant. */
+  .page-fade {
+    animation: page-fade-in 0.15s ease-out;
+  }
+  @keyframes page-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page-fade { animation: none; }
   }
 
   .watch-shell {

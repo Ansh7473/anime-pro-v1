@@ -43,14 +43,30 @@ self.addEventListener('fetch', (event) => {
 			}
 		}
 
+		const isNavigate = event.request.mode === 'navigate';
+
+		// For navigations, race the network against a timeout so a slow or hung
+		// origin can't leave the user staring at a blank screen — fall back to
+		// the cached page (stale-while-revalidate) instead.
+		if (isNavigate) {
+			const cachedResponse = await cache.match(event.request);
+			try {
+				const response = await fetchWithTimeout(event.request, 4000);
+				if (response && response.ok) cache.put(event.request, response.clone());
+				return response;
+			} catch {
+				if (cachedResponse) return cachedResponse;
+				return new Response('Offline — please check your connection.', {
+					status: 503,
+					statusText: 'Service Unavailable',
+					headers: { 'Content-Type': 'text/plain' }
+				});
+			}
+		}
+
 		// for everything else, try the network first, but fall back to the cache if we're offline
 		try {
 			const response = await fetch(event.request);
-
-			if (event.request.mode === 'navigate') {
-				cache.put(event.request, response.clone());
-			}
-
 			return response;
 		} catch {
 			const cachedResponse = await cache.match(event.request);
@@ -67,3 +83,15 @@ self.addEventListener('fetch', (event) => {
 
 	event.respondWith(respond());
 });
+
+// Fetch that rejects if the network takes longer than `ms`, so navigations
+// never hang on a slow origin.
+function fetchWithTimeout(request, ms) {
+	return new Promise((resolve, reject) => {
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), ms);
+		fetch(request, { signal: controller.signal })
+			.then((res) => { clearTimeout(timer); resolve(res); })
+			.catch((err) => { clearTimeout(timer); reject(err); });
+	});
+}

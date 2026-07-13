@@ -24,7 +24,7 @@ const config = {
 		adapter: (() => {
 			console.log('--- Svelte Hub Config ---');
 			console.log('PLATFORM:', process.env.APP_PLATFORM);
-			
+
 			if (process.env.APP_PLATFORM === 'desktop' || process.env.APP_PLATFORM === 'mobile') {
 				return adapterStatic({
 					fallback: 'index.html',
