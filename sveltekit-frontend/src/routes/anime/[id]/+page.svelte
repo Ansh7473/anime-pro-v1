@@ -236,7 +236,7 @@
         </p>
 
         <div class="detail-actions">
-          <a href="/watch/{id}/1" class="btn-primary">▶ Watch Episode 1</a>
+          <a href="/watch/{id}/1/" class="btn-primary" data-sveltekit-preload-data="hover">▶ Watch Episode 1</a>
           <button
             class="btn-watchlist"
             class:active={inWatchlist}
