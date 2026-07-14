@@ -307,7 +307,7 @@
     --c-btn-hover: var(--surface-btn-hover, rgba(255, 255, 255, 0.08));
     --c-line: var(--hairline, rgba(255, 255, 255, 0.05));
     --c-line-strong: var(--hairline-strong, rgba(255, 255, 255, 0.1));
-    --c-accent: var(--net-red, #e50914);
+    --c-accent: var(--net-red, #FF8A3D);
     --c-txt: var(--txt, #e8e8e8);
     --c-dim: var(--txt-dim, #a3a3a3);
     --c-radius: var(--radius-card, 20px);
@@ -432,7 +432,7 @@
   }
   .input-container:focus-within {
     border-color: rgba(229, 9, 20, 0.35);
-    box-shadow: 0 0 0 1px rgba(229, 9, 20, 0.2);
+    box-shadow: 0 0 0 1px rgba(255, 138, 61, 0.22);
   }
   .input-wrapper {
     flex: 1;

@@ -35,6 +35,10 @@
   const rawScore = $derived(anime?.score || anime?.rating || 0);
   const score = $derived(rawScore > 10 ? rawScore / 10 : rawScore);
   const id = $derived(anime?.id || anime?.mal_id);
+  const statusRaw = $derived(String(anime?.status || "").toUpperCase());
+  const statusLive = $derived(
+    statusRaw.includes("RELEASING") || statusRaw.includes("AIRING") || statusRaw.includes("CURRENT")
+  );
   const format = $derived(
     (() => {
       const raw = String(anime?.type || anime?.format || "").trim();
@@ -121,14 +125,16 @@
     {/if}
   </div>
   <div class="card-meta">
-    <p class="card-title">{title}</p>
-    {#if year || format}
-      <p class="card-sub">
-        {#if year}<span>{year}</span>{/if}
-        {#if year && format}<span class="dot" aria-hidden="true">·</span>{/if}
-        {#if format}<span>{format}</span>{/if}
-      </p>
-    {/if}
+    <p class="card-title">
+      <span class="status-dot" class:live={statusLive} aria-hidden="true"></span>
+      {title}
+    </p>
+    <p class="card-sub">
+      {#if format}<span>{format}</span>{/if}
+      {#if year}<span>{year}</span>{/if}
+      {#if episodes > 0}<span class="eps-chip">{episodes} eps</span>{/if}
+      {#if score > 0}<span class="score-chip">★ {score.toFixed(1)}</span>{/if}
+    </p>
   </div>
 </a>
 
@@ -136,7 +142,7 @@
   .card {
     display: block;
     width: 100%;
-    max-width: 220px;
+    max-width: none;
     cursor: pointer;
     text-decoration: none;
     scroll-snap-align: start;
@@ -144,6 +150,7 @@
     transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  :global(.poster-grid) > .card,
   :global(.card-slot) > .card,
   :global(.anime-grid) > .card,
   :global(.grid) > .card,
@@ -164,12 +171,12 @@
       z-index: 10;
     }
     .card:hover .card-poster {
-      border-color: rgba(255, 255, 255, 0.55);
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 14px 32px rgba(0, 0, 0, 0.55),
-        0 0 24px rgba(229, 9, 20, 0.16);
-    }
+          border-color: rgba(255, 255, 255, 0.55);
+          box-shadow:
+            0 0 0 1px rgba(252, 211, 77, 0.5),
+            0 12px 32px rgba(0, 0, 0, 0.5),
+            0 0 24px rgba(250, 204, 21, 0.24);
+        }
     .card:hover .card-poster img {
       transform: scale(1.07);
     }
@@ -178,17 +185,18 @@
       transform: translate(-50%, -50%) scale(1);
     }
     .card:hover .poster-ring {
-      opacity: 1;
+      border-color: rgba(236, 88, 0, 0.5);
+      box-shadow: 0 0 20px rgba(236, 88, 0, 0.26), inset 0 0 20px rgba(236, 88, 0, 0.08);
     }
     .card:hover .card-title {
-      color: #ffffff;
+      color: #EC5800;
     }
   }
 
   .card:focus-visible .card-poster {
     border-color: rgba(255, 255, 255, 0.95);
     box-shadow:
-      0 0 0 2px rgba(229, 9, 20, 0.55),
+      0 0 0 2px rgba(236, 88, 0, 0.55),
       0 10px 28px rgba(0, 0, 0, 0.5);
   }
 
@@ -199,7 +207,7 @@
 
   .card:active .card-poster {
     transform: scale(0.975);
-    border-color: rgba(229, 9, 20, 0.65);
+    border-color: rgba(96, 165, 250, 0.65);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
   }
 
@@ -212,11 +220,13 @@
 
   .card-poster {
     position: relative;
-    border-radius: 14px;
+    border-radius: 10px;
     overflow: hidden;
     aspect-ratio: 2 / 3;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 200px 300px;
     background:
-      radial-gradient(120% 70% at 50% 0%, rgba(229, 9, 20, 0.14), transparent 65%),
+      radial-gradient(120% 70% at 50% 0%, rgba(255, 138, 61, 0.12), transparent 65%),
       linear-gradient(160deg, #1c1c22, #0c0c0e);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow:
@@ -233,26 +243,27 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   .poster-shade {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.22) 34%, transparent 55%),
-      linear-gradient(to bottom, rgba(0, 0, 0, 0.32) 0%, transparent 30%);
-  }
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(0deg, rgba(6, 6, 10, 0.85) 0%, transparent 50%);
+      z-index: 1;
+    }
 
   .poster-ring {
     position: absolute;
-    inset: 0;
+    inset: -1px;
+    border-radius: 15px;
+    border: 2px solid transparent;
     pointer-events: none;
-    border-radius: inherit;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
+    z-index: 3;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
   .play-hint {
@@ -271,13 +282,11 @@
     -webkit-backdrop-filter: blur(8px);
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.85);
-    transition:
-      opacity 0.2s ease,
-      transform 0.2s ease;
-    pointer-events: none;
-    z-index: 2;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-  }
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+        z-index: 2;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      }
 
   .play-icon {
     color: #fff;
@@ -303,7 +312,7 @@
   .card-fallback .cf-mark {
     font-size: 1.6rem;
     font-weight: 800;
-    color: rgba(229, 9, 20, 0.55);
+    color: rgba(255, 138, 61, 0.55);
     line-height: 1;
   }
   .card-fallback .cf-title {
@@ -339,16 +348,14 @@
     top: 8px;
     left: 8px;
     z-index: 2;
-    background: rgba(8, 8, 10, 0.78);
-    color: #fbbf24;
-    font-size: 0.66rem;
-    font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.95);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transform: skewX(-10deg);
     line-height: 1.25;
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
     pointer-events: none;
     letter-spacing: 0.01em;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -364,14 +371,15 @@
     top: 8px;
     right: 8px;
     z-index: 2;
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.95), rgba(180, 8, 16, 0.92));
-    color: #fff;
-    font-size: 0.56rem;
+    background: #EC5800;
+    color: #000;
+    font-size: 0.58rem;
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    padding: 3px 7px;
-    border-radius: 6px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    transform: skewX(-10deg);
     line-height: 1.2;
     pointer-events: none;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
@@ -386,13 +394,14 @@
     right: 8px;
     bottom: 9px;
     z-index: 2;
-    background: rgba(8, 8, 10, 0.74);
+    background: rgba(12, 12, 12, 0.9);
     color: rgba(255, 255, 255, 0.94);
     font-size: 0.58rem;
     font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 3px 8px;
+    border-radius: 4px;
+    transform: skewX(-10deg);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     pointer-events: none;
@@ -538,4 +547,35 @@
       transition: none;
     }
   }
+
+  .status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fbbf24;
+    margin-right: 0.35rem;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.15);
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+  .status-dot.live {
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.55);
+  }
+  .card-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .score-chip { color: #fbbf24; }
 </style>

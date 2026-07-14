@@ -264,7 +264,7 @@
     background: rgba(255, 255, 255, 0.07);
   }
   .airing-day.active {
-    background: linear-gradient(145deg, #e50914 0%, #b20710 100%);
+    background: linear-gradient(145deg, #FF8A3D 0%, #b20710 100%);
     border-color: rgba(255, 255, 255, 0.12);
     color: #fff;
     box-shadow:
@@ -358,7 +358,7 @@
   }
   .airing-card:active .ac-thumb {
     transform: scale(0.97);
-    border-color: rgba(229, 9, 20, 0.55);
+    border-color: rgba(255, 138, 61, 0.55);
   }
   .ac-ep {
     position: absolute;
@@ -421,7 +421,7 @@
     text-decoration: none;
   }
   .airing-empty a:hover {
-    color: var(--net-red, #e50914);
+    color: var(--net-red, #FF8A3D);
   }
   .airing-skel {
     flex-shrink: 0;

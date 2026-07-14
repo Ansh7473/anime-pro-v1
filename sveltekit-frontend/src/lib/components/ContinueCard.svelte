@@ -94,7 +94,7 @@
 
   .resume-card:active .card-media {
     transform: scale(0.98);
-    border-color: rgba(229, 9, 20, 0.65);
+    border-color: rgba(255, 138, 61, 0.65);
   }
 
   /* Landscape frame — beats portrait for "continue" context */
@@ -191,9 +191,9 @@
   }
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #e50914, #ff5a63);
+    background: linear-gradient(90deg, #FF8A3D, #ff5a63);
     border-radius: 0 1px 0 0;
-    box-shadow: 0 0 10px rgba(229, 9, 20, 0.55);
+    box-shadow: 0 0 10px rgba(255, 138, 61, 0.55);
   }
 
   .card-copy {

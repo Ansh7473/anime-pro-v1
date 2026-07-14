@@ -22,10 +22,9 @@ let rrCursor = 0;
 
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
-const JIKAN_URL = `${BACKEND_URL}/api/v1/jikan`;
+
 const AUTH_URL = `${BACKEND_URL}/api/v1/auth`;
 const USER_URL = `${BACKEND_URL}/api/v1/user`;
-const GENERAL_PROXY = `${STREAMING_URL}/proxy`;
 
 // ─── fetchJSON response cache (browser-only) ─────────────────────────────────
 const _fetchCache = new Map<string, { data: any; ts: number }>();
@@ -72,17 +71,28 @@ async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof f
 		// url is built from BACKEND_URL (POOL[0]); swap the host to target/fail over.
 		const target = url.replace(BACKEND_URL, backend);
 		let res: Response;
+		const fetchOpts: RequestInit = { ...fetchOptions, headers };
+		// On Cloudflare SSR, cache non-auth GET subrequests at the edge
+		// so SSR loads don't hit origin on every request.
+		if (!browser && isGet && !(headers as Record<string, string>).Authorization) {
+			(fetchOpts as any).cf = { cacheEverything: true };
+		}
 		try {
-			const fetchOpts: RequestInit = { ...fetchOptions, headers };
-			// On Cloudflare SSR, cache non-auth GET subrequests at the edge
-			// so SSR loads don't hit origin on every request.
-			if (!browser && isGet && !(headers as Record<string, string>).Authorization) {
-				(fetchOpts as any).cf = { cacheEverything: true };
-			}
 			res = await fetchFn(target, fetchOpts);
 		} catch (err) {
-			lastError = err; // network/timeout — try the next backend
-			continue;
+			// Single retry on network errors (timeout, DNS, etc.) before failing over
+			if (browser && (err instanceof TypeError || (err as any)?.name === 'AbortError')) {
+				await new Promise(r => setTimeout(r, 200));
+				try {
+					res = await fetchFn(target, fetchOpts);
+				} catch (retryErr) {
+					lastError = retryErr;
+					continue;
+				}
+			} else {
+				lastError = err;
+				continue;
+			}
 		}
 		if (res.ok) {
 			const data = await res.json();
@@ -172,30 +182,56 @@ function aniWaitForToken(): Promise<void> {
 	});
 }
 
-async function queryAnilist(query: string, variables: Record<string, any> = {}) {
-	const key = aniCacheKey(query, variables);
-	const cached = aniCacheGet(key);
-	if (cached) return cached;
-
-	// AniList's GraphQL endpoint sends permissive CORS headers
-	// (access-control-allow-origin: *), so direct browser calls work from any
-	// origin including localhost. We call it directly everywhere — it's a fast
-	// CDN and uses the user's own IP quota — and fall back to the backend proxy
-	// only if this throws.
-	await aniWaitForToken();
-
-	const res = await fetch('https://graphql.anilist.co', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-		body: JSON.stringify({ query, variables })
-	});
-	if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
-	const json = await res.json();
-	if (json.errors) throw new Error(json.errors[0].message);
-
-	aniCacheSet(key, json.data);
-	return json.data;
-}
+	async function queryAnilist(query: string, variables: Record<string, any> = {}, customFetch?: typeof fetch) {
+		const key = aniCacheKey(query, variables);
+		const cached = aniCacheGet(key);
+		if (cached) return cached;
+	
+		await aniWaitForToken();
+	
+		const fetchFn = customFetch || fetch;
+		let data: any = null;
+		
+		const isLocalhost = browser && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+		
+		if (isLocalhost) {
+			// Query AniList directly on localhost to avoid hitting missing dev backend proxy
+			const res = await fetchFn('https://graphql.anilist.co', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+				body: JSON.stringify({ query, variables })
+			});
+			if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
+			const json = await res.json();
+			if (json.errors) throw new Error(json.errors[0].message);
+			data = json.data;
+		} else {
+			try {
+				const res = await fetchFn('/api/anilist', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+					body: JSON.stringify({ query, variables })
+				});
+				if (!res.ok) throw new Error(`AniList edge HTTP ${res.status}`);
+				data = await res.json();
+				if (data?.errors) throw new Error(data.errors[0]?.message || 'AniList GraphQL error');
+			} catch (edgeErr) {
+				console.warn('AniList edge route failed, falling back to direct GraphQL:', edgeErr);
+				const res = await fetchFn('https://graphql.anilist.co', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+					body: JSON.stringify({ query, variables })
+				});
+				if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
+				const json = await res.json();
+				if (json.errors) throw new Error(json.errors[0].message);
+				data = json.data;
+			}
+		}
+	
+		aniCacheSet(key, data);
+		return data;
+	}
 
 const mediaFieldsInline = `
     id idMal
@@ -226,14 +262,65 @@ function transformMedia(media: any) {
 		}
 	}
 
+	let formattedCharacters = [];
+	if (media.characters?.edges) {
+		formattedCharacters = media.characters.edges.map((edge: any) => ({
+			role: edge.role,
+			character: {
+				id: edge.node?.id,
+				name: edge.node?.name?.full || edge.node?.name?.native || 'Unknown',
+				native: edge.node?.name?.native || '',
+				images: {
+					jpg: {
+						image_url: edge.node?.image?.large || edge.node?.image?.medium || ''
+					}
+				}
+			},
+			voiceActors: edge.voiceActors?.map((va: any) => ({
+				id: va.id,
+				name: va.name?.full || va.name?.native,
+				image: va.image?.large || va.image?.medium
+			})) || []
+		}));
+	}
+
+	let formattedRelations = [];
+	if (media.relations?.edges) {
+		formattedRelations = media.relations.edges
+			.filter((edge: any) => edge?.node)
+			.map((edge: any) => ({
+				relation: edge.relationType,
+				entry: transformMedia(edge.node)
+			}));
+	}
+
+	let formattedRecommendations = [];
+	if (media.recommendations?.nodes) {
+		formattedRecommendations = media.recommendations.nodes
+			.filter((node: any) => node?.mediaRecommendation)
+			.map((node: any) => transformMedia(node.mediaRecommendation));
+	}
+
+	let formattedStudios = [];
+	if (media.studios?.nodes) {
+		formattedStudios = media.studios.nodes.map((node: any) => node?.name).filter(Boolean);
+	}
+
 	return {
 		...media,
 		id: media.id || media.mal_id,
 		title: bestTitle,
+		title_english: media.title?.english || media.title_english || '',
+		title_japanese: media.title?.native || media.title_native || '',
+		title_romaji: media.title?.romaji || media.title_romaji || '',
 		score: media.score > 10 ? media.score / 10 : media.score,
 		rating: media.rating > 10 ? media.rating / 10 : media.rating,
 		poster: media.poster || media.image || (media.coverImage?.extraLarge || media.coverImage?.large) || '',
-		synopsis: media.synopsis?.replace(/<[^>]*>?/gm, '') || ''
+		synopsis: media.synopsis?.replace(/<[^>]*>?/gm, '') || '',
+		characters: formattedCharacters.length ? formattedCharacters : (media.characters || []),
+		relations: formattedRelations.length ? formattedRelations : (media.relations || []),
+		recommendations: formattedRecommendations.length ? formattedRecommendations : (media.recommendations || []),
+		studios: formattedStudios.length ? formattedStudios : (media.studios || [])
 	};
 }
 
@@ -277,19 +364,8 @@ async function getEpisodesFromAnilist(
 	// We must NOT alias both lookups in one query: if one id 404s, AniList aborts
 	// the WHOLE query and returns null for both. So try each as its own query.
 	const runQuery = async (query: string): Promise<any> => {
-		if (browser && !customFetch) {
-			const data = await queryAnilist(query, { id: numId });
-			return data?.Media ?? null;
-		}
-		const fetchFn = customFetch || fetch;
-		const res = await fetchFn('https://graphql.anilist.co', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-			body: JSON.stringify({ query, variables: { id: numId } })
-		});
-		if (!res.ok) return null;
-		const json = await res.json();
-		return json.data?.Media ?? null;
+		const data = await queryAnilist(query, { id: numId }, customFetch);
+		return data?.Media ?? null;
 	};
 
 	let media: any = null;
@@ -330,46 +406,177 @@ const searchCache = new Map<string, { data: any; time: number }>();
 const SEARCH_CACHE_TTL = 300_000; // 5 minutes
 
 export const api = {
-	getHome: async (force = false, customFetch?: typeof fetch) => {
+	getHomeBundle: async (customFetch?: typeof fetch, force = false) => {
 		if (homeCache && !force && Date.now() - homeCacheTime < CACHE_TTL) return homeCache;
-		const res = await fetchJSON(`${BASE_URL}/home`, { fetch: customFetch });
-		homeCache = res?.data || res;
-		homeCacheTime = Date.now();
-		return homeCache;
+
+		const query = `
+			query HomeDashboard($page: Int, $perPage: Int) {
+				trending: Page(page: $page, perPage: $perPage) {
+					pageInfo { currentPage hasNextPage perPage }
+					media(type: ANIME, sort: TRENDING_DESC) { ${mediaFieldsInline} bannerImage duration }
+				}
+				popular: Page(page: $page, perPage: $perPage) {
+					pageInfo { currentPage hasNextPage perPage }
+					media(type: ANIME, sort: POPULARITY_DESC) { ${mediaFieldsInline} bannerImage duration }
+				}
+				topRated: Page(page: $page, perPage: $perPage) {
+					pageInfo { currentPage hasNextPage perPage }
+					media(type: ANIME, sort: SCORE_DESC) { ${mediaFieldsInline} bannerImage duration }
+				}
+				romance: Page(page: $page, perPage: $perPage) {
+					pageInfo { currentPage hasNextPage perPage }
+					media(type: ANIME, genre: "Romance", sort: POPULARITY_DESC) { ${mediaFieldsInline} bannerImage duration }
+				}
+				movies: Page(page: $page, perPage: $perPage) {
+					pageInfo { currentPage hasNextPage perPage }
+					media(type: ANIME, format: MOVIE, sort: POPULARITY_DESC) { ${mediaFieldsInline} bannerImage duration }
+				}
+				seasonal: Page(page: $page, perPage: $perPage) {
+					pageInfo { currentPage hasNextPage perPage }
+					media(type: ANIME, status: RELEASING, sort: TRENDING_DESC) { ${mediaFieldsInline} bannerImage duration }
+				}
+			}`;
+
+		try {
+			const data = await queryAnilist(query, { page: 1, perPage: 20 }, customFetch);
+			homeCache = {
+				trending: data?.trending?.media?.map(transformMedia) || [],
+				popular: data?.popular?.media?.map(transformMedia) || [],
+				topRated: data?.topRated?.media?.map(transformMedia) || [],
+				romance: data?.romance?.media?.map(transformMedia) || [],
+				movies: data?.movies?.media?.map(transformMedia) || [],
+				seasonal: data?.seasonal?.media?.map(transformMedia) || [],
+				pagination: {
+					trending: data?.trending?.pageInfo,
+					popular: data?.popular?.pageInfo,
+					topRated: data?.topRated?.pageInfo,
+					romance: data?.romance?.pageInfo,
+					movies: data?.movies?.pageInfo,
+					seasonal: data?.seasonal?.pageInfo
+				}
+			};
+			homeCacheTime = Date.now();
+			return homeCache;
+		} catch (err) {
+			console.warn('AniList home bundle failed, falling back to backend home:', err);
+			const res = await fetchJSON(`${BASE_URL}/home`, { fetch: customFetch });
+			homeCache = res?.data || res;
+			homeCacheTime = Date.now();
+			return homeCache;
+		}
+	},
+
+	getHome: async (force = false, customFetch?: typeof fetch) => {
+		return api.getHomeBundle(customFetch, force);
 	},
 
 	getAnime: async (id: string | number, customFetch?: typeof fetch) => {
-		if (browser && !customFetch) {
-			try {
-				const numId = parseInt(String(id), 10);
-				if (!isNaN(numId)) {
-					// Query both AniList id and MAL id via aliases — home page may pass MAL IDs
-					const query = `query($id: Int) {
-						byAnilistId: Media(id: $id, type: ANIME) { ${mediaFieldsInline} }
-						byMalId: Media(idMal: $id, type: ANIME) { ${mediaFieldsInline} }
-					}`;
-					const data = await queryAnilist(query, { id: numId });
-					const media = data?.byAnilistId || data?.byMalId;
-					if (media) return transformMedia(media);
-				} else {
-					const query = `query { Media(idMal: ${id}, type: ANIME) { ${mediaFieldsInline} } }`;
-					const data = await queryAnilist(query);
-					if (data?.Media) return transformMedia(data.Media);
+		try {
+			const numId = parseInt(String(id), 10);
+			const detailFields = `
+				id idMal
+				title { romaji english native userPreferred }
+				synonyms
+				coverImage { extraLarge large }
+				bannerImage
+				description format status episodes duration
+				averageScore seasonYear season genres popularity
+				studios(isMain: true) { nodes { name } }
+				trailer { id site thumbnail }
+				nextAiringEpisode { episode airingAt timeUntilAiring }
+				relations {
+					edges {
+						relationType(version: 2)
+						node {
+							id idMal
+							title { romaji english native userPreferred }
+							coverImage { extraLarge large }
+							format status episodes averageScore seasonYear
+						}
+					}
 				}
-			} catch (err) {
-				console.warn("Direct client getAnime failed, falling back to backend:", err);
+				recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
+					nodes {
+						mediaRecommendation {
+							id idMal
+							title { romaji english native userPreferred }
+							coverImage { extraLarge large }
+							format status episodes averageScore seasonYear
+						}
+					}
+				}
+				characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 24) {
+					edges {
+						role
+						node {
+							id
+							name { full native }
+							image { large medium }
+						}
+						voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
+							id
+							name { full native }
+							image { large medium }
+						}
+					}
+				}
+			`;
+
+			const runQuery = async (query: string, vars: Record<string, any>) => {
+				const data = await queryAnilist(query, vars, customFetch);
+				return data?.Media ?? null;
+			};
+
+			const baseQuery = `Media(type: ANIME) { ${detailFields} }`;
+			const asIntQuery = `query($id: Int) { ${baseQuery.replace('Media(', 'Media(id: $id, ')} }`;
+			const asMalQuery = `query($id: Int) { ${baseQuery.replace('Media(', 'Media(idMal: $id, ')} }`;
+
+			if (!isNaN(numId)) {
+				const byAnilist = await runQuery(asIntQuery, { id: numId });
+				if (byAnilist && byAnilist.id) return transformMedia(byAnilist);
+				// Try MAL id only if the integer id didn't resolve.
+				const byMal = await runQuery(asMalQuery, { id: numId });
+				if (byMal && byMal.id) return transformMedia(byMal);
+			} else {
+				const byMal = await runQuery(asMalQuery, { id: parseInt(String(id), 10) || 0 });
+				if (byMal && byMal.id) return transformMedia(byMal);
 			}
+		} catch (err) {
+			console.warn("Direct getAnime failed, falling back to backend:", err);
 		}
 		const res = await fetchJSON(`${BASE_URL}/anime/${id}`, { fetch: customFetch });
 		return res?.data || res;
 	},
 
-	getRelations: async (id: string | number) => {
-		const res = await fetchJSON(`${JIKAN_URL}/anime/${id}/relations`);
-		return res?.data || [];
+	getRelations: async (id: string | number, customFetch?: typeof fetch) => {
+		const numId = parseInt(String(id), 10);
+		if (isNaN(numId)) return [];
+
+		try {
+			const query = `query($id: Int) {
+				Media(id: $id, type: ANIME) {
+					relations {
+						edges {
+							relationType(version: 2)
+							node { ${mediaFieldsInline} }
+						}
+					}
+				}
+			}`;
+			const data = await queryAnilist(query, { id: numId }, customFetch);
+			return (data?.Media?.relations?.edges || [])
+				.filter((edge: any) => edge?.node)
+				.map((edge: any) => ({
+					relation: edge.relationType,
+					entry: transformMedia(edge.node)
+				}));
+		} catch (err) {
+			console.warn('AniList relations failed:', err);
+			return [];
+		}
 	},
 
-	search: async (q: string, page = 1, limit = 20, filters: any = {}) => {
+	search: async (q: string, page = 1, limit = 20, filters: any = {}, customFetch?: typeof fetch) => {
 		// Expand abbreviations ("aot" → "attack on titan") before hitting any API
 		const expanded = expandAlias(q);
 		const cacheKey = `${q.trim().toLowerCase()}:${page}:${limit}:${filters.sort?.[0] || filters.sort || ''}:${filters.format || ''}:${filters.status || ''}:${filters.genre || ''}`;
@@ -378,51 +585,47 @@ export const api = {
 			return cached.data;
 		}
 
-		// Try direct client-side AniList GraphQL search (uses USER's own IP address quota!)
-		if (browser) {
-			try {
-				const searchQuery = `
-					query ($search: String, $page: Int, $perPage: Int, $sort: [MediaSort], $format: MediaFormat, $status: MediaStatus, $genre: String) {
-						Page(page: $page, perPage: $perPage) {
-							pageInfo { hasNextPage total }
-							media(search: $search, type: ANIME, sort: $sort, format: $format, status: $status, genre: $genre) {
-								id idMal
-								title { romaji english native userPreferred }
-								coverImage { extraLarge large }
-								bannerImage format status episodes duration genres
-								averageScore popularity seasonYear description
-							}
+		// Official AniList pagination pattern: one Page(media) field per paginated request.
+		try {
+			const searchQuery = `
+				query ($search: String, $page: Int, $perPage: Int, $sort: [MediaSort], $format: MediaFormat, $status: MediaStatus, $genre: String) {
+					Page(page: $page, perPage: $perPage) {
+						pageInfo { currentPage hasNextPage perPage }
+						media(search: $search, type: ANIME, sort: $sort, format: $format, status: $status, genre: $genre) {
+							${mediaFieldsInline}
+							bannerImage duration
 						}
 					}
-				`;
-				const variables: any = {
-					page,
-					perPage: limit,
-					sort: Array.isArray(filters.sort) ? filters.sort : [filters.sort || 'POPULARITY_DESC']
-				};
-				if (expanded.trim()) variables.search = expanded.trim();
-				if (filters.format) variables.format = filters.format.toUpperCase();
-				if (filters.status) variables.status = filters.status.toUpperCase();
-				if (filters.genre) variables.genre = filters.genre;
-
-				const data = await queryAnilist(searchQuery, variables);
-				if (data?.Page?.media) {
-					const formatted = {
-						data: data.Page.media.map(transformMedia),
-						pagination: {
-							has_next_page: data.Page.pageInfo?.hasNextPage ?? false,
-							total: data.Page.pageInfo?.total ?? 0
-						}
-					};
-					searchCache.set(cacheKey, { data: formatted, time: Date.now() });
-					return formatted;
 				}
-			} catch (clientErr) {
-				console.warn("Direct client AniList search failed/rate-limited, falling back to backend proxy:", clientErr);
+			`;
+			const variables: any = {
+				page,
+				perPage: limit,
+				sort: Array.isArray(filters.sort) ? filters.sort : [filters.sort || 'POPULARITY_DESC']
+			};
+			if (expanded.trim()) variables.search = expanded.trim();
+			if (filters.format) variables.format = filters.format.toUpperCase();
+			if (filters.status) variables.status = filters.status.toUpperCase();
+			if (filters.genre) variables.genre = filters.genre;
+
+			const data = await queryAnilist(searchQuery, variables, customFetch);
+			if (data?.Page?.media) {
+				const formatted = {
+					data: data.Page.media.map(transformMedia),
+					pagination: {
+						has_next_page: data.Page.pageInfo?.hasNextPage ?? false,
+						current_page: data.Page.pageInfo?.currentPage ?? page,
+						per_page: data.Page.pageInfo?.perPage ?? limit
+					}
+				};
+				searchCache.set(cacheKey, { data: formatted, time: Date.now() });
+				return formatted;
 			}
+		} catch (clientErr) {
+			console.warn("Direct AniList Page(media) query failed, falling back to backend proxy:", clientErr);
 		}
 
-		// Fallback to backend server proxy if client query fails or during SSR
+		// Fallback to backend server proxy if direct AniList query fails
 				const params = new URLSearchParams({
 					q: expanded,
 					page: page.toString(),
@@ -440,154 +643,65 @@ export const api = {
 					}
 					return res;
 				} catch (backendErr) {
-					console.warn('Backend search failed, trying Jikan direct:', backendErr);
-				}
-
-				// Last resort: call Jikan directly from browser (user IP, not VPS rate-limited)
-				if (browser) {
-					try {
-						const jp = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
-						if (expanded.trim()) jp.append('q', expanded.trim());
-						if (filters.format) jp.append('type', filters.format.toLowerCase());
-						if (filters.status) {
-							const sm: Record<string, string> = { RELEASING: 'airing', FINISHED: 'complete', NOT_YET_RELEASED: 'upcoming' };
-							const js = sm[filters.status.toUpperCase()];
-							if (js) jp.append('status', js);
-						}
-						const jRes = await fetch(`https://api.jikan.moe/v4/anime?${jp.toString()}`);
-						if (jRes.ok) {
-							const jData = await jRes.json();
-							if (jData?.data) {
-								const formatted = {
-									data: jData.data.map((a: any) => ({
-										id: a.mal_id,
-										mal_id: a.mal_id,
-										title: a.title_english || a.title || 'Unknown',
-										poster: a.images?.jpg?.large_image_url || a.images?.jpg?.image_url || '',
-										image: a.images?.jpg?.large_image_url || a.images?.jpg?.image_url || '',
-										score: a.score,
-										rating: a.score,
-										type: a.type === 'Movie' ? 'MOVIE' : 'TV',
-										episodes: a.episodes,
-										status: a.status,
-										synopsis: a.synopsis || '',
-										genres: a.genres?.map((g: any) => g.name) || [],
-										year: a.year,
-									})),
-									pagination: { has_next_page: jData.pagination?.has_next_page ?? false }
-								};
-								searchCache.set(cacheKey, { data: formatted, time: Date.now() });
-								return formatted;
-							}
-						}
-					} catch (jikanErr) {
-						console.warn('Jikan direct search also failed:', jikanErr);
-					}
+					console.warn('AniList search proxy failed:', backendErr);
 				}
 
 				return { data: [], pagination: { has_next_page: false } };
 			},
 
 	getTopAnime: async (format = 'TV', page = 1, limit = 20, sort = 'POPULARITY_DESC', customFetch?: typeof fetch) => {
-		if (browser && !customFetch) {
-			try {
-				return await api.search('', page, limit, { format, sort: [sort] });
-			} catch (err) {
-				console.warn("Direct client getTopAnime failed, falling back to backend:", err);
-			}
-		}
-		const params = new URLSearchParams({
-			format: format.toUpperCase(),
-			page: page.toString(),
-			limit: limit.toString(),
-			sort: sort
-		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
+		return api.search('', page, limit, { format, sort: [sort] }, customFetch);
 	},
 
-	getAnilistSchedule: async (start: number, end: number) => {
-		if (browser) {
-			try {
-				const query = `
-					query ($start: Int, $end: Int) {
-						Page(page: 1, perPage: 50) {
-							airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) {
-								id airingAt timeUntilAiring episode mediaId
-								media {
-									id idMal
-									title { romaji english native userPreferred }
-									coverImage { extraLarge large }
-									bannerImage format status episodes duration genres
-									averageScore popularity seasonYear description
-								}
+	getAnilistSchedule: async (start: number, end: number, customFetch?: typeof fetch) => {
+		try {
+			const query = `
+				query ($start: Int, $end: Int) {
+					Page(page: 1, perPage: 50) {
+						airingSchedules(airingAt_greater: $start, airingAt_lesser: $end, sort: TIME) {
+							id airingAt timeUntilAiring episode mediaId
+							media {
+								id idMal
+								title { romaji english native userPreferred }
+								coverImage { extraLarge large }
+								bannerImage format status episodes duration genres
+								averageScore popularity seasonYear description
 							}
 						}
 					}
-				`;
-				const data = await queryAnilist(query, { start, end });
-								if (data?.Page?.airingSchedules) {
-									return data.Page.airingSchedules.map((item: any) => {
-										const m = transformMedia(item.media);
-										return { ...m, airingAt: item.airingAt, episode: item.episode, mediaId: item.mediaId, airingScheduleId: item.id, nextAiringEpisode: { episode: item.episode, airingAt: item.airingAt } };
-									});
 				}
-			} catch (err) {
-				console.warn("Direct client getAnilistSchedule failed, falling back to backend:", err);
+			`;
+			const data = await queryAnilist(query, { start, end }, customFetch);
+			if (data?.Page?.airingSchedules) {
+				return data.Page.airingSchedules.map((item: any) => {
+					const m = transformMedia(item.media);
+					return {
+						...m,
+						airingAt: item.airingAt,
+						episode: item.episode,
+						mediaId: item.mediaId,
+						airingScheduleId: item.id,
+						nextAiringEpisode: { episode: item.episode, airingAt: item.airingAt }
+					};
+				});
 			}
+		} catch (err) {
+			console.warn('AniList schedule query failed, falling back to backend:', err);
 		}
-		const res = await fetchJSON(`${BASE_URL}/schedule?start=${start}&end=${end}`);
+		const res = await fetchJSON(`${BASE_URL}/schedule?start=${start}&end=${end}`, { fetch: customFetch });
 		return res?.data || res;
 	},
 
 	getCurrentSeasonal: async (page = 1, limit = 20, customFetch?: typeof fetch) => {
-		if (browser && !customFetch) {
-			try {
-				return await api.search('', page, limit, { status: 'RELEASING', sort: ['TRENDING_DESC'] });
-			} catch (err) {
-				console.warn("Direct client getCurrentSeasonal failed, falling back to backend:", err);
-			}
-		}
-		const params = new URLSearchParams({
-			status: 'RELEASING',
-			page: page.toString(),
-			limit: limit.toString(),
-			sort: 'TRENDING_DESC'
-		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
+		return api.search('', page, limit, { status: 'RELEASING', sort: ['TRENDING_DESC'] }, customFetch);
 	},
 
 	getUpcoming: async (page = 1, limit = 20, customFetch?: typeof fetch) => {
-		if (browser && !customFetch) {
-			try {
-				return await api.search('', page, limit, { status: 'NOT_YET_RELEASED', sort: ['POPULARITY_DESC'] });
-			} catch (err) {
-				console.warn("Direct client getUpcoming failed, falling back to backend:", err);
-			}
-		}
-		const params = new URLSearchParams({
-			status: 'NOT_YET_RELEASED',
-			page: page.toString(),
-			limit: limit.toString(),
-			sort: 'POPULARITY_DESC'
-		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
+		return api.search('', page, limit, { status: 'NOT_YET_RELEASED', sort: ['POPULARITY_DESC'] }, customFetch);
 	},
 
 	getByGenre: async (genre: string, page = 1, limit = 20, customFetch?: typeof fetch) => {
-		if (browser && !customFetch) {
-			try {
-				return await api.search('', page, limit, { genre, sort: ['POPULARITY_DESC'] });
-			} catch (err) {
-				console.warn("Direct client getByGenre failed, falling back to backend:", err);
-			}
-		}
-		const params = new URLSearchParams({
-			genre,
-			page: page.toString(),
-			limit: limit.toString(),
-			sort: 'POPULARITY_DESC'
-		});
-		return fetchJSON(`${BASE_URL}/search?${params.toString()}`, { fetch: customFetch });
+		return api.search('', page, limit, { genre, sort: ['POPULARITY_DESC'] }, customFetch);
 	},
 
 	getRecommendations: async (id: string | number, customFetch?: typeof fetch) => {
@@ -660,22 +774,23 @@ export const api = {
 				}
 				if (media?.characters?.edges) {
 					return media.characters.edges.map((edge: any) => ({
-						role: edge.role,
-						character: {
-							id: edge.node?.id,
-							name: edge.node?.name?.full || edge.node?.name?.native || 'Unknown',
-							images: {
-								jpg: {
-									image_url: edge.node?.image?.large || edge.node?.image?.medium || ''
-								}
-							}
-						},
-						voiceActors: edge.voiceActors?.map((va: any) => ({
-							id: va.id,
-							name: va.name?.full || va.name?.native,
-							image: va.image?.large || va.image?.medium
-						})) || []
-					}));
+                                                        role: edge.role,
+                                                        character: {
+                                                                id: edge.node?.id,
+                                                                name: edge.node?.name?.full || edge.node?.name?.native || 'Unknown',
+                                                                native: edge.node?.name?.native || '',
+                                                                images: {
+                                                                        jpg: {
+                                                                                image_url: edge.node?.image?.large || edge.node?.image?.medium || ''
+                                                                        }
+                                                                }
+                                                        },
+                                                        voiceActors: edge.voiceActors?.map((va: any) => ({
+                                                                id: va.id,
+                                                                name: va.name?.full || va.name?.native,
+                                                                image: va.image?.large || va.image?.medium
+                                                        })) || []
+                                                }));
 				}
 			} catch (clientErr) {
 				console.warn("Direct client getCharacters failed, falling back to backend:", clientErr);
@@ -687,49 +802,6 @@ export const api = {
 		} catch { return []; }
 	},
 
-	getStaff: async (id: string | number) => {
-		if (browser) {
-			try {
-				const numId = parseInt(String(id), 10);
-				const staffFields = `staff(sort: [RELEVANCE, ID_DESC], page: 1, perPage: 12) {
-					edges {
-						role
-						node {
-							id
-							name { full }
-							image { large }
-						}
-					}
-				}`;
-				let media: any = null;
-				if (!isNaN(numId)) {
-					const query = `query($id: Int) {
-						byAnilistId: Media(id: $id, type: ANIME) { ${staffFields} }
-						byMalId: Media(idMal: $id, type: ANIME) { ${staffFields} }
-					}`;
-					const data = await queryAnilist(query, { id: numId });
-					media = data?.byAnilistId || data?.byMalId;
-				} else {
-					const query = `query { Media(idMal: ${id}, type: ANIME) { ${staffFields} } }`;
-					const data = await queryAnilist(query);
-					media = data?.Media;
-				}
-				if (media?.staff?.edges) {
-					return media.staff.edges.map((e: any) => ({
-						name: e.node?.name?.full,
-						role: e.role,
-						image: e.node?.image?.large
-					}));
-				}
-			} catch (clientErr) {
-				console.warn("Direct client getStaff failed:", clientErr);
-			}
-		}
-		try {
-			const res = await fetchJSON(`${BASE_URL}/staff/${id}`);
-			return res?.data || [];
-		} catch { return []; }
-	},
 
 	getRandomAnime: async () => {
 		if (browser) {
@@ -777,15 +849,7 @@ export const api = {
 		}
 	},
 
-	getAiringSchedule: async (page = 1, limit = 20) => {
-		return api.getCurrentSeasonal(page, limit);
-	},
 
-	getSchedule: async (day?: string) => {
-		const url = day ? `${JIKAN_URL}/schedule?filter=${day}` : `${JIKAN_URL}/schedule`;
-		const res = await fetchJSON(url);
-		return res;
-	},
 
 	// Streaming
 	// Episode list is sourced from AniList (episode count + streamingEpisodes for
@@ -852,12 +916,10 @@ export const api = {
 		getAggregateSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources?animeId=${animeId}&ep=${ep}`),
 
-	getAnimelokSlug: (animeId: string) =>
-		fetchJSON(`${STREAMING_URL}/animelok-slug?animeId=${animeId}`),
 
-	// Jikan
+	// Legacy compatibility: episode lists are AniList-backed now.
 	getEpisodes: (animeId: string | number, page = 1) =>
-		fetchJSON(`${JIKAN_URL}/anime/${animeId}/episodes?page=${page}`),
+		api.getEpisodeMetadata(animeId, page, 50),
 
 	// ==========================================
 	// Auth & User API

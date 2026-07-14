@@ -247,7 +247,7 @@
   }
   .overlay-state p { font-size: 0.85rem; color: #a8a8a8; text-align: center; max-width: 320px; }
   .btn-retry {
-    padding: 0.5rem 1.2rem; background: var(--accent, #e50914); color: #fff;
+    padding: 0.5rem 1.2rem; background: var(--accent, #FF8A3D); color: #fff;
     border: none; border-radius: 8px; font-weight: 700; font-size: 0.82rem;
     cursor: pointer; font-family: inherit;
   }
@@ -255,7 +255,7 @@
   .spinner-premium {
     width: 50px; height: 50px;
     border: 3px solid rgba(229, 9, 20, 0.12);
-    border-top: 3px solid var(--accent, #e50914);
+    border-top: 3px solid var(--accent, #FF8A3D);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -291,7 +291,7 @@
     color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.2s;
   }
   .ctrl-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-  .ctrl-btn.active { color: var(--accent, #e50914); }
+  .ctrl-btn.active { color: var(--accent, #FF8A3D); }
   @media (pointer: coarse) {
     .ctrl-btn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
     .top-controls-hub,
@@ -312,11 +312,11 @@
   }
   .resume-popup { bottom: 80px; left: 50%; transform: translateX(-50%); }
   .next-countdown { bottom: 80px; right: 20px; }
-  .resume-icon { color: var(--accent, #e50914); }
+  .resume-icon { color: var(--accent, #FF8A3D); }
   .resume-text p { margin: 0; font-size: 0.85rem; color: #e8e8e8; }
   .resume-btns { display: flex; gap: 0.4rem; }
   .res-btn-p {
-    padding: 0.35rem 0.85rem; background: var(--accent, #e50914); color: #fff;
+    padding: 0.35rem 0.85rem; background: var(--accent, #FF8A3D); color: #fff;
     border: none; border-radius: 6px; font-weight: 700; font-size: 0.78rem;
     cursor: pointer; font-family: inherit;
   }
@@ -330,7 +330,7 @@
   .countdown-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .countdown-circle .bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
   .countdown-circle .progress {
-    fill: none; stroke: var(--accent, #e50914); stroke-width: 3;
+    fill: none; stroke: var(--accent, #FF8A3D); stroke-width: 3;
     stroke-linecap: round; stroke-dasharray: 175.9;
     stroke-dashoffset: calc(175.9 - (175.9 * var(--progress, 0) / 100));
     transition: stroke-dashoffset 0.3s ease;

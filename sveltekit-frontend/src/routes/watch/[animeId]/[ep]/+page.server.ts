@@ -21,21 +21,25 @@ export const load: PageServerLoad = async ({ params, fetch, setHeaders }) => {
 			'public, max-age=300, s-maxage=3600, stale-while-revalidate=3600, stale-if-error=86400'
 	});
 
-	const emptyEpisodes = { data: { episodes: [] as any[] } };
+	const anime = await withSeoTimeout(api.getAnime(animeId, fetch), null, 2500);
 
-	const [anime, metaRes, recommendations] = await Promise.allSettled([
-		withSeoTimeout(api.getAnime(animeId, fetch), null, 2500),
-		withSeoTimeout(api.getEpisodeMetadata(animeId, 1, 2000, fetch), emptyEpisodes, 2500),
-		withSeoTimeout(api.getRecommendations(animeId, fetch), [], 2500)
-	]);
+	let episodes: any[] = [];
+	if (anime) {
+		const n = Number(anime.episodes || 0);
+		const count = n > 0 ? Math.min(n, 500) : 12;
+		episodes = Array.from({ length: count }, (_, i) => ({
+			number: i + 1,
+			title: `Episode ${i + 1}`,
+			image: '',
+			thumbnail: ''
+		}));
+	}
 
 	return {
 		animeId: params.animeId,
 		ep: params.ep,
-		ssrAnime: anime.status === 'fulfilled' ? anime.value : null,
-		ssrEpisodes:
-			metaRes.status === 'fulfilled' ? metaRes.value?.data?.episodes || [] : [],
-		ssrRecommendations:
-			recommendations.status === 'fulfilled' ? recommendations.value : []
+		ssrAnime: anime,
+		ssrEpisodes: episodes,
+		ssrRecommendations: anime?.recommendations || []
 	};
 };

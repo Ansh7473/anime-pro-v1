@@ -316,7 +316,7 @@
     align-items: center;
     gap: 0.5rem;
     background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     padding: 0.4rem 1rem;
     border-radius: 50px;
     font-size: 0.8rem;
@@ -343,7 +343,7 @@
     transition: all 0.2s;
   }
   .stat-card:hover {
-    border-color: rgba(229, 9, 20, 0.2);
+    border-color: rgba(255, 138, 61, 0.22);
     background: rgba(255, 255, 255, 0.05);
   }
   .stat-icon {
@@ -374,7 +374,7 @@
     transition: all 0.2s;
   }
   .resume-card:hover {
-    border-color: rgba(229, 9, 20, 0.2);
+    border-color: rgba(255, 138, 61, 0.22);
   }
   .resume-poster {
     width: 60px;
@@ -592,7 +592,7 @@
     transition: all 0.2s;
   }
   .rec-card:hover {
-    border-color: rgba(229, 9, 20, 0.2);
+    border-color: rgba(255, 138, 61, 0.22);
     background: rgba(255, 255, 255, 0.05);
   }
   .rec-poster {

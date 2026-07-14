@@ -1,0 +1,175 @@
+/* ============================================
+ * WatchAnimez Motion System
+ * GPU-accelerated animations using transform/opacity only.
+ * All motion gated behind prefers-reduced-motion.
+ * ============================================ */
+
+/* -- Custom Properties -- */
+:root {
+  --motion-duration: 0.5s;
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-stagger: 60ms;
+}
+
+/* -- Base smooth transition utility -- */
+.motion-smooth {
+  transition: all 0.3s var(--motion-ease);
+}
+
+/* ============================================
+ * All animations: only when user allows motion
+ * ============================================ */
+@media (prefers-reduced-motion: no-preference) {
+
+  /* -- Scroll Reveal (initial hidden state) -- */
+  .motion-fade-up,
+  .motion-fade-in,
+  .motion-scale-in,
+  .motion-slide-left,
+  .motion-slide-right {
+    opacity: 0;
+    transition:
+      opacity var(--motion-duration) var(--motion-ease),
+      transform var(--motion-duration) var(--motion-ease);
+  }
+
+  .motion-fade-up { transform: translateY(24px); }
+  .motion-fade-in { transform: none; }
+  .motion-scale-in { transform: scale(0.92); }
+  .motion-slide-left { transform: translateX(32px); }
+  .motion-slide-right { transform: translateX(-32px); }
+
+  /* Revealed state via Intersection Observer */
+  .motion-fade-up.is-visible,
+  .motion-fade-in.is-visible,
+  .motion-scale-in.is-visible,
+  .motion-slide-left.is-visible,
+  .motion-slide-right.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* @starting-style entry (CSS-only reveal for supporting browsers) */
+  @starting-style {
+    .motion-fade-up.is-visible { opacity: 0; transform: translateY(24px); }
+    .motion-fade-in.is-visible { opacity: 0; }
+    .motion-scale-in.is-visible { opacity: 0; transform: scale(0.92); }
+    .motion-slide-left.is-visible { opacity: 0; transform: translateX(32px); }
+    .motion-slide-right.is-visible { opacity: 0; transform: translateX(-32px); }
+  }
+
+  /* -- Stagger delays (.motion-stagger-1 through .motion-stagger-8) -- */
+  .motion-stagger-1 { transition-delay: calc(var(--motion-stagger) * 1); }
+  .motion-stagger-2 { transition-delay: calc(var(--motion-stagger) * 2); }
+  .motion-stagger-3 { transition-delay: calc(var(--motion-stagger) * 3); }
+  .motion-stagger-4 { transition-delay: calc(var(--motion-stagger) * 4); }
+  .motion-stagger-5 { transition-delay: calc(var(--motion-stagger) * 5); }
+  .motion-stagger-6 { transition-delay: calc(var(--motion-stagger) * 6); }
+  .motion-stagger-7 { transition-delay: calc(var(--motion-stagger) * 7); }
+  .motion-stagger-8 { transition-delay: calc(var(--motion-stagger) * 8); }
+
+  /* -- Hover micro-interactions (pointer devices only) -- */
+  @media (hover: hover) {
+    .motion-hover-lift {
+      transition: transform 0.25s var(--motion-ease), box-shadow 0.25s var(--motion-ease);
+    }
+    .motion-hover-lift:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .motion-hover-glow {
+      transition: box-shadow 0.3s var(--motion-ease);
+    }
+    .motion-hover-glow:hover {
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);
+    }
+
+    .motion-hover-scale {
+      transition: transform 0.25s var(--motion-ease);
+    }
+    .motion-hover-scale:hover {
+      transform: scale(1.03);
+    }
+  }
+
+  /* -- Loading shimmer -- */
+  @keyframes motion-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .motion-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .motion-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.06) 40%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.06) 60%,
+      transparent 100%
+    );
+    animation: motion-shimmer 1.8s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  /* -- Pulse & Breathe -- */
+  @keyframes motion-pulse-kf {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+  @keyframes motion-breathe-kf {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .motion-pulse {
+    animation: motion-pulse-kf 2.5s var(--motion-ease) infinite;
+  }
+  .motion-breathe {
+    animation: motion-breathe-kf 3s ease-in-out infinite;
+  }
+
+  /* -- Page entry -- */
+  @keyframes motion-page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .motion-page-enter {
+    animation: motion-page-enter var(--motion-duration) var(--motion-ease) both;
+  }
+}
+
+/* ============================================
+ * Reduced motion: kill all animation/transition
+ * ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-fade-up,
+  .motion-fade-in,
+  .motion-scale-in,
+  .motion-slide-left,
+  .motion-slide-right {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -162,7 +162,7 @@
   }
   .avatar-option img { width: 100%; height: 100%; object-fit: cover; }
   .avatar-option:hover { border-color: rgba(255, 255, 255, 0.2); }
-  .avatar-option.selected { border-color: var(--net-red); box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.3); }
+  .avatar-option.selected { border-color: var(--net-red); box-shadow: 0 0 0 2px rgba(255, 138, 61, 0.3); }
   .alert-error {
     display: flex;
     align-items: center;

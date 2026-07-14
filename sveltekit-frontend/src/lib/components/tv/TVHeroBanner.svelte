@@ -195,8 +195,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
-    background: rgba(229, 9, 20, 0.2);
-    border: 2px solid rgba(229, 9, 20, 0.3);
+    background: rgba(255, 138, 61, 0.22);
+    border: 2px solid rgba(255, 138, 61, 0.3);
     padding: 0.6rem 1.2rem;
     border-radius: 50px;
     font-size: 1.1rem;

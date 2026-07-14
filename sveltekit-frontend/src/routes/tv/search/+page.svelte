@@ -123,7 +123,7 @@
   .search-input-container:focus-within {
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--net-red);
-    box-shadow: 0 0 50px rgba(229, 9, 20, 0.2);
+    box-shadow: 0 0 50px rgba(255, 138, 61, 0.22);
     transform: scale(1.02);
   }
 

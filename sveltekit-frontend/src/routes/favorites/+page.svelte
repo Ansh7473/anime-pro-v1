@@ -207,7 +207,7 @@
     }
 
     .btn-primary:hover {
-        background: #e50914;
+        background: #FF8A3D;
         transform: translateY(-2px);
     }
 

@@ -255,7 +255,7 @@
     letter-spacing: 0.04em;
   }
   .ep-panel-title :global(svg) {
-    color: var(--accent, #e50914);
+    color: var(--accent, #FF8A3D);
   }
   .ep-panel-count {
     font-size: 0.65rem;
@@ -318,7 +318,7 @@
     transition: all 0.2s;
   }
   .ep-view-toggle button.on {
-    background: var(--accent, #e50914);
+    background: var(--accent, #FF8A3D);
     color: #fff;
   }
   .ep-view-toggle button:not(.on):hover {
@@ -346,7 +346,7 @@
     color: rgba(255, 255, 255, 0.35);
   }
   .ep-filter-input:focus {
-    border-color: rgba(229, 9, 20, 0.3);
+    border-color: rgba(255, 138, 61, 0.3);
     background: rgba(255, 255, 255, 0.05);
   }
 
@@ -383,13 +383,13 @@
   }
   .ep-num-btn.watched {
     background: rgba(229, 9, 20, 0.1);
-    color: var(--accent, #e50914);
+    color: var(--accent, #FF8A3D);
     border-color: rgba(229, 9, 20, 0.15);
   }
   .ep-num-btn.current {
-    background: var(--accent, #e50914);
+    background: var(--accent, #FF8A3D);
     color: #fff;
-    border-color: var(--accent, #e50914);
+    border-color: var(--accent, #FF8A3D);
   }
 
   /* Card / List view */
@@ -514,14 +514,14 @@
     box-shadow: 0 0 12px rgba(229, 9, 20, 0.15);
   }
   .ep-card.current .ep-card-title {
-    color: var(--accent, #e50914);
+    color: var(--accent, #FF8A3D);
   }
   .ep-card.current .ep-card-badge {
-    background: #e50914;
+    background: #FF8A3D;
     color: #fff;
   }
   .ep-card.current .ep-card-icon-tag {
-    background: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 138, 61, 0.22);
     color: #f40612;
   }
 

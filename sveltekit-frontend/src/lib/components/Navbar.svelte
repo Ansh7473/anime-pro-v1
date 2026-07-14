@@ -21,9 +21,12 @@
   import { page } from "$app/state";
   import { onMount } from "svelte";
   import { isTV } from "$lib/stores/device";
-  import { expandAlias, searchAndRankAnime } from "$lib/searchEngine";
+    // NOTE: searchEngine is intentionally NOT statically imported.
+    // It pulls in the 4-layer fuzzy ranker and is heavy. Lazy-load it
+    // only when the user actually types into the search box so the
+    // initial route transition isn't blocked by it.
 
-  let scrolled = $state(false);
+    let scrolled = $state(false);
   let searchOpen = $state(false);
   let searchQuery = $state("");
   let suggestions = $state<any[]>([]);
@@ -134,26 +137,30 @@
     }
 
     const reqId = ++searchReqId;
-    const timer = setTimeout(async () => {
-      isSearching = true;
-      try {
-        // Expand abbreviations ("aot" → "attack on titan") before hitting the API,
-        // then re-rank results with the 4-layer fuzzy engine so the most relevant
-        // titles surface first — not just the most popular.
-        const expanded = expandAlias(searchQuery.trim());
-        const res = await api.search(expanded);
-        // Ignore stale results from a cancelled/older debounce cycle
-        if (reqId !== searchReqId) return;
-        const ranked = searchAndRankAnime(searchQuery.trim(), res?.data || []);
-        suggestions = ranked.slice(0, 6);
-        showSuggestions = true;
-      } catch (err) {
-        if (reqId === searchReqId) console.error("Search error:", err);
-        if (reqId === searchReqId) suggestions = [];
-      } finally {
-        if (reqId === searchReqId) isSearching = false;
-      }
-    }, 400);
+      const timer = setTimeout(async () => {
+        isSearching = true;
+        try {
+          // Lazy-load the search engine only when the user actually types.
+          // This keeps the heavy fuzzy ranker out of the initial bundle
+          // so navigation isn't blocked by it.
+          const { expandAlias, searchAndRankAnime } = await import("$lib/searchEngine");
+          // Expand abbreviations ("aot" → "attack on titan") before hitting the API,
+          // then re-rank results with the 4-layer fuzzy engine so the most relevant
+          // titles surface first — not just the most popular.
+          const expanded = expandAlias(searchQuery.trim());
+          const res = await api.search(expanded);
+          // Ignore stale results from a cancelled/older debounce cycle
+          if (reqId !== searchReqId) return;
+          const ranked = searchAndRankAnime(searchQuery.trim(), res?.data || []);
+          suggestions = ranked.slice(0, 6);
+          showSuggestions = true;
+        } catch (err) {
+          if (reqId === searchReqId) console.error("Search error:", err);
+          if (reqId === searchReqId) suggestions = [];
+        } finally {
+          if (reqId === searchReqId) isSearching = false;
+        }
+      }, 400);
 
     return () => clearTimeout(timer);
   });
@@ -214,19 +221,20 @@
       </div>
     </a>
 
-    <!-- ACTION BUTTONS (browse links live under hero / bottom nav) -->
-    <div class="nav-actions">
-      <!-- QUICK SEARCH TRIGGER (DESKTOP) -->
-      <button
-        class="search-bar-trigger hide-mobile"
-        onclick={toggleSearch}
-        aria-label="Open search"
-      >
-        <Search size={16} class="search-trigger-icon" />
-        <span class="search-trigger-text">Search anime...</span>
-        <kbd class="search-shortcut">{isMac ? '⌘K' : 'Ctrl+K'}</kbd>
-      </button>
+    <!-- Center pill search (Miruro-style) -->
+    <button
+      type="button"
+      class="nav-search-pill hide-mobile"
+      onclick={toggleSearch}
+      aria-label="Search Anime"
+    >
+      <Search size={16} class="nav-search-pill-icon" />
+      <span class="nav-search-pill-text">Search Anime</span>
+      <kbd class="nav-search-pill-kbd">{isMac ? '⌘K' : 'Ctrl+K'}</kbd>
+    </button>
 
+    <!-- ACTION BUTTONS -->
+    <div class="nav-actions">
       <!-- MOBILE SEARCH ICON -->
       <button
         class="nav-icon-btn search-trigger-btn hide-desktop"
@@ -618,11 +626,11 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    padding: 0.75rem 2.5rem;
+    padding: 0.75rem var(--page-gutter, 2.5rem);
     padding-top: max(0.75rem, env(safe-area-inset-top));
-    padding-left: max(2.5rem, env(safe-area-inset-left));
-    padding-right: max(2.5rem, env(safe-area-inset-right));
-    background: linear-gradient(180deg, rgba(8, 8, 12, 0.96) 0%, rgba(8, 8, 12, 0.6) 70%, transparent 100%);
+    padding-left: max(var(--page-gutter, 2.5rem), env(safe-area-inset-left));
+    padding-right: max(var(--page-gutter, 2.5rem), env(safe-area-inset-right));
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.96) 0%, rgba(0, 0, 0, 0.72) 70%, transparent 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -630,7 +638,7 @@
   }
 
   .navbar.scrolled {
-    background: rgba(10, 10, 14, 0.94);
+    background: rgba(0, 0, 0, 0.94);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -671,7 +679,7 @@
     width: 34px;
     object-fit: cover;
     border-radius: 9px;
-    box-shadow: 0 0 14px rgba(229, 9, 20, 0.5);
+    box-shadow: 0 0 14px rgba(255, 138, 61, 0.5);
     transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     z-index: 2;
@@ -682,7 +690,7 @@
   .logo-glow {
     position: absolute;
     inset: -2px;
-    background: radial-gradient(circle, rgba(229, 9, 20, 0.6) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 138, 61, 0.55) 0%, transparent 70%);
     border-radius: 12px;
     filter: blur(4px);
     opacity: 0.7;
@@ -710,8 +718,8 @@
   }
 
   .logo-accent {
-    color: var(--net-red, #e50914);
-    text-shadow: 0 0 15px rgba(229, 9, 20, 0.6);
+    color: var(--net-red, #FF8A3D);
+    text-shadow: 0 0 15px rgba(255, 138, 61, 0.55);
   }
 
   .logo-subtag {
@@ -732,31 +740,51 @@
     z-index: 2;
   }
 
-  .search-bar-trigger {
+  .nav-search-pill {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    padding: 0.45rem 0.9rem;
-    color: rgba(255, 255, 255, 0.65);
+    gap: 0.55rem;
+    flex: 1 1 auto;
+    max-width: 460px;
+    min-width: 220px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.55rem 1rem;
+    color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     transition: all 0.2s ease;
   }
-
-  .search-bar-trigger:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(229, 9, 20, 0.5);
-    color: white;
-    box-shadow: 0 0 15px rgba(229, 9, 20, 0.2);
+  .nav-search-pill:hover {
+    background: rgba(255, 138, 61, 0.08);
+    border-color: rgba(255, 138, 61, 0.35);
+    color: rgba(255, 255, 255, 0.95);
   }
-
-  .search-trigger-text {
+  .nav-search-pill-icon { flex-shrink: 0; opacity: 0.8; }
+  .nav-search-pill-text {
+    flex: 1;
+    text-align: left;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-search-pill-kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 0.12rem 0.4rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: rgba(255, 255, 255, 0.55);
   }
 
+  /* legacy class kept for any residual refs */
+  .search-bar-trigger { display: none; }
+  .search-trigger-text { font-weight: 500; }
   .search-shortcut {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -815,7 +843,7 @@
   }
 
   .profile-trigger:hover {
-    border-color: var(--net-red, #e50914);
+    border-color: var(--net-red, #FF8A3D);
     transform: translateY(-1px);
     box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
   }
@@ -923,7 +951,7 @@
   }
 
   .dropdown-item.accent {
-    color: var(--net-red, #e50914);
+    color: var(--net-red, #FF8A3D);
   }
 
   .dropdown-item.logout:hover {
@@ -934,7 +962,7 @@
   /* MOBILE HAMBURGER DRAWER */
   .hamburger.menu-open {
     color: #fff;
-    background: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 138, 61, 0.22);
     border-color: rgba(229, 9, 20, 0.45);
   }
 
@@ -1173,7 +1201,7 @@
 
   .mobile-account-btn.accent {
     color: #fff;
-    background: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 138, 61, 0.22);
     border-color: rgba(229, 9, 20, 0.4);
   }
 
@@ -1286,7 +1314,7 @@
   }
 
   .icon-action-btn:hover {
-    background: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 138, 61, 0.22);
     border-color: rgba(229, 9, 20, 0.4);
     color: #ff4757;
   }
@@ -1304,8 +1332,8 @@
   }
 
   .search-input-box:focus-within {
-    border-color: var(--net-red, #e50914);
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.3);
+    border-color: var(--net-red, #FF8A3D);
+    box-shadow: 0 0 20px rgba(255, 138, 61, 0.3);
   }
 
   .search-input-box input {
@@ -1358,7 +1386,7 @@
   }
 
   .cancel-modal-btn:hover {
-    background: rgba(229, 9, 20, 0.2);
+    background: rgba(255, 138, 61, 0.22);
     color: #ff4757;
     border-color: rgba(229, 9, 20, 0.4);
   }
@@ -1367,7 +1395,7 @@
     width: 18px;
     height: 18px;
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top-color: var(--net-red, #e50914);
+    border-top-color: var(--net-red, #FF8A3D);
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
     flex: none;
@@ -1435,7 +1463,7 @@
 
   .trending-tag-pill:hover {
     background: rgba(229, 9, 20, 0.18);
-    border-color: rgba(229, 9, 20, 0.5);
+    border-color: rgba(255, 138, 61, 0.5);
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(229, 9, 20, 0.25);
@@ -1454,8 +1482,8 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--net-red, #e50914);
-    box-shadow: 0 0 8px var(--net-red, #e50914);
+    background: linear-gradient(135deg, #FACC15, #F59E0B);
+    box-shadow: 0 0 8px var(--net-red, #FF8A3D);
   }
 
   .search-tips kbd {
@@ -1485,7 +1513,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--net-red, #e50914);
+    color: var(--net-red, #FF8A3D);
   }
 
   .header-hint {
@@ -1581,9 +1609,9 @@
   }
 
   .dub-pill {
-    background: rgba(59, 130, 246, 0.18);
+    background: rgba(250, 204, 21, 0.22);
     color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.35);
+    border: 1px solid rgba(245, 158, 11, 0.35);
   }
 
   .score-pill {
@@ -1599,7 +1627,7 @@
     gap: 0.5rem;
     padding: 0.75rem;
     margin-top: 0.5rem;
-    background: linear-gradient(135deg, rgba(229, 9, 20, 0.2) 0%, rgba(180, 5, 12, 0.3) 100%);
+    background: linear-gradient(135deg, rgba(255, 138, 61, 0.22) 0%, rgba(180, 5, 12, 0.3) 100%);
     border: 1px solid rgba(229, 9, 20, 0.4);
     color: white;
     font-weight: 700;
@@ -1610,7 +1638,7 @@
   }
 
   .view-full-results-btn:hover {
-    background: var(--net-red, #e50914);
+    background: linear-gradient(135deg, #FACC15, #F59E0B);
     box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
     transform: translateY(-1px);
   }
@@ -1639,7 +1667,7 @@
     width: 32px;
     height: 32px;
     border: 3px solid rgba(255, 255, 255, 0.12);
-    border-top-color: var(--net-red, #e50914);
+    border-top-color: var(--net-red, #FF8A3D);
     border-radius: 50%;
     animation: spin 0.6s linear infinite;
   }

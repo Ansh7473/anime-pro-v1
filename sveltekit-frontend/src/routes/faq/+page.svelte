@@ -270,7 +270,7 @@
     transition: all 0.2s;
   }
   .faq-item.open {
-    border-color: rgba(229, 9, 20, 0.2);
+    border-color: rgba(255, 138, 61, 0.22);
     background: rgba(255, 255, 255, 0.04);
   }
   .faq-question {

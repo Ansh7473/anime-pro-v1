@@ -93,7 +93,7 @@
               <path
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke="#e50914"
+                stroke="#FF8A3D"
                 stroke-width="3"
                 stroke-dasharray="{Math.min((pullDistance / THRESHOLD) * 100, 100)}, 100"
                 stroke-linecap="round"
@@ -163,8 +163,8 @@
     font-size: 0.7rem;
     font-weight: 900;
     letter-spacing: 0.15em;
-    color: #e50914;
-    text-shadow: 0 0 8px rgba(229, 9, 20, 0.5);
+    color: #FF8A3D;
+    text-shadow: 0 0 8px rgba(255, 138, 61, 0.5);
     animation: pulse 1s infinite alternate;
   }
 
@@ -179,9 +179,9 @@
     left: 0;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #e50914, transparent);
+    background: linear-gradient(90deg, transparent, #FF8A3D, transparent);
     animation: scan 1.5s infinite linear;
-    box-shadow: 0 0 12px #e50914;
+    box-shadow: 0 0 12px #FF8A3D;
     z-index: 1;
   }
 

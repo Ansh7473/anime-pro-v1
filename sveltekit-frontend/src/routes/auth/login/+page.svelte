@@ -122,11 +122,12 @@
   :global(:root) {
     --n-bg: #000;
     --n-card-bg: rgba(0, 0, 0, 0.75);
-    --n-accent: var(--net-red, #e50914);
+    --n-accent: #F59E0B;
+    --n-gradient: linear-gradient(135deg, #FACC15, #F59E0B);
     --n-text: #fff;
     --n-text-muted: #8c8c8c;
     --n-input-bg: #333;
-    --n-error: #e50914;
+    --n-error: #FF8A3D;
   }
 
   .login-page {
@@ -182,10 +183,14 @@
   }
 
   .login-card {
-    background: var(--n-card-bg);
-    padding: 3.5rem 4rem;
-    border-radius: 12px;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    background: var(--net-panel, #0c0c0c);
+    border: 1px solid var(--net-panel-border, rgba(255, 255, 255, 0.08));
+    padding: 2.75rem 3rem;
+    border-radius: 16px;
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(96, 165, 250, 0.05);
+    backdrop-filter: blur(12px);
   }
 
   .login-header {
@@ -207,7 +212,7 @@
 
   .error-alert {
     background: rgba(229, 9, 20, 0.15);
-    border: 1px solid rgba(229, 9, 20, 0.3);
+    border: 1px solid rgba(255, 138, 61, 0.3);
     padding: 0.85rem 1rem;
     border-radius: 8px;
     font-size: 0.88rem;
@@ -280,7 +285,7 @@
 
   .submit-btn {
     margin-top: 1.5rem;
-    background: var(--n-accent);
+    background: var(--n-gradient);
     color: #fff;
     border: none;
     padding: 1rem;

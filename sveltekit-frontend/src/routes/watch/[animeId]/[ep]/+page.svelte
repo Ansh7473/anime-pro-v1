@@ -703,42 +703,45 @@
     }
   }
 
-  onMount(async () => {
-    // If SSR already provided anime/episodes/recs, skip the API calls.
-    // Only fetch client-side if SSR failed or returned empty.
-    const needFetch = !anime || episodes.length === 0;
-    if (needFetch) {
-      try {
-        const [animeRes, metaRes, recsRes] = await Promise.all([
-          api.getAnime(animeId),
-          api.getEpisodeMetadata(animeId, 1, 2000),
-          api.getRecommendations(animeId),
-        ]);
-        anime = animeRes;
-        episodes = metaRes?.data?.episodes || [];
-        recommendations = recsRes || [];
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    // Always run these client-side (need DOM / anime data)
-    if (anime) extractPosterColor(getProxiedImage(anime?.image || anime?.poster));
-
-    // Build the Related list: prefer real relations, but if they're missing or
-    // junk (no title/poster), fall back to random genre-matched anime.
-    await buildRelated();
-
-    // Auto-select pagination page that contains the current episode
-    if (ep > 0 && episodes.length > 0) {
-      const pageIdx = Math.floor((ep - 1) / EPISODES_PER_PAGE);
-      if (pageIdx >= 0 && pageIdx < totalPages) {
-        currentEpPage = pageIdx;
-      }
-    }
-
+  onMount(() => {
+    // Paint the player shell immediately. Never block the UI on metadata or
+    // related lists — those fill in while sources load in the background.
     loading = false;
     checkResumeProgress();
+
+    // Fire-and-forget metadata if SSR missed it.
+    const needFetch = !anime || episodes.length === 0;
+    if (needFetch) {
+      api.getAnime(animeId)
+        .then((animeRes) => {
+          anime = animeRes;
+          recommendations = anime?.recommendations || [];
+          
+          const n = Number(anime?.episodes || 0);
+          const count = n > 0 ? Math.min(n, 500) : 12;
+          episodes = Array.from({ length: count }, (_, i) => ({
+            number: i + 1,
+            title: `Episode ${i + 1}`,
+            image: "",
+          }));
+
+          if (anime) extractPosterColor(getProxiedImage(anime?.image || anime?.poster));
+          if (ep > 0 && episodes.length > 0) {
+            const pageIdx = Math.floor((ep - 1) / EPISODES_PER_PAGE);
+            if (pageIdx >= 0 && pageIdx < totalPages) currentEpPage = pageIdx;
+          }
+          buildRelated();
+        })
+        .catch((e) => console.error(e));
+    } else {
+      if (anime) extractPosterColor(getProxiedImage(anime?.image || anime?.poster));
+      if (ep > 0 && episodes.length > 0) {
+        const pageIdx = Math.floor((ep - 1) / EPISODES_PER_PAGE);
+        if (pageIdx >= 0 && pageIdx < totalPages) currentEpPage = pageIdx;
+      }
+      // Related rail is below-the-fold — never await it for first paint.
+      buildRelated();
+    }
   });
 
   // Watch for 'ep' changes locally to keep pagination synced (next/prev ep buttons)
@@ -892,7 +895,22 @@
     return candidates[0];
   }
 
-  async function loadSources() {
+  // Cap a single provider so a 32s Animelok hang never blocks the fan-out
+  // accounting / error state. Late responses after abort are ignored via loadId.
+  function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error(`timeout ${ms}ms`)), ms);
+      p.then(
+        (v) => { clearTimeout(t); resolve(v); },
+        (e) => { clearTimeout(t); reject(e); },
+      );
+    });
+  }
+
+  // Fire-and-forget: page is already open. Providers stream into `sources` as
+  // they resolve. First good source starts playback; the rest keep filling the
+  // server list in the background (lazy / progressive).
+  function loadSources() {
     const loadId = ++currentLoadId;
     sourceLoading = true;
     error = "";
@@ -918,38 +936,31 @@
       return;
     }
 
+    // Fast providers first so playback can start ASAP; slow scrapers still run
+    // in parallel but shouldn't be the first thing we "wait" on mentally.
     const providerConfigs = [
-          // Tatakai (self-hosted TatakaiAPI animeya) — default/first
-          { name: "Provider 0", fetcher: api.getTatakaiSources },   // Tatakai
-          // New AniPlay-sourced providers (highest priority — listed first)
-          { name: "Provider 1", fetcher: api.getHiAnimeSources },    // HiAnime
-          { name: "Provider 2", fetcher: api.getAniNekoSources },    // AniNeko
-          { name: "Provider 3", fetcher: api.getVidSrcSources },     // VidSrc
-          // Existing providers
-          { name: "Provider 4", fetcher: api.getNineAnimeSources },  // 9anime
-          { name: "Provider 5", fetcher: api.getAnimelokSources },   // Animelok
-          { name: "Provider 6", fetcher: api.getDesiDubSources },    // DesiDub
-          { name: "Provider 7", fetcher: api.getAHDSources },        // AnimeHindiDubbed
-          { name: "Provider 8", fetcher: api.getToonstreamSources }, // Toonstream
-          { name: "Provider 9", fetcher: api.getWatchAnimeWorldSources },  // WatchAnimeWorld
-          { name: "Provider 10", fetcher: api.getAniwavesSources },  // Aniwaves
-          { name: "Provider 11", fetcher: api.getAnimenSources },    // Animen
-          { name: "Provider 12", fetcher: api.getAnimixStreamSources }, // AnimixStream
-          { name: "Provider 13", fetcher: api.getAnimePaheSources }, // AnimePahe
-        ];
+      { name: "Provider 0", fetcher: api.getTatakaiSources, timeoutMs: 8000 },
+      { name: "Provider 1", fetcher: api.getHiAnimeSources, timeoutMs: 8000 },
+      { name: "Provider 2", fetcher: api.getAniNekoSources, timeoutMs: 8000 },
+      { name: "Provider 3", fetcher: api.getVidSrcSources, timeoutMs: 8000 },
+      { name: "Provider 4", fetcher: api.getNineAnimeSources, timeoutMs: 8000 },
+      { name: "Provider 5", fetcher: api.getAnimelokSources, timeoutMs: 10000 }, // often 30s+
+      { name: "Provider 6", fetcher: api.getDesiDubSources, timeoutMs: 10000 },
+      { name: "Provider 7", fetcher: api.getAHDSources, timeoutMs: 10000 },
+      { name: "Provider 8", fetcher: api.getToonstreamSources, timeoutMs: 10000 },
+      { name: "Provider 9", fetcher: api.getWatchAnimeWorldSources, timeoutMs: 10000 },
+      { name: "Provider 10", fetcher: api.getAniwavesSources, timeoutMs: 10000 },
+      { name: "Provider 11", fetcher: api.getAnimenSources, timeoutMs: 10000 },
+      { name: "Provider 12", fetcher: api.getAnimixStreamSources, timeoutMs: 10000 },
+      { name: "Provider 13", fetcher: api.getAnimePaheSources, timeoutMs: 10000 },
+    ];
 
     let autoStarted = false;
     let providersFinished = 0;
+    const totalProviders = providerConfigs.length;
 
-    // ── Server priority selection ─────────────────────────────────────
-    // (pickByPriority is hoisted to component scope so the per-episode cache
-    //  path can reuse it.)
-
-    const choosePreferredSource = (providerSources: any[]) => {
-      // Use priority picker on the new sources; falls back to null if none match
-      // (caller will use first source as final fallback)
-      return pickByPriority(providerSources);
-    };
+    const choosePreferredSource = (providerSources: any[]) =>
+      pickByPriority(providerSources);
 
     const addProviderSources = (config: (typeof providerConfigs)[number], res: any) => {
       if (loadId !== currentLoadId || !res?.data?.sources) return;
@@ -959,64 +970,57 @@
         provider: s.provider || config.name,
       }));
 
-      console.log(`[Player] ${config.name} returned ${providerSources.length} sources`);
-
       const uniqueNewSources = providerSources.filter(
         (ns: any) => ns.url && !sources.some((s) => s.url === ns.url),
       );
-
       if (uniqueNewSources.length === 0) return;
 
       sources = [...sources, ...uniqueNewSources];
 
+      // First successful provider starts playback immediately. Later providers
+      // only append to the server list — never yank the active stream.
       if (!autoStarted) {
         const candidate = choosePreferredSource(uniqueNewSources) || uniqueNewSources[0];
         if (candidate) {
-          // Just set the source — the selectedSource $effect owns player init,
-          // so playback starts exactly once (no double HLS load).
           selectedSource = candidate;
           autoStarted = true;
           sourceLoading = false;
         }
       }
+
+      // Keep cache warm as results stream in (partial is fine for back-nav).
+      _sourceCache.set(cacheKey, sources);
     };
 
-    await Promise.allSettled(
-      providerConfigs.map(async (config) => {
-        try {
-          console.log(`[Player] Fetching sources from ${config.name}...`);
-          const res = await config.fetcher(animeId, ep);
-          addProviderSources(config, res);
-        } catch (err) {
-          console.warn(`[Player] Provider ${config.name} failed:`, err);
-        } finally {
-          providersFinished++;
-        }
-      }),
-    );
+    const finishOne = () => {
+      providersFinished++;
+      if (loadId !== currentLoadId) return;
+      if (providersFinished < totalProviders) return;
 
-    if (loadId !== currentLoadId) return;
-
-    // After all providers finish, pick the best source ONLY if nothing has
-    // started playing yet. We never yank an already-playing source out from
-    // under the viewer just because a lower-priority provider replied later —
-    // that used to restart playback mid-stream. Each provider batch already
-    // runs through pickByPriority on arrival, so the first good match wins.
-    if (!userOverride && !autoStarted && sources.length > 0) {
-      const best = pickByPriority(sources);
-      if (best) {
-        console.log(`[Player] Selecting priority source: ${best.name}`);
-        selectedSource = best;
+      // All providers done (or timed out). Only pick if nothing started yet.
+      if (!userOverride && !autoStarted && sources.length > 0) {
+        const best = pickByPriority(sources);
+        if (best) selectedSource = best;
       }
-    }
+      sourceLoading = false;
+      if (sources.length === 0) {
+        error = "No sources found for this episode on any provider.";
+      } else {
+        _sourceCache.set(cacheKey, sources);
+      }
+    };
 
-    sourceLoading = false;
-    if (sources.length === 0) {
-      error = "No sources found for this episode on any provider.";
-    } else {
-      // Memoize this episode's sources so a return visit skips the provider
-      // fan-out entirely (see the cache-hit short-circuit at the top).
-      _sourceCache.set(sourceCacheKey(animeId, ep), sources);
+    // Kick every provider in parallel — do NOT await the full set before paint.
+    // Each completion updates `sources` live; UI already shows the player shell.
+    for (const config of providerConfigs) {
+      withTimeout(config.fetcher(animeId, ep), config.timeoutMs)
+        .then((res) => addProviderSources(config, res))
+        .catch((err) => {
+          if (loadId === currentLoadId) {
+            console.warn(`[Player] Provider ${config.name} failed:`, err);
+          }
+        })
+        .finally(finishOne);
     }
   }
 
@@ -1491,7 +1495,7 @@
   .loading-skeleton.player-loading .spinner {
     width: 38px; height: 38px;
     border: 3px solid rgba(255, 255, 255, 0.12);
-    border-top-color: var(--accent, #e50914);
+    border-top-color: var(--accent, #FF8A3D);
     border-radius: 50%;
     animation: ls-spin 0.8s linear infinite;
   }
@@ -1510,15 +1514,15 @@
 
   /* Page Shell */
   .player-page {
-    --accent: #e50914; /* Brand red */
+    --accent: #FF8A3D; /* Brand red */
     --accent-hover: #f40612;
-    --net-red: #e50914;
+    --net-red: #FF8A3D;
     --net-red-hover: #f40612;
     --net-bg: #09090c;
     --net-bg-lite: #121217;
     --net-card-bg: #181822;
     --net-card-hover: #232332;
-    --poster-tint: 229, 9, 20; /* RGB for #e50914 (brand red) */
+    --poster-tint: 229, 9, 20; /* RGB for #FF8A3D (brand red) */
     position: relative;
     min-height: 100vh; /* fallback for older browsers */
     min-height: 100dvh;
@@ -1685,7 +1689,7 @@
     width: 3px;
     height: 0.9em;
     border-radius: 999px;
-    background: var(--accent, #e50914);
+    background: var(--accent, #FF8A3D);
   }
   .rail-list {
     display: flex;

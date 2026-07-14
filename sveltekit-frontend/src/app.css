@@ -1,24 +1,52 @@
 :root {
-  --net-red: #E50914; /* WatchAnimez Signature Red */
-  --net-red-hover: #F40612;
-  --net-bg: #0a0a0a;
-  --net-bg-lite: #141414;
-  --net-text: #ffffff;
-  --net-text-muted: #a3a3a3;
-  --net-card-bg: #181818;
-  --net-card-hover: #262626;
-  --font-family: 'Outfit', sans-serif;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --net-gradient: linear-gradient(135deg, var(--net-red) 0%, #7c040a 100%);
-  --tv-focus-border: #e50914;
-  --tv-focus-glow: rgba(229, 9, 19, 0.35);
-  --tv-overscan-x: 48px;
-  --tv-overscan-y: 48px;
-}
+	  /* ── Reference: dark panels on black, Persimmon accent, Nunito body ── */
+	  --net-red: #EC5800;
+	  --net-red-hover: #FF6F22;
+	  --net-bg: #000000;
+	  --net-bg-lite: #0b0b0d;
+	  --net-text: #f5f5f5;
+	  --net-text-muted: #8a8a8a;
+	  --net-card-bg: #202125;
+	  --net-card-hover: #2a2c31;
+	  --net-body-font: 'Nunito', 'Outfit', system-ui, -apple-system, sans-serif;
+	  --net-display-font: 'Outfit', 'Nunito', system-ui, sans-serif;
+	  --font-family: 'Nunito', 'Outfit', system-ui, -apple-system, sans-serif;
+	  --transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+	  --radius-sm: 6px;
+	  --radius-md: 10px;
+	  --radius-lg: 14px;
+	  --radius-xl: 18px;
+	  --net-gradient: linear-gradient(135deg, #FF6F22 0%, #EC5800 45%, #C24100 100%);
+	  --tv-focus-border: #EC5800;
+	  --tv-focus-glow: rgba(236, 88, 0, 0.35);
+	  --tv-overscan-x: 48px;
+	  --tv-overscan-y: 48px;
+
+	  /* ── Surfaces / panels (panel-on-black like reference) ── */
+	  --net-accent-purple: #7B2FBE;
+	  --net-accent-blue: #2563EB;
+	  --net-accent-cyan: #06B6D4;
+	  --net-accent-green: #10B981;
+	  --net-surface-1: #060608;
+	  --net-surface-2: #202125;
+	  --net-surface-3: #2a2c31;
+	  --net-border: rgba(255, 255, 255, 0.08);
+	  --net-border-hover: rgba(255, 255, 255, 0.14);
+	  --net-glow: rgba(236, 88, 0, 0.15);
+	  --net-gradient-accent: linear-gradient(135deg, #EC5800, #FF6F22);
+	  --net-gradient-cool: linear-gradient(135deg, #7B2FBE, #2563EB);
+	  --net-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+	  --net-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+	  --net-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.65);
+	  --net-shadow-glow: 0 0 30px rgba(236, 88, 0, 0.22);
+	  --net-panel: #202125;
+	  --net-panel-border: rgba(255, 255, 255, 0.08);
+	  /* Shared desktop shell */
+	  --page-max: 1600px;
+	  --page-gutter: 2.5rem;
+	  --page-gutter-md: 1.25rem;
+	  --page-gutter-sm: 0.75rem;
+	}
 
 /* --- THEME CUSTOMIZATION ENGINE --- */
 
@@ -27,7 +55,7 @@
   background: var(--net-gradient);
   color: white;
   border: none;
-  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 138, 61, 0.28);
 }
 
 [data-gradients="true"] .btn-secondary {
@@ -69,7 +97,7 @@
 
 /* Global TV Compatibility & Focus Management */
 :focus-visible {
-  outline: 4px solid var(--tv-focus-border, #e50914);
+  outline: 4px solid var(--tv-focus-border, #EC5800);
   outline-offset: 4px;
   box-shadow: var(--tv-focus-glow, rgba(229, 9, 19, 0.35));
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -264,7 +292,7 @@ img {
   background: rgba(14, 14, 14, 0.6);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
   backdrop-filter: blur(20px) saturate(150%);
-  border-top: 0.5px solid rgba(229, 9, 20, 0.2);
+  border-top: 0.5px solid rgba(255, 138, 61, 0.22);
   border-left: 0.5px solid rgba(229, 9, 20, 0.1);
   border-right: 0.5px solid rgba(229, 9, 20, 0.05);
   border-bottom: 0.5px solid rgba(229, 9, 20, 0.05);
@@ -695,3 +723,171 @@ img {
     margin-bottom: 0.75rem;
   }
 }
+
+/* ============================================================
+   PERFORMANCE OPTIMIZATIONS — GPU rendering, paint containment
+   ============================================================ */
+
+/* Promote all common interactive elements to GPU layers */
+img,
+video,
+button,
+a,
+[role="button"],
+.spinner,
+.skeleton {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Contain layout/paint for repeated card grids — huge CLS win */
+.card-grid,
+.row-scroll,
+.genre-grid,
+.results-grid,
+.favorites-grid,
+.watchlist-grid,
+.anime-grid {
+  contain: layout style;
+}
+
+/* Contain paint for individual cards */
+.card,
+.AnimeCard,
+.anime-card {
+  contain: layout style paint;
+}
+
+/* Skip painting off-screen sections — major browser opt */
+.offscreen-section,
+.tactical-grid,
+footer,
+.pull-to-refresh-indicator {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+}
+
+/* Hardware-accelerated scroll containers */
+.row-scroll,
+.scrollable-mobile,
+.genre-scroll,
+.results-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+}
+
+/* Reduce motion when user prefers it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Image rendering hints — crisp on high-DPI, lazy by default */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Skeleton shimmer — GPU-only transform */
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  animation: skeleton-shimmer 1.6s infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Focus ring that's paint-only, not layout */
+:focus-visible {
+  outline: 2px solid var(--net-red, #EC5800);
+  outline-offset: 3px;
+  transition: outline-color 0.15s ease;
+}
+
+/* Avoid layout thrash on hover transforms */
+.card,
+.btn-primary,
+.btn-secondary,
+.row-see-all,
+.quick-chip,
+.nav-item {
+  will-change: auto;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card:hover,
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .row-see-all:hover,
+  .quick-chip:hover {
+    will-change: transform;
+  }
+}
+
+/* Disable expensive effects on low-power devices */
+@media (max-width: 768px) {
+  .tactical-grid,
+  .hero-glow,
+  .tactical-hud-circle,
+  [data-effect="prismatic"] .logo-accent {
+    display: none !important;
+  }
+}
+
+/* Tap highlight removal for native-feeling UX */
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth font rendering */
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Prevent horizontal page scroll on all pages */
+html, body {
+  overflow-x: hidden;
+
+  /* ── Detail-page vibe shared tokens ── */
+  --net-blue: #3B82F6;
+  --net-blue-soft: #60A5FA;
+  --net-blue-deep: #1D4ED8;
+  --net-indigo: #6366F1;
+  --net-amber: #EC5800;
+  --net-amber-soft: #FF6F22;
+  --net-link: #93C5FD;
+  --gradient-primary: linear-gradient(135deg, #3B82F6, #2563EB);
+  --gradient-accent: linear-gradient(135deg, #EC5800, #FF6F22);
+  --gradient-cool: linear-gradient(135deg, #60A5FA, #6366F1);
+}
+}
+
+/* Body uses Nunito (matching desidubanime reference); display headers use Outfit */
+body { font-family: var(--net-body-font, 'Nunito', sans-serif); }

@@ -3,7 +3,7 @@
   import { Flame, Star, Trophy, Calendar, Clock, Film, Swords, Heart, Sparkles } from "lucide-svelte";
 
   const categories = [
-    { id: "trending", title: "Trending Now", desc: "What everyone is watching right now", icon: Flame, color: "#e50914" },
+    { id: "trending", title: "Trending Now", desc: "What everyone is watching right now", icon: Flame, color: "#FF8A3D" },
     { id: "popular", title: "Most Popular", desc: "Fan favorites across all time", icon: Star, color: "#fbbf24" },
     { id: "highest-rated", title: "Highest Rated", desc: "Top rated anime by the community", icon: Trophy, color: "#22c55e" },
     { id: "seasonal", title: "This Season", desc: "Currently airing this season", icon: Calendar, color: "#3b82f6" },

@@ -46,26 +46,29 @@
   });
 
   async function fetchEpisodes() {
-    loading = true;
-    try {
-      let res;
-      if (tab === "recently-updated") {
-        res = await api.getCurrentSeasonal(page, 24);
-      } else if (tab === "subbed-anime") {
-        res = await api.getTopAnime("TV", page, 24);
-      } else {
-        res = await api.getTopAnime("MOVIE", page, 24);
+      loading = true;
+      try {
+        let res: any;
+        if (tab === "recently-updated") {
+          res = await api.getCurrentSeasonal(page, 24);
+        } else if (tab === "subbed-anime") {
+          // Search for TV anime (best subbed indicator — original Japanese audio)
+          res = await api.getTopAnime("TV", page, 24, "POPULARITY_DESC");
+        } else {
+          // Dubbed tab — search for movies/TV by popularity (Dubbed anime is sourced, not media-typed)
+          // Fall back to top rated for now
+          res = await api.getTopAnime("TV", page, 24, "SCORE_DESC");
+        }
+        animes = res?.data || res?.items || [];
+        hasNextPage = res?.pagination?.has_next_page ?? (animes.length >= 24);
+      } catch (err) {
+        console.error("Failed to fetch latest episodes", err);
+      } finally {
+        loading = false;
       }
-      animes = res.data || [];
-      hasNextPage = res.pagination?.has_next_page || false;
-    } catch (err) {
-      console.error("Failed to fetch latest episodes", err);
-    } finally {
-      loading = false;
+      if (typeof window !== "undefined")
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    if (typeof window !== "undefined")
-      window.scrollTo({ top: 0, behavior: "smooth" });
-  }
 
   function changeTab(id: string) {
     if (tab === id) return;
@@ -127,39 +130,42 @@
 
   <!-- Content -->
   <div class="content-section container">
-    {#if loading && animes.length === 0}
-      <div class="anime-grid">
-        <SkeletonGrid count={24} />
-      </div>
-    {:else if animes.length > 0}
-      <div class="anime-grid">
-        {#each animes as anime (anime.id)}
-          <AnimeCard {anime} />
-        {/each}
-      </div>
+    {#if loading}
+          <div class="anime-grid">
+            <SkeletonGrid count={24} />
+          </div>
+        {:else if animes.length > 0}
+          <div class="anime-grid">
+            {#each animes as anime (anime.id)}
+              <AnimeCard {anime} />
+            {/each}
+          </div>
 
-      <!-- Pagination -->
-      <div class="pagination">
-        <button class="page-btn" disabled={page === 1} onclick={prevPage}>
-          <ChevronLeft size={18} />
-          <span>Previous</span>
-        </button>
+          <!-- Pagination -->
+          <div class="pagination">
+            <button class="page-btn" disabled={page === 1} onclick={prevPage}>
+              <ChevronLeft size={18} />
+              <span>Previous</span>
+            </button>
 
-        <div class="page-info">
-          <span>Page {page}</span>
-        </div>
+            <div class="page-info">
+              <span>Page {page}</span>
+            </div>
 
-        <button class="page-btn next" disabled={!hasNextPage} onclick={nextPage}>
-          <span>Next</span>
-          <ChevronRight size={18} />
-        </button>
-      </div>
-    {:else if !loading}
-      <div class="empty-state">
-        <Clock size={40} class="empty-icon" />
-        <p>No anime found for this filter.</p>
-      </div>
-    {/if}
+            <button class="page-btn next" disabled={!hasNextPage} onclick={nextPage}>
+              <span>Next</span>
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        {:else}
+          <div class="empty-state">
+            <Clock size={40} class="empty-icon" />
+            <p>No anime found for this filter. Try another tab.</p>
+            <button class="page-btn" onclick={() => changeTab("recently-updated")}>
+              Reset to All Episodes
+            </button>
+          </div>
+        {/if}
   </div>
 </div>
 
@@ -196,7 +202,7 @@
     align-items: center;
     gap: 0.5rem;
     background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     padding: 0.4rem 1rem;
     border-radius: 50px;
     font-size: 0.8rem;
@@ -281,7 +287,7 @@
   }
   .page-btn.next {
     background: rgba(229, 9, 20, 0.08);
-    border-color: rgba(229, 9, 20, 0.2);
+    border-color: rgba(255, 138, 61, 0.22);
     color: var(--net-red);
   }
   .page-info {

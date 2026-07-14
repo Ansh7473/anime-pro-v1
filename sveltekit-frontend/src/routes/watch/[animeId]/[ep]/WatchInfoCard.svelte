@@ -299,7 +299,7 @@
   }
   .ic-details-toggle:hover {
     color: #fff;
-    border-color: rgba(229, 9, 20, 0.3);
+    border-color: rgba(255, 138, 61, 0.3);
     background: rgba(229, 9, 20, 0.08);
   }
 

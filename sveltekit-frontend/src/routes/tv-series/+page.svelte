@@ -122,11 +122,11 @@
   {/if}
 
   <!-- Content -->
-  {#if loading && items.length === 0}
+  {#if loading}
     <div class="anime-grid">
       <SkeletonGrid count={18} />
     </div>
-  {:else}
+  {:else if items.length > 0}
     <div class="anime-grid">
       {#each items as anime (anime.id)}
         <AnimeCard {anime} />
@@ -145,6 +145,14 @@
         </button>
       </div>
     {/if}
+  {:else}
+    <div class="empty-state">
+      <Radio size={40} class="empty-icon" />
+      <p>No series found. Please try again.</p>
+      <button class="load-more-btn" onclick={() => loadPage(1)}>
+        Retry
+      </button>
+    </div>
   {/if}
 </div>
 
@@ -178,7 +186,7 @@
     align-items: center;
     gap: 0.5rem;
     background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     padding: 0.4rem 1rem;
     border-radius: 50px;
     font-size: 0.8rem;
@@ -263,11 +271,26 @@
     border-color: var(--net-red);
   }
   .load-more-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
-  @media (max-width: 768px) {
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--net-text-muted);
+    }
+    .empty-icon {
+      opacity: 0.4;
+      margin-bottom: 1rem;
+    }
+    .empty-state p {
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
     .page-title { font-size: 1.6rem; }
     .page-subtitle { font-size: 0.9rem; }
     .header-badge { display: none; }

@@ -284,8 +284,8 @@
   }
   .deck-toggle.on .deck-checkbox,
   .deck-checkbox.on {
-    background: #e50914;
-    border-color: #e50914;
+    background: #FF8A3D;
+    border-color: #FF8A3D;
     box-shadow: 0 0 8px rgba(229, 9, 20, 0.35);
   }
 
@@ -348,7 +348,7 @@
   }
   .etb-dd-trigger:hover {
     background: rgba(229, 9, 20, 0.08);
-    border-color: rgba(229, 9, 20, 0.3);
+    border-color: rgba(255, 138, 61, 0.3);
     color: #f40612;
   }
   .etb-select-label {

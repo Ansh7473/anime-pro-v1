@@ -126,7 +126,7 @@
 
   .error-detail {
     background: rgba(229, 9, 20, 0.08);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     border-radius: 10px;
     padding: 1rem;
     margin-bottom: 2rem;

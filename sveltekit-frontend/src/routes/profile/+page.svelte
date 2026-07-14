@@ -85,7 +85,7 @@
       const cs = getComputedStyle(probe);
       map[key] = {
         bg: cs.getPropertyValue("--net-bg").trim() || "#0a0a0a",
-        accent: cs.getPropertyValue("--net-red").trim() || "#e50914",
+        accent: cs.getPropertyValue("--net-red").trim() || "#FF8A3D",
       };
     }
     document.body.removeChild(probe);
@@ -431,7 +431,7 @@
                 title={themeName(key)}
                 aria-label={themeName(key)}
                 onclick={() => setTheme(key)}
-                style="--sw-bg: {swatches[key]?.bg || '#0a0a0a'}; --sw-accent: {swatches[key]?.accent || '#e50914'};"
+                style="--sw-bg: {swatches[key]?.bg || '#0a0a0a'}; --sw-accent: {swatches[key]?.accent || '#FF8A3D'};"
               >
                 <span class="sw-accent"></span>
                 {#if $themeState.current === key}
@@ -540,7 +540,7 @@
     align-items: center;
     gap: 0.5rem;
     background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     padding: 0.4rem 1rem;
     border-radius: 50px;
     font-size: 0.8rem;
@@ -862,7 +862,7 @@
     font-weight: 600;
     color: var(--net-red);
     background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     padding: 0.3rem 0.65rem;
     border-radius: 50px;
     white-space: nowrap;
@@ -952,7 +952,7 @@
     gap: 0.35rem;
     padding: 0.45rem 0.85rem;
     background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     color: var(--net-red);
     border-radius: 8px;
     font-size: 0.78rem;

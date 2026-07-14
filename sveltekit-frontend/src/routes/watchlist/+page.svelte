@@ -139,7 +139,7 @@
   .btn-remove {
     background: rgba(229, 9, 20, 0.1);
     color: #f87171;
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     padding: 0.4rem 0.8rem;
     border-radius: 6px;
     font-size: 0.75rem;

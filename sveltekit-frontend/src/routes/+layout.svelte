@@ -12,6 +12,7 @@
 
   import "../app.css";
   import "../lib/styles/themes.css";
+  import "../lib/styles/motion.css";
 
   let { children, data } = $props();
   const siteJsonLd = $derived(getSiteJsonLd(data.canonicalUrl));

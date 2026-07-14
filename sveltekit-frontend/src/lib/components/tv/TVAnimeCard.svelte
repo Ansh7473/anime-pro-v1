@@ -124,7 +124,7 @@
     justify-content: center;
     font-size: 1.8rem;
     color: white;
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+    box-shadow: 0 0 20px rgba(255, 138, 61, 0.5);
   }
 
   .tv-card-meta-top {

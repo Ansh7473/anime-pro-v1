@@ -16,27 +16,32 @@
   const AUTOPLAY_MS = 4500;
 
   const heroes = $derived(
-    items.filter((a: any) => a.image || a.poster).slice(0, 8),
+    items.filter((a: any) => a.bannerImage || a.image || a.poster).slice(0, 8),
   );
 
   function next() {
+    if (heroes.length <= 1) return;
     current = (current + 1) % heroes.length;
   }
   function prev() {
+    if (heroes.length <= 1) return;
     current = (current - 1 + heroes.length) % heroes.length;
   }
   function goTo(i: number) {
+    if (i < 0 || i >= heroes.length) return;
     current = i;
   }
 
   function startAutoplay() {
     stopAutoplay();
+    if (heroes.length <= 1) return;
     interval = setInterval(() => {
       if (!paused) next();
     }, AUTOPLAY_MS);
   }
   function stopAutoplay() {
     if (interval) clearInterval(interval);
+    interval = null;
   }
 
   function handleTouchStart(e: TouchEvent) {
@@ -62,11 +67,23 @@
   onMount(startAutoplay);
   onDestroy(stopAutoplay);
 
-  const anime = $derived(heroes[current]);
+  $effect(() => {
+    if (heroes.length === 0) {
+      current = 0;
+      stopAutoplay();
+      return;
+    }
+    if (!Number.isFinite(current) || current < 0 || current >= heroes.length) {
+      current = 0;
+    }
+    if (heroes.length > 1 && !interval) startAutoplay();
+  });
+
+  const anime = $derived(heroes[current] || heroes[0]);
   const title = $derived(anime?.title || "Unknown");
   const synopsis = $derived((anime?.synopsis || "").replace(/<[^>]*>?/gm, ""));
   const genres = $derived(anime?.genres || []);
-  const id = $derived(anime?.id || anime?.mal_id);
+  const id = $derived(anime?.id || anime?.mal_id || "");
   const rawScore = $derived(anime?.score || anime?.rating || 0);
   const score = $derived(rawScore > 10 ? rawScore / 10 : rawScore);
   const year = $derived(anime?.year || anime?.aired?.from?.split("-")[0] || "");
@@ -131,7 +148,7 @@
         style={i === current ||
         i === (current + 1) % heroes.length ||
         i === (current - 1 + heroes.length) % heroes.length
-          ? `background-image: url(${getProxiedImage(slide.image || slide.poster || "")});`
+          ? `background-image: url(${getProxiedImage(slide.bannerImage || slide.image || slide.poster || "")});`
           : ""}
         role="group"
         aria-roledescription="slide"
@@ -141,9 +158,8 @@
     {/each}
 
     <div class="hero-vignette" aria-hidden="true"></div>
-    <div class="hero-glow" aria-hidden="true"></div>
-
     <div class="hero-content">
+      <div class="hero-content-inner">
       <div class="hero-pills">
         {#if format}
           <span class="pill pill-muted">{format}</span>
@@ -169,7 +185,7 @@
 
       {#if synopsis}
         <p class="hero-desc">
-          {synopsis.slice(0, 160)}{synopsis.length > 160 ? "…" : ""}
+          {synopsis.slice(0, 140)}{synopsis.length > 140 ? "…" : ""}
         </p>
       {/if}
 
@@ -181,7 +197,18 @@
 
       <div class="hero-actions">
         <a
-          href="/watch/{id}/1"
+          href="/anime/{id}/"
+          class="btn-details"
+          role="button"
+          tabindex="0"
+          onclick={handleDetails}
+          onkeydown={handleKeydown(handleDetails)}
+        >
+          <span aria-hidden="true">ℹ</span>
+          <span class="btn-text">DETAILS</span>
+        </a>
+        <a
+          href="/watch/{id}/1/"
           class="btn-watch"
           role="button"
           tabindex="0"
@@ -189,47 +216,16 @@
           onkeydown={handleKeydown(handlePlay)}
         >
           <span class="btn-watch-icon" aria-hidden="true">▶</span>
-          Watch Now
+          WATCH NOW
         </a>
-        <a
-          href="/anime/{id}"
-          class="btn-info"
-          role="button"
-          tabindex="0"
-          onclick={handleDetails}
-          onkeydown={handleKeydown(handleDetails)}
-          aria-label="More info about {title}"
-        >
-          <span aria-hidden="true">ℹ</span>
-        </a>
+      </div>
       </div>
     </div>
 
-    <button class="hero-arrow left" onclick={prev} aria-label="Previous">‹</button>
-    <button class="hero-arrow right" onclick={next} aria-label="Next">›</button>
-
-    <div class="hero-dots" role="tablist" aria-label="Carousel slides">
-      {#each heroes as _, i}
-        <button
-          class="dot"
-          class:active={i === current}
-          onclick={() => {
-            goTo(i);
-            startAutoplay();
-          }}
-          role="tab"
-          aria-selected={i === current}
-          aria-label="Slide {i + 1}"
-        >
-          <span class="dot-track">
-            {#if i === current && !paused}
-              <span class="dot-progress" style="animation-duration: {AUTOPLAY_MS}ms"></span>
-            {:else if i === current}
-              <span class="dot-progress paused"></span>
-            {/if}
-          </span>
-        </button>
-      {/each}
+    <div class="hero-pager" aria-label="Carousel controls">
+      <button class="hero-arrow left" onclick={prev} aria-label="Previous">‹</button>
+      <span class="hero-page-count">{current + 1} / {heroes.length}</span>
+      <button class="hero-arrow right" onclick={next} aria-label="Next">›</button>
     </div>
   </section>
 {/if}
@@ -238,9 +234,9 @@
   .hero {
     position: relative;
     width: 100%;
-    height: min(68vh, 720px);
-    min-height: 380px;
-    max-height: 88dvh;
+    height: 660px;
+    min-height: 500px;
+    max-height: 660px;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
@@ -260,14 +256,16 @@
   .hero-bg {
     position: absolute;
     inset: 0;
+    z-index: 1;
     background-size: cover;
     background-position: center top;
     opacity: 0;
     transform: scale(1.04);
     transition:
-      opacity 0.75s cubic-bezier(0.4, 0, 0.2, 1),
-      transform 7s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: opacity, transform;
+    animation: hero-ken-burns 20s ease-in-out infinite alternate;
   }
   .hero-bg.active {
     opacity: 1;
@@ -277,47 +275,66 @@
   .hero-vignette {
     position: absolute;
     inset: 0;
-    z-index: 1;
+    z-index: 2;
     pointer-events: none;
     background:
       linear-gradient(
-        to top,
-        var(--net-bg, #070708) 0%,
-        rgba(7, 7, 8, 0.92) 18%,
-        rgba(7, 7, 8, 0.55) 42%,
-        rgba(7, 7, 8, 0.12) 68%,
-        transparent 100%
+        180deg,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(0, 0, 0, 0.15) 22%,
+        rgba(0, 0, 0, 0.32) 50%,
+        rgba(0, 0, 0, 0.78) 78%,
+        #000 100%
       ),
-      linear-gradient(to right, rgba(7, 7, 8, 0.78) 0%, rgba(7, 7, 8, 0.2) 48%, transparent 72%),
-      radial-gradient(ellipse 90% 55% at 50% 100%, rgba(229, 9, 20, 0.14) 0%, transparent 65%);
-  }
-
-  .hero-glow {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 3px;
-    z-index: 4;
-    pointer-events: none;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(229, 9, 20, 0.55) 35%,
-      rgba(255, 77, 87, 0.85) 50%,
-      rgba(229, 9, 20, 0.55) 65%,
-      transparent 100%
-    );
-    opacity: 0.85;
+      linear-gradient(to right, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.18) 50%, transparent 75%);
   }
 
   .hero-content {
     position: relative;
     z-index: 3;
-    padding: 2.5rem 3rem;
-    padding-bottom: 3.75rem;
-    max-width: 720px;
     width: 100%;
+    max-width: var(--page-max, 1600px);
+    margin: 0 auto;
+    padding: 1.5rem var(--page-gutter, 2.5rem) 1.75rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 100%;
+  }
+  .hero-content-inner {
+    width: 100%;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "meta meta"
+      "title title"
+      "genres genres"
+      "desc actions";
+    column-gap: 1.5rem;
+    row-gap: 0.55rem;
+    align-items: end;
+  }
+  .hero-pills { grid-area: meta; }
+  .hero-title { grid-area: title; }
+  .hero-genres { grid-area: genres; }
+  .hero-desc, .hero-meta-row { grid-area: desc; max-width: 56ch; }
+  .hero-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.72);
+    margin: 0;
+  }
+  .hero-meta-row { margin: 0; }
+  .hero-actions {
+    grid-area: actions;
+    justify-self: end;
+    align-self: end;
   }
 
   .hero-pills {
@@ -371,15 +388,15 @@
   }
 
   .hero-title {
-    font-size: clamp(1.85rem, 4.6vw, 3.1rem);
+    font-size: clamp(1.65rem, 3.8vw, 2.65rem);
     font-weight: 900;
     letter-spacing: -0.035em;
     line-height: 1.02;
     margin: 0 0 0.55rem;
     color: #fff;
     text-shadow:
-      0 2px 4px rgba(0, 0, 0, 0.45),
-      0 12px 32px rgba(0, 0, 0, 0.55);
+      0 2px 24px rgba(0, 0, 0, 0.65),
+      0 8px 40px rgba(0, 0, 0, 0.45);
   }
 
   .hero-desc {
@@ -418,8 +435,8 @@
     min-height: 48px;
     padding: 0.72rem 1.55rem;
     border-radius: 999px;
-    background: #fff;
-    color: #0a0a0a;
+    background: linear-gradient(135deg, #FF6F22, #EC5800);
+    color: #fff;
     font-weight: 800;
     font-size: 0.95rem;
     letter-spacing: 0.01em;
@@ -438,10 +455,10 @@
   }
   .btn-watch:hover {
     transform: scale(1.04);
-    background: #f4f4f5;
+    filter: brightness(1.08);
     box-shadow:
       0 10px 32px rgba(0, 0, 0, 0.4),
-      0 0 24px rgba(229, 9, 20, 0.18);
+      0 0 24px rgba(252, 211, 77, 0.5);
   }
   .btn-watch:focus-visible {
     outline: 3px solid #fff;
@@ -451,19 +468,21 @@
     transform: scale(0.97);
   }
 
-  .btn-info {
+  .btn-details {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(20, 20, 22, 0.55);
+    gap: 0.4rem;
+    min-height: 48px;
+    padding: 0.72rem 1.35rem;
+    border-radius: 999px;
+    background: rgba(12, 12, 12, 0.72);
     color: #fff;
-    font-size: 1.05rem;
-    font-weight: 700;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
     text-decoration: none;
-    border: 1.5px solid rgba(255, 255, 255, 0.28);
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     transition:
@@ -471,52 +490,61 @@
       background 0.2s ease,
       border-color 0.2s ease;
   }
-  .btn-info:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.45);
-    transform: scale(1.05);
+  .btn-details:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.03);
   }
-  .btn-info:focus-visible {
+  .btn-details:focus-visible {
     outline: 3px solid #fff;
     outline-offset: 3px;
   }
-  .btn-info:active {
-    transform: scale(0.95);
+  .btn-details:active {
+    transform: scale(0.97);
   }
 
-  /* Arrows — desktop only */
-  .hero-arrow {
+  /* Miruro-style corner pager */
+  .hero-pager {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 5;
-    width: 44px;
-    height: 72px;
-    background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    top: max(4.75rem, calc(env(safe-area-inset-top, 0px) + 4.5rem));
+    right: max(var(--page-gutter, 2.5rem), env(safe-area-inset-right, 0px));
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.35rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .hero-page-count {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    min-width: 2.6rem;
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .hero-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: white;
-    font-size: 1.8rem;
+    font-size: 1.15rem;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    opacity: 0;
-    transition: all 0.3s ease;
-  }
-  .hero:hover .hero-arrow {
-    opacity: 1;
+    transition: background 0.2s ease, border-color 0.2s ease;
   }
   .hero-arrow:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-  .hero-arrow.left {
-    left: 1rem;
-  }
-  .hero-arrow.right {
-    right: 1rem;
+    background: rgba(250, 204, 21, 0.38);
+    border-color: rgba(252, 211, 77, 0.55);
+    color: #fff;
   }
 
   /* Segmented progress dots */
@@ -542,28 +570,27 @@
     padding: 0;
   }
   .dot-track {
-    width: 22px;
-    height: 3px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.28);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
     overflow: hidden;
     position: relative;
     display: block;
-    transition:
-      width 0.25s ease,
-      background 0.25s ease;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .dot:hover .dot-track {
     background: rgba(255, 255, 255, 0.5);
   }
   .dot.active .dot-track {
-    width: 36px;
-    background: rgba(255, 255, 255, 0.22);
+    width: 24px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #FF6F22, #EC5800);
   }
   .dot-progress {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, #fff 0%, #ffc9cd 100%);
+    background: linear-gradient(90deg, #FF9B62 0%, #EC5800 100%);
     border-radius: 999px;
     transform-origin: left;
     animation: dot-fill linear forwards;
@@ -582,13 +609,21 @@
     }
   }
 
+  @keyframes hero-ken-burns {
+    0% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(1.08);
+    }
+  }
+
   /* —— Mobile: beat AnimetSU —— */
   @media (max-width: 768px) {
     .hero {
-      /* Immersive cinema height — taller than competitor's truncated feel */
-      height: min(78dvh, 620px);
-      min-height: 420px;
-      max-height: 86dvh;
+      height: 45svh;
+      min-height: 320px;
+      max-height: 450px;
     }
     .hero-content {
       padding: 1.25rem 1rem 4.25rem;
@@ -652,10 +687,14 @@
       font-size: 0.92rem;
       flex: 0 1 auto;
     }
-    .btn-info {
+    .btn-details {
       width: 48px;
       height: 48px;
       flex-shrink: 0;
+      padding: 0;
+    }
+    .btn-details .btn-text {
+      display: none;
     }
     .hero-dots {
       bottom: 0.85rem;
@@ -665,19 +704,19 @@
       height: 28px;
     }
     .dot-track {
-      width: 16px;
-      height: 2.5px;
+      width: 7px;
+      height: 7px;
     }
     .dot.active .dot-track {
-      width: 28px;
+      width: 20px;
     }
   }
 
   @media (max-width: 480px) {
     .hero {
-      height: min(82dvh, 560px);
-      min-height: 400px;
-      max-height: 88dvh;
+      height: 75svw;
+      min-height: 260px;
+      max-height: 340px;
     }
     .hero-content {
       padding: 1rem 0.9rem 4.1rem;
@@ -705,7 +744,7 @@
       padding: 0.65rem 1.3rem;
       font-size: 0.88rem;
     }
-    .btn-info {
+    .btn-details {
       width: 46px;
       height: 46px;
     }
@@ -717,18 +756,15 @@
       height: 24px;
     }
     .dot-track {
-      width: 12px;
-      height: 2px;
+      width: 6px;
+      height: 6px;
     }
     .dot.active .dot-track {
-      width: 22px;
+      width: 18px;
     }
   }
 
   @media (max-width: 360px) {
-    .hero {
-      min-height: 360px;
-    }
     .hero-content {
       padding-inline: 0.75rem;
     }
@@ -745,6 +781,7 @@
     .hero-bg {
       transition: opacity 0.2s ease;
       transform: none;
+      animation: none;
     }
     .hero-bg.active {
       transform: none;
@@ -754,8 +791,45 @@
       transform: scaleX(1);
     }
     .btn-watch,
-    .btn-info {
+    .btn-details {
       transition: none;
+    }
+  }
+
+  /* hero gutter responsive */
+  @media (max-width: 1024px) {
+    .hero-content {
+      padding-left: var(--page-gutter-md, 1.25rem);
+      padding-right: var(--page-gutter-md, 1.25rem);
+    }
+    .hero-pager {
+      right: var(--page-gutter-md, 1.25rem);
+    }
+  }
+  @media (max-width: 900px) {
+    .hero-content-inner {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "meta"
+        "title"
+        "genres"
+        "desc"
+        "actions";
+    }
+    .hero-actions { justify-self: start; }
+  }
+  @media (max-width: 768px) {
+    .hero {
+      height: clamp(280px, 48vh, 400px);
+      min-height: 280px;
+      max-height: 400px;
+    }
+    .hero-content {
+      padding: 1.1rem var(--page-gutter-sm, 0.75rem) 1.25rem;
+    }
+    .hero-pager {
+      top: max(4.25rem, calc(env(safe-area-inset-top, 0px) + 3.75rem));
+      right: var(--page-gutter-sm, 0.75rem);
     }
   }
 </style>

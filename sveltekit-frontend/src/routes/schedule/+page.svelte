@@ -166,7 +166,7 @@
     align-items: center;
     gap: 0.5rem;
     background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(229, 9, 20, 0.2);
+    border: 1px solid rgba(255, 138, 61, 0.22);
     padding: 0.4rem 1rem;
     border-radius: 50px;
     font-size: 0.8rem;

@@ -8,7 +8,7 @@
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
   import { onMount } from "svelte";
-  import { BACKEND_URL } from "$lib/api";
+
   import StatusBanner from "$lib/components/StatusBanner.svelte";
 
   let { children } = $props();
@@ -29,36 +29,8 @@
     return false;
   }
 
-  onMount(async () => {
-    const win = window as any;
-    const isElectron = !!win.electronAPI?.isElectron;
-    const isCapacitor = win.Capacitor?.isNativePlatform?.();
-
-    if (isElectron || isCapacitor) {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/v1/releases/latest`);
-        const releases = await res.json();
-        const platform = isElectron ? "windows" : "android";
-        const latest = releases.find((r: any) => r.platform === platform);
-
-        if (latest) {
-          let currentVersion = "1.0.0";
-          if (isElectron && win.electronAPI?.getAppVersion) {
-            currentVersion = await win.electronAPI.getAppVersion();
-          } else if (isCapacitor && win.AndroidApp?.getAppVersion) {
-            currentVersion = win.AndroidApp.getAppVersion();
-          }
-
-          if (isNewerVersion(latest.version, currentVersion)) {
-            latestVersion = latest.version;
-            showUpdatePopup = true;
-          }
-        }
-      } catch (e) {
-        console.error("Update check failed:", e);
-      }
-    }
-  });
+  // Disabled automatic release polling to keep the shell free of non-AniList API calls.
+  // Native app update checks should run from the native shell, not every web route.
 
   // Scroll control (right-side up/down arrows, 25% per click, auto-hide when idle)
   let scrolling = $state(false);
@@ -176,11 +148,11 @@
   }
 
   .main-content {
-    /* Navbar height + notch safe area */
+    /* Navbar height — avoid forcing full viewport empty space under short home */
     padding-top: calc(64px + env(safe-area-inset-top, 0px));
-    min-height: 100vh;
-    min-height: 100dvh;
-    flex: 1;
+    min-height: 0;
+    flex: 1 0 auto;
+    will-change: transform;
   }
 
   /* Lightweight page-enter fade. Replaces the old JS fly transition that gated
@@ -188,15 +160,35 @@
      page being invisible). This is a GPU-only opacity fade, 150ms, no delay, so
      content is visible immediately and navigation feels instant. */
   .page-fade {
-    animation: page-fade-in 0.15s ease-out;
-  }
-  @keyframes page-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+      animation: page-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes page-enter {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   @media (prefers-reduced-motion: reduce) {
-    .page-fade { animation: none; }
-  }
+      .page-fade { animation: none; }
+    }
+
+    .tactical-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 30%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 30%, transparent 70%);
+    }
 
   .watch-shell {
     min-height: 100vh;
@@ -279,7 +271,7 @@
     left: 0;
     width: 4px;
     height: 100%;
-    background: var(--net-red, #e50914);
+    background: linear-gradient(135deg, #FACC15, #F59E0B);
   }
 
   .update-header {
@@ -294,7 +286,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--net-red, #e50914);
+    color: var(--net-red, #FF8A3D);
     font-weight: 700;
     font-size: 0.95rem;
   }
@@ -333,7 +325,7 @@
     gap: 0.5rem;
     width: 100%;
     padding: 0.7rem 1rem;
-    background: var(--net-red, #e50914);
+    background: linear-gradient(135deg, #FACC15, #F59E0B);
     color: #fff;
     border-radius: 12px;
     font-weight: 700;

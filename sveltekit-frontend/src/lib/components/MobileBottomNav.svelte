@@ -159,7 +159,7 @@
   }
 
   .nav-item.active .icon-wrap {
-    color: var(--net-red, #e50914);
+    color: var(--net-red, #FF8A3D);
     background: rgba(229, 9, 20, 0.12);
     transform: translateY(-1px);
   }
@@ -170,7 +170,7 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: var(--net-red, #e50914);
+    background: linear-gradient(135deg, #FACC15, #F59E0B);
     box-shadow: 0 0 8px rgba(229, 9, 20, 0.7);
   }
 

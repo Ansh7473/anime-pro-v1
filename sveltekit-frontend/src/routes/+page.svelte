@@ -3,23 +3,26 @@
   import { auth } from "$lib/stores/auth";
   import { onMount } from "svelte";
   import HeroBanner from "$lib/components/HeroBanner.svelte";
-  import Row from "$lib/components/Row.svelte";
+  import { getProxiedImage } from "$lib/api";
+  import AnimeCard from "$lib/components/AnimeCard.svelte";
   import ContinueCard from "$lib/components/ContinueCard.svelte";
   import SkeletonHero from "$lib/components/SkeletonHero.svelte";
   import SkeletonRow from "$lib/components/SkeletonRow.svelte";
   import HomeMarketing from "$lib/components/HomeMarketing.svelte";
   import AiringSchedule from "$lib/components/AiringSchedule.svelte";
+  import HomeSidebar from "$lib/components/HomeSidebar.svelte";
 
   let { data } = $props();
+
+  /** Catalog tab under the hero */
+  let catalogTab = $state<"newest" | "popular" | "topRated">("newest");
 
   // Personalized data is fetched on the client only (depends on auth).
   let continueWatching: any[] = $state([]);
 
   // Hero banner: one random pick from each of 3 categories, shuffled per session.
-  // Categories: New This Season, Romance & Slice of Life, Top Movies.
   let heroItems = $state<any[]>([]);
 
-  // Reactive refetch for profile-specific data
   $effect(() => {
     if ($auth.token && $auth.currentProfile?.id) {
       fetchUserContent();
@@ -35,7 +38,6 @@
         .catch(() => []);
 
       if (history && Array.isArray(history)) {
-        // Group by animeId and keep the most recently watched episode of each anime
         const uniqueHistoryMap = new Map();
         for (const item of history) {
           if (!item.animeId) continue;
@@ -65,7 +67,6 @@
     }
   }
 
-  // --- Extra discovery sections (client-loaded, below the main rows) ---
   const GENRES = [
     { label: "Action", slug: "action" },
     { label: "Adventure", slug: "adventure" },
@@ -83,37 +84,103 @@
     { label: "Music", slug: "music" },
   ];
 
-  let extraSections = $state<{ title: string; href: string; items: any[] }[]>([]);
+  let seasonalItems = $state<any[]>([]);
+  let popularItems = $state<any[]>([]);
+  let topRatedItems = $state<any[]>([]);
+  let movieItems = $state<any[]>([]);
+  let trendingItems = $state<any[]>([]);
   let extraLoading = $state(true);
 
-  onMount(async () => {
-    // Use SSR-provided seasonal data (no client-side API calls)
-    const seasonal = await data.seasonal;
-    const sections = [seasonal].filter(
-      (s: any) => s && s.items && s.items.length > 0,
+  // Keep tab → grid mapping outside {#await}/{@const} so catalogTab is always reactive.
+  let airingItems = $derived(
+    seasonalItems.length ? seasonalItems : trendingItems,
+  );
+  let gridItems = $derived(
+    catalogTab === "newest"
+      ? airingItems
+      : catalogTab === "popular"
+        ? popularItems
+        : topRatedItems,
+  );
+  let seeAllHref = $derived(
+    catalogTab === "newest"
+      ? "/explore/seasonal"
+      : catalogTab === "popular"
+        ? "/explore/popular"
+        : "/explore/highest-rated",
+  );
+  let justFinishedItems = $derived.by(() => {
+    const pool = (topRatedItems.length ? topRatedItems : popularItems).filter(
+      (a: any) => {
+        const s = String(a?.status || "").toUpperCase();
+        return s.includes("FINISH") || s.includes("COMPLETE");
+      },
     );
-    extraSections = sections;
-    extraLoading = false;
+    return (pool.length ? pool : topRatedItems).slice(0, 4);
+  });
 
-    // Build the random hero: 1 random pick from each of the 3 categories, then shuffle.
-    // Math.random() runs client-only here, so every page refresh re-rolls the order.
+  function setCatalogTab(tab: "newest" | "popular" | "topRated") {
+    catalogTab = tab;
+  }
+
+  // Seed list state as soon as the streamed promise resolves (works in SSR hydrate
+  // and client). Without this, tabs only update after onMount finishes.
+  $effect(() => {
+    const p = data.homeData as any;
+    if (p && typeof p.then === "function") {
+      p.then((homeData: any) => {
+        if (!homeData) return;
+        popularItems = homeData.popular || popularItems;
+        topRatedItems = homeData.topRated || topRatedItems;
+        movieItems = homeData.movies || movieItems;
+        trendingItems = homeData.trending || trendingItems;
+      }).catch(() => {});
+    } else if (p && typeof p === "object") {
+      popularItems = p.popular || [];
+      topRatedItems = p.topRated || [];
+      movieItems = p.movies || [];
+      trendingItems = p.trending || [];
+    }
+  });
+
+  $effect(() => {
+    const p = data.seasonal as any;
+    if (p && typeof p.then === "function") {
+      p.then((seasonal: any) => {
+        seasonalItems = seasonal?.items || seasonalItems;
+        extraLoading = false;
+      }).catch(() => {
+        extraLoading = false;
+      });
+    } else if (p && typeof p === "object") {
+      seasonalItems = p.items || [];
+      extraLoading = false;
+    }
+  });
+
+  onMount(async () => {
     try {
+      // Hero shuffle only (client-only random). Lists already seeded above.
       const homeData: any = await Promise.resolve(data.homeData);
-      const newThisSeason = seasonal?.items || [];
-      const romance = homeData?.romance || [];
-      const movies = homeData?.movies || [];
+      const seasonal = await Promise.resolve(data.seasonal);
+      seasonalItems = seasonal?.items || seasonalItems;
+      popularItems = homeData?.popular || popularItems;
+      topRatedItems = homeData?.topRated || topRatedItems;
+      movieItems = homeData?.movies || movieItems;
+      trendingItems = homeData?.trending || trendingItems;
+      extraLoading = false;
 
+      const newThisSeason = seasonalItems;
+      const romance = homeData?.romance || [];
+      const movies = movieItems;
       const pools: any[][] = [newThisSeason, romance, movies].filter(
         (p) => p.length > 0,
       );
       if (pools.length === 0) {
-        heroItems = homeData?.trending || homeData?.popular || [];
+        heroItems = trendingItems.length ? trendingItems : popularItems;
         return;
       }
-
       const picks = pools.map((pool) => pool[Math.floor(Math.random() * pool.length)]);
-
-      // Fisher–Yates shuffle so the displayed order is random each session.
       for (let i = picks.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [picks[i], picks[j]] = [picks[j], picks[i]];
@@ -121,6 +188,7 @@
       heroItems = picks;
     } catch (e) {
       console.warn("Failed to build random hero:", e);
+      extraLoading = false;
     }
   });
 </script>
@@ -138,124 +206,190 @@
   />
 </svelte:head>
 
-{#await data.homeData}
-  <!-- Instant shell: skeletons stream first, real content swaps in when the
-       backend responds. This is what makes first paint feel instant. -->
+{#if extraLoading}
   <SkeletonHero />
-  <div class="home-rows">
-    {#each Array(6) as _, i (i)}
+  <div class="home-pad">
+    {#each Array(3) as _, i (i)}
       <SkeletonRow />
     {/each}
   </div>
-{:then homeData}
-  <!-- Hero Slider Carousel — 3 random picks (one per category), shuffled per session -->
-  <HeroBanner items={heroItems.length > 0 ? heroItems : (homeData?.trending || homeData?.popular || [])} />
+{:else}
+  <HeroBanner
+    items={heroItems.length > 0
+      ? heroItems
+      : trendingItems || popularItems}
+  />
 
-  <!-- Cross-device quick rail: wraps on desktop, equal grid on tablet, scroll only when needed -->
-  <nav class="quick-rail" aria-label="Quick links">
-    <div class="quick-rail-inner">
-      <a class="quick-chip" href="/latest"><span class="qc-dot" aria-hidden="true"></span>Latest</a>
-      <a class="quick-chip" href="/schedule"><span class="qc-dot muted" aria-hidden="true"></span>Schedule</a>
-      <a class="quick-chip hot" href="/explore/popular"><span class="qc-dot" aria-hidden="true"></span>Popular</a>
-      <a class="quick-chip" href="/movies"><span class="qc-dot muted" aria-hidden="true"></span>Movies</a>
-      <a class="quick-chip" href="/explore"><span class="qc-dot muted" aria-hidden="true"></span>Browse</a>
-    </div>
-  </nav>
+  <!-- SPOTLIGHT (continues above: HeroBanner) -->
 
-  <div class="home-rows">
-    <!-- Jump back in (logged in + has history) -->
-    {#if continueWatching.length > 0}
-      <section class="row-section continue-section">
-        <div class="row-header">
-          <div class="row-title-group">
-            <span class="accent-bar"></span>
-            <div class="title-stack">
-              <span class="row-eyebrow">Pick up where you left off</span>
-              <h2 class="row-title">Jump Back In</h2>
-            </div>
-          </div>
-          <a href="/profile" class="view-all" aria-label="Open your profile history">History →</a>
-        </div>
-        <div class="continue-scroll">
-          {#each continueWatching as item (item.id + "-" + item.episode)}
-            <ContinueCard {item} />
-          {/each}
-        </div>
-      </section>
-    {/if}
-
-    <!-- Seasonal + Upcoming (client-loaded, slotted high so fresh content is visible early) -->
+  <!-- TRENDING THIS WEEK -- desidub-style 3-col featured grid -->
+  <section class="featured-section home-pad">
+    <header class="featured-head">
+      <h2 class="featured-title">Trending This Week</h2>
+      <a href="/explore/popular" class="featured-more">View all →</a>
+    </header>
     {#if extraLoading}
-      {#each Array(2) as _, i (i)}
-        <SkeletonRow />
-      {/each}
-    {:else}
-      {#each extraSections as s (s.title)}
-        <Row title={s.title} items={s.items} href={s.href} eyebrow="Fresh this season" />
-      {/each}
-    {/if}
-
-    <div class="catalog-band">
-      <Row
-        title="Most Popular"
-        items={homeData?.popular || []}
-        href="/explore/popular"
-        eyebrow="Trending worldwide"
-        showRank={true}
-      />
-      <Row
-        title="Top Rated"
-        items={homeData?.topRated || []}
-        href="/explore/highest-rated"
-        eyebrow="Critically loved"
-      />
-      <Row
-        title="Romance & Slice of Life"
-        items={homeData?.romance || []}
-        href="/explore/romance"
-        eyebrow="Feel-good picks"
-      />
-      <Row
-        title="Top Movies"
-        items={homeData?.movies || []}
-        href="/explore/movies"
-        eyebrow="Cinema night"
-      />
-    </div>
-  </div>
-{:catch}
-  <div class="loading-screen">
-    <p>Failed to load. Please try refreshing.</p>
-  </div>
-{/await}
-
-<!-- More discovery sections (client-loaded so they never block first paint) -->
-<div class="home-rows extra-rows">
-  <AiringSchedule />
-
-  <!-- Browse by Genre — mosaic tiles (no cheap gif) -->
-  <section class="genre-section">
-    <div class="genre-header">
-      <div class="genre-title-group">
-        <span class="genre-eyebrow">Discover</span>
-        <h2 class="genre-title">Browse by Genre</h2>
+      <SkeletonRow count={8} />
+    {:else if trendingItems.length}
+      <div class="featured-grid">
+        {#each trendingItems.slice(0, 6) as a, i (a.id || a.mal_id || i)}
+          <article class="featured-card">
+            <a class="featured-thumb" href="/anime/{a.id || a.mal_id}/">
+              <img src={getProxiedImage(a.poster || a.image)} alt={a.title || ''} loading="lazy" />
+              <span class="featured-rank">#{i + 1}</span>
+            </a>
+            <div class="featured-body">
+              <span class="featured-type">{#if a.type || a.format}{(a.type || a.format).toUpperCase()}{/if}</span>
+              <h3 class="featured-name"><a href="/anime/{a.id || a.mal_id}/">{a.title}</a></h3>
+              <div class="featured-meta">
+                {#if a.score || a.rating}
+                  <span class="featured-score">★ {(Number(a.score || a.rating) > 10 ? (Number(a.score || a.rating) / 10).toFixed(1) : Number(a.score || a.rating).toFixed(1))}</span>
+                {/if}
+                {#if a.episodes}<span class="featured-eps">{a.episodes} Eps</span>{/if}
+              </div>
+            </div>
+          </article>
+        {/each}
       </div>
-      <a href="/explore" class="genre-explore">Explore all →</a>
-    </div>
-    <div class="genre-grid">
-      {#each GENRES as g, i}
-        <a class="genre-chip" href={`/explore/${g.slug}`} data-i={i % 6}>
-          <span class="genre-label">{g.label}</span>
-          <span class="genre-arrow" aria-hidden="true">→</span>
-        </a>
+    {/if}
+  </section>
+
+  <!-- GENRE PILLS (horizontal rail) -->
+  <section class="features-strip home-pad">
+    <div class="features-track">
+      {#each GENRES as g}
+        <a class="feature-pill" href={`/explore/${g.slug}`}>{g.label}</a>
       {/each}
     </div>
   </section>
-</div>
 
-<!-- Static, below-the-fold marketing + SEO content (own code-split chunk).
-     Rendered outside {#await} so it is always in the SSR HTML for crawlers. -->
-<HomeMarketing />
+  <!-- Watch History -->
+  {#if continueWatching.length > 0}
+    <section class="history-section home-pad">
+      <header class="featured-head">
+        <h2 class="featured-title">Watch History</h2>
+        <a href="/profile" class="featured-more">History →</a>
+      </header>
+      <div class="history-scroll">
+        {#each continueWatching as item (item.id + "-" + item.episode)}
+          <ContinueCard {item} />
+        {/each}
+      </div>
+    </section>
+  {/if}
+
+  <!-- CATALOG + SIDEBAR (desidub: section with grid + aside rail) -->
+    <section class="catalog-section home-pad">
+    <div class="catalog-wrap">
+      <!-- Main column -->
+      <div class="catalog-main">
+        <header class="catalog-head">
+          <div class="catalog-tabs" role="tablist" aria-label="Catalog">
+            <button
+              type="button"
+              role="tab"
+              class="catalog-tab"
+              class:active={catalogTab === "newest"}
+              aria-selected={catalogTab === "newest"}
+              onclick={() => setCatalogTab("newest")}
+            >NEWEST</button>
+            <button
+              type="button"
+              role="tab"
+              class="catalog-tab"
+              class:active={catalogTab === "popular"}
+              aria-selected={catalogTab === "popular"}
+              onclick={() => setCatalogTab("popular")}
+            >POPULAR</button>
+            <button
+              type="button"
+              role="tab"
+              class="catalog-tab"
+              class:active={catalogTab === "topRated"}
+              aria-selected={catalogTab === "topRated"}
+              onclick={() => setCatalogTab("topRated")}
+            >TOP RATED</button>
+          </div>
+          <a class="featured-more" href={seeAllHref}>See all →</a>
+        </header>
+
+        {#if extraLoading && catalogTab === "newest" && gridItems.length === 0}
+          <SkeletonRow />
+        {:else if gridItems.length}
+          <div class="poster-grid">
+            {#each gridItems.slice(0, 18) as anime, i (String(anime.id || anime.mal_id || i) + "-" + catalogTab)}
+              <AnimeCard {anime} rank={catalogTab === "popular" ? i + 1 : 0} />
+            {/each}
+          </div>
+        {:else}
+          <p class="empty-catalog">Nothing here yet — try another tab.</p>
+        {/if}
+      </div>
+
+      <!-- Aside rail -->
+      <aside class="catalog-aside">
+        <section class="featured-aside-card">
+          <header class="featured-aside-head">
+            <span class="aside-dot"></span>
+            <h3>TOP AIRING</h3>
+          </header>
+          <ul class="aside-list">
+            {#each airingItems.slice(0, 6) as a, i (a.id || a.mal_id || i)}
+              <li>
+                <a class="aside-row" href="/anime/{a.id || a.mal_id}/">
+                  <img class="aside-thumb" src={getProxiedImage(a.poster || a.image)} alt="" loading="lazy" />
+                  <div class="aside-body">
+                    <h4 class="aside-title">{a.title || 'Unknown'}</h4>
+                    <div class="aside-meta">
+                      {#if a.score || a.rating}<span>★ {(Number(a.score || a.rating) > 10 ? (Number(a.score || a.rating) / 10).toFixed(1) : Number(a.score || a.rating).toFixed(1))}</span>{/if}
+                      {#if a.type || a.format}<span class="aside-dot-sep">·</span><span>{(a.type || a.format).toUpperCase()}</span>{/if}
+                    </div>
+                  </div>
+                </a>
+              </li>
+            {/each}
+          </ul>
+        </section>
+
+        <section class="featured-aside-card">
+          <header class="featured-aside-head">
+            <span class="aside-dot aside-dot-2"></span>
+            <h3>TOP MOVIES</h3>
+          </header>
+          <ul class="aside-list">
+            {#each movieItems.slice(0, 5) as a, i (a.id || a.mal_id || i)}
+              <li>
+                <a class="aside-row" href="/anime/{a.id || a.mal_id}/">
+                  <img class="aside-thumb" src={getProxiedImage(a.poster || a.image)} alt="" loading="lazy" />
+                  <div class="aside-body">
+                    <h4 class="aside-title">{a.title || 'Unknown'}</h4>
+                    <div class="aside-meta">
+                      {#if a.score || a.rating}<span>★ {(Number(a.score || a.rating) > 10 ? (Number(a.score || a.rating) / 10).toFixed(1) : Number(a.score || a.rating).toFixed(1))}</span>{/if}
+                      <span class="aside-dot-sep">·</span>
+                      <span>MOVIE</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+            {/each}
+          </ul>
+        </section>
+
+        <section class="featured-aside-card featured-aside-schedule">
+          <header class="featured-aside-head">
+            <span class="aside-dot aside-dot-3"></span>
+            <h3>SCHEDULE</h3>
+          </header>
+          <div class="aside-schedule">
+            <AiringSchedule />
+          </div>
+        </section>
+      </aside>
+    </div>
+  </section>
+{/if}
+
+<div class="home-marketing-wrap"><HomeMarketing /></div>
 
 <style>
   .loading-screen {
@@ -263,577 +397,609 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 60vh;
+    min-height: 30vh;
     gap: 1rem;
     color: var(--net-text-muted);
   }
 
-  /* ========== Quick rail — equal 5-up grid on every device ==========
-     No horizontal scroll, no cut-off chips, safe-area aware. */
-  .quick-rail {
+  .home-pad {
+    width: 100%;
+    max-width: var(--page-max, 1600px);
+    margin: 0 auto;
+    padding: 0 var(--page-gutter, 2.5rem);
+    box-sizing: border-box;
+  }
+  @media (max-width: 1024px) {
+    .home-pad { padding: 0 var(--page-gutter-md, 1.25rem); }
+  }
+  @media (max-width: 720px) {
+    .home-pad { padding: 0 var(--page-gutter-sm, 0.75rem); }
+  }
+
+  .genre-rail {
+    width: 100%;
+    max-width: var(--page-max, 1600px);
+    margin: 0.15rem auto 0.4rem;
+    padding: 0 var(--page-gutter, 2.5rem);
+    box-sizing: border-box;
     position: relative;
     z-index: 4;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    box-sizing: border-box;
-    overflow: hidden; /* never page-level X scroll */
-    padding:
-      0.7rem
-      max(0.7rem, env(safe-area-inset-right, 0px))
-      0.4rem
-      max(0.7rem, env(safe-area-inset-left, 0px));
   }
-  .quick-rail-inner {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.4rem;
-    width: 100%;
-    max-width: 920px;
-    margin-inline: auto;
-    box-sizing: border-box;
+  @media (max-width: 1024px) {
+    .genre-rail { padding: 0 var(--page-gutter-md, 1.25rem); }
   }
-  .quick-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.28rem;
-    min-width: 0; /* allow grid shrink */
-    width: 100%;
-    min-height: 40px;
-    padding: 0.35rem 0.25rem;
+  @media (max-width: 720px) {
+    .genre-rail { padding: 0 var(--page-gutter-sm, 0.75rem); }
+  }
+  .genre-rail-track {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding: 0.35rem 0 0.55rem;
+    scrollbar-width: none;
+  }
+  .genre-rail-track::-webkit-scrollbar {
+    display: none;
+  }
+  .genre-pill {
+    flex-shrink: 0;
+    padding: 0.45rem 0.95rem;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.92);
-    font-size: clamp(0.62rem, 2.8vw, 0.8rem);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.8rem;
     font-weight: 700;
-    line-height: 1.1;
     text-decoration: none;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-sizing: border-box;
     transition:
-      background 0.18s ease,
-      border-color 0.18s ease,
-      transform 0.15s ease;
-    -webkit-tap-highlight-color: transparent;
+      background 0.15s,
+      border-color 0.15s;
   }
-  .quick-chip.hot {
-    background: rgba(229, 9, 20, 0.16);
-    border-color: rgba(229, 9, 20, 0.45);
-  }
-  .qc-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--net-red, #e50914);
-    box-shadow: 0 0 8px rgba(229, 9, 20, 0.55);
-    flex-shrink: 0;
-  }
-  .qc-dot.muted {
-    background: rgba(255, 255, 255, 0.35);
-    box-shadow: none;
-  }
-  @media (hover: hover) and (pointer: fine) {
-    .quick-chip:hover {
-      background: rgba(229, 9, 20, 0.16);
-      border-color: rgba(229, 9, 20, 0.4);
-      transform: translateY(-1px);
-    }
-  }
-  .quick-chip:active {
-    transform: scale(0.96);
-    background: rgba(229, 9, 20, 0.2);
-    border-color: rgba(229, 9, 20, 0.5);
-  }
-  .quick-chip:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
+  .genre-pill:hover {
+    background: rgba(250, 204, 21, 0.26);
+    border-color: rgba(255, 138, 61, 0.45);
   }
 
-  /* Very small phones: hide dots so labels fit */
-  @media (max-width: 380px) {
-    .quick-rail {
-      padding-inline: max(0.5rem, env(safe-area-inset-left, 0px))
-        max(0.5rem, env(safe-area-inset-right, 0px));
-      padding-block: 0.55rem 0.3rem;
-    }
-    .quick-rail-inner {
-      gap: 0.28rem;
-    }
-    .quick-chip {
-      min-height: 36px;
-      padding: 0.28rem 0.15rem;
-      font-size: 0.6rem;
-      gap: 0;
-    }
-    .qc-dot {
-      display: none;
-    }
+  .history-section {
+    margin-top: 0.55rem;
+    margin-bottom: 0.35rem;
   }
-
-  @media (min-width: 481px) and (max-width: 768px) {
-    .quick-rail-inner {
-      gap: 0.45rem;
-    }
-    .quick-chip {
-      min-height: 42px;
-      padding: 0.4rem 0.35rem;
-      font-size: 0.74rem;
-      gap: 0.32rem;
-    }
-    .qc-dot {
-      width: 6px;
-      height: 6px;
-    }
-  }
-
-  @media (min-width: 769px) {
-    .quick-rail {
-      padding: 0.9rem 1.25rem 0.5rem;
-    }
-    .quick-rail-inner {
-      gap: 0.55rem;
-    }
-    .quick-chip {
-      min-height: 44px;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.84rem;
-      gap: 0.4rem;
-    }
-    .qc-dot {
-      width: 6px;
-      height: 6px;
-    }
-  }
-
-  @media (orientation: landscape) and (max-height: 500px) {
-    .quick-rail {
-      padding-top: 0.4rem;
-      padding-bottom: 0.2rem;
-    }
-    .quick-chip {
-      min-height: 34px;
-      padding-block: 0.25rem;
-    }
-  }
-
-  .home-rows {
-    margin-top: 0.45rem;
-    padding: 0 2rem;
-    position: relative;
-    z-index: 3;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  .catalog-band {
-    margin-top: 0.25rem;
-  }
-
-  .extra-rows {
-    margin-top: 0.25rem;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  /* ========== Genre mosaic ========== */
-  .genre-section {
-    padding: 1.25rem 1rem 1.5rem;
-    margin-top: 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.025) 0%,
-      transparent 70%
-    );
-  }
-  .genre-header {
+  .section-head {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 0.75rem;
-    margin-bottom: 0.85rem;
-  }
-  .genre-title-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    min-width: 0;
-  }
-  .genre-eyebrow {
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(229, 9, 20, 0.95);
-  }
-  .genre-title {
-    margin: 0;
-    font-size: 1.18rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: #fff;
-    line-height: 1.15;
-  }
-  .genre-explore {
-    flex-shrink: 0;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
-    padding: 0.4rem 0.7rem;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    white-space: nowrap;
-    transition:
-      color 0.2s,
-      border-color 0.2s,
-      background 0.2s;
-  }
-  .genre-explore:hover {
-    color: #fff;
-    border-color: rgba(229, 9, 20, 0.4);
-    background: rgba(229, 9, 20, 0.12);
-  }
-  .genre-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-    gap: 0.55rem;
-  }
-  .genre-chip {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    min-height: 48px;
-    padding: 0.75rem 0.9rem;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    color: #fff;
-    font-weight: 700;
-    font-size: 0.88rem;
-    text-decoration: none;
-    overflow: hidden;
-    transition:
-      transform 0.18s ease,
-      background 0.18s ease,
-      border-color 0.18s ease,
-      box-shadow 0.18s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .genre-chip::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    opacity: 0.55;
-    pointer-events: none;
-    background: radial-gradient(
-      120% 100% at 0% 0%,
-      rgba(229, 9, 20, 0.22),
-      transparent 55%
-    );
-  }
-  .genre-chip[data-i="1"]::before {
-    background: radial-gradient(
-      120% 100% at 0% 0%,
-      rgba(59, 130, 246, 0.2),
-      transparent 55%
-    );
-  }
-  .genre-chip[data-i="2"]::before {
-    background: radial-gradient(
-      120% 100% at 0% 0%,
-      rgba(168, 85, 247, 0.2),
-      transparent 55%
-    );
-  }
-  .genre-chip[data-i="3"]::before {
-    background: radial-gradient(
-      120% 100% at 0% 0%,
-      rgba(34, 197, 94, 0.16),
-      transparent 55%
-    );
-  }
-  .genre-chip[data-i="4"]::before {
-    background: radial-gradient(
-      120% 100% at 0% 0%,
-      rgba(251, 191, 36, 0.16),
-      transparent 55%
-    );
-  }
-  .genre-chip[data-i="5"]::before {
-    background: radial-gradient(
-      120% 100% at 0% 0%,
-      rgba(236, 72, 153, 0.18),
-      transparent 55%
-    );
-  }
-  .genre-label {
-    position: relative;
-    z-index: 1;
-    letter-spacing: -0.01em;
-  }
-  .genre-arrow {
-    position: relative;
-    z-index: 1;
-    opacity: 0.45;
-    font-size: 0.9rem;
-    transition:
-      opacity 0.18s,
-      transform 0.18s;
-  }
-  @media (hover: hover) and (pointer: fine) {
-    .genre-chip:hover {
-      background: rgba(229, 9, 20, 0.16);
-      border-color: rgba(229, 9, 20, 0.45);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-    }
-    .genre-chip:hover .genre-arrow {
-      opacity: 1;
-      transform: translateX(2px);
-    }
-  }
-  .genre-chip:active {
-    transform: scale(0.97);
-    background: rgba(229, 9, 20, 0.22);
-    border-color: rgba(229, 9, 20, 0.5);
-  }
-  .genre-chip:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
-  }
-
-  /* Jump Back In */
-  .continue-section {
-    margin-bottom: 1.85rem;
-    padding-top: 0.35rem;
-  }
-  .row-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 1rem;
     margin-bottom: 0.7rem;
-    gap: 0.75rem;
   }
-  .row-title-group {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    min-width: 0;
-  }
-  .title-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    min-width: 0;
-  }
-  .row-eyebrow {
+  .section-eyebrow {
+    display: block;
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: rgba(229, 9, 20, 0.95);
-    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 0.15rem;
   }
-  .accent-bar {
-    width: 4px;
-    height: 28px;
-    background: linear-gradient(180deg, #fff 0%, rgba(229, 9, 20, 0.9) 100%);
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-  .row-title {
-    font-size: 1.18rem;
-    font-weight: 800;
-    color: white;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .section-title {
     margin: 0;
-    line-height: 1.15;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
   }
-  .view-all {
+  .section-link {
     font-size: 0.82rem;
-    color: #a3a3a3;
     font-weight: 700;
+    color: rgba(255, 255, 255, 0.55);
     text-decoration: none;
-    transition: color 0.2s;
-    flex-shrink: 0;
-    white-space: nowrap;
   }
-  .view-all:hover {
-    color: white;
+  .section-link:hover {
+    color: #fff;
   }
-
-  .continue-scroll {
+  .history-scroll {
     display: flex;
-    gap: 0.9rem;
+    gap: 0.85rem;
     overflow-x: auto;
-    padding: 0.45rem 1rem 0.95rem;
-    scroll-padding-inline: 1rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    padding: 0.25rem 0 0.75rem;
     scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
+    scrollbar-width: none;
   }
-  .continue-scroll::-webkit-scrollbar {
+  .history-scroll::-webkit-scrollbar {
     display: none;
   }
 
-  @media (max-width: 768px) {
-    .home-rows {
-      margin-top: 0.4rem;
-      padding: 0;
-    }
-    .continue-section {
-      margin-bottom: 1.45rem;
-      margin-inline: 0;
-      padding: 0.85rem 0 0.35rem;
-      background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.03) 0%,
-        transparent 100%
-      );
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    }
-    .row-header {
-      padding: 0 0.85rem;
-      margin-bottom: 0.6rem;
-    }
-    .row-title {
-      font-size: 1.08rem;
-    }
-    .row-eyebrow {
-      font-size: 0.64rem;
-    }
-    .accent-bar {
-      height: 26px;
-    }
-    .view-all {
-      font-size: 0.8rem;
-    }
-    .continue-scroll {
-      gap: 0.75rem;
-      padding: 0.35rem 0.85rem 0.85rem;
-      scroll-padding-inline: 0.85rem;
-    }
-    .genre-section {
-      padding: 1.1rem 0.85rem 1.35rem;
-    }
-    .genre-title {
-      font-size: 1.08rem;
-    }
-    .genre-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.5rem;
-    }
-    .genre-chip {
-      min-height: 46px;
-      padding: 0.7rem 0.8rem;
-      font-size: 0.84rem;
-      border-radius: 11px;
+  .home-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+    margin-top: 0.65rem;
+    margin-bottom: 1.25rem;
+    width: 100%;
+  }
+  .home-primary {
+    min-width: 0;
+    width: 100%;
+  }
+  .home-primary {
+    min-width: 0;
+  }
+  .home-aside {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 0.4rem;
+  }
+
+  .catalog-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    padding: 0.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+  }
+  .catalog-tab {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 0.55rem 0.9rem;
+    border-radius: 9px;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+  .catalog-tab.active {
+    background: rgba(236, 88, 0, 0.18);
+    color: #EC5800;
+    box-shadow: inset 0 0 0 1px rgba(236, 88, 0, 0.45);
+  }
+  .catalog-tab:focus-visible {
+    outline: 2px solid var(--net-blue, #3b82f6);
+    outline-offset: 2px;
+  }
+  .catalog-tab:hover:not(.active) {
+    color: #fff;
+  }
+  .catalog-see-all {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    padding: 0.4rem 0.55rem;
+  }
+  .catalog-see-all:hover {
+    color: #fff;
+  }
+
+  .poster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem 0.85rem;
+    width: 100%;
+  }
+  .poster-grid :global(.card) {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  .poster-grid :global(.card-poster) {
+    width: 100%;
+  }
+  .empty-catalog {
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 600;
+    padding: 2rem 0;
+  }
+
+  .schedule-compact {
+    background: var(--net-panel, #0c0c0c);
+    border: 1px solid var(--net-panel-border, rgba(255, 255, 255, 0.08));
+    border-radius: 14px;
+    overflow: hidden;
+    max-height: 260px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .schedule-compact :global(.airing-section) {
+    margin: 0 !important;
+    padding: 0.75rem !important;
+    border: none !important;
+    background: transparent !important;
+    max-width: 100%;
+  }
+  .schedule-compact :global(*) {
+    max-width: 100%;
+  }
+  .schedule-compact :global([role="tablist"]) {
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: none;
+  }
+  .schedule-compact :global([role="tablist"])::-webkit-scrollbar { display: none; }
+
+
+  @media (max-width: 1100px) {
+    .home-aside {
+      grid-template-columns: 1fr;
     }
   }
 
-  @media (max-width: 480px) {
-    .home-rows {
-      margin-top: 0.35rem;
+  @media (max-width: 720px) {
+    .home-pad,
+    .genre-rail {
+      padding-inline: 0.75rem;
     }
-    .continue-section {
-      margin-bottom: 1.2rem;
-      padding-top: 0.75rem;
+    .home-aside {
+      grid-template-columns: 1fr;
     }
-    .row-header {
-      padding: 0 0.7rem;
-      margin-bottom: 0.5rem;
+    .poster-grid {
+      grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+      gap: 0.7rem 0.55rem;
     }
-    .row-title {
-      font-size: 1.02rem;
+    .section-title {
+      font-size: 1.15rem;
     }
-    .row-eyebrow {
-      font-size: 0.6rem;
-    }
-    .view-all {
-      font-size: 0.76rem;
-    }
-    .accent-bar {
-      height: 24px;
-      width: 3px;
-    }
-    .continue-scroll {
-      gap: 0.7rem;
-      padding: 0.3rem 0.7rem 0.8rem;
-      scroll-padding-inline: 0.7rem;
-    }
-    .genre-section {
-      padding: 1rem 0.7rem 1.5rem;
-      /* Clear fixed bottom nav */
-      padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
-    }
-    .genre-header {
-      margin-bottom: 0.7rem;
-    }
-    .genre-title {
-      font-size: 1.02rem;
-    }
-    .genre-eyebrow {
-      font-size: 0.6rem;
-    }
-    .genre-explore {
+    .catalog-tab {
+      padding: 0.45rem 0.65rem;
       font-size: 0.72rem;
-      padding: 0.32rem 0.55rem;
-    }
-    .genre-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.45rem;
-    }
-    .genre-chip {
-      min-height: 44px;
-      padding: 0.65rem 0.7rem;
-      font-size: 0.78rem;
-      border-radius: 10px;
-    }
-    .genre-arrow {
-      font-size: 0.8rem;
     }
   }
 
-  @media (max-width: 360px) {
-    .row-header {
-      padding: 0 0.6rem;
-    }
-    .continue-scroll {
-      gap: 0.6rem;
-      padding-inline: 0.6rem;
-      scroll-padding-inline: 0.6rem;
-    }
-    .genre-section {
-      padding-inline: 0.6rem;
-    }
-    .genre-chip {
-      padding: 0.6rem 0.55rem;
-      font-size: 0.74rem;
-    }
+  .home-marketing-wrap {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    max-height: 180px;
+    overflow: hidden;
+    mask-image: linear-gradient(180deg, #000 35%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, #000 35%, transparent 100%);
+    opacity: 0.5;
+    pointer-events: none;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .quick-chip,
-    .genre-chip,
-    .genre-arrow {
-      transition: none;
-    }
+  /* ===== DESIDUBANIME-style home layout ===== */
+  .featured-section, .history-section, .catalog-section {
+    position: relative;
+    z-index: 3;
+    margin: 1.25rem auto 1rem;
+    max-width: var(--page-max, 1600px);
+    padding: 0 var(--page-gutter, 2.5rem);
+    box-sizing: border-box;
   }
+  .featured-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 0.85rem;
+    gap: 0.75rem;
+  }
+  .featured-title {
+    margin: 0;
+    font-family: var(--net-display-font, 'Outfit'), sans-serif;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .featured-more {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(236, 88, 0, 0.85);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .featured-more:hover { color: #EC5800; }
+
+  .featured-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .featured-card {
+    display: flex;
+    align-items: stretch;
+    background: var(--net-card-bg, #202125);
+    border: 1px solid var(--net-border, rgba(255,255,255,0.06));
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.18s;
+  }
+  .featured-card:hover {
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  .featured-thumb {
+    position: relative;
+    width: 90px;
+    flex-shrink: 0;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+  }
+  .featured-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s;
+  }
+  .featured-card:hover .featured-thumb img { transform: scale(1.05); }
+  .featured-rank {
+    position: absolute;
+    left: 0.45rem;
+    top: 0.45rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    background: rgba(0,0,0,0.72);
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fff;
+  }
+  .featured-body {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: space-between;
+  }
+  .featured-type {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.48);
+    text-transform: uppercase;
+  }
+  .featured-name {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .featured-name a { color: inherit; text-decoration: none; }
+  .featured-name a:hover { color: #EC5800; }
+  .featured-meta {
+    display: flex;
+    gap: 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+  }
+  .featured-score { color: #EC5800; }
+
+  .features-strip {
+    position: relative;
+    z-index: 3;
+    margin: 0.5rem auto 0.5rem;
+    max-width: var(--page-max, 1600px);
+    padding: 0 var(--page-gutter, 2.5rem);
+    box-sizing: border-box;
+  }
+  .features-track {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .feature-pill {
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--net-border, rgba(255,255,255,0.08));
+    color: rgba(255,255,255,0.85);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .feature-pill:hover {
+    background: rgba(236, 88, 0, 0.12);
+    border-color: rgba(236, 88, 0, 0.4);
+    color: #fff;
+  }
+
+  .history-section { margin: 0.75rem auto; }
+  .history-scroll {
+    display: flex;
+    gap: 0.85rem;
+    overflow-x: auto;
+    padding: 0.25rem 0 0.85rem;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .history-scroll::-webkit-scrollbar { display: none; }
+
+  .catalog-section { margin: 1rem auto 2rem; }
+  .catalog-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 1.25rem;
+    align-items: flex-start;
+  }
+  .catalog-main { min-width: 0; }
+  .catalog-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+    margin: 0 0 0.85rem;
+    padding: 0.3rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--net-border, rgba(255,255,255,0.06));
+    border-radius: 12px;
+  }
+  .catalog-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  .catalog-tab {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.55);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 0.55rem 0.9rem;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .catalog-tab.active {
+    background: rgba(236, 88, 0, 0.18);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(236, 88, 0, 0.45);
+  }
+  .catalog-tab:hover:not(.active) { color: #fff; }
+
+  .poster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 1rem 0.95rem;
+  }
+  .empty-catalog {
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+    padding: 2rem 0;
+  }
+
+  .catalog-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    position: sticky;
+    top: 5rem;
+  }
+  .featured-aside-card {
+    background: var(--net-card-bg, #202125);
+    border: 1px solid var(--net-border, rgba(255,255,255,0.07));
+    border-radius: 14px;
+    padding: 0.8rem 0.85rem 1rem;
+  }
+  .featured-aside-head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0 0.1rem 0.55rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin: 0 0 0.7rem;
+  }
+  .featured-aside-head h3 {
+    margin: 0;
+    font-family: var(--net-display-font, 'Outfit'), sans-serif;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #fff;
+  }
+  .aside-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #F59E0B;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.55);
+  }
+  .aside-dot-2 { background: #EF4444; box-shadow: 0 0 8px rgba(239,68,68,0.55); }
+  .aside-dot-3 { background: #22C55E; box-shadow: 0 0 8px rgba(34,197,94,0.55); }
+  .aside-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .aside-row {
+    display: flex;
+    gap: 0.65rem;
+    padding: 0.35rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+  }
+  .aside-row:hover { background: rgba(255,255,255,0.05); }
+  .aside-thumb {
+    width: 50px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 7px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+  }
+  .aside-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+  .aside-title {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.92);
+    line-height: 1.25;
+  }
+  .aside-meta {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+  }
+  .aside-dot-sep { opacity: 0.5; }
+
+  .featured-aside-schedule { padding: 0.8rem 0.85rem 0.85rem; }
+  .aside-schedule :global(.airing-section) {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  @media (max-width: 1100px) {
+    .catalog-wrap { grid-template-columns: 1fr; }
+    .catalog-aside { position: static; }
+  }
+  @media (max-width: 720px) {
+    .featured-grid {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      gap: 0.75rem;
+      padding-bottom: 0.5rem;
+    }
+    .featured-grid::-webkit-scrollbar {
+      display: none;
+    }
+    .featured-card {
+      flex: 0 0 280px;
+      scroll-snap-align: start;
+    }
+    .featured-section, .catalog-section, .features-strip, .history-section {
+      padding-inline: var(--page-gutter-sm, 0.75rem);
+    }
+    .aside-thumb { width: 44px; height: 62px; }
+  }
+
 </style>
