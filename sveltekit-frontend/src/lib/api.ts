@@ -192,7 +192,14 @@ function aniWaitForToken(): Promise<void> {
 		const fetchFn = customFetch || fetch;
 		let data: any = null;
 		
-		const isLocalhost = browser && (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+			const isLocalhost = browser && (
+				location.hostname === 'localhost' ||
+				location.hostname === '127.0.0.1' ||
+				location.hostname.startsWith('192.168.') ||
+				location.hostname.startsWith('10.') ||
+				location.hostname.endsWith('.local') ||
+				import.meta.env.DEV
+			);
 		
 		if (isLocalhost) {
 			// Query AniList directly on localhost to avoid hitting missing dev backend proxy
