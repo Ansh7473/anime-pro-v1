@@ -69,6 +69,9 @@
   let episodes: any[] = $state(data.ssrEpisodes ?? []);
   let selectedSource: any = $state(null);
   let userOverride = false; // set true when user manually picks a server
+  // URLs that failed to play at runtime (embed refused, HLS/native fatal).
+  // Used to skip dead sources when auto-advancing down the priority ranking.
+  let failedUrls = $state(new Set<string>());
 
   // ── Last-server persistence ────────────────────────────────────────
   // The user's last manually-selected server is saved to localStorage
@@ -842,15 +845,11 @@
   // For Hindi audio: DesiDub Abyss → then sub priorities.
   // Hoisted to component scope so both loadSources() and the per-episode
   // source cache path can reuse it.
-  function pickByPriority(pool: any[]): any | null {
-    if (!pool || pool.length === 0) return null;
-
-    // 0. Last-user-selected server (highest priority — persists across episodes)
-    const saved = loadServerPref();
-    if (saved) {
-      const m = pool.find((s: any) => matchServerPref(s, saved));
-      if (m) return m;
-    }
+  // Rank an entire pool in priority order (best first). Runtime fallback walks
+  // this list: when the active source fails to play, we advance to the next
+  // entry here. `pickByPriority` is just the head of this ranking.
+  function rankSources(pool: any[]): any[] {
+    if (!pool || pool.length === 0) return [];
 
     const preferredLang = ($auth.currentProfile?.language || "multi").toLowerCase();
     const isHindi = preferredLang === "hindi";
@@ -863,36 +862,61 @@
       return provMatch && nameMatch;
     };
 
-    const candidates = pool;
+    // Same as match(), but also requires a quality/name token (e.g. "720").
+    const matchQ = (s: any, provKey: string, nameKey: string, qKey: string) => {
+      if (!match(s, provKey, nameKey)) return false;
+      const hay = `${s.quality || ""} ${s.name || ""}`.toLowerCase();
+      return hay.includes(qKey.toLowerCase());
+    };
+
+    // Push matches of a predicate onto the ordered list, skipping dupes.
+    const ordered: any[] = [];
+    const seen = new Set<string>();
+    const push = (arr: any[]) => {
+      for (const s of arr) {
+        if (s && s.url && !seen.has(s.url)) { seen.add(s.url); ordered.push(s); }
+      }
+    };
+
+    // 0. Last-user-selected server (highest priority — persists across episodes).
+    const saved = loadServerPref();
+    if (saved) push(pool.filter((s: any) => matchServerPref(s, saved)));
+
     if (isHindi) {
       const hindi = pool.filter((s: any) =>
         (s.language || "").toLowerCase().includes("hindi") ||
         (s.category || "").toLowerCase() === "hindi",
       );
-      if (hindi.length > 0) {
-        const abyss = hindi.find((s: any) =>
-          match(s, "desidub", "abyss") || match(s, "desidubanime", "abyss")
-        );
-        if (abyss) return abyss;
-        return hindi[0];
-      }
+      push(hindi.filter((s: any) => match(s, "desidub", "abyss") || match(s, "desidubanime", "abyss")));
+      push(hindi);
     }
 
-    const vidnest = candidates.find((s: any) => match(s, "tatakai", "vidnest"));
-    if (vidnest) return vidnest;
-    const pahe = candidates.find((s: any) => match(s, "tatakai", "pahe"));
-    if (pahe) return pahe;
-    const nineAnime = candidates.find((s: any) => {
+    // 1st: Animelok (P5) multi ONLY. If no multi, skip straight to P14 —
+    // a non-multi Animelok must never play before P14.
+    push(pool.filter((s: any) => match(s, "animelok", "multi")));
+    // 2nd: P14 (Tatakai) Vidnest 720p, then any Vidnest.
+    push(pool.filter((s: any) => matchQ(s, "tatakai", "vidnest", "720")));
+    push(pool.filter((s: any) => match(s, "tatakai", "vidnest")));
+    // 3rd: P14 (Tatakai) Pahe 720p, then any Pahe.
+    push(pool.filter((s: any) => matchQ(s, "tatakai", "pahe", "720")));
+    push(pool.filter((s: any) => match(s, "tatakai", "pahe")));
+    // 4th: 9anime.
+    push(pool.filter((s: any) => {
       const prov = (s.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
       return prov.includes("9anime") || prov.includes("nineanime");
-    });
-    if (nineAnime) return nineAnime;
-    const sub = candidates.filter((s: any) =>
+    }));
+    // Then any remaining non-Hindi (sub) sources, then everything else.
+    push(pool.filter((s: any) =>
       !(s.language || "").toLowerCase().includes("hindi") &&
       (s.category || "").toLowerCase() !== "hindi",
-    );
-    if (sub.length > 0) return sub[0];
-    return candidates[0];
+    ));
+    push(pool);
+
+    return ordered;
+  }
+
+  function pickByPriority(pool: any[]): any | null {
+    return rankSources(pool)[0] ?? null;
   }
 
   // Cap a single provider so a 32s Animelok hang never blocks the fan-out
@@ -917,6 +941,7 @@
     sources = [];
     selectedSource = null;
     userOverride = false;
+    failedUrls.clear();
     cancelCountdown();
 
     if (hls) {
@@ -959,8 +984,45 @@
     let providersFinished = 0;
     const totalProviders = providerConfigs.length;
 
-    const choosePreferredSource = (providerSources: any[]) =>
-      pickByPriority(providerSources);
+    // Default provider (P5 = Animelok) gets first shot at MULTI audio. While
+    // P5 is still in flight we hold the best P14 (Tatakai vidnest/pahe) source
+    // as `pendingBest` and only commit to it once P5 has settled (returned /
+    // failed / timed out) or the grace window elapses — so a real Animelok
+    // multi always wins the race when it exists.
+    const PREFERRED_PROVIDER = "Provider 5";
+    const GRACE_MS = 11000; // just above P5's 10s timeout
+    let pendingBest: any = null; // best P14 source held until P5 settles
+    let preferredSettled = false;
+
+    const startWith = (candidate: any) => {
+      if (autoStarted || userOverride || !candidate) return;
+      selectedSource = candidate;
+      autoStarted = true;
+      sourceLoading = false;
+    };
+
+    // Safety net: if P5 never settles (hung promise), release pendingBest.
+    const graceTimer = setTimeout(() => {
+      if (loadId !== currentLoadId) return;
+      preferredSettled = true;
+      if (pendingBest) startWith(pendingBest);
+    }, GRACE_MS);
+
+    // What may auto-start playback, in strict order:
+    //   1. Animelok (P5) MULTI — the top choice. Only a genuine multi-audio
+    //      Animelok source qualifies; other P5 variants (bato soft, Abyess)
+    //      do NOT — they only play as a last resort.
+    //   2. P14 (Tatakai) vidnest / pahe — the fallback when no P5 multi exists.
+    // Anything else waits until every provider has finished (last resort).
+    const norm = (v: any) => String(v || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const isAnimelokMulti = (s: any) =>
+      norm(s.provider).includes("animelok") &&
+      `${s.name || ""} ${s.category || ""} ${s.language || ""} ${s.quality || ""}`
+        .toLowerCase()
+        .includes("multi");
+    const isP14 = (s: any) =>
+      norm(s.provider).includes("tatakai") &&
+      /(vidnest|pahe)/.test(`${s.name || ""}`.toLowerCase());
 
     const addProviderSources = (config: (typeof providerConfigs)[number], res: any) => {
       if (loadId !== currentLoadId || !res?.data?.sources) return;
@@ -977,14 +1039,20 @@
 
       sources = [...sources, ...uniqueNewSources];
 
-      // First successful provider starts playback immediately. Later providers
-      // only append to the server list — never yank the active stream.
+      // Auto-start policy (never yanks an already-active stream):
       if (!autoStarted) {
-        const candidate = choosePreferredSource(uniqueNewSources) || uniqueNewSources[0];
-        if (candidate) {
-          selectedSource = candidate;
-          autoStarted = true;
-          sourceLoading = false;
+        // 1. Animelok multi wins the instant it appears.
+        const multi = uniqueNewSources.find(isAnimelokMulti);
+        if (multi) {
+          startWith(multi);
+        } else {
+          // 2. Hold the best P14 (vidnest/pahe) source. Release only once P5
+          //    has settled, so a real Animelok multi still gets first shot.
+          const p14 = rankSources(sources).find(isP14);
+          if (p14) {
+            pendingBest = p14;
+            if (preferredSettled) startWith(pendingBest);
+          }
         }
       }
 
@@ -992,10 +1060,18 @@
       _sourceCache.set(cacheKey, sources);
     };
 
-    const finishOne = () => {
+    const finishOne = (config?: (typeof providerConfigs)[number]) => {
       providersFinished++;
       if (loadId !== currentLoadId) return;
+
+      // P5 settled (success/fail/timeout): stop holding — release pendingBest.
+      if (config?.name === PREFERRED_PROVIDER && !preferredSettled) {
+        preferredSettled = true;
+        if (!autoStarted && pendingBest) startWith(pendingBest);
+      }
+
       if (providersFinished < totalProviders) return;
+      clearTimeout(graceTimer);
 
       // All providers done (or timed out). Only pick if nothing started yet.
       if (!userOverride && !autoStarted && sources.length > 0) {
@@ -1020,7 +1096,7 @@
             console.warn(`[Player] Provider ${config.name} failed:`, err);
           }
         })
-        .finally(finishOne);
+        .finally(() => finishOne(config));
     }
   }
 
@@ -1072,28 +1148,37 @@
           videoElement.currentTime = 85;
         }
       });
+      let hlsRecoverTries = 0;
       hls.on(Hls.Events.ERROR, (event: any, data: any) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls?.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls?.recoverMediaError();
-              break;
-            default:
-              hls?.destroy();
-              break;
-          }
+        if (!data.fatal) return;
+        // Give a source a couple of recovery attempts before giving up. Once
+        // exhausted, mark this URL failed and advance to the next by priority.
+        if (hlsRecoverTries >= 2) {
+          tryNextSource(url);
+          return;
+        }
+        hlsRecoverTries++;
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            hls?.startLoad();
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            hls?.recoverMediaError();
+            break;
+          default:
+            tryNextSource(url);
+            break;
         }
       });
     } else if (videoElement.canPlayType("application/vnd.apple.mpegurl")) {
       videoElement.src = url;
+      videoElement.onerror = () => tryNextSource(url);
       videoElement.addEventListener("loadedmetadata", () => {
         videoElement?.play().catch(() => {});
       });
     } else {
       videoElement.src = url;
+      videoElement.onerror = () => tryNextSource(url);
     }
   }
 
@@ -1146,6 +1231,32 @@
 
   function handleSourceChange(src: any) {
     selectedSource = src;
+  }
+
+  // Runtime fallback: the active source failed to play (embed refused to
+  // connect, HLS/native fatal error). Mark it dead and jump to the next
+  // still-good source in priority order. `reason` may be a string (auto
+  // callers) or a DOM Event (iframe onerror / button onclick).
+  function tryNextSource(reason: string | Event = "playback error") {
+    const why = typeof reason === "string" ? reason : "playback error";
+    const dead = selectedSource?.url;
+    if (!dead) return;
+    if (failedUrls.has(dead)) return; // already handled this failure
+
+    failedUrls = new Set(failedUrls).add(dead);
+    console.warn(`[Player] Source failed (${why}), advancing: ${dead}`);
+
+    const next = rankSources(sources).find(
+      (s: any) => s.url && !failedUrls.has(s.url),
+    );
+    if (next) {
+      // Advancing on failure is an implicit re-pick; clear the manual lock so
+      // priority fallback isn't frozen to a dead choice.
+      userOverride = false;
+      selectedSource = next;
+    } else {
+      error = "All servers failed for this episode. Try another episode or provider.";
+    }
   }
 
   // User manually selected a server — prevent priority auto-switching
@@ -1265,6 +1376,7 @@
         onCancelCountdown={cancelCountdown}
         onSaveProgress={() => saveProgress()}
         onSaveProgressForce={() => saveProgress(true)}
+        onTryNextSource={tryNextSource}
       />
 
       <!-- Control Deck -->

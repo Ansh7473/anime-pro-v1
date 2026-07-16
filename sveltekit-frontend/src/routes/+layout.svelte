@@ -9,6 +9,7 @@
   import JsonLd from "$lib/components/JsonLd.svelte";
   import { getSiteJsonLd, SITE_NAME } from "$lib/seo";
   import { SEARCH_ENGINE_META_VERIFICATIONS } from "$lib/seo-verification";
+  import { adsAllowedOn, loadPopunder } from "$lib/ads";
 
   import "../app.css";
   import "../lib/styles/themes.css";
@@ -16,6 +17,17 @@
 
   let { children, data } = $props();
   const siteJsonLd = $derived(getSiteJsonLd(data.canonicalUrl));
+
+  // Monetag popunder: load only on free content pages, never on ad-free /
+  // non-content routes. Deferred so it never blocks first paint. Once loaded
+  // the third-party script persists for the session (popunders can't be
+  // unloaded), so it's injected the first time an allowed page is visited.
+  $effect(() => {
+    if (!browser) return;
+    if (!adsAllowedOn(page.url.pathname as string)) return;
+    const t = setTimeout(loadPopunder, 2000);
+    return () => clearTimeout(t);
+  });
 
   // TV Mode Redirection Logic
   $effect(() => {

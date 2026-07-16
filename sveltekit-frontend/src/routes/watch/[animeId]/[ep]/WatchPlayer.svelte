@@ -27,6 +27,7 @@
     onCancelCountdown = () => {},
     onSaveProgress = () => {},
     onSaveProgressForce = () => {},
+    onTryNextSource = () => {},
   }: {
     sourceLoading?: boolean;
     sources?: any[];
@@ -51,6 +52,7 @@
     onCancelCountdown?: () => void;
     onSaveProgress?: () => void;
     onSaveProgressForce?: () => void;
+    onTryNextSource?: () => void;
   } = $props();
 
   function formatTime(seconds: number): string {
@@ -87,9 +89,10 @@
             class="video-frame"
             allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write"
             referrerpolicy="no-referrer"
+            onerror={onTryNextSource}
           ></iframe>
           <div class="iframe-nav-tip">
-            <p><AlertCircle size={14} aria-hidden="true" /> Change server below if player is slow ↓</p>
+            <p><AlertCircle size={14} aria-hidden="true" /> Server not loading? <button type="button" class="next-server-btn" onclick={onTryNextSource}>Try next server</button></p>
           </div>
         </div>
       {:else}
@@ -232,13 +235,20 @@
     position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
     background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
     padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(245,245,245,0.10);
-    pointer-events: none; opacity: 0; transition: 0.3s; z-index: 10;
+    pointer-events: auto; opacity: 0.85; transition: 0.3s; z-index: 10;
   }
   .iframe-box:hover .iframe-nav-tip { opacity: 1; }
   .iframe-nav-tip p {
     margin: 0; font-size: 0.75rem; color: #a8a8a8;
     display: flex; align-items: center; gap: 6px;
   }
+  .next-server-btn {
+    pointer-events: auto; cursor: pointer;
+    background: rgba(255,255,255,0.12); color: #fff;
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 6px;
+    padding: 2px 8px; font-size: 0.72rem; font-weight: 700;
+  }
+  .next-server-btn:hover { background: rgba(255,255,255,0.22); }
 
   .overlay-state {
     position: absolute; inset: 0;
