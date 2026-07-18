@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import Hls from "hls.js";
   import { BACKEND_URL } from "$lib/api";
   import {
     Play,
@@ -57,7 +56,7 @@
   // ── Refs ───────────────────────────────────────────────
   let containerEl: HTMLDivElement | null = $state(null);
   let videoEl: HTMLVideoElement | null = $state(null);
-  let hlsInstance: Hls | null = null;
+  let hlsInstance: { destroy: () => void } | null = null;
 
   // Sync internal ref → bindable prop so parent can access <video>
   $effect(() => { videoElement = videoEl; });
@@ -186,8 +185,25 @@
     hlsInstance = null;
 
     const isHls = type === "hls" || src.includes(".m3u8");
+    let disposed = false;
+    let mountedHls: { destroy: () => void } | null = null;
 
-    if (isHls && Hls.isSupported()) {
+    const mountSource = async () => {
+      // Safari can play HLS natively; direct video files never need hls.js.
+      if (!isHls || video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = src;
+        return;
+      }
+
+      // Keep the large HLS runtime out of the initial site bundle. It is loaded
+      // only when a browser without native HLS opens a direct HLS source.
+      const { default: Hls } = await import("hls.js");
+      if (disposed) return;
+      if (!Hls.isSupported()) {
+        video.src = src;
+        return;
+      }
+
       const hls = new Hls({
         capLevelToPlayerSize: true,
         autoStartLoad: true,
@@ -212,6 +228,8 @@
           }
         },
       });
+      mountedHls = hls;
+      hlsInstance = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -230,19 +248,19 @@
           return;
         }
         hls.destroy();
+        if (hlsInstance === hls) hlsInstance = null;
         reportFailure(`HLS playback failed: ${data.details || data.type}`);
       });
-      hlsInstance = hls;
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari native HLS
-      video.src = src;
-    } else {
-      video.src = src;
-    }
+    };
+
+    void mountSource().catch((error) => {
+      if (!disposed) reportFailure(`Unable to initialize HLS playback: ${String(error)}`);
+    });
 
     return () => {
-      hlsInstance?.destroy();
-      hlsInstance = null;
+      disposed = true;
+      mountedHls?.destroy();
+      if (hlsInstance === mountedHls) hlsInstance = null;
     };
   });
 
@@ -1002,7 +1020,7 @@
     text-align: center;
     background: transparent;
     color: rgba(255,255,255,0.6);
-    transition: all 0.15s;
+    transition: background-color 0.15s, color 0.15s;
   }
   .sp-speed-btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
   .sp-speed-btn.active { background: rgba(229, 62, 62, 1); color: #0a0a0e; }
@@ -1019,7 +1037,7 @@
     cursor: pointer;
     background: transparent;
     color: rgba(255,255,255,0.7);
-    transition: all 0.15s;
+    transition: background-color 0.15s, color 0.15s;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -54,15 +54,27 @@ self.addEventListener('fetch', (event) => {
 		}
 
 		const isNavigate = event.request.mode === 'navigate';
+		const isPrivateRoute = ['/auth', '/profile', '/settings', '/watchlist', '/history', '/tv/profile', '/tv/settings']
+			.some((path) => url.pathname === path || url.pathname.startsWith(`${path}/`));
 
-		// For navigations, race the network against a timeout so a slow or hung
+		// Never persist account pages in the service-worker cache. Cloudflare and
+		// the browser should both fetch these from the network for each visit.
+		if (isNavigate && isPrivateRoute) {
+			return fetchWithTimeout(event.request, 4000);
+		}
+
+		// For public navigations, race the network against a timeout so a slow or hung
 		// origin can't leave the user staring at a blank screen — fall back to
 		// the cached page (stale-while-revalidate) instead.
 		if (isNavigate) {
 			const cachedResponse = await cache.match(event.request);
 			try {
 				const response = await fetchWithTimeout(event.request, 4000);
-				if (response && response.ok) cache.put(event.request, response.clone());
+				const cacheControl = response?.headers.get('Cache-Control') || '';
+				const cacheable = response?.ok &&
+					!cacheControl.toLowerCase().includes('no-store') &&
+					!response.headers.has('Set-Cookie');
+				if (cacheable) cache.put(event.request, response.clone());
 				return response;
 			} catch {
 				if (cachedResponse) return cachedResponse;

@@ -15,6 +15,9 @@ const config = {
 		}
 	},
 	kit: {
+		// Allow isolated validation builds when a running dev server locks the
+		// default .svelte-kit directory. Normal builds keep the standard path.
+		outDir: process.env.SVELTE_KIT_OUT_DIR || '.svelte-kit',
 		// Ensure relative paths for platform builds (Capacitor/Electron)
 		// This converts absolute links like "/_app/..." to "./_app/..."
 		paths: {
@@ -35,8 +38,10 @@ const config = {
 				});
 			}
 
-			// Default to Cloudflare for web deployments
-			return adapterCloudflare();
+			// Default to Cloudflare for web deployments. An alternate config is
+			// useful for isolated validation when the normal adapter output is in use.
+			const cloudflareConfig = process.env.CLOUDFLARE_ADAPTER_CONFIG;
+			return adapterCloudflare(cloudflareConfig ? { config: cloudflareConfig } : {});
 		})()
 	}
 };

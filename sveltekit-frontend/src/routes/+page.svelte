@@ -23,6 +23,7 @@
   let movieItems = $state<any[]>([]);
   let trendingItems = $state<any[]>([]);
   let extraLoading = $state(true);
+  let userContentGeneration = 0;
 
   function titleOf(item: any): string {
     const raw = item?.title || item?.name || item?.userPreferred || item?.title_english;
@@ -69,13 +70,17 @@
   ] as const;
 
   $effect(() => {
-    if ($auth.token && $auth.currentProfile?.id) fetchUserContent();
+    const token = $auth.token;
+    const profileId = $auth.currentProfile?.id;
+    const generation = ++userContentGeneration;
+    if (token && profileId) void fetchUserContent(token, profileId, generation);
     else continueHistory = [];
   });
 
-  async function fetchUserContent() {
+  async function fetchUserContent(token: string, profileId: number | string, generation: number) {
     try {
-      const history = await api.getHistory($auth.token!, $auth.currentProfile?.id).catch(() => []);
+      const history = await api.getHistory(token, profileId).catch(() => []);
+      if (generation !== userContentGeneration) return;
       const latest = new Map<string, any>();
       for (const item of Array.isArray(history) ? history : []) {
         if (!item?.animeId) continue;
@@ -84,7 +89,7 @@
       }
       continueHistory = Array.from(latest.values()).slice(0, 12);
     } catch (error) {
-      console.error("Failed to fetch watch history:", error);
+      if (generation === userContentGeneration) console.error("Failed to fetch watch history:", error);
     }
   }
 
@@ -126,7 +131,7 @@
   $effect(() => {
     const promise = data.homeData as any;
     Promise.resolve(promise).then((home: any) => {
-      if (!home) return;
+      if (data.homeData !== promise || !home) return;
       popularItems = home.popular || [];
       topRatedItems = home.topRated || [];
       movieItems = home.movies || [];
@@ -137,6 +142,7 @@
   $effect(() => {
     const promise = data.seasonal as any;
     Promise.resolve(promise).then((seasonal: any) => {
+      if (data.seasonal !== promise) return;
       seasonalItems = seasonal?.items || [];
     }).catch(() => {});
   });
@@ -157,7 +163,10 @@
   <SkeletonHero />
   <div class="page-shell loading-rows"><SkeletonRow /><SkeletonRow /></div>
 {:else}
-  <HeroBanner items={heroItems.length ? heroItems : (trendingItems.length ? trendingItems : popularItems)} />
+  <HeroBanner
+    items={heroItems.length ? heroItems : (trendingItems.length ? trendingItems : popularItems)}
+    allowTitleArtwork
+  />
 
   <main class="home-surface">
     <section class="lineup-section page-shell" aria-label="Weekly anime lineup">

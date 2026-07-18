@@ -112,6 +112,9 @@
     if (t.id) return `https://www.youtube.com/embed/${t.id}`;
     return "";
   });
+  const posterUrl = $derived(anime?.poster || anime?.image || "");
+  const wideBannerUrl = $derived(anime?.bannerImage || anime?.artwork?.banner || "");
+  const heroImageUrl = $derived(wideBannerUrl || posterUrl);
 
   let filteredCharacters = $derived.by(() => {
     const list = characters || [];
@@ -240,24 +243,34 @@
     try {
       const ssr =
         ssrAnime &&
-        (ssrAnime.id === currentId || ssrAnime.mal_id === currentId)
+        [ssrAnime.id, ssrAnime.anilist_id, ssrAnime.idMal, ssrAnime.mal_id]
+          .map(Number)
+          .includes(currentId)
           ? ssrAnime
           : null;
       const fetchedAnime = ssr || (await api.getAnime(currentId));
 
+      if (currentId !== id) return;
+      const ssrMetadata = Array.isArray(data.episodeMetadata) ? data.episodeMetadata : [];
       untrack(() => {
         anime = fetchedAnime;
-        if (currentId === id) pullFromAnime(fetchedAnime);
+        pullFromAnime(fetchedAnime);
+        if (ssrMetadata.length > 0) mergeEpisodeMetadata(ssrMetadata);
       });
 
-      const metadataId = fetchedAnime?.idMal || fetchedAnime?.mal_id || currentId;
-      void api.getEpisodeMetadata(metadataId, 1, 2000).then((metadata) => {
-        if (currentId !== id) return;
-        const list = metadata?.data?.episodes ?? metadata?.episodes ?? [];
-        if (list.length > 0) untrack(() => mergeEpisodeMetadata(list));
-      }).catch((metadataError) => {
-        console.warn("Episode titles could not be loaded:", metadataError);
-      });
+      // SSR normally supplies real names/thumbnails. Only call the metadata
+      // endpoint in the browser when SSR timed out or returned no usable rows.
+      if (ssrMetadata.length === 0) {
+        const metadataId = fetchedAnime?.idMal || fetchedAnime?.mal_id || currentId;
+        try {
+          const metadata = await api.getEpisodeMetadata(metadataId, 1, 2000);
+          if (currentId !== id) return;
+          const list = metadata?.data?.episodes ?? metadata?.episodes ?? [];
+          if (list.length > 0) untrack(() => mergeEpisodeMetadata(list));
+        } catch (metadataError) {
+          console.warn("Episode titles could not be loaded:", metadataError);
+        }
+      }
 
       if ($auth.token) {
         // Only fire once per id per session. Subsequent mounts reuse the result.
@@ -385,8 +398,8 @@
     <meta name="description" content={pageDescription} />
     <meta property="og:title" content={`${displayTitle} - WatchAnimeX`} />
     <meta property="og:description" content={pageDescription} />
-    {#if anime.poster || anime.image}
-      <meta property="og:image" content={anime.poster || anime.image} />
+    {#if heroImageUrl}
+      <meta property="og:image" content={heroImageUrl} />
     {/if}
   {/if}
 </svelte:head>
@@ -400,32 +413,46 @@
 {:else}
   <section
     class="ad-hero"
-    style="--banner: url('{anime.bannerImage || anime.image || anime.poster || ""}')"
+    class:cover-fallback={!wideBannerUrl}
+    style="--banner: url('{heroImageUrl}')"
   >
     <div class="ad-hero-bg" aria-hidden="true"></div>
     <div class="ad-hero-shade" aria-hidden="true"></div>
 
     <div class="ad-hero-inner">
       <div class="ad-info">
-        {#if nativeTitle}<p class="ad-native-title">{nativeTitle}</p>{/if}
-        <h1 class="ad-title">{displayTitle}</h1>
+        <div class="ad-heading">
+          {#if nativeTitle}<p class="ad-native-title">{nativeTitle}</p>{/if}
+          <h1 class="ad-title">
+            {#if anime.clearLogo || anime.artwork?.clear_logo}
+              <img
+                class="ad-title-logo"
+                src={anime.clearLogo || anime.artwork?.clear_logo}
+                alt={displayTitle}
+              />
+              <span class="sr-only">{displayTitle}</span>
+            {:else}
+              {displayTitle}
+            {/if}
+          </h1>
 
-        <div class="ad-meta" aria-label="Anime metadata">
-          {#if scoreLabel}<span><b>★ {scoreLabel}</b> score</span>{/if}
-          {#if seasonLabel}<span>{seasonLabel}</span>{/if}
-          {#if anime.episodes}<span>{anime.episodes} episodes</span>{/if}
-          {#if durationLabel}<span>{durationLabel} runtime</span>{/if}
-          {#if anime.status}<span>{String(anime.status).replace(/_/g, " ")}</span>{/if}
+          <div class="ad-meta" aria-label="Anime metadata">
+            {#if scoreLabel}<span><b>★ {scoreLabel}</b> score</span>{/if}
+            {#if seasonLabel}<span>{seasonLabel}</span>{/if}
+            {#if anime.episodes}<span>{anime.episodes} episodes</span>{/if}
+            {#if durationLabel}<span>{durationLabel} runtime</span>{/if}
+            {#if anime.status}<span>{String(anime.status).replace(/_/g, " ")}</span>{/if}
+          </div>
+
+          {#if anime.genres?.length}
+            <p class="ad-genres">
+              {anime.genres.map((g: any) => typeof g === "string" ? g : g?.name).filter(Boolean).join(" / ")}
+            </p>
+          {/if}
         </div>
 
-        {#if anime.genres?.length}
-          <p class="ad-genres">
-            {anime.genres.map((g: any) => typeof g === "string" ? g : g?.name).filter(Boolean).join(" / ")}
-          </p>
-        {/if}
-
         <div class="ad-overview">
-          <p class="ad-synopsis">{synopsisOpen ? synopsisFull : synopsisShort}</p>
+          <p class="ad-synopsis" class:open={synopsisOpen}>{synopsisOpen ? synopsisFull : synopsisShort}</p>
           {#if synopsisFull.length > 280}
             <button type="button" class="ad-readmore" onclick={() => (synopsisOpen = !synopsisOpen)}>
               {synopsisOpen ? "Show less" : "Read full synopsis"}
@@ -435,7 +462,9 @@
       </div>
 
       <div class="ad-poster-dock">
-        <div class="ad-poster"><img src={anime.poster || anime.image} alt={displayTitle} /></div>
+        {#if posterUrl}
+          <div class="ad-poster"><img src={posterUrl} alt={displayTitle} /></div>
+        {/if}
         <a href="/watch/{id}/1/" class="ad-btn primary" data-sveltekit-preload-data="hover"><span aria-hidden="true">▶</span> Play episode 1</a>
         <div class="ad-utility-actions">
           <button type="button" class:active={inWatchlist} disabled={processingWatchlist} onclick={toggleWatchlist}>
@@ -745,6 +774,10 @@
     transform: scale(1.04);
     filter: saturate(1.05);
   }
+  .ad-hero.cover-fallback .ad-hero-bg {
+    transform: scale(1.12);
+    filter: blur(18px) saturate(0.75) brightness(0.72);
+  }
   .ad-hero-shade {
     position: absolute;
     inset: 0;
@@ -804,6 +837,20 @@
     line-height: 1.08;
     color: #fff;
     text-shadow: 0 4px 28px rgba(0, 0, 0, 0.55);
+  }
+  .ad-title:has(.ad-title-logo) {
+    min-height: clamp(80px, 10vw, 140px);
+    display: flex;
+    align-items: flex-end;
+  }
+  .ad-title-logo {
+    display: block;
+    width: auto;
+    max-width: min(420px, 100%);
+    max-height: 140px;
+    object-fit: contain;
+    object-position: left center;
+    filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.72));
   }
   .ad-meta {
     display: flex;
@@ -1411,4 +1458,197 @@
   .char-rich { border-radius:4px;background:#0d0c0b;border-color:#28231f; }.char-rich:hover{background:#151210;border-color:#4a3c35}.char-rich-art,.ad-trailer{border-radius:3px}.char-role-badge.main{background:#df886b;color:#170c09;border-color:#df886b}
   @media(max-width:860px){.ad-hero-inner{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}.ad-body{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}}
   @media(max-width:560px){.ad-hero-inner,.ad-body{padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right))}}
+
+  /* Mobile cinematic detail composition */
+  @media (max-width: 560px) {
+    .ad-hero {
+      min-height: 0;
+      border-bottom: 1px solid var(--editorial-line, #28231f);
+    }
+    .ad-hero-bg {
+      background-position: 58% top;
+      transform: scale(1.02);
+      filter: saturate(.72) contrast(1.05);
+    }
+    .ad-hero-shade {
+      background:
+        linear-gradient(90deg, rgba(7,7,6,.92) 0%, rgba(7,7,6,.56) 54%, rgba(7,7,6,.28) 100%),
+        linear-gradient(180deg, rgba(7,7,6,.14) 0%, rgba(7,7,6,.72) 35%, #070706 76%, #070706 100%);
+    }
+    .ad-hero-inner {
+      grid-template-columns: 116px minmax(0, 1fr);
+      grid-template-areas:
+        "poster info"
+        "overview overview"
+        "primary primary"
+        "utilities utilities";
+      gap: .9rem 1rem;
+      align-items: end;
+      justify-items: stretch;
+      padding-top: 3.7rem;
+      padding-bottom: 1.2rem;
+    }
+    .ad-info,
+    .ad-poster-dock {
+      display: contents;
+    }
+    .ad-heading {
+      grid-area: info;
+      min-width: 0;
+      align-self: end;
+      padding-bottom: .05rem;
+    }
+    .ad-poster {
+      grid-area: poster;
+      width: 116px;
+      max-width: none;
+      align-self: end;
+    }
+    .ad-poster img {
+      border-color: #4a3c35;
+      box-shadow: 9px 12px 0 rgba(7, 7, 6, .5);
+    }
+    .ad-native-title {
+      overflow: hidden;
+      margin: 0 0 .32rem;
+      color: #9a9189;
+      font-size: .66rem;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ad-title {
+      margin-bottom: .62rem;
+      color: var(--editorial-text, #f1ece4);
+      font-size: clamp(1.28rem, 6vw, 1.52rem);
+      line-height: 1.02;
+      letter-spacing: -.045em;
+      text-wrap: balance;
+    }
+    .ad-meta {
+      gap: .32rem;
+      margin: 0 0 .48rem;
+      font-size: .66rem;
+      line-height: 1;
+    }
+    .ad-meta span {
+      min-height: 24px;
+      display: inline-flex;
+      align-items: center;
+      padding: .28rem .42rem;
+      color: #b6aea6;
+      background: rgba(13, 12, 11, .84);
+      border: 1px solid #332c27;
+      border-radius: 2px;
+      text-transform: capitalize;
+    }
+    .ad-meta b {
+      color: #efa086;
+    }
+    .ad-genres {
+      display: -webkit-box;
+      overflow: hidden;
+      margin: 0;
+      color: #9a9189;
+      font-size: .68rem;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+    }
+    .ad-overview {
+      grid-area: overview;
+      max-width: none;
+      padding-top: .15rem;
+      border-top: 1px solid rgba(73, 61, 53, .62);
+    }
+    .ad-synopsis {
+      display: -webkit-box;
+      overflow: hidden;
+      padding-top: .78rem;
+      color: #b8b0a8;
+      font-size: .82rem;
+      line-height: 1.55;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+      line-clamp: 4;
+    }
+    .ad-synopsis.open {
+      display: block;
+      overflow: visible;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+    }
+    .ad-readmore {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      margin-top: .1rem;
+      color: #efa086;
+      font-size: .76rem;
+    }
+    .ad-btn.primary {
+      grid-area: primary;
+      width: 100%;
+      min-height: 48px;
+      color: #170c09;
+      border: 1px solid #efa086;
+      background: #df886b;
+      font-size: .86rem;
+      letter-spacing: -.01em;
+    }
+    .ad-utility-actions {
+      grid-area: utilities;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .4rem;
+    }
+    .ad-utility-actions button {
+      min-width: 0;
+      min-height: 46px;
+      padding: .52rem .3rem;
+      overflow: hidden;
+      color: #a59d95;
+      background: rgba(13, 12, 11, .92);
+      border-color: #332c27;
+      font-size: .69rem;
+      line-height: 1.15;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ad-utility-actions button.active {
+      color: #efa086;
+      border-color: #8b5746;
+      box-shadow: inset 0 -2px #df886b;
+    }
+    .ad-body {
+      padding-top: .9rem;
+    }
+    .ad-tabs {
+      flex-wrap: nowrap;
+      gap: 1.15rem;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      margin: 0 0 1rem;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ad-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .ad-tab {
+      flex: 0 0 auto;
+      min-height: 46px;
+      padding: .75rem 0;
+      font-size: .78rem;
+      white-space: nowrap;
+    }
+    .ad-main {
+      order: 0;
+    }
+    .ad-side.active-mobile {
+      order: 1;
+      margin-top: 0;
+    }
+  }
 </style>

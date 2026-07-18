@@ -15,6 +15,12 @@
     ArrowLeft,
     TrendingUp,
     Flame,
+    Home,
+    CalendarDays,
+    Compass,
+    Clock3,
+    Film,
+    Menu,
   } from 'lucide-svelte';
   import { auth, logoutUser } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
@@ -47,9 +53,52 @@
     return page.url.pathname === href || page.url.pathname.startsWith(href + "/");
   }
 
+  let mobileMenuElement: HTMLElement = $state(null!);
+  let hamburgerButton: HTMLButtonElement = $state(null!);
+
   function closeMobileMenu() {
     mobileMenuOpen = false;
   }
+
+  function handleMobileMenuKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeMobileMenu();
+      return;
+    }
+
+    if (e.key !== "Tab" || !mobileMenuElement) return;
+
+    const focusable = Array.from(
+      mobileMenuElement.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  $effect(() => {
+    if (!mobileMenuOpen || !mobileMenuElement) return;
+
+    const timer = setTimeout(() => {
+      mobileMenuElement.querySelector<HTMLElement>(".mobile-primary-nav a")?.focus();
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      hamburgerButton?.focus();
+    };
+  });
 
   const trendingSearches = [
     "Solo Leveling",
@@ -58,6 +107,17 @@
     "Jujutsu Kaisen",
     "Bleach",
     "Chainsaw Man"
+  ];
+
+  const mobileNavLinks = [
+    { href: "/", label: "Home", icon: Home },
+    { href: "/schedule", label: "Schedule", icon: CalendarDays },
+    { href: "/explore", label: "Browse", icon: Compass },
+    { href: "/latest", label: "Latest", icon: Clock3 },
+    { href: "/movies", label: "Movies", icon: Film },
+    { href: "/tv-series", label: "TV series", icon: Tv },
+    { href: "/watchlist", label: "Watchlist", icon: Bookmark },
+    { href: "/favorites", label: "Favorites", icon: Heart },
   ];
 
   function handleScroll() {
@@ -330,6 +390,8 @@
 
       <!-- HAMBURGER MENU TOGGLE -->
       <button
+        bind:this={hamburgerButton}
+        type="button"
         class="nav-icon-btn hamburger hide-desktop"
         class:menu-open={mobileMenuOpen}
         onclick={() => {
@@ -340,12 +402,12 @@
         aria-expanded={mobileMenuOpen}
         aria-controls="mobile-nav-menu"
       >
-        {#if mobileMenuOpen}<X size={22} />{:else}☰{/if}
+        {#if mobileMenuOpen}<X size={22} />{:else}<Menu size={22} />{/if}
       </button>
     </div>
   </div>
 
-  <!-- MOBILE HAMBURGER DRAWER -->
+  <!-- MOBILE EDITORIAL NAVIGATION SHEET -->
   {#if mobileMenuOpen}
     <button
       type="button"
@@ -355,18 +417,46 @@
     ></button>
 
     <div
+      bind:this={mobileMenuElement}
       id="mobile-nav-menu"
       class="mobile-menu"
-      role="navigation"
-      aria-label="Mobile navigation"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-menu-title"
+      tabindex="-1"
+      onkeydown={handleMobileMenuKeydown}
     >
       <div class="mobile-menu-scroll">
+        <header class="mobile-menu-header">
+          <div>
+            <p class="mobile-menu-eyebrow">WatchAnimeX</p>
+            <h2 id="mobile-menu-title">Explore</h2>
+          </div>
+          <span class="mobile-menu-status">Catalog</span>
+        </header>
+
+        <p class="mobile-section-label">Browse</p>
+        <nav class="mobile-primary-nav" aria-label="Primary navigation">
+          {#each mobileNavLinks as item (item.href)}
+            <a
+              href={item.href}
+              class:active={isNavActive(item.href)}
+              aria-current={isNavActive(item.href) ? "page" : undefined}
+              onclick={closeMobileMenu}
+            >
+              <span class="mobile-nav-icon"><item.icon size={18} /></span>
+              <span>{item.label}</span>
+            </a>
+          {/each}
+        </nav>
+
         <p class="mobile-section-label">Apps & support</p>
         <div class="mobile-action-row">
           <a
             href="/download"
             class="mobile-action-chip download-chip"
             class:active={isNavActive("/download")}
+            aria-current={isNavActive("/download") ? "page" : undefined}
             onclick={closeMobileMenu}
           >
             <Download size={17} />
@@ -376,10 +466,11 @@
             href="/donate"
             class="mobile-action-chip donate-chip"
             class:active={isNavActive("/donate")}
+            aria-current={isNavActive("/donate") ? "page" : undefined}
             onclick={closeMobileMenu}
           >
             <Heart size={17} fill="currentColor" />
-            <span>Donate</span>
+            <span>Support us</span>
           </a>
         </div>
 
@@ -401,13 +492,13 @@
               </div>
             </div>
             <div class="mobile-account-grid">
-              <a href="/profile" class="mobile-account-btn" onclick={closeMobileMenu}>
+              <a href="/profile" class="mobile-account-btn" class:active={isNavActive("/profile")} aria-current={isNavActive("/profile") ? "page" : undefined} onclick={closeMobileMenu}>
                 <User size={16} /> Profile
               </a>
-              <a href="/watchlist" class="mobile-account-btn" onclick={closeMobileMenu}>
+              <a href="/watchlist" class="mobile-account-btn" class:active={isNavActive("/watchlist")} aria-current={isNavActive("/watchlist") ? "page" : undefined} onclick={closeMobileMenu}>
                 <Bookmark size={16} /> Watchlist
               </a>
-              <a href="/favorites" class="mobile-account-btn" onclick={closeMobileMenu}>
+              <a href="/favorites" class="mobile-account-btn" class:active={isNavActive("/favorites")} aria-current={isNavActive("/favorites") ? "page" : undefined} onclick={closeMobileMenu}>
                 <Heart size={16} /> Favorites
               </a>
               <button
@@ -1787,4 +1878,409 @@
   .mobile-menu{background:#090807;border-left:1px solid #28231f}.mobile-action-chip,.mobile-account-btn{border-radius:3px}
   @media(max-width:1024px){.navbar{padding-left:0;padding-right:0}.nav-inner{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}}
   @media(max-width:640px){.nav-inner{padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right))}}
+
+  /* Authoritative mobile editorial navigation */
+  .hamburger.menu-open {
+    color: #efa086;
+    background: #151210;
+    border-color: #332c27;
+  }
+
+  .mobile-menu-backdrop {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 100dvh;
+    z-index: 998;
+    border: 0;
+    padding: 0;
+    background: rgba(3, 3, 3, 0.72);
+    cursor: pointer;
+    animation: editorialBackdropIn 0.18s ease-out both;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: auto;
+    z-index: 999;
+    width: min(100vw, 400px);
+    height: calc(100dvh - 62px - env(safe-area-inset-top, 0px) - 60px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 62px - env(safe-area-inset-top, 0px) - 60px - env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #090807;
+    border: 0;
+    border-left: 1px solid #28231f;
+    border-bottom: 1px solid #28231f;
+    box-shadow: -20px 20px 48px rgba(0, 0, 0, 0.42);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    animation: editorialSheetIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .mobile-menu-scroll {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-color: #3a312b #090807;
+    padding: 0 0 calc(1rem + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .mobile-menu-header {
+    min-height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    background: #0d0c0b;
+    border-bottom: 1px solid #28231f;
+  }
+
+  .mobile-menu-header h2 {
+    margin: 0.12rem 0 0;
+    color: #f1ece4;
+    font-family: var(--net-display-font, "Outfit", system-ui, sans-serif);
+    font-size: 1.18rem;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+
+  .mobile-menu-eyebrow {
+    margin: 0;
+    color: #df886b;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .mobile-menu-status {
+    padding: 0.28rem 0.45rem;
+    color: #8e8780;
+    background: #151210;
+    border: 1px solid #28231f;
+    border-radius: 3px;
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .mobile-section-label {
+    margin: 0;
+    padding: 1rem 1.15rem 0.55rem;
+    color: #6f6861;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .mobile-primary-nav {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid #201c19;
+  }
+
+  .mobile-primary-nav a {
+    min-height: 49px;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.7rem 1.15rem;
+    color: #a59d95;
+    background: transparent;
+    border-bottom: 1px solid #201c19;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 620;
+    transition: background 0.14s ease, color 0.14s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-primary-nav a:hover,
+  .mobile-primary-nav a:focus-visible {
+    color: #f1ece4;
+    background: #151210;
+  }
+
+  .mobile-primary-nav a.active {
+    color: #efa086;
+    background: #0d0c0b;
+    box-shadow: inset 3px 0 #df886b;
+  }
+
+  .mobile-nav-icon {
+    width: 20px;
+    min-width: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #8e8780;
+  }
+
+  .mobile-primary-nav a.active .mobile-nav-icon {
+    color: #df886b;
+  }
+
+  .mobile-action-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin: 0 1.15rem;
+    border: 1px solid #28231f;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .mobile-action-chip,
+  .mobile-action-chip.download-chip,
+  .mobile-action-chip.donate-chip {
+    min-width: 0;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    padding: 0.65rem 0.75rem;
+    color: #a59d95;
+    background: #0d0c0b;
+    border: 0;
+    border-radius: 0;
+    font-size: 0.79rem;
+    font-weight: 650;
+    text-decoration: none;
+    transition: background 0.14s ease, color 0.14s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-action-chip + .mobile-action-chip {
+    border-left: 1px solid #28231f;
+  }
+
+  .mobile-action-chip.donate-chip {
+    color: #dca08d;
+  }
+
+  .mobile-action-chip:hover,
+  .mobile-action-chip:focus-visible,
+  .mobile-action-chip.active,
+  .mobile-action-chip.download-chip.active,
+  .mobile-action-chip.donate-chip.active {
+    color: #efa086;
+    background: #151210;
+  }
+
+  .mobile-action-chip.active {
+    box-shadow: inset 0 -2px #df886b;
+  }
+
+  .mobile-action-chip:active,
+  .mobile-account-btn:active,
+  .mobile-logout-btn:active {
+    transform: none;
+  }
+
+  .mobile-profile-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0 1.15rem;
+    padding: 0;
+    background: #0d0c0b;
+    border: 1px solid #28231f;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .mobile-user-info {
+    min-width: 0;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid #28231f;
+  }
+
+  .mobile-profile-avatar {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    object-fit: cover;
+    background: #151210;
+    border: 1px solid #3a312b;
+  }
+
+  .mobile-profile-details {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+  }
+
+  .mobile-profile-name {
+    overflow: hidden;
+    color: #f1ece4;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-profile-email {
+    overflow: hidden;
+    color: #7f7770;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-account-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .mobile-account-btn {
+    min-width: 0;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    color: #a59d95;
+    background: transparent;
+    border: 0;
+    border-right: 1px solid #201c19;
+    border-bottom: 1px solid #201c19;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 620;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.14s ease, color 0.14s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-account-btn:nth-child(even) {
+    border-right: 0;
+  }
+
+  .mobile-account-btn:hover,
+  .mobile-account-btn:focus-visible,
+  .mobile-account-btn.active,
+  .mobile-account-btn.accent {
+    color: #efa086;
+    background: #151210;
+  }
+
+  .mobile-account-btn.active {
+    box-shadow: inset 3px 0 #df886b;
+  }
+
+  .mobile-account-btn.full-span {
+    grid-column: 1 / -1;
+    border-right: 0;
+  }
+
+  .mobile-logout-btn {
+    width: 100%;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    color: #b9786e;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background 0.14s ease, color 0.14s ease;
+  }
+
+  .mobile-logout-btn:hover,
+  .mobile-logout-btn:focus-visible {
+    color: #e59b8e;
+    background: #151210;
+  }
+
+  .mobile-primary-nav a:focus-visible,
+  .mobile-action-chip:focus-visible,
+  .mobile-account-btn:focus-visible,
+  .mobile-logout-btn:focus-visible {
+    outline: 2px solid #df886b;
+    outline-offset: -2px;
+  }
+
+  @keyframes editorialBackdropIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes editorialSheetIn {
+    from { opacity: 0; transform: translateX(18px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @media (max-width: 480px) {
+    .mobile-menu-header,
+    .mobile-primary-nav a {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    .mobile-section-label {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    .mobile-action-row,
+    .mobile-profile-section {
+      margin-left: 1rem;
+      margin-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .mobile-menu,
+    .mobile-menu-backdrop {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-menu,
+    .mobile-menu-backdrop {
+      animation: none;
+    }
+    .mobile-primary-nav a,
+    .mobile-action-chip,
+    .mobile-account-btn,
+    .mobile-logout-btn {
+      transition: none;
+    }
+  }
 </style>

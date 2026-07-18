@@ -6,7 +6,12 @@
   import { getCollectionJsonLd } from "$lib/seo";
   import { Radio, ChevronDown } from "lucide-svelte";
 
-  let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
+  let { data } = $props<{
+    data: {
+      initial: Promise<{ items: any[]; hasNext: boolean }>;
+      canonicalUrl: string;
+    };
+  }>();
 
   const pageTitle = "Anime TV Series - WatchAnimeX";
   const pageDescription =
@@ -18,17 +23,19 @@
   let currentPage = $state(1);
   let activeFilter = $state("Popular");
 
-  // Consume the streamed initial data (re-seeds on navigation, resets to default filter).
+  // Consume streamed initial data and invalidate any older filter request.
   let lastInitial: any = null;
+  let loadGeneration = 0;
   $effect(() => {
     const p = data.initial;
     if (p === lastInitial) return;
     lastInitial = p;
+    const generation = ++loadGeneration;
     loading = true;
     activeFilter = "Popular";
     currentPage = 1;
     Promise.resolve(p).then((res) => {
-      if (data.initial !== p) return; // stale navigation
+      if (data.initial !== p || generation !== loadGeneration) return;
       items = res?.items || [];
       hasNext = res?.hasNext || false;
       loading = false;
@@ -40,11 +47,12 @@
 
   const filters = ["Popular", "Airing", "Upcoming", "Top Rated"];
 
-  async function loadPage(p: number) {
+  async function loadPage(p: number, filter = activeFilter) {
+    const generation = ++loadGeneration;
     loading = true;
     try {
       let res;
-      switch (activeFilter) {
+      switch (filter) {
         case "Airing":
           res = await api.getCurrentSeasonal(p);
           break;
@@ -60,19 +68,21 @@
           break;
       }
 
+      if (generation !== loadGeneration || filter !== activeFilter) return;
       items = p === 1 ? res.data : [...items, ...res.data];
       hasNext = res.pagination?.has_next_page || false;
       currentPage = p;
     } catch (e) {
-      console.error(e);
+      if (generation === loadGeneration) console.error(e);
     } finally {
-      loading = false;
+      if (generation === loadGeneration) loading = false;
     }
   }
 
   function setFilter(f: string) {
+    if (f === activeFilter) return;
     activeFilter = f;
-    loadPage(1);
+    void loadPage(1, f);
   }
 </script>
 
@@ -217,7 +227,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
     font-family: inherit;
   }
   .filter-btn:hover {

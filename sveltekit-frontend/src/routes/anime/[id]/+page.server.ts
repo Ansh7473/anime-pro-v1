@@ -6,16 +6,22 @@ import { absoluteUrl } from '$lib/seo';
 export const load: PageServerLoad = async ({ params, fetch, setHeaders }) => {
   try {
     const anime = await withSeoTimeout(api.getAnime(params.id, fetch), null);
+    const metadataId = anime?.idMal || anime?.mal_id || params.id;
+    const metadataResponse = anime
+      ? await withSeoTimeout(
+          api.getEpisodeMetadata(metadataId, 1, 2000, fetch),
+          { data: { episodes: [] } },
+          3500
+        )
+      : { data: { episodes: [] } };
+    const episodeMetadata = metadataResponse?.data?.episodes ?? metadataResponse?.episodes ?? [];
 
-    // Cache anime detail pages for 1 day at edge — anime metadata rarely changes.
-    // Browser gets 5 min so users see updates (new episodes) without hard refresh.
+    // Episode metadata changes as shows air, so keep the edge window bounded.
     if (anime) {
       setHeaders({
-        'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400, stale-if-error=86400'
+        'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=86400'
       });
     } else {
-      // Cache 404/null responses briefly so repeated requests for dead IDs
-      // don't hit origin.
       setHeaders({
         'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
       });
@@ -24,10 +30,16 @@ export const load: PageServerLoad = async ({ params, fetch, setHeaders }) => {
     return {
       id: params.id,
       anime,
+      episodeMetadata,
       canonicalUrl: absoluteUrl(`/anime/${params.id}/`)
     };
   } catch (error) {
     console.error(`Failed to load anime ${params.id} for SSR:`, error);
-    return { id: params.id, anime: null, canonicalUrl: absoluteUrl(`/anime/${params.id}/`) };
+    return {
+      id: params.id,
+      anime: null,
+      episodeMetadata: [],
+      canonicalUrl: absoluteUrl(`/anime/${params.id}/`)
+    };
   }
 };

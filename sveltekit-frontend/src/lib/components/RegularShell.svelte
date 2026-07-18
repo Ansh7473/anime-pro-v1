@@ -10,8 +10,6 @@
   import { Download, X } from "lucide-svelte";
   import { onMount } from "svelte";
 
-  import StatusBanner from "$lib/components/StatusBanner.svelte";
-
   let { children } = $props();
 
   // Update check logic
@@ -81,7 +79,6 @@
     <div class="tactical-grid"></div>
     <Navbar />
     <DesktopSidebar />
-    <StatusBanner />
 
     <div class="scroll-fab" class:visible={scrolling}>
       <button

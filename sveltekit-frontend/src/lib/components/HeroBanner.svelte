@@ -2,10 +2,16 @@
   import { getProxiedImage } from "$lib/api";
   import { onDestroy, onMount } from "svelte";
 
-  let { items = [] } = $props<{ items: any[] }>();
+  let { items = [], allowTitleArtwork = false } = $props<{
+    items: any[];
+    allowTitleArtwork?: boolean;
+  }>();
   let current = $state(0);
+  let failedArtwork = $state("");
   let paused = $state(false);
   let interval: ReturnType<typeof setInterval> | null = null;
+  let reducedMotion = false;
+  let motionQuery: MediaQueryList | null = null;
   let touchStartX = $state(0);
   let touchEndX = $state(0);
 
@@ -21,6 +27,12 @@
   }
 
   const title = $derived(titleOf(anime));
+  const titleArtwork = $derived(
+    allowTitleArtwork
+      ? String(anime?.clearLogo || anime?.artwork?.clear_logo || "")
+      : "",
+  );
+  const visibleTitleArtwork = $derived(titleArtwork && titleArtwork !== failedArtwork ? titleArtwork : "");
   const synopsis = $derived(String(anime?.synopsis || anime?.description || "").replace(/<[^>]*>?/gm, ""));
   const id = $derived(anime?.id || anime?.mal_id || "");
   const genres = $derived(Array.isArray(anime?.genres) ? anime.genres.slice(0, 3) : []);
@@ -42,7 +54,7 @@
   }
   function startAutoplay() {
     stopAutoplay();
-    if (heroes.length < 2) return;
+    if (reducedMotion || heroes.length < 2) return;
     interval = setInterval(() => { if (!paused) next(); }, 6500);
   }
   function handleTouchStart(event: TouchEvent) {
@@ -60,7 +72,17 @@
     startAutoplay();
   }
 
-  onMount(startAutoplay);
+  onMount(() => {
+    motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updateMotionPreference = () => {
+      reducedMotion = motionQuery?.matches ?? false;
+      if (reducedMotion) stopAutoplay();
+      else startAutoplay();
+    };
+    updateMotionPreference();
+    motionQuery.addEventListener("change", updateMotionPreference);
+    return () => motionQuery?.removeEventListener("change", updateMotionPreference);
+  });
   onDestroy(stopAutoplay);
   $effect(() => {
     if (!heroes.length) current = 0;
@@ -91,7 +113,19 @@
     <div class="hero-content">
       <div class="hero-copy">
         <p class="hero-number">Feature {String(current + 1).padStart(2, "0")}</p>
-        <h1>{title}</h1>
+        {#if visibleTitleArtwork}
+          <h1 class="artwork-title">
+            <img
+              class="hero-title-artwork"
+              src={getProxiedImage(visibleTitleArtwork)}
+              alt={title}
+              onerror={() => (failedArtwork = titleArtwork)}
+            />
+            <span class="sr-only">{title}</span>
+          </h1>
+        {:else}
+          <h1>{title}</h1>
+        {/if}
         <div class="hero-facts" aria-label="Anime details">
           <span>{format}</span>
           {#if year}<span>{year}</span>{/if}
@@ -172,6 +206,27 @@
     text-wrap: balance;
     text-shadow: 0 3px 20px rgba(0,0,0,0.45);
   }
+  h1.artwork-title { max-width: min(620px, 72vw); }
+  .hero-title-artwork {
+    display: block;
+    width: auto;
+    max-width: min(620px, 72vw);
+    max-height: clamp(110px, 19vw, 230px);
+    object-fit: contain;
+    object-position: left bottom;
+    filter: drop-shadow(0 6px 26px rgba(0, 0, 0, 0.72));
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
   .hero-facts { display: flex; flex-wrap: wrap; gap: 0.55rem 1.2rem; margin-top: 1.5rem; color: #ddd4ca; font-size: 0.78rem; font-weight: 700; }
   .hero-facts span + span::before { content: "/"; margin-right: 1.2rem; color: #6f665f; }
   .hero-genres { margin: 0.6rem 0 0; color: #ae9f94; font-size: 0.74rem; }
@@ -223,6 +278,8 @@
     }
     .hero-number { margin-bottom: 0.45rem; font-size: 0.66rem; }
     h1 { max-width: 18ch; font-size: clamp(1.85rem, 9vw, 3rem); line-height: 0.96; }
+    h1.artwork-title { max-width: min(78vw, 360px); }
+    .hero-title-artwork { max-width: min(78vw, 360px); max-height: 100px; }
     .hero-facts { margin-top: 0.7rem; gap: 0.35rem 0.65rem; }
     .hero-facts span + span::before { margin-right: 0.65rem; }
     .hero-genres { margin-top: 0.4rem; }

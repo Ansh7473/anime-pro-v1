@@ -13,8 +13,14 @@
   let { data } = $props();
   const animeId = $derived(data.animeId);
 
-  let anime: any = $state(data.ssrAnime ?? null);
-  let episodes: any[] = $state(data.ssrEpisodes ?? []);
+  let anime: any = $state(
+    // svelte-ignore state_referenced_locally
+    data.ssrAnime ?? null,
+  );
+  let episodes: any[] = $state(
+    // svelte-ignore state_referenced_locally
+    data.ssrEpisodes ?? [],
+  );
   let ep = $state(0);
 
   let sources: any[] = $state([]);
@@ -239,24 +245,32 @@
     };
 
     try {
-      const results = await Promise.allSettled(
-        PROVIDERS.map((fetcher) => withTimeout(fetcher(animeId, ep))),
-      );
-      if (loadId !== currentLoadId) return; // superseded by a newer load
-
       const collected: any[] = [];
       const seenSources = new Set<string>();
-      for (const r of results) {
-        if (r.status !== "fulfilled" || !r.value) continue;
-        for (const source of extractSources(r.value)) {
+
+      // Try providers in priority order and stop after the first one yields
+      // usable servers. This avoids three simultaneous backend scrapes for
+      // every episode while preserving fallback behavior.
+      for (const fetcher of PROVIDERS) {
+        let result: any;
+        try {
+          result = await withTimeout(fetcher(animeId, ep));
+        } catch {
+          continue;
+        }
+        if (loadId !== currentLoadId) return;
+
+        for (const source of extractSources(result)) {
           if (!source?.url || getSourceKind(source) === "invalid" || isBlacklisted(source)) continue;
           const identity = sourceIdentity(source);
           if (seenSources.has(identity)) continue;
           seenSources.add(identity);
           collected.push(source);
         }
+        if (collected.length) break;
       }
 
+      if (loadId !== currentLoadId) return;
       sources = collected;
       if (collected.length) {
         selectedSource = collected[0];
@@ -416,14 +430,16 @@
   async function resolveEpisodeCount() {
     const nextAiring = Number(anime?.nextAiringEpisode?.episode || 0);
     const airedCount = nextAiring > 1 ? nextAiring - 1 : 0;
-    let metadata: any[] = [];
+    let metadata: any[] = data.ssrEpisodeMetadataLoaded ? episodes : [];
 
-    try {
-      const metadataId = anime?.idMal || anime?.mal_id || animeId;
-      const response = await api.getEpisodeMetadata(metadataId, 1, 2000);
-      metadata = response?.data?.episodes ?? response?.episodes ?? [];
-    } catch (metadataError) {
-      console.error("episode metadata resolve failed", metadataError);
+    if (!data.ssrEpisodeMetadataLoaded) {
+      try {
+        const metadataId = anime?.idMal || anime?.mal_id || animeId;
+        const response = await api.getEpisodeMetadata(metadataId, 1, 2000);
+        metadata = response?.data?.episodes ?? response?.episodes ?? [];
+      } catch (metadataError) {
+        console.error("episode metadata resolve failed", metadataError);
+      }
     }
 
     const highestMetadataNumber = metadata.reduce(
@@ -779,8 +795,7 @@
   .action-row { padding: 0.9rem 0; border-top: 1px solid var(--net-border); }
   .action-left { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
   .btn-primary,
-  .btn-ghost,
-  .btn-icon {
+  .btn-ghost {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -806,14 +821,6 @@
     padding: 0.6rem 1rem;
   }
   .btn-ghost:hover { background: var(--net-card-hover); }
-  .btn-icon {
-    background: var(--net-card-bg);
-    color: var(--net-text-muted);
-    border-color: var(--net-border);
-    width: 40px;
-    height: 40px;
-  }
-  .btn-icon:hover { background: var(--net-card-hover); color: var(--net-text); }
 
   .server-picker {
     position: relative;
@@ -1053,11 +1060,11 @@
   .stats-row { color: var(--editorial-muted, #918a82); }
   .ep-badge { padding: .28rem .5rem; border-radius: 3px; background: var(--editorial-accent, #df886b); color: #170c09; }
   .action-row { padding: 0; border: 0; }
-  .btn-primary,.btn-ghost,.btn-icon,.server-picker { min-height: 40px; border-radius: 3px; transition: background .15s,color .15s,border-color .15s; }
+  .btn-primary,.btn-ghost,.server-picker { min-height: 40px; border-radius: 3px; transition: background .15s,color .15s,border-color .15s; }
   .btn-primary { background: var(--editorial-accent, #df886b); color: #180c08; }
   .btn-primary:hover { background: var(--editorial-accent-hover, #f1a287); }
-  .btn-ghost,.btn-icon,.server-picker { background: var(--editorial-surface, #0d0c0b); border-color: var(--editorial-line, #28231f); }
-  .btn-ghost:hover,.btn-icon:hover { background: var(--editorial-surface-raised, #151210); border-color: #4b3d35; }
+  .btn-ghost,.server-picker { background: var(--editorial-surface, #0d0c0b); border-color: var(--editorial-line, #28231f); }
+  .btn-ghost:hover { background: var(--editorial-surface-raised, #151210); border-color: #4b3d35; }
   .synopsis-card { padding: 1.2rem 0; border: 0; border-block: 1px solid var(--editorial-line, #28231f); border-radius: 0; background: transparent; }
   .synopsis-card h3,.episodes-head h2 { font-size: .72rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
   .synopsis-card p { max-width: 90ch; line-height: 1.75; color: var(--editorial-muted, #918a82); }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api } from "$lib/api";
+  import { goto } from "$app/navigation";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
   import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import JsonLd from "$lib/components/JsonLd.svelte";
@@ -12,7 +12,14 @@
     { id: "dubbed-anime", label: "Top Rated TV" },
   ];
 
-  let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
+  let { data } = $props<{
+    data: {
+      initial: Promise<{ items: any[]; hasNext: boolean; lastPage: number }>;
+      tab: string;
+      page: number;
+      canonicalUrl: string;
+    };
+  }>();
 
   const pageTitle = "Anime Catalog Updates - WatchAnimeX";
   const pageDescription =
@@ -20,6 +27,7 @@
 
   let tab = $state("recently-updated");
   let page = $state(1);
+  let lastPage = $state(1);
   let animes: any[] = $state([]);
   let loading = $state(true);
   let hasNextPage = $state(false);
@@ -28,65 +36,45 @@
     getCollectionJsonLd(pageTitle, pageDescription, data.canonicalUrl, animes)
   );
 
-  // Consume the streamed initial data (default tab, page 1). Re-seeds on navigation.
+  // Every tab/page is represented by a URL, so back/forward, sharing and
+  // Cloudflare page caching all use the same deterministic catalog request.
   let lastInitial: any = null;
   $effect(() => {
-    const p = data.initial;
-    if (p === lastInitial) return;
-    lastInitial = p;
-    tab = "recently-updated";
-    page = 1;
+    const request = data.initial;
+    if (request === lastInitial) return;
+    lastInitial = request;
+    tab = data.tab;
+    page = data.page;
     loading = true;
-    Promise.resolve(p).then((res) => {
-      if (data.initial !== p) return; // stale navigation
-      animes = res?.items || [];
-      hasNextPage = res?.hasNext || false;
+    Promise.resolve(request).then((result) => {
+      if (data.initial !== request) return;
+      animes = result?.items || [];
+      hasNextPage = result?.hasNext || false;
+      lastPage = result?.lastPage || page;
       loading = false;
     });
   });
 
-  async function fetchEpisodes() {
-      loading = true;
-      try {
-        let res: any;
-        if (tab === "recently-updated") {
-          res = await api.getCurrentSeasonal(page, 24);
-        } else if (tab === "subbed-anime") {
-          // Search for TV anime (best subbed indicator — original Japanese audio)
-          res = await api.getTopAnime("TV", page, 24, "POPULARITY_DESC");
-        } else {
-          // Dubbed tab — search for movies/TV by popularity (Dubbed anime is sourced, not media-typed)
-          // Fall back to top rated for now
-          res = await api.getTopAnime("TV", page, 24, "SCORE_DESC");
-        }
-        animes = res?.data || res?.items || [];
-        hasNextPage = res?.pagination?.has_next_page ?? (animes.length >= 24);
-      } catch (err) {
-        console.error("Failed to fetch latest episodes", err);
-      } finally {
-        loading = false;
-      }
-      if (typeof window !== "undefined")
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  function navigate(nextTab: string, nextPage: number) {
+    if (nextPage < 1 || loading) return;
+    loading = true;
+    const params = new URLSearchParams({ tab: nextTab, page: String(nextPage) });
+    void goto(`/latest/?${params.toString()}`, {
+      keepFocus: true,
+      noScroll: true
+    }).then(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  }
 
   function changeTab(id: string) {
-    if (tab === id) return;
-    tab = id;
-    page = 1;
-    fetchEpisodes();
+    if (tab !== id) navigate(id, 1);
   }
 
   function prevPage() {
-    if (page <= 1) return;
-    page--;
-    fetchEpisodes();
+    if (page > 1) navigate(tab, page - 1);
   }
 
   function nextPage() {
-    if (!hasNextPage) return;
-    page++;
-    fetchEpisodes();
+    if (hasNextPage) navigate(tab, page + 1);
   }
 </script>
 
@@ -143,16 +131,16 @@
 
           <!-- Pagination -->
           <div class="pagination">
-            <button class="page-btn" disabled={page === 1} onclick={prevPage}>
+            <button class="page-btn" disabled={page === 1 || loading} onclick={prevPage}>
               <ChevronLeft size={18} />
               <span>Previous</span>
             </button>
 
             <div class="page-info">
-              <span>Page {page}</span>
+              <span>Page {page} of {lastPage}</span>
             </div>
 
-            <button class="page-btn next" disabled={!hasNextPage} onclick={nextPage}>
+            <button class="page-btn next" disabled={!hasNextPage || loading} onclick={nextPage}>
               <span>Next</span>
               <ChevronRight size={18} />
             </button>
@@ -161,7 +149,7 @@
           <div class="empty-state">
             <Clock size={40} class="empty-icon" />
             <p>No anime found for this catalog view.</p>
-            <button class="page-btn" onclick={fetchEpisodes}>
+            <button class="page-btn" onclick={() => navigate(tab, page)}>
               Try again
             </button>
           </div>

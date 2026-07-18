@@ -13,6 +13,7 @@
   let currentPage = $state(1);
   let error = $state("");
   let loadedQuery = $state("");
+  let searchGeneration = 0;
 
   $effect(() => {
     const nextQuery = page.url.searchParams.get("q")?.trim() || "";
@@ -28,19 +29,22 @@
   async function doSearch(p = 1, term = query) {
     const clean = term.trim();
     if (!clean) return;
+    const generation = ++searchGeneration;
     loading = true;
     error = "";
     try {
       const res = await api.search(expandAlias(clean), p, 24);
+      if (generation !== searchGeneration || clean !== loadedQuery) return;
       const ranked = searchAndRankAnime(clean, res.data || []);
       results = p === 1 ? ranked : [...results, ...ranked];
       hasNext = res.pagination?.has_next_page || false;
       currentPage = p;
     } catch (e) {
+      if (generation !== searchGeneration) return;
       console.error(e);
       error = "Search could not be loaded. Check your connection and try again.";
     } finally {
-      loading = false;
+      if (generation === searchGeneration) loading = false;
     }
   }
 

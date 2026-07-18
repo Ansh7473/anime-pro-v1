@@ -1,7 +1,20 @@
 import type { RequestHandler } from './$types';
 
 const ANILIST_GRAPHQL_URL = 'https://graphql.anilist.co';
-const EDGE_CACHE_TTL = 4 * 60 * 60; // 4 hours
+const LONG_EDGE_CACHE_TTL = 4 * 60 * 60;
+const ACTIVE_EDGE_CACHE_TTL = 10 * 60;
+
+function edgeTtlFor(query: string): number {
+	const normalized = query.replace(/\s+/g, ' ').toLowerCase();
+	if (
+		normalized.includes('airingschedules') ||
+		normalized.includes('nextairingepisode') ||
+		normalized.includes('status: releasing')
+	) {
+		return ACTIVE_EDGE_CACHE_TTL;
+	}
+	return LONG_EDGE_CACHE_TTL;
+}
 
 async function sha256(input: string): Promise<string> {
 	const bytes = new TextEncoder().encode(input);
@@ -19,7 +32,7 @@ function jsonResponse(data: unknown, init: ResponseInit = {}) {
 	});
 }
 
-export const POST: RequestHandler = async ({ request, fetch }) => {
+export const POST: RequestHandler = async ({ request, fetch, platform }) => {
 	let body: { query?: unknown; variables?: unknown };
 	try {
 		body = await request.json();
@@ -37,6 +50,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 			: {};
 	const cacheInput = JSON.stringify({ query: body.query.replace(/\s+/g, ' ').trim(), variables });
 	const cacheId = await sha256(cacheInput);
+	const edgeTtl = edgeTtlFor(body.query);
 	const cacheKey = new Request(`https://watchanimez.internal/anilist/${cacheId}`, { method: 'GET' });
 	const edgeCache = (globalThis as any).caches?.default;
 
@@ -47,7 +61,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 				status: 200,
 				headers: {
 					'Content-Type': 'application/json',
-					'Cache-Control': `public, max-age=${EDGE_CACHE_TTL}`,
+					'Cache-Control': `public, max-age=${edgeTtl}`,
 					'X-Anilist-Cache': 'HIT'
 				}
 			});
@@ -79,7 +93,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 	try {
 		payload = JSON.parse(text);
 	} catch {
-		return jsonResponse({ error: 'Invalid AniList response' }, { status: 502 });
+		return jsonResponse(
+			{ error: 'Invalid AniList response' },
+			{ status: 502, headers: { 'Cache-Control': 'no-store', 'X-Anilist-Cache': 'BYPASS' } }
+		);
 	}
 
 	if (payload.errors) {
@@ -94,13 +111,16 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
 	const response = jsonResponse(payload.data ?? {}, {
 		headers: {
-			'Cache-Control': `public, max-age=${EDGE_CACHE_TTL}`,
+			'Cache-Control': `public, max-age=${edgeTtl}`,
 			'X-Anilist-Cache': 'MISS'
 		}
 	});
 
 	if (edgeCache) {
-		await edgeCache.put(cacheKey, response.clone());
+		const cacheWrite = edgeCache.put(cacheKey, response.clone());
+		const context = (platform as any)?.context;
+		if (context?.waitUntil) context.waitUntil(cacheWrite);
+		else await cacheWrite;
 	}
 
 	return response;
