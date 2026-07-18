@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api } from "$lib/api";
+  import { api, mergeUniqueAnime } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
   import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import JsonLd from "$lib/components/JsonLd.svelte";
@@ -19,6 +19,7 @@
 
   let items: any[] = $state([]);
   let loading = $state(true);
+  let appending = $state(false);
   let hasNext = $state(false);
   let currentPage = $state(1);
   let activeFilter = $state("Popular");
@@ -48,8 +49,10 @@
   const filters = ["Popular", "Trending", "Top Rated", "Upcoming"];
 
   async function loadPage(p: number, filter = activeFilter) {
+    if (p > 1 && appending) return;
     const generation = ++loadGeneration;
-    loading = true;
+    if (p === 1) loading = true;
+    else appending = true;
     try {
       let res;
       switch (filter) {
@@ -69,13 +72,17 @@
       }
 
       if (generation !== loadGeneration || filter !== activeFilter) return;
-      items = p === 1 ? res.data : [...items, ...res.data];
-      hasNext = res.pagination?.has_next_page || false;
-      currentPage = p;
+      const incoming = Array.isArray(res.data) ? res.data : [];
+      items = p === 1 ? mergeUniqueAnime([], incoming) : mergeUniqueAnime(items, incoming);
+      hasNext = Boolean(res.pagination?.has_next_page);
+      currentPage = Number(res.pagination?.current_page) || p;
     } catch (e) {
       if (generation === loadGeneration) console.error(e);
     } finally {
-      if (generation === loadGeneration) loading = false;
+      if (generation === loadGeneration) {
+        loading = false;
+        appending = false;
+      }
     }
   }
 
@@ -148,9 +155,9 @@
         <button
           class="load-more-btn"
           onclick={() => loadPage(currentPage + 1)}
-          disabled={loading}
+          disabled={appending}
         >
-          {loading ? "Loading..." : "Load more movies"}
+          {appending ? "Loading..." : "Load more movies"}
           <ChevronDown size={16} />
         </button>
       </div>

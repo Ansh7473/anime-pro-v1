@@ -34,20 +34,35 @@ const USER_URL = `${BACKEND_URL}/api/v1/user`;
 const _fetchCache = new Map<string, { data: any; ts: number }>();
 const _fetchInflight = new Map<string, Promise<any>>();
 const FETCH_CACHE_TTL = 5 * 60_000;
+const FETCH_CACHE_MAX_ENTRIES = 200;
 
 function fetchCacheGet(url: string, allowStale = false): any | null {
 	const entry = _fetchCache.get(url);
 	if (!entry) return null;
 	if (!allowStale && Date.now() - entry.ts > FETCH_CACHE_TTL) return null;
+	// Move-to-end gives frequently revisited catalog/detail pages LRU priority.
+	_fetchCache.delete(url);
+	_fetchCache.set(url, entry);
 	return entry.data;
 }
 
 function fetchCacheSet(url: string, data: any): void {
-	if (_fetchCache.size >= 200) {
-		const first = _fetchCache.keys().next().value;
-		if (first) _fetchCache.delete(first);
+	_fetchCache.delete(url);
+	while (_fetchCache.size >= FETCH_CACHE_MAX_ENTRIES) {
+		const oldest = _fetchCache.keys().next().value;
+		if (!oldest) break;
+		_fetchCache.delete(oldest);
 	}
 	_fetchCache.set(url, { data, ts: Date.now() });
+}
+
+if (browser) {
+	setInterval(() => {
+		const cutoff = Date.now() - FETCH_CACHE_TTL * 2;
+		for (const [key, entry] of _fetchCache) {
+			if (entry.ts < cutoff) _fetchCache.delete(key);
+		}
+	}, 60_000);
 }
 
 async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof fetch }) {
@@ -86,6 +101,9 @@ async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof f
 			try {
 				response = await fetchFn(target, fetchOpts);
 			} catch (error) {
+				// An aborted stream lookup must stop here rather than failing over to
+				// every backend while its caller has already moved to another episode.
+				if (fetchOptions.signal?.aborted) throw error;
 				lastError = error;
 				continue;
 			}
@@ -327,6 +345,9 @@ function transformMedia(media: any) {
 		formattedStudios = media.studios.nodes.map((node: any) => node?.name).filter(Boolean);
 	}
 
+	const rawScore = media.score ?? media.averageScore;
+	const rawRating = media.rating ?? media.averageScore;
+
 	return {
 		...media,
 		id: media.id || media.mal_id,
@@ -334,8 +355,8 @@ function transformMedia(media: any) {
 		title_english: media.title?.english || media.title_english || '',
 		title_japanese: media.title?.native || media.title_native || '',
 		title_romaji: media.title?.romaji || media.title_romaji || '',
-		score: media.score > 10 ? media.score / 10 : media.score,
-		rating: media.rating > 10 ? media.rating / 10 : media.rating,
+		score: rawScore > 10 ? rawScore / 10 : rawScore,
+		rating: rawRating > 10 ? rawRating / 10 : rawRating,
 		poster: media.poster || media.image || (media.coverImage?.extraLarge || media.coverImage?.large) || '',
 		synopsis: media.synopsis?.replace(/<[^>]*>?/gm, '') || '',
 		characters: formattedCharacters.length ? formattedCharacters : (media.characters || []),
@@ -430,8 +451,8 @@ export const api = {
 	getHomeBundle: async (customFetch?: typeof fetch, force = false) => {
 		if (homeCache && !force && Date.now() - homeCacheTime < CACHE_TTL) return homeCache;
 
-		// Prefer the cacheable Go bundle. It performs one AniList operation and
-		// enriches only the four homepage hero candidates with TVDB artwork.
+		// Prefer the cacheable Go bundle. It performs one compact AniList operation;
+		// presentation artwork is loaded progressively for approved hero surfaces.
 		try {
 			const response = await fetchJSON(`${BASE_URL}/home`, { fetch: customFetch });
 			const backendBundle = response?.data || response;
@@ -458,14 +479,6 @@ export const api = {
 					pageInfo { currentPage hasNextPage perPage }
 					media(type: ANIME, sort: SCORE_DESC) { ${mediaFieldsInline} bannerImage duration }
 				}
-				action: Page(page: $page, perPage: $perPage) {
-					pageInfo { currentPage hasNextPage perPage }
-					media(type: ANIME, genre: "Action", sort: POPULARITY_DESC) { ${mediaFieldsInline} bannerImage duration }
-				}
-				romance: Page(page: $page, perPage: $perPage) {
-					pageInfo { currentPage hasNextPage perPage }
-					media(type: ANIME, genre: "Romance", sort: POPULARITY_DESC) { ${mediaFieldsInline} bannerImage duration }
-				}
 				movies: Page(page: $page, perPage: $perPage) {
 					pageInfo { currentPage hasNextPage perPage }
 					media(type: ANIME, format: MOVIE, sort: POPULARITY_DESC) { ${mediaFieldsInline} bannerImage duration }
@@ -477,21 +490,17 @@ export const api = {
 			}`;
 
 		try {
-			const data = await queryAnilist(query, { page: 1, perPage: 36 }, customFetch);
+			const data = await queryAnilist(query, { page: 1, perPage: 20 }, customFetch);
 			homeCache = {
 				trending: data?.trending?.media?.map(transformMedia) || [],
 				popular: data?.popular?.media?.map(transformMedia) || [],
 				topRated: data?.topRated?.media?.map(transformMedia) || [],
-				action: data?.action?.media?.map(transformMedia) || [],
-				romance: data?.romance?.media?.map(transformMedia) || [],
 				movies: data?.movies?.media?.map(transformMedia) || [],
 				seasonal: data?.seasonal?.media?.map(transformMedia) || [],
 				pagination: {
 					trending: data?.trending?.pageInfo,
 					popular: data?.popular?.pageInfo,
 					topRated: data?.topRated?.pageInfo,
-					action: data?.action?.pageInfo,
-					romance: data?.romance?.pageInfo,
 					movies: data?.movies?.pageInfo,
 					seasonal: data?.seasonal?.pageInfo
 				}
@@ -532,42 +541,6 @@ export const api = {
 				studios(isMain: true) { nodes { name } }
 				trailer { id site thumbnail }
 				nextAiringEpisode { episode airingAt timeUntilAiring }
-				relations {
-					edges {
-						relationType(version: 2)
-						node {
-							id idMal
-							title { romaji english native userPreferred }
-							coverImage { extraLarge large }
-							format status episodes averageScore seasonYear
-						}
-					}
-				}
-				recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
-					nodes {
-						mediaRecommendation {
-							id idMal
-							title { romaji english native userPreferred }
-							coverImage { extraLarge large }
-							format status episodes averageScore seasonYear
-						}
-					}
-				}
-				characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 24) {
-					edges {
-						role
-						node {
-							id
-							name { full native }
-							image { large medium }
-						}
-						voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
-							id
-							name { full native }
-							image { large medium }
-						}
-					}
-				}
 			`;
 
 			const runQuery = async (query: string, vars: Record<string, any>) => {
@@ -595,10 +568,65 @@ export const api = {
 		return null;
 	},
 
+	getAnimeExtras: async (id: string | number, customFetch?: typeof fetch) => {
+		let extras: any;
+		try {
+			const response = await fetchJSON(`${BASE_URL}/anime/${id}/extras`, { fetch: customFetch });
+			extras = response?.data || response || {};
+		} catch (backendError) {
+			console.warn('Backend anime extras failed, falling back to AniList:', backendError);
+			const query = `
+				query($id: Int!) {
+					Media(id: $id, type: ANIME) {
+						relations {
+							edges {
+								relationType(version: 2)
+								node {
+									id idMal title { romaji english native userPreferred }
+									coverImage { large } format status episodes averageScore seasonYear synonyms
+								}
+							}
+						}
+						characters(sort: [ROLE, RELEVANCE, ID], page: 1, perPage: 24) {
+							edges {
+								role
+								node { id name { full native } image { large medium } }
+								voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
+									id name { full native } image { large medium }
+								}
+							}
+						}
+						recommendations(page: 1, perPage: 12, sort: [RATING_DESC, ID_DESC]) {
+							nodes {
+								mediaRecommendation {
+									id idMal title { romaji english native userPreferred }
+									coverImage { large } format status episodes averageScore seasonYear synonyms
+								}
+							}
+						}
+					}
+				}`;
+			const data = await queryAnilist(query, { id: Number(id) }, customFetch);
+			extras = data?.Media || {};
+		}
+		const transformed = transformMedia({ id: Number(id), ...extras });
+		return {
+			characters: transformed?.characters || [],
+			relations: transformed?.relations || [],
+			recommendations: transformed?.recommendations || []
+		};
+	},
+
+	getAnimeArtwork: async (id: string | number, customFetch?: typeof fetch) => {
+		const response = await fetchJSON(`${BASE_URL}/anime/${id}/artwork`, { fetch: customFetch });
+		return response?.data || response || {};
+	},
+
 	search: async (q: string, page = 1, limit = 20, filters: any = {}, customFetch?: typeof fetch) => {
 		// Expand abbreviations ("aot" → "attack on titan") before hitting any API
 		const expanded = expandAlias(q);
-		const cacheKey = `${q.trim().toLowerCase()}:${page}:${limit}:${filters.sort?.[0] || filters.sort || ''}:${filters.format || ''}:${filters.status || ''}:${filters.genre || ''}`;
+		const seasonYear = filters.seasonYear || filters.year || '';
+		const cacheKey = `${q.trim().toLowerCase()}:${page}:${limit}:${filters.sort?.[0] || filters.sort || ''}:${filters.format || ''}:${filters.status || ''}:${filters.genre || ''}:${filters.season || ''}:${seasonYear}`;
 		const cached = searchCache.get(cacheKey);
 		if (cached && Date.now() - cached.time < SEARCH_CACHE_TTL) {
 			return cached.data;
@@ -613,6 +641,8 @@ export const api = {
 		if (filters.format) params.append('format', filters.format);
 		if (filters.status) params.append('status', filters.status);
 		if (filters.genre) params.append('genre', filters.genre);
+		if (filters.season) params.append('season', String(filters.season));
+		if (seasonYear) params.append('seasonYear', String(seasonYear));
 
 		// Prefer the cacheable backend GET contract; direct GraphQL is fallback.
 		try {
@@ -639,10 +669,10 @@ export const api = {
 		// Official AniList pagination pattern: one Page(media) field per paginated request.
 		try {
 			const searchQuery = `
-				query ($search: String, $page: Int, $perPage: Int, $sort: [MediaSort], $format: MediaFormat, $status: MediaStatus, $genre: String) {
+				query ($search: String, $page: Int, $perPage: Int, $sort: [MediaSort], $format: MediaFormat, $status: MediaStatus, $genre: String, $season: MediaSeason, $seasonYear: Int) {
 					Page(page: $page, perPage: $perPage) {
 						pageInfo { currentPage hasNextPage perPage total lastPage }
-						media(search: $search, type: ANIME, sort: $sort, format: $format, status: $status, genre: $genre) {
+						media(search: $search, type: ANIME, sort: $sort, format: $format, status: $status, genre: $genre, season: $season, seasonYear: $seasonYear, isAdult: false) {
 							${mediaFieldsInline}
 							bannerImage duration
 						}
@@ -658,6 +688,8 @@ export const api = {
 			if (filters.format) variables.format = filters.format.toUpperCase();
 			if (filters.status) variables.status = filters.status.toUpperCase();
 			if (filters.genre) variables.genre = filters.genre;
+			if (filters.season) variables.season = String(filters.season).toUpperCase();
+			if (seasonYear) variables.seasonYear = Number(seasonYear);
 
 			const data = await queryAnilist(searchQuery, variables, customFetch);
 			if (data?.Page?.media) {
@@ -823,14 +855,14 @@ export const api = {
 		}
 	},
 
-	getAnimelokSources: (animeId: string, ep: number) =>
-		fetchJSON(`${STREAMING_URL}/sources/animelok?animeId=${animeId}&ep=${ep}`),
+	getAnimelokSources: (animeId: string, ep: number, signal?: AbortSignal) =>
+		fetchJSON(`${STREAMING_URL}/sources/animelok?animeId=${animeId}&ep=${ep}`, { signal }),
 
-	getTatakaiSources: (animeId: string, ep: number) =>
-		fetchJSON(`${STREAMING_URL}/sources/tatakai?animeId=${animeId}&ep=${ep}`),
+	getTatakaiSources: (animeId: string, ep: number, signal?: AbortSignal) =>
+		fetchJSON(`${STREAMING_URL}/sources/tatakai?animeId=${animeId}&ep=${ep}`, { signal }),
 
-	getAnichiSources: (animeId: string, ep: number, title?: string) =>
-		fetchJSON(`${STREAMING_URL}/sources/anichi?animeId=${animeId}&ep=${ep}${title ? `&title=${encodeURIComponent(title)}` : ''}`),
+	getAnichiSources: (animeId: string, ep: number, title?: string, signal?: AbortSignal) =>
+		fetchJSON(`${STREAMING_URL}/sources/anichi?animeId=${animeId}&ep=${ep}${title ? `&title=${encodeURIComponent(title)}` : ''}`, { signal }),
 
 	// ==========================================
 	// Auth & User API
@@ -974,6 +1006,17 @@ export const api = {
 
 	getLatestReleases: () => fetchJSON(`${BACKEND_URL}/api/v1/releases/latest`)
 };
+
+export function mergeUniqueAnime(existing: any[], incoming: any[]): any[] {
+	const merged = new Map<string, any>();
+	for (const item of [...existing, ...incoming]) {
+		const source = item?.entry || item?.media || item;
+		const id = source?.id ?? source?.anilist_id ?? source?.mal_id ?? source?.idMal;
+		if (id === undefined || id === null || id === '') continue;
+		merged.set(String(id), item);
+	}
+	return Array.from(merged.values());
+}
 
 export function getProxiedImage(url: string, fallback = ''): string {
 	if (!url) return fallback;

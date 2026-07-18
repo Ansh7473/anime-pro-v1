@@ -1,5 +1,7 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
+  import { getAnimeTitle, getEnglishAnimeTitle, getJapaneseAnimeTitle } from "$lib/animeTitle";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
   import {
     Download,
     Heart,
@@ -282,6 +284,23 @@
 
     <!-- ACTION BUTTONS -->
     <div class="nav-actions">
+      <div class="title-language-switch" role="group" aria-label="Anime title language">
+        <button
+          type="button"
+          class:active={$titleLanguage === "english"}
+          aria-pressed={$titleLanguage === "english"}
+          title="Show English anime titles"
+          onclick={() => titleLanguage.set("english")}
+        >EN</button>
+        <button
+          type="button"
+          class:active={$titleLanguage === "japanese"}
+          aria-pressed={$titleLanguage === "japanese"}
+          title="日本語のタイトルを表示"
+          onclick={() => titleLanguage.set("japanese")}
+        >日本</button>
+      </div>
+
       <!-- MOBILE SEARCH ICON -->
       <button
         class="nav-icon-btn search-trigger-btn hide-desktop"
@@ -640,13 +659,15 @@
 
             <div class="suggestions-grid">
               {#each suggestions as anime}
+                {@const primaryTitle = getAnimeTitle(anime, $titleLanguage)}
+                {@const alternateTitle = $titleLanguage === "english" ? getJapaneseAnimeTitle(anime) : getEnglishAnimeTitle(anime)}
                 <button
                   class="suggestion-card"
                   onclick={() => selectSuggestion(anime)}
                 >
                   <img
                     src={getProxiedImage(anime.poster)}
-                    alt={anime.title}
+                    alt={primaryTitle}
                     class="suggestion-poster"
                     loading="lazy"
                     decoding="async"
@@ -655,9 +676,9 @@
                     }}
                   />
                   <div class="suggestion-details">
-                    <span class="suggestion-title">{anime.title}</span>
-                    {#if anime.japaneseTitle || anime.jname}
-                      <span class="suggestion-jtitle">{anime.japaneseTitle || anime.jname}</span>
+                    <span class="suggestion-title">{primaryTitle}</span>
+                    {#if alternateTitle && alternateTitle !== primaryTitle}
+                      <span class="suggestion-jtitle">{alternateTitle}</span>
                     {/if}
                     <div class="suggestion-meta-row">
                       <span class="meta-pill type-pill">{anime.type || 'TV'}</span>
@@ -793,6 +814,32 @@
     margin-left: auto;
     z-index: 2;
   }
+
+  .title-language-switch {
+    height: 34px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(32px, auto));
+    align-items: stretch;
+    overflow: hidden;
+    background: #0d0c0b;
+    border: 1px solid #332c27;
+    border-radius: 3px;
+  }
+  .title-language-switch button {
+    min-width: 32px;
+    padding: 0 0.48rem;
+    color: #817970;
+    background: transparent;
+    border: 0;
+    border-right: 1px solid #332c27;
+    font: 750 0.68rem/1 inherit;
+    cursor: pointer;
+  }
+  .title-language-switch button:last-child { border-right: 0; }
+  .title-language-switch button:hover,
+  .title-language-switch button:focus-visible { color: #f1ece4; background: #171310; }
+  .title-language-switch button:focus-visible { outline: 2px solid #efa086; outline-offset: -2px; }
+  .title-language-switch button.active { color: #170c09; background: #df886b; }
 
   .nav-search-pill {
     display: flex;

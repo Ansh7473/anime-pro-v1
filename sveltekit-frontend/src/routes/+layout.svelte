@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { themeState } from "$lib/stores/theme";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { isTV } from "$lib/stores/device";
@@ -10,12 +11,15 @@
   import { getSiteJsonLd, SITE_NAME } from "$lib/seo";
   import { SEARCH_ENGINE_META_VERIFICATIONS } from "$lib/seo-verification";
   import { adsAllowedOn, loadPopunder } from "$lib/ads";
+  import { onMount } from "svelte";
 
   import "../app.css";
   import "../lib/styles/themes.css";
 
   let { children, data } = $props();
   const siteJsonLd = $derived(getSiteJsonLd(data.canonicalUrl));
+
+  onMount(() => titleLanguage.initialize());
 
   // Monetag popunder: load only on free content pages, never on ad-free /
   // non-content routes. Deferred so it never blocks first paint. Once loaded

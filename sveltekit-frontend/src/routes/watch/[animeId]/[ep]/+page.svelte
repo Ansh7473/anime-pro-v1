@@ -9,6 +9,7 @@
   import VideoPlayer from "$lib/components/VideoPlayer.svelte";
   import LiveChat from "$lib/components/LiveChat.svelte";
   import CommentsSection from "$lib/components/CommentsSection.svelte";
+  import { getEnglishAnimeTitle } from "$lib/animeTitle";
 
   let { data } = $props();
   const animeId = $derived(data.animeId);
@@ -17,11 +18,17 @@
     // svelte-ignore state_referenced_locally
     data.ssrAnime ?? null,
   );
+  // Playback providers do not own identity. Each receives the cross-reference
+  // it actually expects from the canonical AniList record.
+  const anilistStreamingId = $derived(String(anime?.id || anime?.anilist_id || animeId));
+  const malStreamingId = $derived(String(anime?.idMal || anime?.mal_id || ""));
+  const providerSearchTitle = $derived(getEnglishAnimeTitle(anime));
+
   let episodes: any[] = $state(
     // svelte-ignore state_referenced_locally
     data.ssrEpisodes ?? [],
   );
-  let ep = $state(0);
+  const ep = $derived(parseInt(data.ep as string) || 1);
 
   let sources: any[] = $state([]);
   let selectedSource: any = $state(null);
@@ -56,16 +63,36 @@
   });
 
   // ── Providers ──────────────────────────────────────────────────────────
-  // Edit this list to enable/disable stream providers. Order = try order.
-  const PROVIDERS: Array<(id: string, ep: number) => Promise<any>> = [
-    api.getAnimelokSources,
-    api.getTatakaiSources,
-    api.getAnichiSources,
+  // All providers are queried concurrently. Priority controls server order,
+  // not whether Tatakai or Anichi are allowed to make a source call.
+  type ProviderRequest = {
+    name: "Animelok" | "Tatakai" | "Anichi";
+    enabled: () => boolean;
+    request: (signal: AbortSignal) => Promise<any>;
+  };
+
+  const PROVIDERS: ProviderRequest[] = [
+    {
+      name: "Animelok",
+      enabled: () => Boolean(malStreamingId),
+      request: (signal) => api.getAnimelokSources(malStreamingId, ep, signal),
+    },
+    {
+      name: "Tatakai",
+      enabled: () => Boolean(anilistStreamingId),
+      request: (signal) => api.getTatakaiSources(anilistStreamingId, ep, signal),
+    },
+    {
+      name: "Anichi",
+      enabled: () => Boolean(malStreamingId),
+      request: (signal) => api.getAnichiSources(malStreamingId, ep, providerSearchTitle, signal),
+    },
   ];
 
   // Per-episode source cache so back/forward and re-selecting an episode
   // are instant instead of re-scraping every provider.
   const _sourceCache = new Map<string, any[]>();
+  const activeSourceControllers = new Set<AbortController>();
   let currentLoadId = 0;
   let playbackError = $state("");
   let playbackGeneration = $state(0);
@@ -77,6 +104,11 @@
     embedLoadTimer = null;
   }
 
+  function abortSourceRequests() {
+    for (const controller of activeSourceControllers) controller.abort();
+    activeSourceControllers.clear();
+  }
+
   function resetPlaybackAttempts() {
     playbackGeneration += 1;
     attemptedSourceUrls.clear();
@@ -84,15 +116,14 @@
     clearEmbedLoadTimer();
   }
 
-  // Keep local `ep` synced with the URL param and (re)load sources on change.
+  // Load exactly once for each canonical anime/URL-episode pair, including the
+  // first mount. untrack keeps loadSources' internal state reads out of this effect.
+  let loadedSourceRoute = "";
   $effect(() => {
-    const dataEp = parseInt(data.ep as string) || 1;
-    untrack(() => {
-      if (ep !== dataEp) {
-        ep = dataEp;
-        loadSources();
-      }
-    });
+    const routeKey = `${anilistStreamingId}:${malStreamingId}:${ep}`;
+    if (!anilistStreamingId || routeKey === loadedSourceRoute) return;
+    loadedSourceRoute = routeKey;
+    untrack(() => void loadSources());
   });
 
   type SourceKind = "embed" | "hls" | "video" | "invalid";
@@ -216,16 +247,18 @@
   });
 
   // ── Source loading ───────────────────────────────────────────────────────
-  // Fire all enabled providers in parallel, collect results, pick the first.
+  // Query every enabled provider in parallel with an abortable per-provider
+  // budget. Results remain ordered Animelok → Tatakai → Anichi for playback.
   async function loadSources() {
     const loadId = ++currentLoadId;
+    abortSourceRequests();
     resetPlaybackAttempts();
     sourceLoading = true;
     error = "";
     sources = [];
     selectedSource = null;
 
-    const cacheKey = `${animeId}:${ep}`;
+    const cacheKey = `${anilistStreamingId}:${malStreamingId}:${ep}`;
     const cached = _sourceCache.get(cacheKey);
     if (cached && cached.length) {
       sources = cached;
@@ -234,31 +267,35 @@
       return;
     }
 
-    // Race each provider against a timeout so one slow/hung endpoint can't
-    // freeze the whole player, and always clean up the losing timer.
-    const withTimeout = <T,>(request: Promise<T>): Promise<T> => {
-      let timer: ReturnType<typeof setTimeout>;
-      const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("timeout")), 12_000);
-      });
-      return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
-    };
+    async function requestProvider(provider: ProviderRequest) {
+      const controller = new AbortController();
+      activeSourceControllers.add(controller);
+      const timer = setTimeout(() => controller.abort(), 20_000);
+      try {
+        return { provider, result: await provider.request(controller.signal), failure: null };
+      } catch (failure) {
+        return { provider, result: null, failure };
+      } finally {
+        clearTimeout(timer);
+        activeSourceControllers.delete(controller);
+      }
+    }
 
     try {
+      const enabledProviders = PROVIDERS.filter((provider) => provider.enabled());
+      const results = await Promise.all(enabledProviders.map(requestProvider));
+      if (loadId !== currentLoadId) return;
+
       const collected: any[] = [];
       const seenSources = new Set<string>();
 
-      // Try providers in priority order and stop after the first one yields
-      // usable servers. This avoids three simultaneous backend scrapes for
-      // every episode while preserving fallback behavior.
-      for (const fetcher of PROVIDERS) {
-        let result: any;
-        try {
-          result = await withTimeout(fetcher(animeId, ep));
-        } catch {
+      for (const { provider, result, failure } of results) {
+        if (failure) {
+          if (!(failure instanceof DOMException && failure.name === "AbortError")) {
+            console.warn(`${provider.name} source lookup failed:`, failure);
+          }
           continue;
         }
-        if (loadId !== currentLoadId) return;
 
         for (const source of extractSources(result)) {
           if (!source?.url || getSourceKind(source) === "invalid" || isBlacklisted(source)) continue;
@@ -267,10 +304,8 @@
           seenSources.add(identity);
           collected.push(source);
         }
-        if (collected.length) break;
       }
 
-      if (loadId !== currentLoadId) return;
       sources = collected;
       if (collected.length) {
         selectedSource = collected[0];
@@ -278,28 +313,25 @@
       } else {
         error = "No sources found for this episode.";
       }
-    } catch (e) {
-      console.error("loadSources failed", e);
+    } catch (cause) {
+      console.error("loadSources failed", cause);
       if (loadId === currentLoadId) error = "Failed to load sources.";
     } finally {
       if (loadId === currentLoadId) sourceLoading = false;
     }
   }
 
-  // Provider-specific allowlists keep only the approved, reliable players.
-  const ANIMELOK_ALLOWED_SERVERS = new Set(["multi multi"]);
-  const ANICHI_ALLOWED_SERVERS = new Set([
-    "kiwi-stream (sub)",
-    "kiwi-stream (dub)",
-    "vidplay-1 (sub)",
-    "vidplay-1 (dub)",
-  ]);
-  const TATAKAI_ALLOWED_SERVERS = new Set(["vidnest multi", "pahe"]);
+  // Normalize labels because upstream spelling/casing changes independently of
+  // provider identity (for example VidPlay-1 vs Vidplay 1).
+  function normalizedServerKey(source: any): string {
+    return sourceServer(source).replace(/[^a-z0-9]+/g, "");
+  }
+
   const SERVER_BLACKLIST = new Set([
-    "bato soft sub",
-    "bato dub",
-    "pahe hard sub",
-    "pahe dub",
+    "batosoftsub",
+    "batodub",
+    "pahehardsub",
+    "pahedub",
   ]);
 
   function sourceProvider(source: any): string {
@@ -323,11 +355,18 @@
 
   function isBlacklisted(source: any): boolean {
     const provider = sourceProvider(source);
-    const server = sourceServer(source);
-    if (provider === "animelok") return !ANIMELOK_ALLOWED_SERVERS.has(server);
-    if (provider === "anichi") return !ANICHI_ALLOWED_SERVERS.has(server);
-    if (provider === "tatakai") return !TATAKAI_ALLOWED_SERVERS.has(server);
-    return SERVER_BLACKLIST.has(server);
+    const server = normalizedServerKey(source);
+    if (SERVER_BLACKLIST.has(server)) return true;
+    if (provider === "animelok") {
+      return !(server === "multimulti" || (server.includes("toonstream") && server.includes("multi")));
+    }
+    if (provider === "anichi") {
+      return !(server.startsWith("kiwistream") || server.startsWith("vidplay1"));
+    }
+    if (provider === "tatakai") {
+      return !(server.startsWith("vidnest") || server === "pahe");
+    }
+    return false;
   }
 
   // Providers return varied shapes: an array, {sources}, or {data:{sources}}.
@@ -477,7 +516,10 @@
     }
   });
 
-  onDestroy(() => clearEmbedLoadTimer());
+  onDestroy(() => {
+    abortSourceRequests();
+    clearEmbedLoadTimer();
+  });
 </script>
 
 <svelte:head>
@@ -645,7 +687,13 @@
             class:active
             onclick={() => changeEp(e.number)}
           >
-            <span class="ep-play"><Play size={14} /></span>
+            <span class="ep-thumb">
+              {#if e.image}
+                <img src={getProxiedImage(e.image)} alt="" loading="lazy" />
+              {:else}
+                <span class="ep-play"><Play size={14} /></span>
+              {/if}
+            </span>
             <span class="ep-body">
               <span class="ep-num">EP {e.number}</span>
               <span class="ep-title">{e.title}</span>
@@ -963,8 +1011,19 @@
     width: 3px;
     background: var(--net-red);
   }
-  .ep-play {
+  .ep-thumb {
+    position: relative;
     flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 34px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .ep-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .ep-play {
     display: grid;
     place-items: center;
     width: 30px;

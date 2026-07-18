@@ -1,5 +1,7 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
+  import { getAnimeTitle } from "$lib/animeTitle";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
 
   const toDateStr = (date: Date) => date.toISOString().split("T")[0];
   const dateOptions = Array.from({ length: 7 }, (_, index) => {
@@ -19,9 +21,7 @@
   let visibleItems = $derived(items.slice(0, 12));
 
   function titleOf(item: any): string {
-    const title = item?.title || item?.name || item?.userPreferred;
-    if (typeof title === "string" && title) return title;
-    return title?.english || title?.userPreferred || title?.romaji || title?.native || "Unknown anime";
+    return getAnimeTitle(item, $titleLanguage);
   }
 
   function clockLabel(airingAt: number): string {

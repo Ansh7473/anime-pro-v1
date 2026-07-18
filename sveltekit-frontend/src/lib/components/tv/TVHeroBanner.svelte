@@ -1,5 +1,7 @@
 <script lang="ts">
   import { getProxiedImage } from "$lib/api";
+  import { getAnimeTitle } from "$lib/animeTitle";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
   import { onMount, onDestroy } from "svelte";
   import { goto } from "$app/navigation";
 
@@ -45,11 +47,7 @@
   onDestroy(stopAutoplay);
 
   const anime = $derived(heroes[current]);
-  const title = $derived.by(() => {
-    const raw = anime?.title || anime?.name || anime?.userPreferred;
-    if (typeof raw === "string" && raw) return raw;
-    return raw?.english || raw?.userPreferred || raw?.romaji || raw?.native || "Unknown anime";
-  });
+  const title = $derived(getAnimeTitle(anime, $titleLanguage));
   const synopsis = $derived((anime?.synopsis || "").replace(/<[^>]*>?/gm, ""));
   const genres = $derived(anime?.genres || []);
   const id = $derived(anime?.id || anime?.mal_id);

@@ -1,20 +1,26 @@
 <script lang="ts">
   import { getProxiedImage } from "$lib/api";
+  import { getAnimeTitle } from "$lib/animeTitle";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
 
-  let { anime, size = "normal", rank = 0 } = $props<{
+  let { anime, size = "normal", rank = 0, preferArtwork = false } = $props<{
     anime: any;
     size?: "small" | "normal" | "large";
     rank?: number;
+    preferArtwork?: boolean;
   }>();
 
   const source = $derived(anime?.entry || anime?.media || anime || {});
   let imgError = $state(false);
-  const poster = $derived(source?.poster || source?.image || source?.coverImage?.large || source?.images?.jpg?.large_image_url || "");
-  const rawTitle = $derived(source?.title || source?.name || source?.userPreferred || source?.title_english);
-  const title = $derived.by(() => {
-    if (typeof rawTitle === "string" && rawTitle.trim()) return rawTitle.trim();
-    return rawTitle?.english || rawTitle?.userPreferred || rawTitle?.romaji || rawTitle?.native || "Untitled anime";
-  });
+  const poster = $derived(
+    (preferArtwork ? source?.artwork?.poster : "") ||
+      source?.poster ||
+      source?.image ||
+      source?.coverImage?.large ||
+      source?.images?.jpg?.large_image_url ||
+      "",
+  );
+  const title = $derived(getAnimeTitle(source, $titleLanguage));
   const rawScore = $derived(Number(source?.score || source?.rating || 0));
   const score = $derived(rawScore > 10 ? rawScore / 10 : rawScore);
   const id = $derived(source?.id || source?.mal_id);
@@ -26,7 +32,7 @@
   const relation = $derived(String(anime?.relationType || anime?.relation || "").replace(/_/g, " "));
 </script>
 
-<a href="/anime/{id}" class="card" class:small={size === "small"} class:large={size === "large"} aria-label={rank ? `Number ${rank}, ${title}` : title}>
+<a href="/anime/{id}" data-sveltekit-preload-data="tap" class="card" class:small={size === "small"} class:large={size === "large"} aria-label={rank ? `Number ${rank}, ${title}` : title}>
   <div class="poster">
     {#if poster && !imgError}
       <img src={getProxiedImage(poster)} alt="" loading="lazy" decoding="async" onerror={() => (imgError = true)} />

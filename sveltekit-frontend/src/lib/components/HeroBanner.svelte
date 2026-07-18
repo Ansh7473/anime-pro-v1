@@ -1,5 +1,7 @@
 <script lang="ts">
   import { getProxiedImage } from "$lib/api";
+  import { getAnimeTitle } from "$lib/animeTitle";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
   import { onDestroy, onMount } from "svelte";
 
   let { items = [], allowTitleArtwork = false } = $props<{
@@ -16,20 +18,21 @@
   let touchEndX = $state(0);
 
   const heroes = $derived(
-    items.filter((item: any) => item?.bannerImage || item?.image || item?.poster).slice(0, 4),
+    items
+      .filter((item: any) => item?.artwork?.banner || item?.bannerImage || item?.image || item?.poster)
+      .slice(0, 4),
   );
   const anime = $derived(heroes[current] || heroes[0]);
-
-  function titleOf(item: any): string {
-    const title = item?.title || item?.name || item?.userPreferred;
-    if (typeof title === "string" && title) return title;
-    return title?.english || title?.userPreferred || title?.romaji || title?.native || "Featured anime";
-  }
-
-  const title = $derived(titleOf(anime));
+  const title = $derived(getAnimeTitle(anime, $titleLanguage));
   const titleArtwork = $derived(
     allowTitleArtwork
-      ? String(anime?.clearLogo || anime?.artwork?.clear_logo || "")
+      ? String(
+          anime?.clearLogo ||
+            anime?.clear_logo ||
+            anime?.artwork?.clearLogo ||
+            anime?.artwork?.clear_logo ||
+            "",
+        )
       : "",
   );
   const visibleTitleArtwork = $derived(titleArtwork && titleArtwork !== failedArtwork ? titleArtwork : "");
@@ -104,7 +107,7 @@
       <div
         class="hero-art"
         class:active={index === current}
-        style={`background-image: url(${getProxiedImage(slide.bannerImage || slide.image || slide.poster || "")})`}
+        style={`background-image: url(${getProxiedImage(slide.artwork?.banner || slide.bannerImage || slide.image || slide.poster || "")})`}
         aria-hidden="true"
       ></div>
     {/each}

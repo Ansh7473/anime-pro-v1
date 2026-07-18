@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api } from "$lib/api";
+  import { api, mergeUniqueAnime } from "$lib/api";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
   import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { page } from "$app/state";
@@ -36,9 +36,9 @@
       const res = await api.search(expandAlias(clean), p, 24);
       if (generation !== searchGeneration || clean !== loadedQuery) return;
       const ranked = searchAndRankAnime(clean, res.data || []);
-      results = p === 1 ? ranked : [...results, ...ranked];
-      hasNext = res.pagination?.has_next_page || false;
-      currentPage = p;
+      results = p === 1 ? mergeUniqueAnime([], ranked) : mergeUniqueAnime(results, ranked);
+      hasNext = Boolean(res.pagination?.has_next_page);
+      currentPage = Number(res.pagination?.current_page) || p;
     } catch (e) {
       if (generation !== searchGeneration) return;
       console.error(e);

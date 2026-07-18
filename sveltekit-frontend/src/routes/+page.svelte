@@ -1,6 +1,8 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
+  import { getAnimeTitle } from "$lib/animeTitle";
   import { auth } from "$lib/stores/auth";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
   import { onMount } from "svelte";
   import HeroBanner from "$lib/components/HeroBanner.svelte";
   import AnimeCard from "$lib/components/AnimeCard.svelte";
@@ -26,9 +28,7 @@
   let userContentGeneration = 0;
 
   function titleOf(item: any): string {
-    const raw = item?.title || item?.name || item?.userPreferred || item?.title_english;
-    if (typeof raw === "string" && raw.trim()) return raw.trim();
-    return raw?.english || raw?.userPreferred || raw?.romaji || raw?.native || "";
+    return getAnimeTitle(item, $titleLanguage);
   }
 
   const catalogById = $derived.by(() => {
@@ -117,15 +117,49 @@
     return raw > 10 ? raw / 10 : raw;
   }
 
+  let heroArtworkGeneration = 0;
+
   function chooseHeroes() {
     const candidates = [seasonalItems[0], topRatedItems[0], movieItems[0], trendingItems[0]].filter(Boolean);
     const seen = new Set<string>();
+    const generation = ++heroArtworkGeneration;
     heroItems = candidates.filter((item: any) => {
       const key = String(item.id || item.mal_id || item.title);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
+
+    // Match watchanimez's progressive request pattern: catalog data paints
+    // first, then only the four approved hero candidates receive presentation
+    // artwork. Requests are exact-key cached and coalesced by the API client.
+    for (const candidate of heroItems) {
+      const candidateId = candidate?.id || candidate?.mal_id;
+      if (!candidateId || candidate?.artwork?.banner || candidate?.clearLogo) continue;
+      void api.getAnimeArtwork(candidateId)
+        .then((result: any) => {
+          if (generation !== heroArtworkGeneration || !result) return;
+          const mergeArtwork = (item: any) => {
+            const itemId = item?.id || item?.mal_id;
+            if (String(itemId) !== String(candidateId)) return item;
+            return {
+              ...item,
+              ...(result.artwork ? { artwork: result.artwork } : {}),
+              ...(result.clearLogo || result.clear_logo
+                ? { clearLogo: result.clearLogo || result.clear_logo }
+                : {}),
+              ...(result.tvdb_id ? { tvdb_id: result.tvdb_id } : {}),
+            };
+          };
+          heroItems = heroItems.map(mergeArtwork);
+          seasonalItems = seasonalItems.map(mergeArtwork);
+          popularItems = popularItems.map(mergeArtwork);
+          topRatedItems = topRatedItems.map(mergeArtwork);
+          movieItems = movieItems.map(mergeArtwork);
+          trendingItems = trendingItems.map(mergeArtwork);
+        })
+        .catch(() => {});
+    }
   }
 
   $effect(() => {
@@ -206,7 +240,7 @@
                 <span class="chart-rank">{String(index + 1).padStart(2, "0")}</span>
                 <img src={getProxiedImage(anime.poster || anime.image)} alt="" loading="lazy" />
                 <span class="chart-copy">
-                  <strong>{anime.title || "Unknown anime"}</strong>
+                  <strong>{titleOf(anime) || "Unknown anime"}</strong>
                   <small>{anime.type || anime.format || "Series"}{anime.episodes ? ` · ${anime.episodes} episodes` : ""}</small>
                 </span>
                 {#if scoreOf(anime)}<span class="chart-score">{scoreOf(anime).toFixed(1)}</span>{/if}
@@ -250,7 +284,7 @@
           {#if visibleGridItems.length}
             <div class="poster-grid">
               {#each visibleGridItems as anime, index (`${anime.id || anime.mal_id}-${catalogTab}-${index}`)}
-                <AnimeCard {anime} rank={catalogTab === "popular" ? index + 1 : 0} />
+                <AnimeCard {anime} preferArtwork rank={catalogTab === "popular" ? index + 1 : 0} />
               {/each}
             </div>
             <div class="catalog-pagination" aria-label="Catalog pagination">
@@ -276,7 +310,7 @@
               <li>
                 <a href={`/anime/${anime.id || anime.mal_id}`}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{anime.title || "Unknown anime"}</strong>
+                  <strong>{titleOf(anime) || "Unknown anime"}</strong>
                   {#if scoreOf(anime)}<small>{scoreOf(anime).toFixed(1)}</small>{/if}
                 </a>
               </li>
@@ -424,7 +458,45 @@
   .catalog-tabs button:focus-visible, .catalog-pagination button:focus-visible { outline: 2px solid #f3b29d; outline-offset: 2px; }
 
   .catalog-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 2.5rem; align-items: start; }
-  .poster-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.8rem 1rem; }
+  .poster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
+    align-items: start;
+    gap: 1.65rem 0.85rem;
+  }
+  .poster-grid :global(.card) {
+    height: auto;
+    overflow: visible;
+    border-radius: 2px;
+    background: transparent;
+  }
+  .poster-grid :global(.poster) {
+    overflow: hidden;
+    border: 1px solid #2b2622;
+    border-radius: 2px;
+    background: #11100e;
+  }
+  .poster-grid :global(.copy) {
+    gap: 0.38rem;
+    padding: 0.62rem 0.12rem 0.2rem;
+  }
+  .poster-grid :global(.card:hover) { background: transparent; }
+  .poster-grid :global(.card h3) {
+    color: #ded7ce;
+    font-size: 0.82rem;
+    font-weight: 720;
+    line-height: 1.32;
+  }
+  .poster-grid :global(.airing) {
+    min-height: 22px;
+    padding: 0.28rem 0.42rem;
+    color: #d9957d;
+    background: rgba(10, 9, 8, 0.9);
+    font-size: 0.56rem;
+    letter-spacing: 0.02em;
+  }
+  .poster-grid :global(.meta) { color: #756e67; }
+  .poster-grid :global(.measure) { color: #9a9188; }
   .catalog-pagination {
     display: flex;
     align-items: center;
@@ -502,7 +574,7 @@
     .catalog-controls { width: 100%; align-items: flex-start; flex-direction: column; gap: 0.75rem; }
     .catalog-tabs { width: 100%; overflow-x: auto; }
     .catalog-tabs button { flex: 1 0 auto; }
-    .poster-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .poster-grid { grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); }
     .utility-links { grid-template-columns: 1fr; }
     .utility-links a { min-height: 100px; box-shadow: inset 0 -1px #26221f; }
     .utility-links a:last-child { box-shadow: none; }
@@ -517,7 +589,10 @@
     .history-section, .discovery-section, .catalog-section, .utility-section { padding-top: 3.5rem; }
     .chart-list { grid-template-columns: 1fr; }
     .genre-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .poster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem 0.7rem; }
+    .poster-grid {
+      grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+      gap: 1.25rem 0.65rem;
+    }
     .reader-chart ol { grid-template-columns: 1fr; }
     .catalog-pagination { align-items: stretch; flex-direction: column; gap: 0.9rem; }
     .catalog-pagination button, .catalog-pagination a { text-align: center; }

@@ -3,7 +3,6 @@
   import { auth, switchProfile, logoutUser } from "$lib/stores/auth";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { themeState } from '$lib/stores/theme';
   import PasswordModal from "$lib/components/PasswordModal.svelte";
   import CreateProfileModal from "$lib/components/CreateProfileModal.svelte";
   import {
@@ -16,7 +15,6 @@
     X,
     AlertCircle,
     Key,
-    Palette,
     LogOut,
     ChevronRight
   } from "lucide-svelte";
@@ -45,64 +43,7 @@
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Luna",
   ];
 
-  // --- Theme picker ---
-  // Keys mirror the .theme-* classes defined in src/lib/styles/themes.css
-  const THEME_KEYS = [
-    "minimalist", "classic-red", "deep-crimson", "blood-moon",
-    "obsidian", "midnight", "abyss", "void",
-    "emerald", "forest", "lichen", "oasis",
-    "cyberpunk", "neon-pulse", "matrix", "retrowave",
-    "slate", "royal", "ruby", "amber", "violet", "arctic", "rose", "gold",
-    "ocean", "lava", "mint", "coral", "sky", "sand", "storm", "clay",
-    "ink", "serene", "dracula", "nord", "monokai", "gruvbox", "solarized",
-    "autumn", "spring", "winter", "summer", "platinum", "titanium",
-    "copper", "bronze", "pearl", "onyx", "quartz", "amethyst", "topaz",
-    "sapphire", "peridot", "garnet", "citrine", "opal", "turquoise",
-    "malachite", "moonstone", "tanzanite", "crimson-vivid", "nebula",
-    "phosphor", "cyber-orange", "dracula-soft", "mocha", "macchiato",
-    "frappe", "latte", "sakura", "zen", "void-walker", "stellar",
-    "phantom", "ghoul", "titan",
-  ];
-
-  let swatches = $state<Record<string, { bg: string; accent: string }>>({});
-
-  function themeName(key: string) {
-    return key.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  }
-
-  // Read each theme's --net-bg / --net-red from the loaded stylesheet via a hidden probe,
-  // so swatches stay in sync with themes.css without hardcoding colours.
-  function computeSwatches() {
-    if (typeof document === "undefined") return;
-    const probe = document.createElement("div");
-    probe.style.position = "absolute";
-    probe.style.opacity = "0";
-    probe.style.pointerEvents = "none";
-    document.body.appendChild(probe);
-    const map: Record<string, { bg: string; accent: string }> = {};
-    for (const key of THEME_KEYS) {
-      probe.className = `theme-${key}`;
-      const cs = getComputedStyle(probe);
-      map[key] = {
-        bg: cs.getPropertyValue("--net-bg").trim() || "#0a0a0a",
-        accent: cs.getPropertyValue("--net-red").trim() || "#FF8A3D",
-      };
-    }
-    document.body.removeChild(probe);
-    swatches = map;
-  }
-
-  function setTheme(key: string) {
-    themeState.update((s) => ({ ...s, current: key }));
-    success = `Theme set to ${themeName(key)}`;
-  }
-
-  function toggleGradients() {
-    themeState.update((s) => ({ ...s, gradients: !s.gradients }));
-  }
-
   onMount(async () => {
-    computeSwatches();
     if (!$auth.token) {
       goto("/auth/login?redirect=/profile");
       return;
@@ -311,10 +252,6 @@
           <span class="stat-num">{favorites.length}</span>
           <span class="stat-label">Favorites</span>
         </div>
-        <div class="stat">
-          <span class="stat-num">{themeName($themeState.current)}</span>
-          <span class="stat-label">Theme</span>
-        </div>
       </div>
     </div>
 
@@ -411,46 +348,6 @@
                 <option value="multi">Multi-Audio</option>
               </select>
             </div>
-          </div>
-        </section>
-
-        <!-- Theme -->
-        <section class="card">
-          <div class="card-header">
-            <h2 class="card-title"><Palette size={16} /> Appearance</h2>
-            <span class="theme-current">
-              {themeName($themeState.current)}
-            </span>
-          </div>
-
-          <div class="theme-grid">
-            {#each THEME_KEYS as key}
-              <button
-                class="theme-swatch"
-                class:active={$themeState.current === key}
-                title={themeName(key)}
-                aria-label={themeName(key)}
-                onclick={() => setTheme(key)}
-                style="--sw-bg: {swatches[key]?.bg || '#0a0a0a'}; --sw-accent: {swatches[key]?.accent || '#FF8A3D'};"
-              >
-                <span class="sw-accent"></span>
-                {#if $themeState.current === key}
-                  <span class="sw-check"><Check size={12} /></span>
-                {/if}
-              </button>
-            {/each}
-          </div>
-
-          <div class="pref-row theme-gradient-row">
-            <span class="pref-label">Gradient accents</span>
-            <button
-              class="toggle"
-              class:on={$themeState.gradients}
-              onclick={toggleGradients}
-              aria-label="Toggle gradient accents"
-            >
-              <div class="toggle-knob"></div>
-            </button>
           </div>
         </section>
       </div>
@@ -637,7 +534,7 @@
   }
   .profile-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
     margin-top: 1.25rem;
     padding-top: 1.25rem;
@@ -853,81 +750,6 @@
     transform: translateX(18px);
   }
 
-  /* Theme picker */
-  .theme-current {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--net-red);
-    background: rgba(229, 9, 20, 0.1);
-    border: 1px solid rgba(255, 138, 61, 0.22);
-    padding: 0.3rem 0.65rem;
-    border-radius: 50px;
-    white-space: nowrap;
-  }
-  .theme-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-    gap: 0.5rem;
-    max-height: 232px;
-    overflow-y: auto;
-    padding: 0.15rem 0.35rem 0.15rem 0.15rem;
-    margin-bottom: 0.25rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-  }
-  .theme-grid::-webkit-scrollbar { width: 6px; }
-  .theme-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 3px;
-  }
-  .theme-swatch {
-    position: relative;
-    aspect-ratio: 1;
-    border-radius: 9px;
-    background: var(--sw-bg);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    cursor: pointer;
-    padding: 0;
-    overflow: hidden;
-    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
-  }
-  .theme-swatch:hover {
-    transform: translateY(-2px) scale(1.05);
-    border-color: rgba(255, 255, 255, 0.35);
-  }
-  .theme-swatch .sw-accent {
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--sw-accent);
-    border: 1.5px solid rgba(0, 0, 0, 0.25);
-  }
-  .theme-swatch.active {
-    border-color: var(--sw-accent);
-    box-shadow: 0 0 0 2px var(--sw-accent);
-  }
-  .theme-swatch .sw-check {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.35);
-  }
-  .theme-gradient-row {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    border-bottom: none;
-    margin-top: 0.5rem;
-    padding-bottom: 0;
-  }
-
   /* Buttons */
   .btn-outline {
     padding: 0.6rem 1.25rem;
@@ -1008,5 +830,5 @@
     .card { padding: 1.15rem; }
     .stat-num { font-size: 1rem; }
   }
-  .profile-page{padding-top:3rem;padding-bottom:5rem}.page-header{padding-bottom:1.5rem;border-bottom:1px solid var(--editorial-line,#28231f)}.user-card,.card{border-radius:4px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f)}.user-avatar{border-radius:3px;background:var(--editorial-accent,#df886b);color:#170c09}.profile-item,.settings-action,.pref-select,.btn-outline,.btn-small,.btn-icon,.theme-swatch{border-radius:3px}.profile-item.active{background:#151210;border-color:#49372f}.active-tag,.theme-current{border-radius:2px;background:transparent;border:1px solid #49372f}.theme-swatch:hover{transform:none;box-shadow:none}.theme-swatch.active{box-shadow:none;border-width:2px}.btn-outline,.btn-small{background:transparent;border-color:#3a312c}.settings-action:hover,.profile-item:hover{background:#151210}
+  .profile-page{padding-top:3rem;padding-bottom:5rem}.page-header{padding-bottom:1.5rem;border-bottom:1px solid var(--editorial-line,#28231f)}.user-card,.card{border-radius:4px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f)}.user-avatar{border-radius:3px;background:var(--editorial-accent,#df886b);color:#170c09}.profile-item,.settings-action,.pref-select,.btn-outline,.btn-small,.btn-icon{border-radius:3px}.profile-item.active{background:#151210;border-color:#49372f}.active-tag{border-radius:2px;background:transparent;border:1px solid #49372f}.btn-outline,.btn-small{background:transparent;border-color:#3a312c}.settings-action:hover,.profile-item:hover{background:#151210}
 </style>

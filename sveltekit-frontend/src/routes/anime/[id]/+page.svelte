@@ -1,6 +1,8 @@
 <script lang="ts">
   import { api } from "$lib/api";
+  import { getAnimeTitle, getEnglishAnimeTitle, getJapaneseAnimeTitle } from "$lib/animeTitle";
   import { auth } from "$lib/stores/auth";
+  import { titleLanguage } from "$lib/stores/titleLanguage";
   import { untrack } from "svelte";
   import JsonLd from "$lib/components/JsonLd.svelte";
   import Row from "$lib/components/Row.svelte";
@@ -31,6 +33,17 @@
   const EPISODE_RANGE_SIZE = 30;
   let epRangeIndex = $state(0);
   let shareLabel = $state("Share");
+  let failedTitleLogo = $state("");
+  const titleLogo = $derived(
+    String(
+      anime?.clearLogo ||
+        anime?.clear_logo ||
+        anime?.artwork?.clearLogo ||
+        anime?.artwork?.clear_logo ||
+        "",
+    ),
+  );
+  const visibleTitleLogo = $derived(titleLogo && titleLogo !== failedTitleLogo ? titleLogo : "");
 
   // Caching layer for per-id, per-user auth lookups so the same id never
   // triggers /user/watchlist + /user/favorites twice in a session.
@@ -39,11 +52,14 @@
   const statusKey = () => `${$auth.token ?? ""}|${$auth.currentProfile?.id ?? ""}`;
 
   const id = $derived(Number(data.id));
-  const displayTitle = $derived.by(() => {
-    const raw = anime?.title || anime?.name || anime?.userPreferred || anime?.title_english;
-    if (typeof raw === "string" && raw.trim()) return raw.trim();
-    return raw?.english || raw?.userPreferred || raw?.romaji || raw?.native || "Untitled anime";
-  });
+  const displayTitle = $derived(getAnimeTitle(anime, $titleLanguage));
+  const englishTitle = $derived(getEnglishAnimeTitle(anime));
+  const nativeTitle = $derived(getJapaneseAnimeTitle(anime));
+  const secondaryTitle = $derived(
+    ($titleLanguage === "japanese" ? englishTitle : nativeTitle) !== displayTitle
+      ? ($titleLanguage === "japanese" ? englishTitle : nativeTitle)
+      : "",
+  );
   const pageDescription = $derived(
     anime
       ? truncateDescription(
@@ -66,18 +82,6 @@
   const yearLabel = $derived(anime?.year || anime?.seasonYear || "");
   const durationLabel = $derived(
     anime?.duration ? `${anime.duration}M` : anime?.duration === 0 ? "" : "",
-  );
-  const nativeTitle = $derived(
-    anime?.title_japanese ||
-      anime?.title_native ||
-      (typeof anime?.title === "object" ? anime.title?.native : "") ||
-      "",
-  );
-  const englishTitle = $derived(
-    anime?.title_english ||
-      (typeof anime?.title === "object" ? anime.title?.english : "") ||
-      anime?.title ||
-      "",
   );
   const synonyms = $derived.by(() => {
     const s = anime?.synonyms;
@@ -183,13 +187,19 @@
     loadAnimeData(id, data.anime);
   });
 
+  let loadGeneration = 0;
+
+  function isCurrentLoad(currentId: number, generation: number) {
+    return currentId === id && generation === loadGeneration;
+  }
+
   function getEpisodeTitle(episode: any, number: number) {
     const title = [episode?.title, episode?.name, episode?.episodeTitle, episode?.episode_title]
       .find((value) => typeof value === "string" && value.trim());
     return title?.trim() || `Episode ${number}`;
   }
 
-  function mergeEpisodeMetadata(metadata: any[]) {
+  function mergeEpisodeMetadata(metadata: any[], availableEpisodes = 0) {
     const byNumber = new Map(
       metadata.map((episode, index) => [Number(episode?.number ?? index + 1), episode]),
     );
@@ -197,7 +207,13 @@
       (highest, episode, index) => Math.max(highest, Number(episode?.number ?? index + 1)),
       0,
     );
-    const count = Math.min(Math.max(episodes.length, metadata.length, highestNumber), 2000);
+    const canonicalAvailable = Number(availableEpisodes);
+    const count = Math.min(
+      canonicalAvailable > 0
+        ? canonicalAvailable
+        : Math.max(episodes.length, metadata.length, highestNumber),
+      2000,
+    );
     episodes = Array.from({ length: count }, (_, index) => {
       const number = index + 1;
       const episode = byNumber.get(number);
@@ -224,7 +240,29 @@
     });
   }
 
+  async function loadEpisodeMetadata(currentId: number, generation: number, currentAnime: any) {
+    const metadataId = currentAnime?.idMal || currentAnime?.mal_id;
+    if (!metadataId) return;
+
+    try {
+      const metadata = await api.getEpisodeMetadata(metadataId, 1, 2000);
+      if (!isCurrentLoad(currentId, generation)) return;
+      const list = metadata?.data?.episodes ?? metadata?.episodes ?? [];
+      const available = Number(
+        metadata?.data?.availableEpisodes ?? metadata?.availableEpisodes ?? 0,
+      );
+      if (list.length > 0) {
+        untrack(() => mergeEpisodeMetadata(list, available));
+      }
+    } catch (metadataError) {
+      if (isCurrentLoad(currentId, generation)) {
+        console.warn("Episode titles could not be loaded:", metadataError);
+      }
+    }
+  }
+
   async function loadAnimeData(currentId: number, ssrAnime: any) {
+    const generation = ++loadGeneration;
     untrack(() => {
       detailsLoading = true;
       synopsisOpen = false;
@@ -250,61 +288,104 @@
           : null;
       const fetchedAnime = ssr || (await api.getAnime(currentId));
 
-      if (currentId !== id) return;
+      if (!isCurrentLoad(currentId, generation)) return;
       const ssrMetadata = Array.isArray(data.episodeMetadata) ? data.episodeMetadata : [];
       untrack(() => {
         anime = fetchedAnime;
         pullFromAnime(fetchedAnime);
         if (ssrMetadata.length > 0) mergeEpisodeMetadata(ssrMetadata);
+        // Core AniList identity, titles and hero fields are interactive now.
+        // Nested AniList sections and episode enrichment continue independently.
+        detailsLoading = false;
       });
 
-      // SSR normally supplies real names/thumbnails. Only call the metadata
-      // endpoint in the browser when SSR timed out or returned no usable rows.
+      void api.getAnimeExtras(currentId)
+        .then((extras: any) => {
+          if (!isCurrentLoad(currentId, generation) || !extras) return;
+          untrack(() => {
+            characters = extras.characters || [];
+            recommendations = extras.recommendations || [];
+            relations = extras.relations || [];
+            anime = {
+              ...anime,
+              characters,
+              recommendations,
+              relations,
+            };
+          });
+        })
+        .catch((extrasError: unknown) => {
+          if (isCurrentLoad(currentId, generation)) {
+            console.warn("AniList characters and recommendations could not be loaded:", extrasError);
+          }
+        });
+
+      // Clear logos are presentation enrichment. Load them independently so
+      // ani.zip/TheTVDB never delays canonical AniList detail navigation.
+      if (!fetchedAnime?.clearLogo && !fetchedAnime?.clear_logo && !fetchedAnime?.artwork?.clearLogo && !fetchedAnime?.artwork?.clear_logo) {
+        void api.getAnimeArtwork(currentId)
+          .then((result: any) => {
+            if (!isCurrentLoad(currentId, generation) || !result) return;
+            untrack(() => {
+              anime = {
+                ...anime,
+                ...(result.artwork ? { artwork: result.artwork } : {}),
+                ...(result.clearLogo || result.clear_logo
+                  ? { clearLogo: result.clearLogo || result.clear_logo }
+                  : {}),
+                ...(result.tvdb_id ? { tvdb_id: result.tvdb_id } : {}),
+              };
+              failedTitleLogo = "";
+            });
+          })
+          .catch((artworkError: unknown) => {
+            if (isCurrentLoad(currentId, generation)) {
+              console.warn("Anime title artwork could not be loaded:", artworkError);
+            }
+          });
+      }
+
       if (ssrMetadata.length === 0) {
-        const metadataId = fetchedAnime?.idMal || fetchedAnime?.mal_id || currentId;
-        try {
-          const metadata = await api.getEpisodeMetadata(metadataId, 1, 2000);
-          if (currentId !== id) return;
-          const list = metadata?.data?.episodes ?? metadata?.episodes ?? [];
-          if (list.length > 0) untrack(() => mergeEpisodeMetadata(list));
-        } catch (metadataError) {
-          console.warn("Episode titles could not be loaded:", metadataError);
-        }
+        void loadEpisodeMetadata(currentId, generation, fetchedAnime);
       }
 
       if ($auth.token) {
-        // Only fire once per id per session. Subsequent mounts reuse the result.
-        if (lastUserStatusFetchedId !== currentId || lastUserStatusUserKey !== statusKey()) {
+        const userKey = statusKey();
+        if (lastUserStatusFetchedId !== currentId || lastUserStatusUserKey !== userKey) {
+          const token = $auth.token;
+          const profileId = $auth.currentProfile?.id;
           untrack(() => {
             lastUserStatusFetchedId = currentId;
-            lastUserStatusUserKey = statusKey();
+            lastUserStatusUserKey = userKey;
           });
-          Promise.all([
-            api.getWatchlistStatus(
-              $auth.token,
-              currentId.toString(),
-              $auth.currentProfile?.id,
-            ),
-            api.getFavoriteStatus(
-              $auth.token,
-              currentId.toString(),
-              $auth.currentProfile?.id,
-            ),
-          ]).then(([wl, fav]) => {
-            if (currentId === id) {
-              untrack(() => {
-                inWatchlist = wl.inWatchlist;
-                watchlistStatus = wl.status;
-                isFavorite = fav.isFavorite;
-              });
-            }
-          });
+          void Promise.all([
+            api.getWatchlistStatus(token, currentId.toString(), profileId),
+            api.getFavoriteStatus(token, currentId.toString(), profileId),
+          ])
+            .then(([wl, fav]) => {
+              if (isCurrentLoad(currentId, generation) && statusKey() === userKey) {
+                untrack(() => {
+                  inWatchlist = wl.inWatchlist;
+                  watchlistStatus = wl.status;
+                  isFavorite = fav.isFavorite;
+                });
+              }
+            })
+            .catch((statusError) => {
+              if (isCurrentLoad(currentId, generation) && statusKey() === userKey) {
+                console.warn("User anime status could not be loaded:", statusError);
+                untrack(() => {
+                  lastUserStatusFetchedId = null;
+                  lastUserStatusUserKey = "";
+                });
+              }
+            });
         }
       }
     } catch (e) {
-      console.error(e);
+      if (isCurrentLoad(currentId, generation)) console.error(e);
     } finally {
-      if (currentId === id) {
+      if (isCurrentLoad(currentId, generation)) {
         untrack(() => {
           detailsLoading = false;
         });
@@ -422,13 +503,14 @@
     <div class="ad-hero-inner">
       <div class="ad-info">
         <div class="ad-heading">
-          {#if nativeTitle}<p class="ad-native-title">{nativeTitle}</p>{/if}
+          {#if secondaryTitle}<p class="ad-native-title">{secondaryTitle}</p>{/if}
           <h1 class="ad-title">
-            {#if anime.clearLogo || anime.artwork?.clear_logo}
+            {#if visibleTitleLogo}
               <img
                 class="ad-title-logo"
-                src={anime.clearLogo || anime.artwork?.clear_logo}
+                src={visibleTitleLogo}
                 alt={displayTitle}
+                onerror={() => (failedTitleLogo = titleLogo)}
               />
               <span class="sr-only">{displayTitle}</span>
             {:else}
@@ -709,7 +791,7 @@
           <div class="ad-trailer">
             <iframe
               src={trailerUrl}
-              title="{anime.title} trailer"
+              title="{displayTitle} trailer"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowfullscreen
             ></iframe>

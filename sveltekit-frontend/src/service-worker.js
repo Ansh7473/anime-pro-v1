@@ -35,13 +35,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
 	if (event.request.method !== 'GET') return;
 
+	const requestURL = new URL(event.request.url);
+	// SvelteKit data requests already carry explicit HTTP cache headers and are
+	// never persisted by this worker. Let the browser send them directly so the
+	// worker cannot add an extra cache-open/network-forwarding hop.
+	if (requestURL.pathname.endsWith('/__data.json')) return;
+
 	// Skip manifest and other metadata files to avoid syntax errors if they return stale HTML
 	if (event.request.url.includes('manifest.json') || event.request.url.includes('favicon')) {
 		return;
 	}
 
 	async function respond() {
-		const url = new URL(event.request.url);
+		const url = requestURL;
 		const cache = await caches.open(CACHE);
 
 		// `build`/`files` can always be served from the cache
