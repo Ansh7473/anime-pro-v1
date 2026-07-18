@@ -37,6 +37,8 @@
     skipTimes = undefined as SkipRange | undefined,
     onprogress = undefined as ((pos: number, dur: number) => void) | undefined,
     onended = undefined as (() => void) | undefined,
+    onready = undefined as (() => void) | undefined,
+    onerror = undefined as ((reason: string) => void) | undefined,
     videoElement = $bindable(null) as HTMLVideoElement | null,
   }: {
     src: string;
@@ -47,6 +49,8 @@
     skipTimes?: SkipRange;
     onprogress?: (pos: number, dur: number) => void;
     onended?: () => void;
+    onready?: () => void;
+    onerror?: (reason: string) => void;
     videoElement?: HTMLVideoElement | null;
   } = $props();
 
@@ -58,6 +62,34 @@
   // Sync internal ref → bindable prop so parent can access <video>
   $effect(() => { videoElement = videoEl; });
   let endedFired = false;
+  let readyFired = false;
+  let failureFired = false;
+  let fatalRecoveries = 0;
+  let playbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearPlaybackTimer() {
+    if (playbackTimer) clearTimeout(playbackTimer);
+    playbackTimer = null;
+  }
+
+  function armPlaybackTimer(reason: string, delay = 20_000) {
+    clearPlaybackTimer();
+    playbackTimer = setTimeout(() => reportFailure(reason), delay);
+  }
+
+  function reportReady() {
+    clearPlaybackTimer();
+    if (readyFired) return;
+    readyFired = true;
+    onready?.();
+  }
+
+  function reportFailure(reason: string) {
+    clearPlaybackTimer();
+    if (failureFired) return;
+    failureFired = true;
+    onerror?.(reason);
+  }
 
   // ── Player state ───────────────────────────────────────
   let playing = $state(false);
@@ -145,7 +177,11 @@
     if (!video || !src) return;
 
     endedFired = false;
+    readyFired = false;
+    failureFired = false;
+    fatalRecoveries = 0;
     loading = true;
+    armPlaybackTimer("The server did not start playback in time.");
     hlsInstance?.destroy();
     hlsInstance = null;
 
@@ -183,9 +219,18 @@
       });
       hls.on(Hls.Events.ERROR, (_evt, data) => {
         if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-        else hls.destroy();
+        if (fatalRecoveries < 1 && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          fatalRecoveries += 1;
+          hls.startLoad();
+          return;
+        }
+        if (fatalRecoveries < 1 && data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          fatalRecoveries += 1;
+          hls.recoverMediaError();
+          return;
+        }
+        hls.destroy();
+        reportFailure(`HLS playback failed: ${data.details || data.type}`);
       });
       hlsInstance = hls;
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -216,12 +261,20 @@
     };
     const onCanPlay = () => {
       loading = false;
+      reportReady();
       if (autoplay) video.play().catch(() => {});
     };
-    const onPlay = () => { playing = true; endedFired = false; };
+    const onPlay = () => { playing = true; endedFired = false; reportReady(); };
     const onPause = () => { playing = false; };
-    const onWaiting = () => { loading = true; };
-    const onPlaying = () => { loading = false; };
+    const onWaiting = () => {
+      loading = true;
+      if (readyFired) armPlaybackTimer("Playback stalled on this server.", 20_000);
+    };
+    const onPlaying = () => { loading = false; reportReady(); };
+    const onVideoError = () => {
+      const mediaError = video.error;
+      reportFailure(`Video error${mediaError?.code ? ` ${mediaError.code}` : ""}${mediaError?.message ? `: ${mediaError.message}` : ""}`);
+    };
     const onEnded = () => {
       if (!endedFired) { endedFired = true; onended?.(); }
     };
@@ -257,6 +310,7 @@
     video.addEventListener("pause", onPause);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onPlaying);
+    video.addEventListener("error", onVideoError);
     video.addEventListener("ended", onEnded);
     video.addEventListener("timeupdate", onTimeUpdate);
 
@@ -271,6 +325,7 @@
       video.removeEventListener("pause", onPause);
       video.removeEventListener("waiting", onWaiting);
       video.removeEventListener("playing", onPlaying);
+      video.removeEventListener("error", onVideoError);
       video.removeEventListener("ended", onEnded);
       video.removeEventListener("timeupdate", onTimeUpdate);
       document.removeEventListener("fullscreenchange", onFsChange);
@@ -279,6 +334,7 @@
 
   onDestroy(() => {
     hlsInstance?.destroy();
+    clearPlaybackTimer();
     blobUrls.forEach((u) => URL.revokeObjectURL(u));
     if (controlsTimer) clearTimeout(controlsTimer);
     if (rippleTimer) clearTimeout(rippleTimer);
@@ -1018,4 +1074,21 @@
     .vp-seek::-webkit-slider-thumb { width: 20px; height: 20px; }
     .vp-seek::-moz-range-thumb { width: 20px; height: 20px; }
   }
+
+  /* Editorial player controls: compact, flat, and warm. */
+  .vp-center-play { width: 58px; height: 58px; border-radius: 3px; background: #df886b; color: #160b08; box-shadow: none; }
+  .vp-center-play:hover { transform: none; background: #f1a287; }
+  .vp-center-play :global(svg) { fill: #160b08; }
+  .vp-loader,.vp-btn.active,.vp-skip-label { color: #e49a81; }
+  .vp-ripple { border-radius: 4px; background: rgba(223,136,107,.16); border-color: rgba(223,136,107,.4); }
+  .vp-skip-btn { border-radius: 3px; border-color: #564239; background: #0c0a09; color: #f1a287; box-shadow: none; backdrop-filter: none; }
+  .vp-skip-btn:hover { transform: none; background: #181310; }
+  .vp-controls-overlay { background: linear-gradient(to top,rgba(7,7,6,.96),rgba(7,7,6,.3) 38%,transparent 72%); }
+  .vp-seek { border-radius: 0; background: linear-gradient(to right,#df886b var(--pct),rgba(255,255,255,.2) var(--pct)); }
+  .settings-panel { border-radius: 4px; background: #0d0c0b; border-color: #302923; box-shadow: none; }
+  .sp-speed-grid { border-radius: 3px; background: #151210; }
+  .sp-speed-btn,.sp-sub-btn { border-radius: 2px; }
+  .sp-speed-btn.active { background: #df886b; color: #160b08; }
+  .sp-sub-btn.active { background: rgba(223,136,107,.13); color: #f1a287; }
+  .sp-color-dot.active { border-color: #df886b; transform: none; }
 </style>

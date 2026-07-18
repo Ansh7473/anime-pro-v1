@@ -37,8 +37,8 @@
 </script>
 
 <svelte:head>
-  <title>Sign Up — WatchAnimez</title>
-  <meta name="description" content="Create your free WatchAnimez account to build a watchlist, save favorites, and get personalized anime recommendations." />
+  <title>Sign Up — WatchAnimeX</title>
+  <meta name="description" content="Create your free WatchAnimeX account to build a watchlist, save favorites, and get personalized anime recommendations." />
 </svelte:head>
 
 <div class="netflix-page" class:ready={mounted}>
@@ -52,7 +52,7 @@
     <div class="login-card glass">
       <header class="login-header">
         <h1>Create Account</h1>
-        <p class="subtitle">Join WatchAnimez and start your anime journey</p>
+        <p class="subtitle">Join WatchAnimeX and start your anime journey</p>
       </header>
 
       {#if error}

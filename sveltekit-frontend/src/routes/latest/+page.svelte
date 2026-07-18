@@ -7,16 +7,16 @@
   import { Clock, ChevronLeft, ChevronRight } from "lucide-svelte";
 
   const TABS = [
-    { id: "recently-updated", label: "All Episodes" },
-    { id: "subbed-anime", label: "Subbed" },
-    { id: "dubbed-anime", label: "Dubbed" },
+    { id: "recently-updated", label: "Current Season" },
+    { id: "subbed-anime", label: "Popular TV" },
+    { id: "dubbed-anime", label: "Top Rated TV" },
   ];
 
   let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
 
-  const pageTitle = "Latest Anime - WatchAnimez";
+  const pageTitle = "Anime Catalog Updates - WatchAnimeX";
   const pageDescription =
-    "Find recently updated anime, current seasonal shows, subbed anime, and dubbed picks on WatchAnimez.";
+    "Browse current-season anime, popular TV series, and top-rated TV series on WatchAnimeX.";
 
   let tab = $state("recently-updated");
   let page = $state(1);
@@ -105,8 +105,8 @@
   <div class="page-header container">
     <div class="header-top">
       <div>
-        <h1 class="page-title">Latest Anime</h1>
-        <p class="page-subtitle">Recently updated anime, seasonal shows, subbed picks, and dubbed picks</p>
+        <h1 class="page-title">Anime Catalog</h1>
+        <p class="page-subtitle">Current-season anime, popular TV series, and top-rated TV series</p>
       </div>
       <div class="header-badge">
         <Clock size={16} />
@@ -160,9 +160,9 @@
         {:else}
           <div class="empty-state">
             <Clock size={40} class="empty-icon" />
-            <p>No anime found for this filter. Try another tab.</p>
-            <button class="page-btn" onclick={() => changeTab("recently-updated")}>
-              Reset to All Episodes
+            <p>No anime found for this catalog view.</p>
+            <button class="page-btn" onclick={fetchEpisodes}>
+              Try again
             </button>
           </div>
         {/if}

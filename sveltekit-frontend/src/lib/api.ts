@@ -445,7 +445,7 @@ export const api = {
 			}`;
 
 		try {
-			const data = await queryAnilist(query, { page: 1, perPage: 20 }, customFetch);
+			const data = await queryAnilist(query, { page: 1, perPage: 36 }, customFetch);
 			homeCache = {
 				trending: data?.trending?.media?.map(transformMedia) || [],
 				popular: data?.popular?.media?.map(transformMedia) || [],
@@ -859,22 +859,24 @@ export const api = {
 
 
 	// Streaming
-	// Episode list is sourced from AniList (episode count + streamingEpisodes for
-	// titles/thumbnails) instead of the slow streaming-scraper backend. AniList is
-	// fast and CDN-cached; we only fall back to the backend if AniList has no data.
+	// Prefer the backend metadata provider because it supplies real episode names
+	// and artwork. AniList is retained as a fast count-only fallback.
 	getEpisodeMetadata: async (animeId: string | number, page = 1, perPage = 50, customFetch?: typeof fetch) => {
-		// Skip the direct AniList call from a localhost browser (CORS-blocked);
-		// SSR already populates the list, so the client rarely reaches here.
-		const canUseAnilist = !(browser && location.hostname === 'localhost');
-		if (canUseAnilist) {
-			try {
-				const anilist = await getEpisodesFromAnilist(animeId, customFetch);
-				if (anilist && anilist.data.episodes.length > 0) return anilist;
-			} catch (err) {
-				console.warn('AniList episode metadata failed, falling back to backend:', err);
-			}
+		const metadataUrl = `${STREAMING_URL}/episode-metadata?animeId=${animeId}&page=${page}&perPage=${perPage}`;
+		try {
+			const backend = await fetchJSON(metadataUrl, { fetch: customFetch });
+			const episodes = backend?.data?.episodes ?? backend?.episodes ?? [];
+			if (episodes.length > 0) return backend;
+		} catch (err) {
+			console.warn('Backend episode metadata failed, falling back to AniList:', err);
 		}
-		return fetchJSON(`${STREAMING_URL}/episode-metadata?animeId=${animeId}&page=${page}&perPage=${perPage}`, { fetch: customFetch });
+
+		try {
+			return await getEpisodesFromAnilist(animeId, customFetch);
+		} catch (err) {
+			console.warn('AniList episode fallback failed:', err);
+			return { data: { episodes: [] } };
+		}
 	},
 
 	getAnimelokSources: (animeId: string, ep: number) =>
@@ -919,6 +921,9 @@ export const api = {
 
 		getTatakaiSources: (animeId: string, ep: number) =>
 			fetchJSON(`${STREAMING_URL}/sources/tatakai?animeId=${animeId}&ep=${ep}`),
+
+		getAnichiSources: (animeId: string, ep: number, title?: string) =>
+			fetchJSON(`${STREAMING_URL}/sources/anichi?animeId=${animeId}&ep=${ep}${title ? `&title=${encodeURIComponent(title)}` : ''}`),
 
 		getAggregateSources: (animeId: string, ep: number) =>
 		fetchJSON(`${STREAMING_URL}/sources?animeId=${animeId}&ep=${ep}`),

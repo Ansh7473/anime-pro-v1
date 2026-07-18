@@ -7,6 +7,7 @@
   import SkeletonDetail from "$lib/components/SkeletonDetail.svelte";
   import SkeletonRow from "$lib/components/SkeletonRow.svelte";
   import { getAnimeJsonLd, truncateDescription } from "$lib/seo";
+  import { Layers3 } from "lucide-svelte";
 
   let { data } = $props();
 
@@ -27,6 +28,8 @@
   let charFilter = $state<"all" | "main" | "supporting">("all");
   let epQuery = $state("");
   let epOrder = $state<"asc" | "desc">("asc");
+  const EPISODE_RANGE_SIZE = 30;
+  let epRangeIndex = $state(0);
   let shareLabel = $state("Share");
 
   // Caching layer for per-id, per-user auth lookups so the same id never
@@ -36,13 +39,18 @@
   const statusKey = () => `${$auth.token ?? ""}|${$auth.currentProfile?.id ?? ""}`;
 
   const id = $derived(Number(data.id));
+  const displayTitle = $derived.by(() => {
+    const raw = anime?.title || anime?.name || anime?.userPreferred || anime?.title_english;
+    if (typeof raw === "string" && raw.trim()) return raw.trim();
+    return raw?.english || raw?.userPreferred || raw?.romaji || raw?.native || "Untitled anime";
+  });
   const pageDescription = $derived(
     anime
       ? truncateDescription(
           anime.synopsis || anime.description,
-          `Watch details, episodes, and recommendations for ${anime.title} on WatchAnimez.`,
+          `Watch details, episodes, and recommendations for ${displayTitle} on WatchAnimeX.`,
         )
-      : "Explore anime details, episodes, characters, and recommendations on WatchAnimez.",
+      : "Explore anime details, episodes, characters, and recommendations on WatchAnimeX.",
   );
   const animeJsonLd = $derived(anime ? getAnimeJsonLd(anime, data.canonicalUrl) : null);
 
@@ -120,9 +128,9 @@
     const q = epQuery.trim().toLowerCase();
     if (q) {
       list = list.filter(
-        (e) =>
-          String(e.number).includes(q) ||
-          String(e.title || "").toLowerCase().includes(q),
+        (episode) =>
+          String(episode.number).includes(q) ||
+          String(episode.title || "").toLowerCase().includes(q),
       );
     }
     list.sort((a, b) =>
@@ -131,10 +139,72 @@
     return list;
   });
 
+  const episodeRanges = $derived.by(() => {
+    const ranges = [];
+    for (let start = 0; start < filteredEpisodes.length; start += EPISODE_RANGE_SIZE) {
+      const chunk = filteredEpisodes.slice(start, start + EPISODE_RANGE_SIZE);
+      const numbers = chunk.map((episode) => Number(episode.number));
+      const resultStart = start + 1;
+      const resultEnd = start + chunk.length;
+      ranges.push({
+        index: ranges.length,
+        label: epQuery.trim()
+          ? `Results ${resultStart}–${resultEnd}`
+          : `EP ${Math.min(...numbers)}–${Math.max(...numbers)}`,
+      });
+    }
+    return ranges;
+  });
+
+  const visibleEpisodes = $derived(
+    filteredEpisodes.slice(
+      epRangeIndex * EPISODE_RANGE_SIZE,
+      (epRangeIndex + 1) * EPISODE_RANGE_SIZE,
+    ),
+  );
+
+  $effect(() => {
+    id;
+    epQuery;
+    epOrder;
+    untrack(() => (epRangeIndex = 0));
+  });
+
+  $effect(() => {
+    const lastRange = Math.max(0, episodeRanges.length - 1);
+    if (epRangeIndex > lastRange) epRangeIndex = lastRange;
+  });
+
   $effect(() => {
     if (!id) return;
     loadAnimeData(id, data.anime);
   });
+
+  function getEpisodeTitle(episode: any, number: number) {
+    const title = [episode?.title, episode?.name, episode?.episodeTitle, episode?.episode_title]
+      .find((value) => typeof value === "string" && value.trim());
+    return title?.trim() || `Episode ${number}`;
+  }
+
+  function mergeEpisodeMetadata(metadata: any[]) {
+    const byNumber = new Map(
+      metadata.map((episode, index) => [Number(episode?.number ?? index + 1), episode]),
+    );
+    const highestNumber = metadata.reduce(
+      (highest, episode, index) => Math.max(highest, Number(episode?.number ?? index + 1)),
+      0,
+    );
+    const count = Math.min(Math.max(episodes.length, metadata.length, highestNumber), 2000);
+    episodes = Array.from({ length: count }, (_, index) => {
+      const number = index + 1;
+      const episode = byNumber.get(number);
+      return {
+        number,
+        title: getEpisodeTitle(episode, number),
+        image: episode?.image || episode?.thumbnail || "",
+      };
+    });
+  }
 
   function pullFromAnime(a: any) {
     untrack(() => {
@@ -142,10 +212,10 @@
       recommendations = a?.recommendations || [];
       relations = a?.relations || [];
       const n = Number(a?.episodes || 0);
-      const count = n > 0 ? Math.min(n, 500) : 12;
+      const count = n > 0 ? Math.min(n, 2000) : 12;
       episodes = Array.from({ length: count }, (_, i) => ({
         number: i + 1,
-        title: `Episode ${i + 1}`,
+        title: "",
         image: "",
       }));
     });
@@ -178,6 +248,15 @@
       untrack(() => {
         anime = fetchedAnime;
         if (currentId === id) pullFromAnime(fetchedAnime);
+      });
+
+      const metadataId = fetchedAnime?.idMal || fetchedAnime?.mal_id || currentId;
+      void api.getEpisodeMetadata(metadataId, 1, 2000).then((metadata) => {
+        if (currentId !== id) return;
+        const list = metadata?.data?.episodes ?? metadata?.episodes ?? [];
+        if (list.length > 0) untrack(() => mergeEpisodeMetadata(list));
+      }).catch((metadataError) => {
+        console.warn("Episode titles could not be loaded:", metadataError);
       });
 
       if ($auth.token) {
@@ -285,7 +364,7 @@
 
   async function shareAnime() {
     const url = typeof window !== "undefined" ? window.location.href : "";
-    const title = `${anime?.title || "Anime"} · WatchAnimez`;
+    const title = `${displayTitle} · WatchAnimeX`;
     try {
       if ((navigator as any).share) {
         await (navigator as any).share({ title, url });
@@ -301,10 +380,10 @@
 </script>
 
 <svelte:head>
-  <title>{anime?.title || "Anime Details"} — WatchAnimez</title>
+  <title>{displayTitle || "Anime Details"} - WatchAnimeX</title>
   {#if anime}
     <meta name="description" content={pageDescription} />
-    <meta property="og:title" content={`${anime.title} — WatchAnimez`} />
+    <meta property="og:title" content={`${displayTitle} - WatchAnimeX`} />
     <meta property="og:description" content={pageDescription} />
     {#if anime.poster || anime.image}
       <meta property="og:image" content={anime.poster || anime.image} />
@@ -319,7 +398,6 @@
 {#if !anime}
   <SkeletonDetail />
 {:else}
-  <!-- Hero banner with overlay content -->
   <section
     class="ad-hero"
     style="--banner: url('{anime.bannerImage || anime.image || anime.poster || ""}')"
@@ -328,103 +406,45 @@
     <div class="ad-hero-shade" aria-hidden="true"></div>
 
     <div class="ad-hero-inner">
-      <div class="ad-poster">
-        <img src={anime.poster || anime.image} alt={anime.title} />
-      </div>
-
       <div class="ad-info">
-        <h1 class="ad-title">{anime.title}</h1>
+        {#if nativeTitle}<p class="ad-native-title">{nativeTitle}</p>{/if}
+        <h1 class="ad-title">{displayTitle}</h1>
 
-        <div class="ad-meta">
-          {#if scoreLabel}
-            <span class="ad-chip">★ {scoreLabel}</span>
-          {/if}
-          {#if formatLabel}
-            <span class="ad-chip muted">{formatLabel}</span>
-          {/if}
-          {#if seasonLabel}
-            <span class="ad-chip muted">{seasonLabel}</span>
-          {/if}
-          {#if yearLabel && !String(seasonLabel).includes(String(yearLabel))}
-            <span class="ad-chip muted">{yearLabel}</span>
-          {/if}
-          {#if anime.episodes}
-            <span class="ad-chip muted">E {anime.episodes}</span>
-          {/if}
-          {#if durationLabel}
-            <span class="ad-chip muted">{durationLabel}</span>
-          {/if}
-          {#if anime.status}
-            <span class="ad-chip muted">{anime.status}</span>
-          {/if}
+        <div class="ad-meta" aria-label="Anime metadata">
+          {#if scoreLabel}<span><b>★ {scoreLabel}</b> score</span>{/if}
+          {#if seasonLabel}<span>{seasonLabel}</span>{/if}
+          {#if anime.episodes}<span>{anime.episodes} episodes</span>{/if}
+          {#if durationLabel}<span>{durationLabel} runtime</span>{/if}
+          {#if anime.status}<span>{String(anime.status).replace(/_/g, " ")}</span>{/if}
         </div>
 
         {#if anime.genres?.length}
-          <div class="ad-genres">
-            {#each anime.genres as g}
-              <span class="ad-genre">{typeof g === "string" ? g : g.name}</span>
-            {/each}
-          </div>
+          <p class="ad-genres">
+            {anime.genres.map((g: any) => typeof g === "string" ? g : g?.name).filter(Boolean).join(" / ")}
+          </p>
         {/if}
 
         <div class="ad-overview">
-          <h2 class="ad-overview-label">Overview</h2>
-          <p class="ad-synopsis">
-            {synopsisOpen ? synopsisFull : synopsisShort}
-          </p>
+          <p class="ad-synopsis">{synopsisOpen ? synopsisFull : synopsisShort}</p>
           {#if synopsisFull.length > 280}
-            <button
-              type="button"
-              class="ad-readmore"
-              onclick={() => (synopsisOpen = !synopsisOpen)}
-            >
-              {synopsisOpen ? "Show Less" : "Read More"}
-              <span aria-hidden="true">{synopsisOpen ? "▴" : "▾"}</span>
+            <button type="button" class="ad-readmore" onclick={() => (synopsisOpen = !synopsisOpen)}>
+              {synopsisOpen ? "Show less" : "Read full synopsis"}
             </button>
           {/if}
         </div>
+      </div>
 
-        <div class="ad-actions">
-          <a
-            href="/watch/{id}/1/"
-            class="ad-btn primary"
-            data-sveltekit-preload-data="hover"
-          >
-            <span aria-hidden="true">▶</span> Watch Now
-          </a>
-          <button
-            type="button"
-            class="ad-btn ghost"
-            class:active={inWatchlist}
-            disabled={processingWatchlist}
-            onclick={toggleWatchlist}
-          >
-            {#if processingWatchlist}
-              <span class="spinner-small"></span>
-            {:else}
-              <span aria-hidden="true">{inWatchlist ? "✓" : "🔖"}</span>
-              {inWatchlist ? "In Watchlist" : "Watchlist"}
-            {/if}
+      <div class="ad-poster-dock">
+        <div class="ad-poster"><img src={anime.poster || anime.image} alt={displayTitle} /></div>
+        <a href="/watch/{id}/1/" class="ad-btn primary" data-sveltekit-preload-data="hover"><span aria-hidden="true">▶</span> Play episode 1</a>
+        <div class="ad-utility-actions">
+          <button type="button" class:active={inWatchlist} disabled={processingWatchlist} onclick={toggleWatchlist}>
+            {processingWatchlist ? "Saving..." : inWatchlist ? "✓ In watchlist" : "+ Watchlist"}
           </button>
-          <button
-            type="button"
-            class="ad-btn ghost"
-            class:active={isFavorite}
-            disabled={processingFavorite}
-            onclick={toggleFavorite}
-            title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-          >
-            {#if processingFavorite}
-              <span class="spinner-small"></span>
-            {:else}
-              <span aria-hidden="true">{isFavorite ? "♥" : "♡"}</span>
-              Favorite
-            {/if}
+          <button type="button" class:active={isFavorite} disabled={processingFavorite} onclick={toggleFavorite}>
+            {processingFavorite ? "Saving..." : isFavorite ? "♥ Favorited" : "♡ Favorite"}
           </button>
-          <button type="button" class="ad-btn ghost" onclick={shareAnime}>
-            <span aria-hidden="true">↗</span>
-            {shareLabel}
-          </button>
+          <button type="button" onclick={shareAnime}>↗ {shareLabel}</button>
         </div>
       </div>
     </div>
@@ -537,14 +557,27 @@
               onclick={() => (epOrder = "asc")}
             >Oldest</button>
           </div>
-          <label class="ad-ep-search">
-            <span class="sr-only">Search episodes</span>
-            <input
-              type="search"
-              placeholder="Search by number…"
-              bind:value={epQuery}
-            />
-          </label>
+          <div class="ad-ep-tools">
+            {#if episodeRanges.length > 1}
+              <label class="ad-ep-range">
+                <Layers3 size={15} aria-hidden="true" />
+                <span class="sr-only">Episode range</span>
+                <select bind:value={epRangeIndex} aria-label="Episode range">
+                  {#each episodeRanges as range (range.index)}
+                    <option value={range.index}>{range.label}</option>
+                  {/each}
+                </select>
+              </label>
+            {/if}
+            <label class="ad-ep-search">
+              <span class="sr-only">Search episodes</span>
+              <input
+                type="search"
+                placeholder="Search number or title…"
+                bind:value={epQuery}
+              />
+            </label>
+          </div>
         </div>
 
         {#if detailsLoading && episodes.length === 0}
@@ -558,7 +591,7 @@
           </div>
         {:else if filteredEpisodes.length}
           <div class="ad-ep-grid">
-            {#each filteredEpisodes.slice(0, 48) as ep (ep.number)}
+            {#each visibleEpisodes as ep (ep.number)}
               <a class="ad-ep-card" href="/watch/{id}/{ep.number}/">
                 <div class="ad-ep-thumb">
                   {#if ep.image}
@@ -661,24 +694,26 @@
         </p>
         <a class="ad-btn primary" href="/watch/{id}/1/">Go to Episode 1</a>
       {/if}
-
-      {#if detailsLoading}
-        <div class="ad-rows">
-          <SkeletonRow count={8} />
-        </div>
-      {:else}
-        {#if relations.length > 0}
-          <div class="ad-rows">
-            <Row title="Related Seasons & Prequels" items={relations} />
-          </div>
-        {/if}
-        {#if recommendations.length > 0}
-          <div class="ad-rows">
-            <Row title="You Might Also Like" items={recommendations} />
-          </div>
-        {/if}
-      {/if}
     </div>
+  </div>
+
+  <div class="ad-related">
+    {#if detailsLoading}
+      <div class="ad-rows">
+        <SkeletonRow count={8} />
+      </div>
+    {:else}
+      {#if relations.length > 0}
+        <div class="ad-rows">
+          <Row title="Related chronology" items={relations} />
+        </div>
+      {/if}
+      {#if recommendations.length > 0}
+        <div class="ad-rows">
+          <Row title="More from this shelf" items={recommendations} />
+        </div>
+      {/if}
+    {/if}
   </div>
 {/if}
 
@@ -722,12 +757,20 @@
     z-index: 2;
     max-width: var(--page-max, 1600px);
     margin: 0 auto;
-    padding: 5.5rem var(--page-gutter, 2.5rem) 1.75rem;
+    padding: 5.5rem var(--page-gutter, 2.5rem) 2.25rem;
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
-    gap: 1.75rem;
+    grid-template-areas: "poster info";
+    gap: 0 1.75rem;
     align-items: end;
     box-sizing: border-box;
+  }
+  .ad-info { grid-area: info; }
+  .ad-poster-dock {
+    grid-area: poster;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
   }
   .ad-poster {
     width: 100%;
@@ -747,6 +790,12 @@
     min-width: 0;
     padding-bottom: 0.25rem;
   }
+  .ad-native-title {
+    margin: 0 0 0.35rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
   .ad-title {
     margin: 0 0 0.75rem;
     font-size: clamp(1.75rem, 3.6vw, 2.75rem);
@@ -759,52 +808,25 @@
   .ad-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-bottom: 0.7rem;
+    gap: 0.35rem 0.9rem;
+    margin-bottom: 0.6rem;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.82rem;
+    font-weight: 600;
   }
-  .ad-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    min-height: 26px;
-    padding: 0.2rem 0.55rem;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    font-weight: 700;
+  .ad-meta b {
     color: #fbbf24;
-    background: rgba(251, 191, 36, 0.12);
-    border: 1px solid rgba(251, 191, 36, 0.22);
-  }
-  .ad-chip.muted {
-    color: rgba(255, 255, 255, 0.82);
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.1);
+    font-weight: 800;
   }
   .ad-genres {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-bottom: 0.9rem;
-  }
-  .ad-genre {
-    font-size: 0.8rem;
+    margin: 0 0 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.82rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.72);
   }
-  .ad-genre:not(:last-child)::after {
-    content: "·";
-    margin-left: 0.4rem;
-    opacity: 0.45;
-  }
-  .ad-overview-label {
-    margin: 0 0 0.4rem;
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: #fff;
-  }
+  .ad-overview { max-width: 62ch; }
   .ad-synopsis {
     margin: 0;
-    max-width: 62ch;
     font-size: 0.92rem;
     line-height: 1.55;
     color: rgba(255, 255, 255, 0.72);
@@ -820,11 +842,36 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .ad-actions {
+  .ad-utility-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.65rem;
-    margin-top: 1.15rem;
+    gap: 0.5rem;
+  }
+  .ad-utility-actions button {
+    flex: 1 1 auto;
+    min-height: 40px;
+    padding: 0.5rem 0.75rem;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(20, 20, 20, 0.6);
+    color: rgba(255, 255, 255, 0.85);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .ad-utility-actions button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+  .ad-utility-actions button.active {
+    border-color: rgba(255, 138, 61, 0.45);
+    color: var(--net-red, #ff8a3d);
+  }
+  .ad-utility-actions button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
   .ad-btn {
     display: inline-flex;
@@ -853,20 +900,6 @@
   .ad-btn.primary:hover {
     transform: translateY(-1px);
     filter: brightness(1.06);
-  }
-  .ad-btn.ghost {
-    background: rgba(20, 20, 20, 0.72);
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(10px);
-  }
-  .ad-btn.ghost:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.28);
-  }
-  .ad-btn.ghost.active {
-    border-color: rgba(255, 138, 61, 0.45);
-    color: var(--net-red, #ff8a3d);
   }
   .ad-btn:disabled {
     opacity: 0.55;
@@ -968,11 +1001,40 @@
     justify-content: space-between;
     margin-bottom: 1rem;
   }
-  .ad-ep-order {
+  .ad-ep-order,
+  .ad-ep-tools {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.45rem;
+  }
+  .ad-ep-tools { margin-left: auto; }
+  .ad-ep-range {
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding-left: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #EC5800;
+  }
+  .ad-ep-range select {
+    height: 100%;
+    min-width: 130px;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    background: #11110f;
+    color: #fff;
+    padding: 0 0.75rem;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 750;
+    cursor: pointer;
+  }
+  .ad-ep-range:focus-within {
+    border-color: rgba(236, 88, 0, 0.65);
   }
   .ad-ep-label {
     font-size: 0.8rem;
@@ -1159,43 +1221,6 @@
   .char-rich.sk .char-rich-art { background: rgba(255,255,255,0.06); }
   .char-va-sk { width: 70%; height: 28px; border-radius: 8px; margin-top: 0.5rem; }
   .char-line-sk { width: 70%; height: 0.7rem; border-radius: 4px; margin: 0.25rem 0; }
-
-  .chars-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 1rem;
-  }
-  .char-card {
-    text-align: center;
-  }
-  .char-card img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: var(--net-card-bg);
-  }
-  .char-name {
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-top: 0.4rem;
-  }
-  .char-role {
-    font-size: 0.7rem;
-    color: var(--net-text-muted);
-  }
-  .char-img-sk {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin: 0 auto;
-  }
-  .char-line-sk {
-    width: 70%;
-    height: 0.7rem;
-    border-radius: 4px;
-    margin: 0.4rem auto 0;
-  }
   .shimmer {
     background: linear-gradient(
       100deg,
@@ -1237,6 +1262,25 @@
   .ad-rows {
     margin-top: 1.75rem;
   }
+  .ad-related {
+    max-width: var(--page-max, 1500px);
+    margin: 0 auto;
+    padding: 0 var(--page-gutter, 2.5rem) 2.5rem;
+    box-sizing: border-box;
+  }
+  .ad-related .ad-rows:first-child {
+    margin-top: 0;
+  }
+  @media (max-width: 860px) {
+    .ad-related {
+      padding: 0 var(--page-gutter-md, 1.25rem) 2rem;
+    }
+  }
+  @media (max-width: 560px) {
+    .ad-related {
+      padding: 0 var(--page-gutter-sm, 0.85rem) 1.75rem;
+    }
+  }
 
   .spinner-small {
     width: 16px;
@@ -1259,7 +1303,7 @@
   @media (max-width: 1100px) {
     .ad-hero-inner {
       grid-template-columns: 180px 1fr;
-      gap: 1.25rem;
+      gap: 0 1.25rem;
       padding-top: 5rem;
     }
     .ad-body {
@@ -1273,7 +1317,7 @@
     }
     .ad-hero-inner {
       grid-template-columns: 140px 1fr;
-      padding: 4.5rem var(--page-gutter-md, 1.25rem) 1.25rem;
+      padding: 4.5rem var(--page-gutter-md, 1.25rem) 1.5rem;
     }
     .ad-body {
       grid-template-columns: 1fr;
@@ -1287,11 +1331,11 @@
       position: static;
       order: 1;
     }
-    .ad-main.hidden-mobile {
-      display: none;
-    }
     .ad-main {
       order: 1;
+    }
+    .ad-main.hidden-mobile > :not(.ad-tabs) {
+      display: none;
     }
   }
 
@@ -1301,8 +1345,14 @@
     }
     .ad-hero-inner {
       grid-template-columns: 1fr;
+      grid-template-areas:
+        "poster"
+        "info";
       justify-items: start;
-      padding: 4.25rem var(--page-gutter-sm, 0.75rem) 1rem;
+      padding: 4.25rem var(--page-gutter-sm, 0.75rem) 1.5rem;
+    }
+    .ad-poster-dock {
+      width: 100%;
     }
     .ad-poster {
       max-width: 150px;
@@ -1310,17 +1360,24 @@
     .ad-title {
       font-size: 1.45rem;
     }
-    .ad-actions {
-      width: 100%;
-    }
-    .ad-btn {
-      flex: 1 1 auto;
-    }
     .ad-btn.primary {
-      flex: 1 1 100%;
+      width: 100%;
     }
     .ad-body {
       padding: 0.85rem var(--page-gutter-sm, 0.75rem) 1.75rem;
+    }
+    .ad-ep-tools {
+      width: 100%;
+      margin-left: 0;
+    }
+    .ad-ep-range,
+    .ad-ep-search {
+      flex: 1 1 100%;
+    }
+    .ad-ep-range select,
+    .ad-ep-search input {
+      width: 100%;
+      min-width: 0;
     }
     .ad-ep-grid {
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -1331,8 +1388,27 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .shimmer {
-      animation: none;
-    }
+    .shimmer { animation: none; }
   }
+
+  /* Editorial detail desk */
+  .ad-hero { background:#070706; }
+  .ad-hero-bg { filter:saturate(.78) contrast(1.03); }
+  .ad-hero-shade { background:linear-gradient(90deg,#070706 0%,rgba(7,7,6,.88) 38%,rgba(7,7,6,.35) 72%),linear-gradient(180deg,rgba(7,7,6,.12),#070706 100%); }
+  .ad-hero-inner,.ad-body { max-width:var(--page-max,1500px); }
+  .ad-poster img { border-radius:4px;box-shadow:none;border:1px solid #302923; }
+  .ad-title { color:var(--editorial-text,#f1ece4);font-size:clamp(2rem,4vw,3.7rem);line-height:.98;letter-spacing:-.055em;text-shadow:none; }
+  .ad-genres,.ad-meta { border-color:var(--editorial-line,#28231f); }
+  .ad-btn { border-radius:3px;transition:background .15s,border-color .15s,color .15s; }
+  .ad-btn.primary { background:var(--editorial-accent,#df886b);color:#170c09;box-shadow:none; }
+  .ad-btn.primary:hover { transform:none;filter:none;background:var(--editorial-accent-hover,#f1a287); }
+  .ad-utility-actions button { border-radius:3px;background:#0d0c0b;border-color:#332c27; }
+  .ad-utility-actions button:hover:not(:disabled) { background:#171310;border-color:#4b3d35; }
+  .ad-side { border-radius:4px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f); }
+  .ad-tabs { border-color:var(--editorial-line,#28231f); }.ad-tab.active{color:var(--editorial-accent-hover,#f1a287)}.ad-tab.active::after{height:1px;background:var(--editorial-accent,#df886b)}
+  .ad-mini,.ad-ep-search input { border-radius:3px;background:#0d0c0b;border-color:#332c27; }.ad-mini.active{background:#df886b;color:#170c09;border-color:#df886b}
+  .ad-ep-grid { gap:1.4rem .8rem; }.ad-ep-thumb { border-radius:3px;border-color:#302923; }.ad-ep-badge{border-radius:2px}.ad-ep-play{background:rgba(7,7,6,.55)}
+  .char-rich { border-radius:4px;background:#0d0c0b;border-color:#28231f; }.char-rich:hover{background:#151210;border-color:#4a3c35}.char-rich-art,.ad-trailer{border-radius:3px}.char-role-badge.main{background:#df886b;color:#170c09;border-color:#df886b}
+  @media(max-width:860px){.ad-hero-inner{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}.ad-body{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}}
+  @media(max-width:560px){.ad-hero-inner,.ad-body{padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right))}}
 </style>

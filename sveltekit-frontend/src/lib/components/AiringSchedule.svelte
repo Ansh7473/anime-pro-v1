@@ -1,133 +1,97 @@
 <script lang="ts">
   import { api, getProxiedImage } from "$lib/api";
-  import { Clock } from "lucide-svelte";
 
-  const toDateStr = (d: Date) => d.toISOString().split("T")[0];
-  const buildDateOptions = () => {
-    const opts: { date: string; label: string; sub: string }[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      opts.push({
-        date: toDateStr(d),
-        label:
-          i === 0
-            ? "Today"
-            : i === 1
-              ? "Tomorrow"
-              : d.toLocaleDateString("en-US", { weekday: "short" }),
-        sub: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      });
-    }
-    return opts;
-  };
+  const toDateStr = (date: Date) => date.toISOString().split("T")[0];
+  const dateOptions = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index);
+    return {
+      date: toDateStr(date),
+      label: index === 0 ? "Today" : index === 1 ? "Tomorrow" : date.toLocaleDateString("en-US", { weekday: "short" }),
+      sub: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    };
+  });
 
-  const dateOptions = buildDateOptions();
   let selectedIndex = $state(0);
   let items = $state<any[]>([]);
   let loading = $state(true);
+  let requestId = 0;
+  let visibleItems = $derived(items.slice(0, 12));
 
   function titleOf(item: any): string {
-    const t = item?.title || item?.name || item?.userPreferred;
-    if (typeof t === "string" && t) return t;
-    if (t && typeof t === "object")
-      return t.english || t.userPreferred || t.romaji || t.native || "Unknown";
-    return "Unknown";
+    const title = item?.title || item?.name || item?.userPreferred;
+    if (typeof title === "string" && title) return title;
+    return title?.english || title?.userPreferred || title?.romaji || title?.native || "Unknown anime";
+  }
+
+  function clockLabel(airingAt: number): string {
+    if (!airingAt) return "TBA";
+    return new Date(airingAt * 1000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   }
 
   function untilLabel(airingAt: number): string {
-    if (!airingAt) return "";
-    const diff = airingAt * 1000 - Date.now();
-    if (diff <= 0) return "Aired";
-    const mins = Math.floor(diff / 60000);
-    const d = Math.floor(mins / 1440);
-    const h = Math.floor((mins % 1440) / 60);
-    const m = mins % 60;
-    if (d > 0) return `in ${d}d ${h}h`;
-    if (h > 0) return `in ${h}h ${m}m`;
-    return `in ${m}m`;
+    const minutes = Math.floor((airingAt * 1000 - Date.now()) / 60000);
+    if (minutes <= 0) return "Aired";
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hr ${minutes % 60} min`;
+    return `${Math.floor(hours / 24)} days`;
   }
 
-  async function load() {
+  async function load(index: number) {
+    const activeRequest = ++requestId;
     loading = true;
     try {
-      const d = new Date(dateOptions[selectedIndex].date + "T00:00:00");
-      const start = Math.floor(d.getTime() / 1000);
-      const end = start + 86399;
-      const res = await api.getAnilistSchedule(start, end);
-      items = (res || []).filter((a: any) => a?.airingAt);
+      const date = new Date(dateOptions[index].date + "T00:00:00");
+      const start = Math.floor(date.getTime() / 1000);
+      const result = await api.getAnilistSchedule(start, start + 86399);
+      if (activeRequest === requestId) items = (Array.isArray(result) ? result : []).filter((item: any) => item?.airingAt);
     } catch {
-      items = [];
+      if (activeRequest === requestId) items = [];
     } finally {
-      loading = false;
+      if (activeRequest === requestId) loading = false;
     }
   }
 
   $effect(() => {
-    selectedIndex;
-    load();
+    void load(selectedIndex);
   });
 </script>
 
-<section class="airing-section">
-  <div class="airing-head">
-    <div class="airing-titles">
-      <div class="title-row">
-        <span class="live-dot" aria-hidden="true"></span>
-        <span class="airing-sub">This week</span>
-      </div>
-      <div class="title-main">
-        <h2 class="airing-heading">Airing Schedule</h2>
-        <a href="/schedule" class="airing-link">Full calendar →</a>
-      </div>
+<section class="lineup">
+  <header class="lineup-head">
+    <div>
+      <h2>Tonight's lineup</h2>
+      <p>Broadcast estimates from the weekly anime calendar.</p>
     </div>
-  </div>
+    <a href="/schedule">Open full calendar <span aria-hidden="true">↗</span></a>
+  </header>
 
-  <div class="airing-days" role="tablist" aria-label="Pick a day">
-    {#each dateOptions as opt, i}
-      <button
-        class="airing-day"
-        class:active={selectedIndex === i}
-        role="tab"
-        aria-selected={selectedIndex === i}
-        onclick={() => (selectedIndex = i)}
-      >
-        <span class="ad-label">{opt.label}</span>
-        <span class="ad-sub">{opt.sub}</span>
+  <div class="day-tabs" role="tablist" aria-label="Choose schedule date">
+    {#each dateOptions as option, index}
+      <button type="button" role="tab" class:active={selectedIndex === index} aria-selected={selectedIndex === index} onclick={() => (selectedIndex = index)}>
+        <span>{option.label}</span><small>{option.sub}</small>
       </button>
     {/each}
   </div>
 
   {#if loading}
-    <div class="airing-scroll">
-      {#each Array(8) as _, i (i)}
-        <div class="airing-skel"></div>
-      {/each}
+    <div class="lineup-grid" aria-label="Loading schedule">
+      {#each Array(8) as _, index (index)}<div class="schedule-skeleton"></div>{/each}
     </div>
-  {:else if items.length === 0}
-    <div class="airing-empty">
-      <p>No episodes estimated for this day.</p>
-      <a href="/schedule">Browse full schedule</a>
-    </div>
+  {:else if !visibleItems.length}
+    <div class="empty"><p>No episode times are listed for this date.</p><a href="/schedule">Check the full schedule</a></div>
   {:else}
-    <div class="airing-scroll">
-      {#each items as a (a.id || a.mal_id)}
-        <a class="airing-card" href={`/anime/${a.id || a.mal_id}`}>
-          <div class="ac-thumb">
-            <img
-              src={getProxiedImage(a.poster || a.image)}
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
-            <div class="ac-shade" aria-hidden="true"></div>
-            <span class="ac-ep">EP {a.episode}</span>
-            <span class="ac-time">
-              <Clock size={10} />
-              {untilLabel(a.airingAt)}
-            </span>
-          </div>
-          <span class="ac-title">{titleOf(a)}</span>
+    <div class="lineup-grid">
+      {#each visibleItems as anime (anime.airingScheduleId ?? `${anime.id ?? anime.mal_id}:${anime.airingAt}:${anime.episode}`)}
+        <a class="lineup-item" href={`/anime/${anime.id || anime.mal_id}`}>
+          <time datetime={new Date(anime.airingAt * 1000).toISOString()}>{clockLabel(anime.airingAt)}</time>
+          <img src={getProxiedImage(anime.poster || anime.image)} alt="" loading="lazy" decoding="async" />
+          <span class="item-copy">
+            <strong>{titleOf(anime)}</strong>
+            <small>Episode {anime.episode || "TBA"} · {untilLabel(anime.airingAt)}</small>
+          </span>
+          <span class="open-mark" aria-hidden="true">↗</span>
         </a>
       {/each}
     </div>
@@ -135,429 +99,45 @@
 </section>
 
 <style>
-  .airing-section {
-    margin-top: 0.5rem;
-    padding: 1.15rem 0 0.35rem;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(255, 255, 255, 0.01) 55%,
-      transparent 100%
-    );
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-  }
-  .airing-head {
-    padding: 0 1rem;
-    margin-bottom: 0.85rem;
-  }
-  .airing-titles {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  .title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .live-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
-    animation: pulse-live 1.8s ease-out infinite;
-  }
-  @keyframes pulse-live {
-    0% {
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
-    }
-    70% {
-      box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-    }
-  }
-  .airing-sub {
-    font-size: 0.66rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(34, 197, 94, 0.95);
-  }
-  .title-main {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-  }
-  .airing-heading {
-    margin: 0;
-    font-size: 1.18rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: #fff;
-    line-height: 1.15;
-  }
-  .airing-link {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.65);
-    text-decoration: none;
-    white-space: nowrap;
-    padding: 0.35rem 0.65rem;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    transition:
-      color 0.2s,
-      border-color 0.2s,
-      background 0.2s;
-  }
-  .airing-link:hover {
-    color: #fff;
-    border-color: rgba(229, 9, 20, 0.4);
-    background: rgba(229, 9, 20, 0.12);
-  }
+  .lineup { color: #eee8df; }
+  .lineup-head { display: flex; align-items: end; justify-content: space-between; gap: 2rem; margin-bottom: 1.25rem; }
+  .lineup-head h2 { margin: 0; font: 800 clamp(1.6rem, 2.4vw, 2.4rem)/1 var(--net-display-font, system-ui); letter-spacing: -0.04em; }
+  .lineup-head p { margin: 0.45rem 0 0; color: #8e8880; font-size: 0.88rem; }
+  .lineup-head a { color: #d5cec4; font-size: 0.8rem; font-weight: 750; text-decoration: none; }
+  .lineup-head a:hover { color: #f1a287; }
 
-  .airing-days {
-    display: flex;
-    gap: 0.4rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding: 0 1rem 0.9rem;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
-  }
-  .airing-days::-webkit-scrollbar {
-    display: none;
-  }
-  .airing-day {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    min-width: 4.1rem;
-    min-height: 48px;
-    padding: 0.45rem 0.7rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.55);
-    cursor: pointer;
-    transition:
-      background 0.18s ease,
-      border-color 0.18s ease,
-      color 0.18s ease,
-      transform 0.15s ease,
-      box-shadow 0.18s ease;
-    font-family: inherit;
-    scroll-snap-align: start;
-  }
-  .airing-day:hover {
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.07);
-  }
-  .airing-day.active {
-    background: linear-gradient(145deg, #FF8A3D 0%, #b20710 100%);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    box-shadow:
-      0 8px 20px rgba(229, 9, 20, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  }
-  .airing-day:active {
-    transform: scale(0.96);
-  }
-  .ad-label {
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-  .ad-sub {
-    font-size: 0.6rem;
-    font-weight: 600;
-    opacity: 0.78;
-  }
+  .day-tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; margin-bottom: 1.1rem; }
+  .day-tabs button { min-height: 52px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.18rem; border: 0; border-radius: 3px; background: #11100e; color: #817b74; cursor: pointer; font-family: inherit; }
+  .day-tabs button:hover { color: #ded6cc; background: #181512; }
+  .day-tabs button.active { color: #1c0e09; background: #df886b; }
+  .day-tabs button:focus-visible, .lineup-head a:focus-visible, .lineup-item:focus-visible { outline: 2px solid #f2b19a; outline-offset: 2px; }
+  .day-tabs span { font-size: 0.76rem; font-weight: 800; }
+  .day-tabs small { font-size: 0.62rem; opacity: 0.74; }
 
-  .airing-scroll {
-    display: flex;
-    gap: 0.85rem;
-    overflow-x: auto;
-    padding: 0.15rem 1rem 1rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-  }
-  .airing-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  .airing-card {
-    flex-shrink: 0;
-    width: 148px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    text-decoration: none;
-    scroll-snap-align: start;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .ac-thumb {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    border-radius: 13px;
-    overflow: hidden;
-    background: #141416;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow:
-      0 10px 24px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition:
-      transform 0.18s ease,
-      border-color 0.2s ease,
-      box-shadow 0.2s ease;
-  }
-  .ac-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.35s ease;
-  }
-  .ac-shade {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.78) 0%,
-      rgba(0, 0, 0, 0.15) 42%,
-      transparent 60%
-    );
-  }
-  @media (hover: hover) and (pointer: fine) {
-    .airing-card:hover .ac-thumb {
-      border-color: rgba(255, 255, 255, 0.55);
-      box-shadow:
-        0 14px 28px rgba(0, 0, 0, 0.5),
-        0 0 18px rgba(229, 9, 20, 0.12);
-    }
-    .airing-card:hover .ac-thumb img {
-      transform: scale(1.06);
-    }
-    .airing-card:hover .ac-title {
-      color: #fff;
-    }
-  }
-  .airing-card:active .ac-thumb {
-    transform: scale(0.97);
-    border-color: rgba(255, 138, 61, 0.55);
-  }
-  .ac-ep {
-    position: absolute;
-    bottom: 8px;
-    left: 7px;
-    z-index: 2;
-    background: rgba(8, 8, 10, 0.8);
-    color: #fff;
-    font-size: 0.62rem;
-    font-weight: 800;
-    padding: 0.18rem 0.45rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  .ac-time {
-    position: absolute;
-    top: 7px;
-    right: 7px;
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    font-size: 0.58rem;
-    font-weight: 800;
-    color: #fff;
-    background: rgba(229, 9, 20, 0.9);
-    padding: 0.2rem 0.4rem;
-    border-radius: 999px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-    letter-spacing: 0.01em;
-  }
-  .ac-title {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #ececf0;
-    line-height: 1.28;
-    min-height: 2.05em;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    letter-spacing: -0.01em;
-    transition: color 0.2s;
-  }
-  .airing-empty {
-    color: var(--net-text-muted, #888);
-    font-size: 0.88rem;
-    padding: 0.75rem 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-  .airing-empty a {
-    color: #fff;
-    font-weight: 700;
-    font-size: 0.82rem;
-    text-decoration: none;
-  }
-  .airing-empty a:hover {
-    color: var(--net-red, #FF8A3D);
-  }
-  .airing-skel {
-    flex-shrink: 0;
-    width: 148px;
-    aspect-ratio: 2 / 3;
-    border-radius: 13px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.04),
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.04)
-    );
-    background-size: 200% 100%;
-    animation: ascr 1.4s infinite;
-  }
-  @keyframes ascr {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .airing-skel,
-    .live-dot {
-      animation: none;
-    }
-    .ac-thumb,
-    .ac-thumb img,
-    .airing-day {
-      transition: none;
-    }
-  }
+  .lineup-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 1.5rem; }
+  .lineup-item { min-height: 92px; display: grid; grid-template-columns: 4.4rem 50px minmax(0, 1fr) auto; gap: 0.75rem; align-items: center; padding: 0.7rem 0; color: inherit; text-decoration: none; box-shadow: inset 0 -1px #24201d; }
+  .lineup-item time { color: #e59a80; font-size: 0.76rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+  .lineup-item img { width: 50px; height: 68px; object-fit: cover; border-radius: 3px; background: #181513; }
+  .item-copy { min-width: 0; }
+  .item-copy strong { display: block; overflow: hidden; color: #e9e3da; font-size: 0.84rem; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+  .item-copy small { display: block; margin-top: 0.35rem; color: #827c75; font-size: 0.68rem; }
+  .open-mark { color: #57524d; font-size: 0.78rem; }
+  .lineup-item:hover strong, .lineup-item:hover .open-mark { color: #f1a287; }
+  .schedule-skeleton { min-height: 92px; box-shadow: inset 0 -1px #24201d; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.025), transparent); background-size: 200% 100%; animation: loading 1.4s linear infinite; }
+  @keyframes loading { to { background-position: -200% 0; } }
+  .empty { min-height: 10rem; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #8d8780; }
+  .empty p { margin: 0 0 0.5rem; }
+  .empty a { color: #d98a70; text-decoration: none; }
 
-  @media (max-width: 768px) {
-    .airing-section {
-      margin-top: 0.25rem;
-      padding-top: 1rem;
-    }
-    .airing-head {
-      padding: 0 0.9rem;
-      margin-bottom: 0.7rem;
-    }
-    .airing-heading {
-      font-size: 1.08rem;
-    }
-    .airing-link {
-      font-size: 0.72rem;
-      padding: 0.3rem 0.55rem;
-    }
-    .airing-days {
-      padding: 0 0.9rem 0.8rem;
-      gap: 0.35rem;
-    }
-    .airing-day {
-      min-width: 3.7rem;
-      min-height: 46px;
-      border-radius: 11px;
-      padding: 0.4rem 0.55rem;
-    }
-    .airing-scroll {
-      gap: 0.7rem;
-      padding: 0.1rem 0.9rem 0.95rem;
-    }
-    .airing-card,
-    .airing-skel {
-      width: clamp(132px, 38vw, 160px);
-    }
-    .ac-thumb,
-    .airing-skel {
-      border-radius: 12px;
-    }
+  @media (max-width: 1180px) { .lineup-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 720px) {
+    .lineup-head { align-items: start; flex-direction: column; gap: 0.75rem; }
+    .day-tabs { display: flex; overflow-x: auto; padding-bottom: 0.3rem; scrollbar-width: none; }
+    .day-tabs::-webkit-scrollbar { display: none; }
+    .day-tabs button { flex: 0 0 5rem; }
+    .lineup-grid { grid-template-columns: 1fr; }
+    .lineup-item { grid-template-columns: 4rem 46px minmax(0, 1fr) auto; }
+    .lineup-item img { width: 46px; height: 62px; }
   }
-  @media (max-width: 480px) {
-    .airing-section {
-      padding-top: 0.9rem;
-    }
-    .airing-head {
-      padding: 0 0.75rem;
-    }
-    .airing-heading {
-      font-size: 1.02rem;
-    }
-    .airing-days {
-      padding: 0 0.75rem 0.75rem;
-      gap: 0.3rem;
-    }
-    .airing-day {
-      min-width: 3.35rem;
-      min-height: 44px;
-      padding: 0.35rem 0.45rem;
-      border-radius: 10px;
-    }
-    .ad-label {
-      font-size: 0.72rem;
-    }
-    .ad-sub {
-      font-size: 0.56rem;
-    }
-    .airing-scroll {
-      gap: 0.65rem;
-      padding: 0.05rem 0.75rem 0.85rem;
-    }
-    .airing-card,
-    .airing-skel {
-      width: clamp(124px, 40vw, 152px);
-    }
-    .ac-thumb,
-    .airing-skel {
-      border-radius: 11px;
-    }
-    .ac-title {
-      font-size: 0.74rem;
-    }
-    .ac-time {
-      font-size: 0.54rem;
-      top: 6px;
-      right: 6px;
-    }
-    .ac-ep {
-      bottom: 7px;
-      left: 6px;
-      font-size: 0.58rem;
-    }
-  }
-  @media (max-width: 360px) {
-    .airing-card,
-    .airing-skel {
-      width: 40vw;
-    }
-    .airing-days,
-    .airing-scroll,
-    .airing-head {
-      padding-inline: 0.65rem;
-    }
-  }
+  @media (prefers-reduced-motion: reduce) { .schedule-skeleton { animation: none; } }
 </style>

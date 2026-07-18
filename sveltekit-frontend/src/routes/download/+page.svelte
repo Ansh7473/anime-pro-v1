@@ -26,51 +26,36 @@
 
   const PLATFORMS: Platform[] = [
     {
-      key: "windows",
-      name: "Windows",
-      icon: Monitor,
-      badge: "Beta",
-      blurb: "Full desktop app with hardware acceleration and Picture-in-Picture.",
-      specs: ["x86_64", "Windows 10+"],
+      key: "windows", name: "Windows", icon: Monitor, badge: "Beta",
+      blurb: "Windows installer published with the current desktop release.",
+      specs: ["Installer", "Desktop"],
     },
     {
-      key: "mac",
-      name: "macOS",
-      icon: Cpu,
-      badge: "Beta",
-      blurb: "Universal build for Apple Silicon and Intel with native Metal rendering.",
-      specs: ["Universal", "macOS 11+"],
+      key: "mac", name: "macOS", icon: Cpu, badge: "Beta",
+      blurb: "macOS package published with the current desktop release.",
+      specs: ["DMG", "Desktop"],
     },
     {
-      key: "linux",
-      name: "Linux",
-      icon: HardDrive,
-      badge: "Beta",
-      blurb: "AppImage and .deb packages for broad desktop compatibility.",
-      specs: ["x86_64", "AppImage / .deb"],
+      key: "linux", name: "Linux", icon: HardDrive, badge: "Beta",
+      blurb: "Linux package published with the current desktop release.",
+      specs: ["AppImage", "Desktop"],
     },
     {
-      key: "android",
-      name: "Android",
-      icon: Smartphone,
-      badge: "Beta",
-      blurb: "Native mobile app tuned for smooth streaming and offline viewing.",
-      specs: ["ARM64", "Android 11+"],
+      key: "android", name: "Android", icon: Smartphone, badge: "Beta",
+      blurb: "Android package published with the current mobile release.",
+      specs: ["APK", "Mobile"],
     },
     {
-      key: "tv",
-      name: "Android TV",
-      icon: Tv,
-      badge: "Beta",
-      blurb: "Leanback UI built for the big screen and remote navigation.",
-      specs: ["ARM64", "Android TV 11+"],
+      key: "tv", name: "Android TV", icon: Tv, badge: "Beta",
+      blurb: "Android TV package for remote-based viewing.",
+      specs: ["APK", "TV"],
     },
   ];
 
   const FEATURES = [
-    { icon: Zap, label: "Buttery-smooth playback" },
-    { icon: RefreshCw, label: "Synced across devices" },
-    { icon: ShieldCheck, label: "Ad-free & private" },
+    { icon: Zap, label: "Direct release links" },
+    { icon: RefreshCw, label: "Published version and size" },
+    { icon: ShieldCheck, label: "Platform-specific packages" },
   ];
 
   let releases = $state<any[]>([]);
@@ -78,22 +63,14 @@
   let downloading = $state<string | null>(null);
   let primaryKey = $state("windows");
 
-  const fallbacks: Record<string, string> = {
-    windows: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-    mac: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-    linux: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-    android: "https://github.com/Ansh7473/anime-pro-v1/releases/latest",
-    tv: "https://drive.google.com/uc?export=download&id=1cAOt75WCIvy7WTwW7sSFgZKgRxMMGrUa",
-  };
+  const releasesPage = "https://github.com/Ansh7473/anime-pro-v1/releases";
 
   function getLatest(platform: string) {
-    return (
-      releases.find((r) => r.platform === platform) || {
-        version: "0.0.1",
-        size: "",
-        download_url: fallbacks[platform] || fallbacks.windows,
-      }
-    );
+    return releases.find((r) => r.platform === platform) || {
+      version: "",
+      size: "",
+      download_url: releasesPage,
+    };
   }
 
   function hasRelease(platform: string) {
@@ -141,13 +118,13 @@
 </script>
 
 <svelte:head>
-  <title>Download Apps — WatchAnimez</title>
+  <title>Download Apps — WatchAnimeX</title>
   <meta
     name="description"
-    content="Download WatchAnimez apps for Android, Windows, macOS, Linux, and Android TV. Fast, ad-free anime streaming with offline support and cross-device sync."
+    content="Download published WatchAnimeX releases for supported desktop, Android, and Android TV platforms."
   />
-  <meta property="og:title" content="Download Apps — WatchAnimez" />
-  <meta property="og:description" content="Download WatchAnimez apps for Android, Windows, macOS, Linux, and Android TV. Fast, ad-free anime streaming with offline support and cross-device sync." />
+  <meta property="og:title" content="Download Apps — WatchAnimeX" />
+  <meta property="og:description" content="Download published WatchAnimeX releases for supported desktop, Android, and Android TV platforms." />
 </svelte:head>
 
 <div class="dl container">
@@ -156,8 +133,7 @@
     <span class="dl-kicker"><Download size={13} /> Native apps</span>
     <h1 class="dl-title">Watch anime, <span class="accent">your way</span>.</h1>
     <p class="dl-sub">
-      Get the WatchAnimez app for your device — fast, ad-free streaming with offline
-      downloads and cross-device sync.
+      Choose a platform below. Version and file size come from the published release data.
     </p>
 
     <!-- Recommended pick -->

@@ -90,7 +90,7 @@
 
   .genre-card:hover .genre-arrow-wrapper,
   .genre-card:focus-visible .genre-arrow-wrapper {
-    transform: translateX(10px);
-    color: white;
+    color: #f1a287;
   }
+  .section-header{margin-bottom:3rem;padding-bottom:1.5rem;border-bottom:1px solid #2b2521}.section-header h1{color:#f1ece4;letter-spacing:-.045em}.genres-grid{gap:0;border-top:1px solid #2b2521}.genre-card{height:110px;border:0;border-bottom:1px solid #2b2521;border-right:1px solid #2b2521;border-radius:0;background:transparent}.genre-card:hover,.genre-card:focus-visible{background:#151210;border-color:#2b2521;transform:none;box-shadow:none;outline:3px solid #f1a287;outline-offset:-3px}.genre-name{color:#e8e1d8}.genre-card:hover .genre-arrow-wrapper,.genre-card:focus-visible .genre-arrow-wrapper{transform:none}
 </style>

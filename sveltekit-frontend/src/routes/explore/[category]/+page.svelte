@@ -60,9 +60,9 @@
 
   const pageTitle = $derived(titleMap[category] || category);
   const pageDescription = $derived(
-    `Browse ${pageTitle.replace(/[^\w\s&-]/g, "").trim()} anime on WatchAnimez with posters, ratings, genres, and detailed watch pages.`
+    `Browse ${pageTitle.replace(/[^\w\s&-]/g, "").trim()} anime on WatchAnimeX with posters, ratings, genres, and detailed watch pages.`
   );
-  const collectionJsonLd = $derived(getCollectionJsonLd(`${pageTitle} — WatchAnimez`, pageDescription, data.canonicalUrl, items));
+  const collectionJsonLd = $derived(getCollectionJsonLd(`${pageTitle} — WatchAnimeX`, pageDescription, data.canonicalUrl, items));
 
   async function loadPage(p: number) {
     loading = true;
@@ -80,9 +80,9 @@
 </script>
 
 <svelte:head
-  ><title>{pageTitle} — WatchAnimez</title>
+  ><title>{pageTitle} — WatchAnimeX</title>
   <meta name="description" content={pageDescription} />
-  <meta property="og:title" content={`${pageTitle} — WatchAnimez`} />
+  <meta property="og:title" content={`${pageTitle} — WatchAnimeX`} />
   <meta property="og:description" content={pageDescription} /></svelte:head
 >
 

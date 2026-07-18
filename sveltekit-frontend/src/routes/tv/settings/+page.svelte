@@ -2,248 +2,43 @@
   import { auth, logoutUser } from "$lib/stores/auth";
   import { isTV } from "$lib/stores/device";
   import { goto } from "$app/navigation";
-  import { Settings, User, Monitor, Languages, LogOut, Smartphone } from 'lucide-svelte';
-  import { fly } from 'svelte/transition';
+  import { Settings, User, Search, Tags, Bookmark, Heart, LogOut, Smartphone } from "lucide-svelte";
 
-  let selectedIndex = $state(0);
-  
-  const settingsGroups = [
-    { 
-      id: 'account',
-      title: 'Account', 
-      icon: User,
-      options: [
-        { label: 'Profile Management', description: 'Switch or edit profiles' },
-        { label: 'Watch History', description: 'Clear or manage history' }
-      ]
-    },
-    { 
-      id: 'playback',
-      title: 'Playback', 
-      icon: Monitor,
-      options: [
-        { label: 'Video Quality', description: 'Default: Auto (Highest)' },
-        { label: 'Auto-Play', description: 'Next episode automatically' }
-      ]
-    },
-    { 
-      id: 'language',
-      title: 'Language', 
-      icon: Languages,
-      options: [
-        { label: 'Primary Language', description: 'Set to: Hindi (Dub)' },
-        { label: 'Subtitles', description: 'Enabled by default' }
-      ]
-    }
+  const destinations = [
+    { label: "TV profile", description: "View your signed-in account and activity", href: "/tv/profile", icon: User },
+    { label: "Search", description: "Find an anime by title", href: "/tv/search", icon: Search },
+    { label: "Genres", description: "Browse the catalog by story type", href: "/tv/genres", icon: Tags },
+    { label: "Watchlist", description: "Open titles saved to your watchlist", href: "/watchlist", icon: Bookmark },
+    { label: "Favorites", description: "Open your favorite titles", href: "/favorites", icon: Heart },
   ];
 
-  function handleExitTV() {
-    isTV.set(false);
-    document.body.classList.remove('tv-mode');
-    goto('/');
+  function openDestination(href: string) {
+    if ((href === "/tv/profile" || href === "/watchlist" || href === "/favorites") && !$auth.token) {
+      goto(`/auth/login?redirect=${encodeURIComponent(href)}`);
+      return;
+    }
+    goto(href);
   }
-
-  function handleLogout() {
-    logoutUser();
-    goto('/');
-  }
+  function handleExitTV() { isTV.set(false); document.body.classList.remove("tv-mode"); goto("/"); }
+  function handleLogout() { logoutUser(); goto("/tv"); }
 </script>
 
-<div class="tv-settings-page" in:fly={{ x: 50, duration: 500 }}>
-  <header class="settings-header">
-    <Settings size={32} class="text-red-600" />
-    <h1>Settings</h1>
-  </header>
-
+<svelte:head><title>TV Settings — WatchAnimeX</title></svelte:head>
+<div class="tv-settings-page">
+  <header class="settings-header"><Settings size={32} /><div><p>TV MODE</p><h1>Settings</h1></div></header>
   <div class="settings-grid">
-    <div class="settings-list">
-      {#each settingsGroups as group, i}
-        <section class="settings-group">
-          <div class="group-title">
-            <group.icon size={20} />
-            <h2>{group.title}</h2>
-          </div>
-          <div class="options-container">
-            {#each group.options as option}
-              <button class="settings-option">
-                <span class="option-label">{option.label}</span>
-                <span class="option-desc">{option.description}</span>
-              </button>
-            {/each}
-          </div>
-        </section>
-      {/each}
-
-      <section class="settings-group danger-zone">
-        <div class="group-title">
-          <Smartphone size={20} />
-          <h2>Device & System</h2>
-        </div>
-        <div class="options-container">
-          <button class="settings-option exit-btn" onclick={handleExitTV}>
-            <Smartphone size={20} />
-            <div class="btn-text">
-              <span class="option-label">Exit TV Mode</span>
-              <span class="option-desc">Return to standard mobile/web interface</span>
-            </div>
-          </button>
-          
-          <button class="settings-option logout-btn" onclick={handleLogout}>
-            <LogOut size={20} />
-            <div class="btn-text">
-              <span class="option-label">Log Out</span>
-              <span class="option-desc">Sign out of your account</span>
-            </div>
-          </button>
-        </div>
-      </section>
-    </div>
-
-    <!-- Preview/Info section (Netflix style) -->
-    <div class="settings-info-panel glass">
-      {#if $auth.user}
-        <div class="current-user-card">
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={$auth.user.email}" alt="Avatar" class="tv-avatar" />
-          <div class="user-details">
-            <h3>{$auth.user.email}</h3>
-            <span class="plan-badge">PREMIUM ALPHA</span>
-          </div>
-        </div>
-      {/if}
-      <div class="system-info">
-        <p>App Version: 0.0.1-TV</p>
-        <p>Device ID: WATCHANIMEZ-TV-WRAPPER</p>
-        <p>Server Status: <span class="text-green-500">Operational</span></p>
-      </div>
-    </div>
+    <main class="settings-list">
+      <section class="settings-group"><h2>Browse and account</h2><div class="options-container">
+        {#each destinations as item}<button class="settings-option" onclick={() => openDestination(item.href)}><item.icon size={22}/><span><b>{item.label}</b><small>{item.description}</small></span><i aria-hidden="true">→</i></button>{/each}
+      </div></section>
+      <section class="settings-group"><h2>Session</h2><div class="options-container">
+        <button class="settings-option" onclick={handleExitTV}><Smartphone size={22}/><span><b>Exit TV mode</b><small>Return to the standard web interface</small></span><i aria-hidden="true">→</i></button>
+        {#if $auth.user}<button class="settings-option danger" onclick={handleLogout}><LogOut size={22}/><span><b>Sign out</b><small>End the current WatchAnimeX session</small></span><i aria-hidden="true">→</i></button>{/if}
+      </div></section>
+    </main>
+    <aside class="session-panel"><span>SESSION</span><h2>{$auth.user ? "Signed in" : "Guest mode"}</h2><p>{$auth.user?.email || "Sign in to sync account collections."}</p><small>Playback options are selected in the player when a source provides them.</small></aside>
   </div>
 </div>
-
 <style>
-  .tv-settings-page {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .settings-header {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 4rem;
-  }
-
-  .settings-header h1 {
-    font-size: 3rem;
-    font-weight: 800;
-  }
-
-  .settings-grid {
-    display: grid;
-    grid-template-columns: 1fr 350px;
-    gap: 4rem;
-  }
-
-  .settings-group {
-    margin-bottom: 3rem;
-  }
-
-  .group-title {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    color: var(--net-text-muted);
-    margin-bottom: 1.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  .options-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .settings-option {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 1.5rem 2rem;
-    border-radius: 12px;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-
-  .settings-option:hover,
-  .settings-option:focus-visible {
-    background: rgba(255, 255, 255, 0.15);
-    transform: scale(1.02);
-    border-color: var(--net-red);
-    outline: none;
-  }
-
-  .option-label {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: white;
-  }
-
-  .option-desc {
-    font-size: 0.95rem;
-    color: var(--net-text-muted);
-  }
-
-  .exit-btn, .logout-btn {
-    flex-direction: row;
-    align-items: center;
-    gap: 1.5rem;
-  }
-  
-  .exit-btn :global(svg) { color: #3b82f6; }
-  .logout-btn :global(svg) { color: var(--net-red); }
-
-  .settings-info-panel {
-    padding: 2.5rem;
-    border-radius: 20px;
-    height: fit-content;
-    position: sticky;
-    top: 2rem;
-  }
-
-  .current-user-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-    text-align: center;
-  }
-
-  .tv-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 12px;
-    border: 4px solid var(--net-red);
-  }
-
-  .plan-badge {
-    background: var(--net-red);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 900;
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
-    margin-top: 0.5rem;
-    display: inline-block;
-  }
-
-  .system-info {
-    font-size: 0.85rem;
-    color: var(--net-text-muted);
-    line-height: 1.8;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 1.5rem;
-  }
+  .tv-settings-page{max-width:1220px;margin:0 auto;padding:1rem 0 4rem;color:#f1ece4}.settings-header{display:flex;align-items:center;gap:1.2rem;margin-bottom:3rem}.settings-header p,.session-panel>span{margin:0 0 .35rem;color:#df886b;font-size:.72rem;font-weight:800;letter-spacing:.16em}.settings-header h1{font-size:3rem;line-height:1;margin:0}.settings-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:3rem}.settings-group{margin-bottom:2.5rem}.settings-group h2{margin:0 0 1rem;color:#a79f96;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase}.options-container{display:flex;flex-direction:column;border-top:1px solid #2a2521}.settings-option{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:1rem;width:100%;min-height:84px;padding:1rem 1.25rem;border:0;border-bottom:1px solid #2a2521;background:#0d0c0b;color:#f1ece4;text-align:left;cursor:pointer}.settings-option:hover,.settings-option:focus-visible{background:#171310;outline:2px solid #df886b;outline-offset:-2px}.settings-option span{display:flex;flex-direction:column;gap:.35rem}.settings-option b{font-size:1.12rem}.settings-option small,.session-panel p,.session-panel small{color:#918a82;font-style:normal}.settings-option i{font-style:normal;color:#df886b}.settings-option.danger{color:#efa086}.session-panel{align-self:start;padding:2rem;border:1px solid #2a2521;background:#0d0c0b}.session-panel h2{margin:.4rem 0 1rem;font-size:1.6rem}.session-panel p{overflow-wrap:anywhere}.session-panel small{display:block;margin-top:2rem;padding-top:1rem;border-top:1px solid #2a2521;line-height:1.6}@media(max-width:900px){.settings-grid{grid-template-columns:1fr}.session-panel{order:-1}.settings-header h1{font-size:2.3rem}}@media(prefers-reduced-motion:reduce){.settings-option{scroll-behavior:auto}}
 </style>

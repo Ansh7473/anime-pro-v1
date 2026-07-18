@@ -1,265 +1,40 @@
 <script lang="ts">
-  import {
-    Globe,
-    Send,
-    MessageSquare,
-    Shield,
-    Mail,
-    Heart,
-    ExternalLink
-  } from 'lucide-svelte';
-
   const currentYear = new Date().getFullYear();
+  const groups = [
+    { title: "Browse", links: [["Explore", "/explore"], ["Latest", "/latest"], ["Schedule", "/schedule"], ["Movies", "/movies"], ["TV series", "/tv-series"]] },
+    { title: "Account", links: [["Profile", "/profile"], ["Watchlist", "/watchlist"], ["Favorites", "/favorites"], ["Download apps", "/download"]] },
+    { title: "Information", links: [["About", "/about"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["DMCA", "/dmca"], ["FAQ", "/faq"]] },
+  ];
 </script>
 
 <footer class="site-footer">
-  <div class="footer-grid container">
-    <!-- Brand -->
-    <div class="footer-section brand-section">
-      <div class="footer-logo">
-        <span class="logo-text">WATCH<span class="accent">ANIMEZ</span></span>
-      </div>
-      <p class="footer-desc">
-        Your premium anime streaming destination. Discover trending series, seasonal hits, classic favorites, and the latest movies — all in one place with fast, reliable streaming.
-      </p>
-      <div class="social-links">
-        <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="social-icon">
-          <Globe size={18} />
-        </a>
-        <a href="https://discord.gg/7v6ZzkJpXV" target="_blank" rel="noopener noreferrer" aria-label="Discord" class="social-icon">
-          <MessageSquare size={18} />
-        </a>
-        <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" class="social-icon">
-          <Send size={18} />
-        </a>
-        <a href="mailto:support@watchanimez.me" aria-label="Email" class="social-icon">
-          <Mail size={18} />
-        </a>
-      </div>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <p class="edition">WatchAnimeX</p>
+      <h2>Keep the next episode close.</h2>
+      <p>Browse seasonal anime, check airing times, and return to saved progress from one focused catalog.</p>
+      <a href="https://discord.gg/7v6ZzkJpXV" target="_blank" rel="noopener noreferrer">Community and support ↗</a>
     </div>
-
-    <!-- Browse -->
-    <div class="footer-section">
-      <h3 class="section-title">Browse</h3>
-      <ul class="footer-links">
-        <li><a href="/explore">Explore</a></li>
-        <li><a href="/latest">Latest Releases</a></li>
-        <li><a href="/schedule">Schedule</a></li>
-        <li><a href="/movies">Movies</a></li>
-        <li><a href="/tv-series">TV Series</a></li>
-      </ul>
-    </div>
-
-    <!-- Community -->
-    <div class="footer-section">
-      <h3 class="section-title">Community</h3>
-      <ul class="footer-links">
-        <li><a href="https://github.com" target="_blank" rel="noopener noreferrer"><Globe size={14} /> GitHub</a></li>
-        <li><a href="https://discord.gg/7v6ZzkJpXV" target="_blank" rel="noopener noreferrer"><MessageSquare size={14} /> Discord</a></li>
-        <li><a href="https://twitter.com" target="_blank" rel="noopener noreferrer"><Send size={14} /> Twitter</a></li>
-        <li><a href="/donate"><Heart size={14} /> Support Us</a></li>
-      </ul>
-    </div>
-
-    <!-- Legal -->
-    <div class="footer-section">
-      <h3 class="section-title">Legal</h3>
-      <ul class="footer-links">
-        <li><a href="/about">About Us</a></li>
-        <li><a href="/contact">Contact</a></li>
-        <li><a href="/privacy">Privacy Policy</a></li>
-        <li><a href="/terms">Terms & Conditions</a></li>
-        <li><a href="/dmca">DMCA Policy</a></li>
-        <li><a href="/faq">FAQ</a></li>
-      </ul>
-    </div>
+    {#each groups as group}
+      <nav aria-label={group.title}>
+        <h3>{group.title}</h3>
+        {#each group.links as link}<a href={link[1]}>{link[0]} <span aria-hidden="true">↗</span></a>{/each}
+      </nav>
+    {/each}
   </div>
-
-  <div class="footer-bottom">
-    <div class="container bottom-content">
-      <p class="copyright">&copy; {currentYear} WatchAnimez. All rights reserved.</p>
-      <div class="legal-links">
-        <a href="/terms">Terms of Service</a>
-        <span class="divider">·</span>
-        <a href="/privacy">Privacy Policy</a>
-        <span class="divider">·</span>
-        <a href="/dmca">DMCA</a>
-        <span class="divider">·</span>
-        <a href="/faq">FAQ</a>
-      </div>
-    </div>
-  </div>
+  <div class="footer-base"><div><span>© {currentYear} WatchAnimeX</span><span>Anime information and artwork belong to their respective owners.</span></div></div>
 </footer>
 
 <style>
-  .site-footer {
-    background: #050505;
-    border-top: 1px solid rgba(229, 9, 20, 0.1);
-    padding-top: 4rem;
-    margin-top: 2rem;
-    position: relative;
-    z-index: 10;
-  }
-
-  .footer-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 3rem;
-    padding-bottom: 4rem;
-  }
-
-  .footer-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .footer-logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .logo-text {
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: #fff;
-  }
-
-  .logo-text .accent { color: var(--net-red); }
-
-  .footer-desc {
-    font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.65);
-    line-height: 1.7;
-    max-width: 340px;
-  }
-
-  .social-links {
-    display: flex;
-    gap: 0.75rem;
-  }
-
-  .social-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
-    transition: all 0.2s;
-    text-decoration: none;
-  }
-  .social-icon:hover {
-    background: rgba(229, 9, 20, 0.1);
-    border-color: var(--net-red);
-    color: var(--net-red);
-    transform: translateY(-2px);
-  }
-
-  .section-title {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    position: relative;
-    padding-bottom: 10px;
-  }
-
-  .section-title::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 30px;
-    height: 2px;
-    background: var(--net-red);
-  }
-
-  .footer-links {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .footer-links a {
-    font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.65);
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-    text-decoration: none;
-  }
-
-  .footer-links a:hover {
-    color: var(--net-red);
-    transform: translateX(4px);
-  }
-
-  .footer-bottom {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 1.5rem 0;
-    background: #030303;
-  }
-
-  .bottom-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2rem;
-  }
-
-  .copyright {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    font-weight: 500;
-  }
-
-  .legal-links {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.8rem;
-    font-weight: 500;
-  }
-
-  .legal-links a {
-    color: rgba(255, 255, 255, 0.65);
-    transition: color 0.2s;
-    text-decoration: none;
-  }
-
-  .legal-links a:hover { color: #fff; }
-
-  .divider { color: rgba(255, 255, 255, 0.15); }
-
-  @media (max-width: 1024px) {
-    .footer-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-    /* Clear fixed mobile bottom nav + home indicator */
-    .site-footer {
-      padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    }
-  }
-
-  @media (max-width: 600px) {
-    .footer-grid {
-      grid-template-columns: 1fr;
-      gap: 2.5rem;
-    }
-    .bottom-content {
-      flex-direction: column;
-      text-align: center;
-      gap: 1rem;
-    }
-  }
+  .site-footer{position:relative;z-index:10;margin-top:0;background:#090807;color:var(--editorial-text,#f1ece4);border-top:1px solid var(--editorial-line,#28231f)}
+  .footer-inner,.footer-base>div{width:100%;max-width:var(--page-max,1500px);margin:auto;padding-left:max(var(--page-gutter,2.5rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter,2.5rem),env(safe-area-inset-right));box-sizing:border-box}
+  .footer-inner{display:grid;grid-template-columns:minmax(280px,1.7fr) repeat(3,minmax(130px,.7fr));gap:clamp(2rem,5vw,6rem);padding-top:4rem;padding-bottom:4rem}
+  .edition,nav h3{margin:0 0 1.2rem;color:#766f67;font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .footer-brand h2{max-width:12ch;margin:0 0 1rem;font:800 clamp(1.7rem,2.8vw,2.8rem)/1.02 var(--net-display-font,system-ui);letter-spacing:-.045em}
+  .footer-brand>p:not(.edition){max-width:44ch;margin:0 0 1.25rem;color:var(--editorial-muted,#918a82);font-size:.84rem;line-height:1.65}
+  a{color:#bab2a8;text-decoration:none}a:hover{color:var(--editorial-accent-hover,#f1a287)}.footer-brand>a{font-size:.78rem;font-weight:750}
+  nav{display:flex;flex-direction:column;align-items:flex-start}nav a{width:100%;display:flex;justify-content:space-between;padding:.58rem 0;border-bottom:1px solid #211d1a;font-size:.78rem}nav a span{color:#58514b}
+  .footer-base{border-top:1px solid #211d1a}.footer-base>div{min-height:64px;display:flex;justify-content:space-between;align-items:center;gap:1rem;color:#69635c;font-size:.67rem}.footer-base>div span:last-child{text-align:right}
+  @media(max-width:900px){.footer-inner,.footer-base>div{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}.footer-inner{grid-template-columns:repeat(3,1fr)}.footer-brand{grid-column:1/-1}}
+  @media(max-width:640px){.site-footer{padding-bottom:calc(64px + env(safe-area-inset-bottom))}.footer-inner,.footer-base>div{padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right))}.footer-inner{grid-template-columns:1fr;gap:2rem;padding-block:3rem}.footer-brand{grid-column:auto}.footer-base>div{align-items:flex-start;flex-direction:column;justify-content:center;padding-block:1rem}.footer-base>div span:last-child{text-align:left}}
 </style>

@@ -25,8 +25,10 @@ export const load: PageServerLoad = async ({ params, fetch, setHeaders }) => {
 
 	let episodes: any[] = [];
 	if (anime) {
+		// SSR gives a fast first paint; the client resolves the accurate aired
+		// count from AniList on mount (handles 1000+ series like One Piece).
 		const n = Number(anime.episodes || 0);
-		const count = n > 0 ? Math.min(n, 500) : 12;
+		const count = n > 0 ? Math.min(n, 2000) : 12;
 		episodes = Array.from({ length: count }, (_, i) => ({
 			number: i + 1,
 			title: `Episode ${i + 1}`,

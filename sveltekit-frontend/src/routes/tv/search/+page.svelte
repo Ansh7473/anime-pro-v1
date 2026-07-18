@@ -95,7 +95,7 @@
       </div>
     {:else}
       <div class="search-placeholder">
-        <p>Type to search across thousands of titles</p>
+        <p>Type to search the anime catalog</p>
       </div>
     {/if}
   </div>
@@ -187,7 +187,7 @@
   }
 
   .result-item:focus-within {
-    transform: scale(1.1);
     z-index: 10;
   }
+  .search-input-container{margin-inline:0;padding:1.25rem 1.5rem;border-radius:4px;background:#0d0c0b;border-color:#332c27}.search-input-container:focus-within{background:#151210;border-color:#df886b;box-shadow:none;transform:none}.tv-search-input{color:#f1ece4}.tv-search-btn{border-radius:3px;background:#df886b;color:#170c09}.tv-search-btn:hover,.tv-search-btn:focus-visible{transform:none;background:#f1a287;color:#170c09;outline:4px solid #f1a287;outline-offset:4px}.results-grid{gap:2rem 1.5rem}.result-item:focus-within{transform:none}
 </style>

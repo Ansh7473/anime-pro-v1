@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="WatchAnimeX">
+  <defs>
+    <linearGradient id="tile" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#181820" />
+      <stop offset="1" stop-color="#08080c" />
+    </linearGradient>
+    <linearGradient id="accent" x1="12" y1="10" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb067" />
+      <stop offset="0.52" stop-color="#ff744d" />
+      <stop offset="1" stop-color="#ed436c" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="17" fill="url(#tile)" stroke="#ffffff" stroke-opacity=".12" stroke-width="2" />
+  <path d="M15 13h12l5 9 5-9h12L39 31l12 20H39l-7-11-7 11H13l12-20z" fill="url(#accent)" />
+  <path d="M29 26.5 39 32l-10 5.5z" fill="#0b0b0f" />
+</svg>

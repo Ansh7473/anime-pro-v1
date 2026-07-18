@@ -8,9 +8,9 @@
 
   let { data } = $props<{ data: { initialItems: any[]; hasNext: boolean; canonicalUrl: string } }>();
 
-  const pageTitle = "Anime TV Series - WatchAnimez";
+  const pageTitle = "Anime TV Series - WatchAnimeX";
   const pageDescription =
-    "Browse popular, airing, upcoming, and top-rated anime TV series with descriptions, ratings, episode pages, and recommendations on WatchAnimez.";
+    "Browse popular, airing, upcoming, and top-rated anime TV series with descriptions, ratings, episode pages, and recommendations on WatchAnimeX.";
 
   let items: any[] = $state([]);
   let loading = $state(true);

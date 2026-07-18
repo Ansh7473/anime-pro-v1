@@ -1,5 +1,6 @@
 <script lang="ts">
   import Navbar from "$lib/components/Navbar.svelte";
+  import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
   import MobileBottomNav from "$lib/components/MobileBottomNav.svelte";
   import PullToRefresh from "$lib/components/PullToRefresh.svelte";
   import Footer from "$lib/components/Footer.svelte";
@@ -72,13 +73,14 @@
   let isWatchPage = $derived(page.url.pathname.startsWith('/watch/'));
 </script>
 
-<div class="regular-shell"
+<div class="regular-shell editorial-site"
      class:theme-{$themeState.current}={true}
      data-gradients={$themeState.gradients}
      data-effect={$themeState.effect}>
   {#if !isWatchPage}
     <div class="tactical-grid"></div>
     <Navbar />
+    <DesktopSidebar />
     <StatusBanner />
 
     <div class="scroll-fab" class:visible={scrolling}>
@@ -133,6 +135,10 @@
       </div>
     {/if}
   {:else}
+    <div class="watch-desktop-nav" aria-label="Desktop navigation">
+      <Navbar />
+      <DesktopSidebar />
+    </div>
     <main class="watch-shell" id="page-main">
       {@render children()}
     </main>
@@ -141,6 +147,9 @@
 
 <style>
   .regular-shell {
+    --desk-rail-width: 68px;
+    --desk-rail-expanded-width: 216px;
+    --desk-content-offset: var(--desk-rail-width);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -148,51 +157,49 @@
   }
 
   .main-content {
-    /* Navbar height — avoid forcing full viewport empty space under short home */
+    /* Keep the content edge synchronized with the desktop catalog rail. */
     padding-top: calc(64px + env(safe-area-inset-top, 0px));
+    padding-left: var(--desk-content-offset);
     min-height: 0;
     flex: 1 0 auto;
-    will-change: transform;
+    transition: padding-left .18s ease;
   }
 
-  /* Lightweight page-enter fade. Replaces the old JS fly transition that gated
-     every navigation behind a 200ms delay + 400ms animation (~600ms of the new
-     page being invisible). This is a GPU-only opacity fade, 150ms, no delay, so
-     content is visible immediately and navigation feels instant. */
-  .page-fade {
-      animation: page-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    @keyframes page-enter {
-      from {
-        opacity: 0;
-        transform: translateY(6px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  @media (prefers-reduced-motion: reduce) {
-      .page-fade { animation: none; }
-    }
+  :global(.regular-shell footer) {
+    margin-left: var(--desk-content-offset);
+    transition: margin-left .18s ease;
+  }
 
-    .tactical-grid {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.4;
-      background-image:
-        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 30%, transparent 70%);
-      -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 30%, transparent 70%);
+  /* The rail and every page surface share one responsive content edge. */
+  @media (min-width: 1025px) {
+    .regular-shell:has(.desk-rail:hover),
+    .regular-shell:has(.desk-rail:focus-within),
+    .regular-shell:has(.desk-rail.expanded) {
+      --desk-content-offset: var(--desk-rail-expanded-width);
     }
+  }
+
+  /* Content is visible immediately. Navigation never depends on an entrance animation. */
+  .page-fade { opacity: 1; transform: none; }
+
+  /* The interface uses content and imagery for atmosphere rather than a fixed grid sheet. */
+  .tactical-grid { display: none; }
 
   .watch-shell {
     min-height: 100vh;
     min-height: 100dvh;
+    background: var(--editorial-bg, #070706);
+    color: var(--editorial-text, #f1ece4);
+  }
+
+  .watch-desktop-nav { display: block; }
+
+  @media (min-width: 1025px) {
+    .watch-shell {
+      padding-top: 64px;
+      padding-left: var(--desk-content-offset);
+      transition: padding-left .18s ease;
+    }
   }
 
   .scroll-fab {
@@ -201,10 +208,15 @@
 
   /* Match Navbar mobile breakpoint (1024) so tablets with hamburger also get bottom nav space */
   @media (max-width: 1024px) {
+    .watch-desktop-nav { display: none; }
+
     .main-content {
       padding-top: calc(56px + env(safe-area-inset-top, 0px));
+      padding-left: 0;
       padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 12px);
     }
+
+    :global(.regular-shell footer) { margin-left: 0; }
 
     .scroll-fab {
       display: flex;

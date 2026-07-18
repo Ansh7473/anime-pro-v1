@@ -1,8 +1,8 @@
 <svelte:head>
-  <title>Terms & Conditions — WatchAnimez</title>
-  <meta name="description" content="Read the WatchAnimez Terms and Conditions. Understand the rules and guidelines for using our anime streaming platform." />
-  <meta property="og:title" content="Terms & Conditions — WatchAnimez" />
-  <meta property="og:description" content="Read the WatchAnimez Terms and Conditions. Understand the rules and guidelines for using our anime streaming platform." />
+  <title>Terms & Conditions — WatchAnimeX</title>
+  <meta name="description" content="Read the WatchAnimeX Terms and Conditions. Understand the rules and guidelines for using our anime streaming platform." />
+  <meta property="og:title" content="Terms & Conditions — WatchAnimeX" />
+  <meta property="og:description" content="Read the WatchAnimeX Terms and Conditions. Understand the rules and guidelines for using our anime streaming platform." />
 </svelte:head>
 
 <div class="page-container container">
@@ -14,13 +14,13 @@
   <div class="policy-content">
     <section class="policy-section">
       <h2>1. Acceptance of Terms</h2>
-      <p>By accessing and using WatchAnimez ("the Service"), you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the Service.</p>
+      <p>By accessing and using WatchAnimeX ("the Service"), you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the Service.</p>
       <p>We reserve the right to modify these terms at any time. Changes take effect immediately upon posting. Your continued use of the Service constitutes acceptance of the modified terms.</p>
     </section>
 
     <section class="policy-section">
       <h2>2. Description of Service</h2>
-      <p>WatchAnimez is an anime information and streaming aggregator platform that provides:</p>
+      <p>WatchAnimeX is an anime information and streaming aggregator platform that provides:</p>
       <ul>
         <li>Anime discovery, search, and browsing functionality</li>
         <li>Access to anime details, ratings, schedules, and episode information</li>
@@ -58,7 +58,7 @@
 
     <section class="policy-section">
       <h2>5. Intellectual Property</h2>
-      <p>The Service, including its design, layout, graphics, and original code, is the property of WatchAnimez and is protected by copyright, trademark, and other intellectual property laws.</p>
+      <p>The Service, including its design, layout, graphics, and original code, is the property of WatchAnimeX and is protected by copyright, trademark, and other intellectual property laws.</p>
       <p>Anime titles, images, and metadata displayed on the Service are the property of their respective owners and are used for informational purposes. We do not claim ownership of any third-party content.</p>
     </section>
 
@@ -80,12 +80,12 @@
 
     <section class="policy-section">
       <h2>8. Limitation of Liability</h2>
-      <p>To the maximum extent permitted by law, WatchAnimez and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising out of or in connection with your use of the Service.</p>
+      <p>To the maximum extent permitted by law, WatchAnimeX and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising out of or in connection with your use of the Service.</p>
     </section>
 
     <section class="policy-section">
       <h2>9. Indemnification</h2>
-      <p>You agree to indemnify and hold harmless WatchAnimez, its operators, and affiliates from any claims, damages, losses, or expenses (including reasonable attorneys' fees) arising from your use of the Service, your violation of these Terms, or your violation of any rights of another party.</p>
+      <p>You agree to indemnify and hold harmless WatchAnimeX, its operators, and affiliates from any claims, damages, losses, or expenses (including reasonable attorneys' fees) arising from your use of the Service, your violation of these Terms, or your violation of any rights of another party.</p>
     </section>
 
     <section class="policy-section">

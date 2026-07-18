@@ -195,29 +195,16 @@
 
 <nav class="navbar" class:scrolled>
   <div class="nav-inner">
-    <!-- BRAND LOGO (decorative animation, not video content) -->
-        <a href="/" class="logo" onclick={() => { closeSearch(); mobileMenuOpen = false; }}>
-          <div class="logo-badge">
-            <!--
-              aria-hidden + role=presentation tells crawlers this is decorative, not video content.
-              data-nosnippet prevents Google from indexing this as a video result.
-            -->
-            <video
-              src="/logo-anim.mp4"
-              class="logo-img"
-              autoplay
-              loop
-              muted
-              playsinline
-              aria-hidden="true"
-              role="presentation"
-              data-nosnippet
-            ></video>
-        <span class="logo-glow"></span>
+    <!-- WatchAnimeX brand -->
+    <a href="/" class="logo" aria-label="WatchAnimeX home" onclick={() => { closeSearch(); mobileMenuOpen = false; }}>
+      <div class="logo-badge" aria-hidden="true">
+        <svg viewBox="0 0 40 40" class="logo-mark">
+          <rect x="1" y="1" width="38" height="38" rx="11" />
+          <path d="M10 9h8l4 6.2L26 9h8l-8 11 9 11h-8l-5-6.5-5 6.5H9l9-11z" />
+        </svg>
       </div>
       <div class="logo-text-wrapper">
-        <span class="logo-text">WATCH<span class="logo-accent">ANIMEZ</span></span>
-        <span class="logo-subtag hide-mobile">HD STREAMING</span>
+        <span class="logo-text">WatchAnime<span class="logo-accent">X</span></span>
       </div>
     </a>
 
@@ -551,7 +538,7 @@
         {:else if isSearching && suggestions.length === 0}
           <div class="searching-loader-state">
             <div class="search-spinner-lg"></div>
-            <span>Searching WatchAnimez database...</span>
+            <span>Searching WatchAnimeX database...</span>
           </div>
         {:else if suggestions.length > 0}
           <div class="suggestions-container">
@@ -666,68 +653,44 @@
   }
 
   .logo-badge {
-    position: relative;
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
+    filter: drop-shadow(0 8px 18px rgba(255, 116, 77, 0.18));
   }
 
-  .logo-img {
-    height: 34px;
-    width: 34px;
-    object-fit: cover;
-    border-radius: 9px;
-    box-shadow: 0 0 14px rgba(255, 138, 61, 0.5);
-    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    z-index: 2;
+  .logo-mark {
+    width: 38px;
+    height: 38px;
     display: block;
-    overflow: hidden;
   }
-
-  .logo-glow {
-    position: absolute;
-    inset: -2px;
-    background: radial-gradient(circle, rgba(255, 138, 61, 0.55) 0%, transparent 70%);
-    border-radius: 12px;
-    filter: blur(4px);
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
+  .logo-mark rect {
+    fill: #111117;
+    stroke: rgba(255, 255, 255, 0.14);
+    stroke-width: 1.5;
   }
-
-  .logo:hover .logo-img {
-    transform: scale(1.08) rotate(-3deg);
-  }
-
-  .logo:hover .logo-glow {
-    opacity: 1;
+  .logo-mark path {
+    fill: #ff8057;
   }
 
   .logo-text-wrapper {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     line-height: 1;
   }
 
   .logo-text {
-    font-size: 1.35rem;
-    font-weight: 900;
-    letter-spacing: -0.03em;
+    color: #f7f5f2;
+    font-family: var(--net-display-font, "Outfit", system-ui, sans-serif);
+    font-size: 1.28rem;
+    font-weight: 800;
+    letter-spacing: -0.045em;
   }
 
   .logo-accent {
-    color: var(--net-red, #FF8A3D);
-    text-shadow: 0 0 15px rgba(255, 138, 61, 0.55);
-  }
-
-  .logo-subtag {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: rgba(255, 255, 255, 0.45);
-    margin-top: 2px;
+    color: #ff8057;
   }
 
   /* ACTIONS — logo left, tools right (browse lives under hero / bottom nav) */
@@ -1733,13 +1696,12 @@
       min-width: 0;
     }
     .logo-badge {
-      width: 32px;
-      height: 32px;
-    }
-    .logo-img {
-      height: 30px;
       width: 30px;
-      border-radius: 8px;
+      height: 30px;
+    }
+    .logo-mark {
+      width: 30px;
+      height: 30px;
     }
     .logo-text {
       font-size: 1.15rem;
@@ -1807,11 +1769,22 @@
       padding: 0.4rem 0.7rem;
       font-size: 0.8rem;
     }
-    .search-trigger-text {
-      display: none;
-    }
-    .search-shortcut {
-      display: none;
-    }
+    .search-trigger-text { display: none; }
+    .search-shortcut { display: none; }
   }
+
+  /* Editorial masthead */
+  .navbar { padding-left:0;padding-right:0;background:rgba(7,7,6,.96);backdrop-filter:none;border-bottom:1px solid var(--editorial-line,#28231f);box-shadow:none;transition:background .15s; }
+  .navbar.scrolled { background:#070706;backdrop-filter:none;border-bottom-color:#332c27;box-shadow:none; }
+  .nav-inner { max-width:none;margin-inline:auto;padding-left:max(var(--page-gutter,2.5rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter,2.5rem),env(safe-area-inset-right)); }
+  .logo-text{color:var(--editorial-text,#f1ece4);letter-spacing:-.035em}.logo-accent{color:var(--editorial-accent,#df886b)}.logo-subtag{color:#6f6861;letter-spacing:.14em}
+  .nav-search-pill { border-radius:3px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f);box-shadow:none; }
+  .nav-search-pill:hover { background:var(--editorial-surface-raised,#151210);border-color:#4b3d35;transform:none;box-shadow:none; }
+  .nav-icon-btn,.profile-trigger { border-radius:3px;background:transparent;border-color:transparent;box-shadow:none; }
+  .nav-icon-btn:hover,.profile-trigger:hover { transform:none;background:var(--editorial-surface-raised,#151210);border-color:var(--editorial-line,#28231f);box-shadow:none; }
+  .profile-dropdown,.search-modal { border-radius:4px;background:#0d0c0b!important;border:1px solid var(--editorial-line,#28231f)!important;box-shadow:none; }
+  .search-backdrop { background:rgba(3,3,3,.9);backdrop-filter:none; }.search-input-box{border-radius:3px;background:#151210;border-color:#332c27}.trending-tag-pill,.meta-pill,.view-full-results-btn{border-radius:3px}.suggestion-card{border-radius:3px;background:transparent;border-bottom:1px solid #28231f}.suggestion-card:hover{transform:none;background:#151210;box-shadow:none}.suggestion-poster{border-radius:3px}
+  .mobile-menu{background:#090807;border-left:1px solid #28231f}.mobile-action-chip,.mobile-account-btn{border-radius:3px}
+  @media(max-width:1024px){.navbar{padding-left:0;padding-right:0}.nav-inner{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}}
+  @media(max-width:640px){.nav-inner{padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right))}}
 </style>

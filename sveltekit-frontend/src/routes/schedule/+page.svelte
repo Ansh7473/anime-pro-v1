@@ -4,7 +4,14 @@
   import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { Calendar, Clock, AlertCircle } from "lucide-svelte";
 
-  const toDateStr = (d: Date) => d.toISOString().split("T")[0];
+  const REQUEST_TIMEOUT_MS = 15_000;
+
+  const toDateStr = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   const buildDateOptions = () => {
     const opts = [];
@@ -27,29 +34,50 @@
   let selectedIndex = $state(0);
   let scheduledAnimes: any[] = $state([]);
   let loading = $state(false);
+  let error = $state("");
+  let requestId = 0;
 
-  async function fetchSchedule() {
+  function withTimeout<T>(request: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("Schedule request timed out")), REQUEST_TIMEOUT_MS);
+    });
+    return Promise.race([request, timeout]).finally(() => clearTimeout(timer));
+  }
+
+  async function fetchSchedule(date = selectedDate) {
+    const currentRequest = ++requestId;
     loading = true;
-    try {
-      const dayDate = new Date(selectedDate + "T00:00:00");
-      const start = Math.floor(dayDate.getTime() / 1000);
-      const end = start + 86399;
+    error = "";
 
-      const res = await api.getAnilistSchedule(start, end);
+    try {
+      const dayStart = new Date(`${date}T00:00:00`);
+      const nextDay = new Date(dayStart);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      // AniList uses exclusive boundaries. Subtracting one second includes midnight
+      // while next-day midnight remains excluded from the selected local day.
+      const start = Math.floor(dayStart.getTime() / 1000) - 1;
+      const end = Math.floor(nextDay.getTime() / 1000);
+      const res = await withTimeout(api.getAnilistSchedule(start, end));
+
+      if (currentRequest !== requestId) return;
       scheduledAnimes = res || [];
     } catch (err) {
+      if (currentRequest !== requestId) return;
       console.error("Failed to fetch schedule", err);
       scheduledAnimes = [];
+      error = err instanceof Error && err.message.includes("timed out")
+        ? "The schedule service took too long to respond. Please try again."
+        : "The weekly schedule could not be loaded. Check your connection and try again.";
     } finally {
-      loading = false;
+      if (currentRequest === requestId) loading = false;
     }
   }
 
-  // The $effect below fires on mount (selectedDate is set), so no separate onMount needed.
   $effect(() => {
-    if (selectedDate) {
-      fetchSchedule();
-    }
+    const date = selectedDate;
+    if (date) void fetchSchedule(date);
   });
 
   function selectDay(index: number) {
@@ -68,10 +96,10 @@
 </script>
 
 <svelte:head>
-  <title>Anime Release Schedule — WatchAnimez</title>
-  <meta name="description" content="Check the WatchAnimez anime release schedule for upcoming episodes, airing times, and new releases this week." />
-  <meta property="og:title" content="Anime Release Schedule — WatchAnimez" />
-  <meta property="og:description" content="Check the WatchAnimez anime release schedule for upcoming episodes, airing times, and new releases this week." />
+  <title>Anime Release Schedule — WatchAnimeX</title>
+  <meta name="description" content="Check the WatchAnimeX anime release schedule for upcoming episodes, airing times, and new releases this week." />
+  <meta property="og:title" content="Anime Release Schedule — WatchAnimeX" />
+  <meta property="og:description" content="Check the WatchAnimeX anime release schedule for upcoming episodes, airing times, and new releases this week." />
 </svelte:head>
 
 <div class="schedule-page container">
@@ -106,8 +134,13 @@
   <!-- Content -->
   <div class="content-area">
     {#if loading}
-      <div class="anime-grid">
-        <SkeletonGrid count={18} />
+      <div class="anime-grid"><SkeletonGrid count={18} /></div>
+    {:else if error}
+      <div class="empty-state" role="alert">
+        <AlertCircle size={48} class="empty-icon" />
+        <h2>Schedule unavailable</h2>
+        <p>{error}</p>
+        <button class="page-btn" onclick={() => fetchSchedule()}>Try again</button>
       </div>
     {:else if scheduledAnimes.length === 0}
       <div class="empty-state">
@@ -120,7 +153,7 @@
         <span>{scheduledAnimes.length} anime airing {selectedIndex === 0 ? "today" : `on ${dateOptions[selectedIndex].label}`}</span>
       </div>
       <div class="anime-grid">
-        {#each scheduledAnimes as anime (anime.id)}
+        {#each scheduledAnimes as anime, i (`${anime.airingScheduleId ?? anime.id}-${anime.nextAiringEpisode?.episode ?? anime.episode ?? i}`)}
           <div class="schedule-card">
             <AnimeCard {anime} />
             {#if anime.nextAiringEpisode}

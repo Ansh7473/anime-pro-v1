@@ -1,21 +1,27 @@
 {
-  "name": "Anime Pro",
-  "short_name": "AnimePro",
-  "description": "Watch anime in Hindi, Tamil, Telugu, Kannada, English & Japanese",
+  "name": "WatchAnimeX",
+  "short_name": "WatchAnimeX",
+  "description": "Discover anime, follow weekly release times, and continue your WatchAnimeX viewing history.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#1e1e1e",
-  "orientation": "portrait-primary",
+  "background_color": "#0b0b0f",
+  "theme_color": "#0b0b0f",
+  "orientation": "any",
   "icons": [
     {
-      "src": "/favicon-192.png",
+      "src": "/favicon.svg?v=3",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-192.png?v=3",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon-512.png",
+      "src": "/favicon-512.png?v=3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

@@ -189,7 +189,7 @@
     flex: 1;
     height: 100vh;
     margin-left: var(--cur-sidebar-width);
-    background: radial-gradient(circle at 0% 0%, rgba(229, 9, 20, 0.05) 0%, transparent 40%);
+    background: #070706;
     position: relative;
     overflow: hidden;
     transition: margin-left 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -291,4 +291,5 @@
     scrollbar-width: none;
   }
   .tv-layout-scroll::-webkit-scrollbar { display: none; }
+  .tv-shell-container{background:#070706;color:#f1ece4}.tv-sidebar{background:#090807;border-color:#2b2521}.tv-sidebar.expanded{background:#0d0c0b;box-shadow:none}.tv-logo-box{border-radius:3px;background:#df886b;color:#170c09}.tv-nav-item{border-radius:3px;color:#837b74;transition:background .15s,color .15s,border-color .15s}.tv-nav-item:focus-visible,.tv-nav-item:hover{background:#171310;color:#f1ece4;transform:none;border-color:#f1a287}.tv-nav-item.active{background:#df886b;color:#170c09}
 </style>

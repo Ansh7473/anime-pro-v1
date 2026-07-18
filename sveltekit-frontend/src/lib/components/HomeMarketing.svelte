@@ -109,14 +109,14 @@
 <section class="seo-content container">
   <div class="seo-content-inner">
     <h2 class="seo-heading">
-      WatchAnimez — Your Ultimate Anime Streaming Platform
+      WatchAnimeX — Your Ultimate Anime Streaming Platform
     </h2>
     <div class="seo-text">
       <p>
-        Welcome to <strong>WatchAnimez</strong>, the premier destination for
+        Welcome to <strong>WatchAnimeX</strong>, the premier destination for
         anime enthusiasts around the globe. Whether you are a seasoned otaku who
         has watched hundreds of series or a newcomer just beginning your anime
-        journey, WatchAnimez is designed to deliver the most comprehensive,
+        journey, WatchAnimeX is designed to deliver the most comprehensive,
         fast, and enjoyable streaming experience available online today. Our
         platform aggregates anime data from multiple trusted sources, ensuring
         you always have access to the latest episodes, trending titles, seasonal
@@ -124,7 +124,7 @@
         interface.
       </p>
       <p>
-        At WatchAnimez, we believe that great anime deserves a great platform.
+        At WatchAnimeX, we believe that great anime deserves a great platform.
         That is why we have built a service that prioritizes speed, reliability,
         and user experience above everything else. Our lightning-fast search
         engine lets you find any anime title in milliseconds, complete with
@@ -136,7 +136,7 @@
         thrillers and breathtaking animated films.
       </p>
       <p>
-        One of the standout features of WatchAnimez is our cross-platform
+        One of the standout features of WatchAnimeX is our cross-platform
         availability. You can start watching on your web browser at home, pick
         up exactly where you left off on our Android mobile app during your
         commute, and finish the episode on our Windows desktop application when
@@ -157,7 +157,7 @@
         format — whether you prefer TV series, OVAs, specials, or feature films.
       </p>
       <p>
-        WatchAnimez is more than just a streaming platform — it is a community.
+        WatchAnimeX is more than just a streaming platform — it is a community.
         Join thousands of active users who share recommendations, discuss their
         favorite series, and discover hidden gems together through our
         integrated Discord community. The platform also features a robust
@@ -172,7 +172,7 @@
         desktop monitors to tablets and smartphones. With SSL-encrypted
         connections, secure authentication, and a commitment to user privacy,
         you can enjoy your anime with complete peace of mind. Experience the
-        future of anime streaming today with WatchAnimez — where every frame is
+        future of anime streaming today with WatchAnimeX — where every frame is
         a masterpiece.
       </p>
     </div>
@@ -400,13 +400,13 @@
 
   @media (max-width: 768px) {
     .platform-stats {
-      margin: 3rem auto;
+      margin: 2rem auto;
     }
     .deployment-hub {
-      margin: 4rem auto;
+      margin: 3rem auto;
     }
     .community-signal {
-      margin-bottom: 4rem;
+      margin-bottom: 3rem;
     }
     .signal-title {
       font-size: 1.8rem;
@@ -414,5 +414,41 @@
     .signal-content p {
       font-size: 0.95rem;
     }
+  }
+
+  /* Match the homepage's full-width content shell below the catalog. */
+  .container {
+    width: 100%;
+    max-width: var(--page-max, 1600px);
+    margin-inline: auto;
+    padding-inline: var(--page-gutter, 2.5rem);
+    box-sizing: border-box;
+  }
+  .platform-stats { margin-top: 0; margin-bottom: 2.5rem; }
+  .deployment-hub { margin-top: 2.5rem; margin-bottom: 3rem; }
+  .community-signal { margin-top: 3rem; margin-bottom: 3rem; }
+  .seo-content { margin-top: 3rem; margin-bottom: 4rem; }
+  .analytics-grid { gap: 1rem; }
+  .stat-card, .deploy-card, .signal-box, .seo-content-inner {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+  }
+
+  @media (max-width: 1024px) {
+    .container { padding-inline: var(--page-gutter-md, 1.25rem); }
+  }
+  @media (max-width: 720px) {
+    .container { padding-inline: var(--page-gutter-sm, 0.75rem); }
+    .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat-card { padding: 1rem; gap: 0.75rem; }
+    .deployment-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .deploy-card { padding: 2rem 1.25rem; }
+    .signal-box { padding: 2rem 1.25rem; border-radius: 20px; }
+    .signal-actions { flex-direction: column; gap: 0.75rem; }
+    .seo-content-inner { padding: 1.5rem; }
+    .seo-heading { font-size: 1.3rem; }
+  }
+  @media (max-width: 420px) {
+    .analytics-grid { grid-template-columns: 1fr; }
   }
 </style>

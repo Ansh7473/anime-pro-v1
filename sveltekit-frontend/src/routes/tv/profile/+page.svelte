@@ -2,249 +2,35 @@
   import { auth, logoutUser } from "$lib/stores/auth";
   import { api } from "$lib/api";
   import { onMount } from "svelte";
-  import { fly, fade } from 'svelte/transition';
-  import { User, Settings, LogOut, ShieldCheck, Mail, Clock } from 'lucide-svelte';
   import { goto } from "$app/navigation";
+  import { Settings, LogOut, Mail, Bookmark, Heart, Play } from "lucide-svelte";
 
-  let userStats = $state<any>(null);
+  let stats = $state<any>(null);
   let loading = $state(true);
+  let error = $state("");
+  const valueOf = (keys: string[]) => { for (const key of keys) if (stats?.[key] != null) return stats[key]; return "Not available"; };
 
   onMount(async () => {
-    if (!$auth.token) {
-      goto('/tv/settings');
-      return;
-    }
-    
-    try {
-      userStats = await api.getUserStats($auth.token);
-    } catch (e) {
-      console.error("Failed to fetch stats", e);
-    } finally {
-      loading = false;
-    }
+    if (!$auth.token) { await goto("/auth/login?redirect=/tv/profile"); return; }
+    try { stats = await api.getUserStats($auth.token); }
+    catch { error = "Account activity could not be loaded."; }
+    finally { loading = false; }
   });
-
-  function handleLogout() {
-    logoutUser();
-    goto('/tv');
-  }
+  function handleLogout() { logoutUser(); goto("/tv"); }
 </script>
 
-<div class="tv-profile-page" in:fly={{ y: 30, duration: 600 }}>
-  <header class="profile-header">
-    <div class="avatar-wrapper">
-      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={$auth.user?.email || 'default'}" alt="Avatar" class="profile-avatar" />
-      <div class="status-badge">ONLINE</div>
-    </div>
-    <div class="user-info">
-      <h1>{$auth.user?.email.split('@')[0].toUpperCase() || 'ANONYMOUS'}</h1>
-      <p class="user-email"><Mail size={16} /> {$auth.user?.email || 'No email connected'}</p>
-      <div class="badges">
-        <span class="badge premium">PREMIUM ACCESS</span>
-        <span class="badge status">ALPHA TESTER</span>
-      </div>
-    </div>
-  </header>
-
-  <div class="profile-grid">
-    <section class="info-card stats-card glass">
-      <h2><ShieldCheck size={24} /> Account Status</h2>
-      <div class="stats-row">
-        <div class="stat">
-          <span class="label">MEMBER SINCE</span>
-          <span class="value">APRIL 2026</span>
-        </div>
-        <div class="stat">
-          <span class="label">TRUST LEVEL</span>
-          <span class="value">VERIFIED</span>
-        </div>
-      </div>
-      <div class="account-actions">
-        <button class="action-btn" onclick={() => goto('/tv/settings')}>
-          <Settings size={20} /> ACCOUNT SETTINGS
-        </button>
-        <button class="action-btn logout" onclick={handleLogout}>
-          <LogOut size={20} /> SIGN OUT
-        </button>
-      </div>
-    </section>
-
-    <section class="info-card history-preview glass">
-      <h2><Clock size={24} /> Recent Security</h2>
-      <div class="security-list">
-        <div class="security-item">
-          <span class="time">Just now</span>
-          <span class="event">TV Session Started</span>
-        </div>
-        <div class="security-item">
-          <span class="time">2h ago</span>
-          <span class="event">Profile Details Updated</span>
-        </div>
-        <div class="security-item">
-          <span class="time">Yesterday</span>
-          <span class="event">New Device Linked (Android TV)</span>
-        </div>
-      </div>
-    </section>
-  </div>
+<svelte:head><title>TV Profile — WatchAnimeX</title></svelte:head>
+<div class="tv-profile-page">
+  <header class="profile-header"><div class="avatar" aria-hidden="true">{($auth.user?.email || "W").charAt(0).toUpperCase()}</div><div><p>TV PROFILE</p><h1>{$auth.user?.email?.split("@")[0] || "WatchAnimeX viewer"}</h1><span><Mail size={16}/>{$auth.user?.email || "No account connected"}</span></div></header>
+  {#if loading}<p class="state">Loading account activity…</p>{:else if error}<p class="state error">{error}</p>{:else}
+    <section class="activity"><h2>Account activity</h2><div class="stats">
+      <div><Play size={22}/><span>Episodes watched</span><strong>{valueOf(["episodesWatched","watchedEpisodes","episodes_watched"])}</strong></div>
+      <div><Bookmark size={22}/><span>Watchlist</span><strong>{valueOf(["watchlistCount","watchlist_count"])}</strong></div>
+      <div><Heart size={22}/><span>Favorites</span><strong>{valueOf(["favoritesCount","favorites_count"])}</strong></div>
+    </div></section>
+  {/if}
+  <div class="actions"><button onclick={() => goto("/tv/settings")}><Settings size={20}/>TV settings</button><button class="logout" onclick={handleLogout}><LogOut size={20}/>Sign out</button></div>
 </div>
-
 <style>
-  .tv-profile-page {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .profile-header {
-    display: flex;
-    align-items: center;
-    gap: 4rem;
-    margin-bottom: 5rem;
-    background: linear-gradient(90deg, rgba(229, 9, 20, 0.1), transparent);
-    padding: 3rem;
-    border-radius: 30px;
-    border-left: 5px solid var(--net-red);
-  }
-
-  .avatar-wrapper {
-    position: relative;
-  }
-
-  .profile-avatar {
-    width: 200px;
-    height: 200px;
-    border-radius: 40px;
-    background: #111;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-  }
-
-  .status-badge {
-    position: absolute;
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #4ade80;
-    color: black;
-    font-weight: 900;
-    padding: 0.4rem 1.2rem;
-    border-radius: 100px;
-    font-size: 0.8rem;
-    box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
-  }
-
-  .user-info h1 {
-    font-size: 4rem;
-    font-weight: 950;
-    letter-spacing: -2px;
-    margin-bottom: 0.5rem;
-  }
-
-  .user-email {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--net-text-muted);
-    font-size: 1.2rem;
-    margin-bottom: 2rem;
-  }
-
-  .badges {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .badge {
-    padding: 0.5rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 900;
-    font-size: 0.85rem;
-  }
-
-  .badge.premium { background: var(--net-red); color: white; }
-  .badge.status { background: rgba(255,255,255,0.1); color: white; }
-
-  .profile-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
-  }
-
-  .info-card {
-    padding: 3rem;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .info-card h2 {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-size: 1.8rem;
-    margin-bottom: 2.5rem;
-    color: var(--net-text-muted);
-  }
-
-  .stats-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin-bottom: 3rem;
-  }
-
-  .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .stat .label { font-size: 0.8rem; color: var(--net-text-muted); letter-spacing: 0.1em; }
-  .stat .value { font-size: 1.5rem; font-weight: 800; }
-
-  .account-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .action-btn {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.2rem 2rem;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid transparent;
-    color: white;
-    font-weight: 700;
-    width: 100%;
-    transition: all 0.2s;
-  }
-
-  .action-btn:focus-visible, .action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: white;
-    transform: scale(1.02);
-    outline: none;
-  }
-
-  .action-btn.logout { color: var(--net-red); }
-  .action-btn.logout:focus-visible { border-color: var(--net-red); }
-
-  .security-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .security-item {
-    display: flex;
-    justify-content: space-between;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  }
-
-  .security-item .time { color: var(--net-text-muted); font-size: 0.9rem; }
-  .security-item .event { font-weight: 600; }
+  .tv-profile-page{max-width:1180px;margin:0 auto;padding:1rem 0 5rem;color:#f1ece4}.profile-header{display:flex;align-items:center;gap:2rem;padding:2.5rem 0 3rem;border-bottom:1px solid #2a2521}.avatar{display:grid;place-items:center;width:130px;height:130px;background:#df886b;color:#170c09;font-size:4rem;font-weight:900}.profile-header p{margin:0 0 .5rem;color:#df886b;font-size:.72rem;font-weight:800;letter-spacing:.16em}.profile-header h1{margin:0 0 .75rem;font-size:clamp(2.2rem,5vw,4rem)}.profile-header span{display:flex;align-items:center;gap:.5rem;color:#918a82}.activity{padding:3rem 0}.activity h2{margin:0 0 1.25rem;font-size:1rem;letter-spacing:.12em;text-transform:uppercase}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #2a2521;border-left:1px solid #2a2521}.stats div{display:grid;grid-template-columns:auto 1fr;gap:.75rem;padding:1.5rem;border-right:1px solid #2a2521;border-bottom:1px solid #2a2521;background:#0d0c0b}.stats span{color:#918a82}.stats strong{grid-column:1/-1;font-size:1.8rem}.state{margin:3rem 0;padding:1.5rem;border:1px solid #2a2521;background:#0d0c0b}.state.error{color:#efa086}.actions{display:flex;gap:1rem}.actions button{display:flex;align-items:center;gap:.7rem;min-height:54px;padding:0 1.3rem;border:1px solid #39312b;background:#151210;color:#f1ece4;font-weight:800;cursor:pointer}.actions button:hover,.actions button:focus-visible{border-color:#df886b;outline:none}.actions .logout{color:#efa086}@media(max-width:760px){.profile-header{align-items:flex-start}.avatar{width:90px;height:90px;font-size:2.7rem}.stats{grid-template-columns:1fr}.actions{flex-direction:column}.actions button{justify-content:center}}
 </style>

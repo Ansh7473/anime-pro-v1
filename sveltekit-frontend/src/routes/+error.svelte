@@ -24,7 +24,7 @@
 </script>
 
 <svelte:head>
-  <title>{status} — {info.title} | WatchAnimez</title>
+  <title>{status} — {info.title} | WatchAnimeX</title>
   <meta name="robots" content="noindex" />
 </svelte:head>
 

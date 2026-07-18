@@ -2,296 +2,35 @@
   import { getProxiedImage } from "$lib/api";
 
   let { item } = $props<{ item: any }>();
-
+  let imgError = $state(false);
   const poster = $derived(getProxiedImage(item?.poster || item?.image || ""));
-  const title = $derived(item?.title || "Unknown");
+  const rawTitle = $derived(item?.title || item?.name);
+  const title = $derived.by(() => typeof rawTitle === "string" ? rawTitle : rawTitle?.english || rawTitle?.romaji || rawTitle?.native || "Untitled anime");
   const epNum = $derived(item?.episode || item?.episodeNumber || 1);
-  const progress = $derived(item?.progress || 0);
-  const duration = $derived(item?.duration || 0);
-  const percent = $derived(
-    duration > 0 ? Math.min((progress / duration) * 100, 100) : 0,
-  );
+  const progress = $derived(Number(item?.progress || 0));
+  const duration = $derived(Number(item?.duration || 0));
+  const percent = $derived(duration > 0 ? Math.min((progress / duration) * 100, 100) : 0);
   const id = $derived(item?.id || item?.animeId);
-
-  /** Remaining time label like competitor timestamps, but smarter */
-  const timeLabel = $derived.by(() => {
-    if (!duration || duration <= 0) return "";
-    const remaining = Math.max(0, Math.round(duration - progress));
-    if (remaining <= 0 || percent >= 98) return "Done";
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    if (m >= 60) {
-      const h = Math.floor(m / 60);
-      const mm = m % 60;
-      return `${h}h ${mm}m left`;
-    }
-    return `${m}:${String(s).padStart(2, "0")}`;
+  const remaining = $derived.by(() => {
+    if (!duration) return "Resume";
+    if (percent >= 98) return "Finished";
+    const seconds = Math.max(0, Math.round(duration - progress));
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} left`;
   });
 </script>
 
-<a
-  href="/watch/{id}/{epNum}"
-  class="resume-card"
-  aria-label="Continue {title}, episode {epNum}{percent > 0
-    ? `, ${Math.round(percent)}% watched`
-    : ''}"
->
-  <div class="card-media">
-    <img src={poster} alt="" loading="lazy" decoding="async" />
-    <div class="media-shade" aria-hidden="true"></div>
-    <div class="play-circle" aria-hidden="true">
-      <span class="play-icon">▶</span>
-    </div>
-    {#if timeLabel}
-      <span class="time-badge">{timeLabel}</span>
-    {/if}
-    {#if percent > 0}
-      <div class="progress-track" aria-hidden="true">
-        <div class="progress-fill" style="width: {percent}%"></div>
-      </div>
-    {/if}
+<a href="/watch/{id}/{epNum}" class="resume-card" aria-label="Continue {title}, episode {epNum}">
+  <div class="media">
+    {#if poster && !imgError}<img src={poster} alt="" loading="lazy" decoding="async" onerror={() => (imgError = true)} />{:else}<span class="fallback" aria-hidden="true">ワ</span>{/if}
+    <span class="play-mark" aria-hidden="true">▶</span>
+    <span class="progress-track" aria-hidden="true"><span style={`width:${percent}%`}></span></span>
   </div>
-  <div class="card-copy">
-    <p class="card-title">{title}</p>
-    <p class="card-ep">Episode {epNum}</p>
+  <div class="copy">
+    <strong>{title}</strong>
+    <div><span>Episode {epNum}</span><span>{remaining}</span></div>
   </div>
 </a>
 
 <style>
-  .resume-card {
-    display: block;
-    flex-shrink: 0;
-    width: 200px;
-    cursor: pointer;
-    text-decoration: none;
-    scroll-snap-align: start;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform 0.2s ease;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .resume-card:hover {
-      transform: translateY(-3px);
-      z-index: 2;
-    }
-    .resume-card:hover .card-media {
-      border-color: rgba(255, 255, 255, 0.88);
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.08),
-        0 12px 28px rgba(0, 0, 0, 0.5),
-        0 0 18px rgba(229, 9, 20, 0.14);
-    }
-    .resume-card:hover .card-title {
-      color: white;
-    }
-    .resume-card:hover .play-circle {
-      background: rgba(229, 9, 20, 0.92);
-      border-color: rgba(255, 255, 255, 0.7);
-      transform: translate(-50%, -50%) scale(1.06);
-      opacity: 1;
-    }
-  }
-
-  .resume-card:active .card-media {
-    transform: scale(0.98);
-    border-color: rgba(255, 138, 61, 0.65);
-  }
-
-  /* Landscape frame — beats portrait for "continue" context */
-  .card-media {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    border-radius: 12px;
-    overflow: hidden;
-    background: #141416;
-    border: 1.5px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
-    transition:
-      border-color 0.2s ease,
-      box-shadow 0.2s ease,
-      transform 0.18s ease;
-  }
-
-  .card-media img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center top;
-  }
-
-  .media-shade {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0.78) 0%,
-      rgba(0, 0, 0, 0.2) 42%,
-      transparent 62%
-    );
-  }
-
-  .play-circle {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1.5px solid rgba(255, 255, 255, 0.55);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    opacity: 0.92;
-    transition:
-      background 0.2s ease,
-      transform 0.2s ease,
-      border-color 0.2s ease,
-      opacity 0.2s ease;
-    z-index: 2;
-  }
-  .play-icon {
-    color: white;
-    font-size: 0.85rem;
-    margin-left: 2px;
-    line-height: 1;
-  }
-
-  .time-badge {
-    position: absolute;
-    right: 7px;
-    bottom: 10px;
-    z-index: 3;
-    background: rgba(8, 8, 10, 0.82);
-    color: #fff;
-    font-size: 0.62rem;
-    font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    letter-spacing: 0.02em;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .progress-track {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3.5px;
-    background: rgba(255, 255, 255, 0.2);
-    z-index: 4;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #FF8A3D, #ff5a63);
-    border-radius: 0 1px 0 0;
-    box-shadow: 0 0 10px rgba(255, 138, 61, 0.55);
-  }
-
-  .card-copy {
-    margin-top: 8px;
-    padding: 0 1px;
-  }
-  .card-title {
-    margin: 0;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #f0f0f3;
-    line-height: 1.25;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    transition: color 0.2s;
-  }
-  .card-ep {
-    margin: 3px 0 0;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: rgba(163, 163, 163, 0.95);
-    letter-spacing: 0.01em;
-  }
-
-  @media (max-width: 768px) {
-    .resume-card {
-      /* ~1.55 cards + peek — landscape rail like premium apps */
-      width: clamp(200px, 62vw, 280px);
-    }
-    .card-media {
-      aspect-ratio: 16 / 9.5;
-      border-radius: 11px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
-    }
-    .play-circle {
-      width: 42px;
-      height: 42px;
-    }
-    .card-title {
-      font-size: 0.84rem;
-    }
-    .card-ep {
-      font-size: 0.74rem;
-    }
-    .time-badge {
-      right: 8px;
-      bottom: 11px;
-      font-size: 0.64rem;
-      padding: 3px 8px;
-    }
-    .progress-track {
-      height: 3.5px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .resume-card {
-      width: clamp(188px, 68vw, 260px);
-    }
-    .card-media {
-      border-radius: 10px;
-    }
-    .card-title {
-      font-size: 0.8rem;
-    }
-    .card-ep {
-      font-size: 0.7rem;
-    }
-    .play-circle {
-      width: 40px;
-      height: 40px;
-    }
-    .play-icon {
-      font-size: 0.8rem;
-    }
-  }
-
-  @media (max-width: 360px) {
-    .resume-card {
-      width: 72vw;
-    }
-  }
-
-  /* Desktop keeps a slightly tighter rail */
-  @media (min-width: 769px) {
-    .resume-card {
-      width: 220px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .resume-card,
-    .card-media,
-    .play-circle {
-      transition: none;
-    }
-  }
+  .resume-card{flex:0 0 clamp(248px,21vw,320px);color:inherit;text-decoration:none;scroll-snap-align:start}.media{position:relative;aspect-ratio:16/9;overflow:hidden;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);background:#151311}.media img{width:100%;height:100%;object-fit:cover;object-position:center 25%;filter:saturate(.8) contrast(1.04);transition:filter .18s ease}.fallback{display:grid;width:100%;height:100%;place-items:center;color:#615a53;font-size:2rem}.play-mark{position:absolute;inset:0;display:grid;place-items:center;color:#f3ece3;font-size:.8rem;text-shadow:0 1px 3px #000}.progress-track{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(7,7,6,.72)}.progress-track span{display:block;height:100%;background:#d47759}.copy{padding-top:.72rem}.copy strong{display:block;overflow:hidden;color:#ece6dd;font-size:.86rem;font-weight:780;text-overflow:ellipsis;white-space:nowrap}.copy div{display:flex;justify-content:space-between;gap:.8rem;margin-top:.38rem;padding-top:.46rem;border-top:1px solid #211d1a;color:#79726b;font-size:.65rem;font-variant-numeric:tabular-nums}.resume-card:hover .media img{filter:saturate(1) contrast(1.06)}.resume-card:hover .copy strong{color:#f1a287}.resume-card:focus-visible{outline:2px solid #efae98;outline-offset:4px;border-radius:2px}@media(max-width:640px){.resume-card{flex-basis:min(82vw,300px)}}@media(prefers-reduced-motion:reduce){.media img{transition:none}}
 </style>

@@ -58,10 +58,10 @@
 </script>
 
 <svelte:head>
-  <title>My Dashboard — WatchAnimez</title>
-  <meta name="description" content="Your personal WatchAnimez dashboard — watch history, recommendations, preferences, and viewing statistics." />
-  <meta property="og:title" content="My Dashboard — WatchAnimez" />
-  <meta property="og:description" content="Your personal WatchAnimez dashboard — watch history, recommendations, preferences, and viewing statistics." />
+  <title>My Dashboard — WatchAnimeX</title>
+  <meta name="description" content="Your personal WatchAnimeX dashboard — watch history, recommendations, preferences, and viewing statistics." />
+  <meta property="og:title" content="My Dashboard — WatchAnimeX" />
+  <meta property="og:description" content="Your personal WatchAnimeX dashboard — watch history, recommendations, preferences, and viewing statistics." />
 </svelte:head>
 
 <div class="dashboard-page container">

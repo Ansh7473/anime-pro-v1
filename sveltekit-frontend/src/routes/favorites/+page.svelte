@@ -39,8 +39,8 @@
 </script>
 
 <svelte:head>
-    <title>My Favorites — WatchAnimez</title>
-    <meta name="description" content="View and manage your favorite anime collection on WatchAnimez. Quick access to the shows and movies you love." />
+    <title>My Favorites — WatchAnimeX</title>
+    <meta name="description" content="View and manage your favorite anime collection on WatchAnimeX. Quick access to the shows and movies you love." />
 </svelte:head>
 
 <div class="favorites-page container">

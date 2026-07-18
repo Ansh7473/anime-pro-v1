@@ -1,25 +1,25 @@
 <svelte:head>
-  <title>FAQ — WatchAnimez</title>
-  <meta name="description" content="Frequently asked questions about WatchAnimez. Find answers about accounts, streaming, apps, privacy, and more." />
-  <meta property="og:title" content="FAQ — WatchAnimez" />
-  <meta property="og:description" content="Frequently asked questions about WatchAnimez. Find answers about accounts, streaming, apps, privacy, and more." />
+  <title>FAQ — WatchAnimeX</title>
+  <meta name="description" content="Frequently asked questions about WatchAnimeX. Find answers about accounts, streaming, apps, privacy, and more." />
+  <meta property="og:title" content="FAQ — WatchAnimeX" />
+  <meta property="og:description" content="Frequently asked questions about WatchAnimeX. Find answers about accounts, streaming, apps, privacy, and more." />
 </svelte:head>
 
 <script lang="ts">
   const faqs = [
     {
       category: 'General',
-      q: 'What is WatchAnimez?',
-      a: '<p>WatchAnimez is a premium anime streaming platform that helps fans discover, track, and watch anime series and movies. We aggregate data from multiple trusted sources to provide comprehensive information including episode counts, ratings, genres, schedules, and more.</p>'
+      q: 'What is WatchAnimeX?',
+      a: '<p>WatchAnimeX is a premium anime streaming platform that helps fans discover, track, and watch anime series and movies. We aggregate data from multiple trusted sources to provide comprehensive information including episode counts, ratings, genres, schedules, and more.</p>'
     },
     {
       category: 'General',
-      q: 'Is WatchAnimez free to use?',
-      a: '<p>Yes! WatchAnimez is completely free to use. You can browse, search, and explore our entire anime catalog without any subscription or payment. Creating an account is also free and unlocks additional features like watchlists, favorites, and cross-device sync.</p>'
+      q: 'Is WatchAnimeX free to use?',
+      a: '<p>Yes! WatchAnimeX is completely free to use. You can browse, search, and explore our entire anime catalog without any subscription or payment. Creating an account is also free and unlocks additional features like watchlists, favorites, and cross-device sync.</p>'
     },
     {
       category: 'General',
-      q: 'What anime is available on WatchAnimez?',
+      q: 'What anime is available on WatchAnimeX?',
       a: '<p>Our catalog includes thousands of anime titles spanning every genre and format — TV series, movies, OVAs, specials, and ONAs. From current seasonal releases to timeless classics, action shounen to slice-of-life dramas, we cover it all. New titles are added regularly.</p>'
     },
     {
@@ -30,7 +30,7 @@
     {
       category: 'Account',
       q: 'Can I use multiple profiles on one account?',
-      a: '<p>Yes! WatchAnimez supports multiple user profiles under a single account. Each profile maintains its own watchlist, favorites, viewing history, and preferences — perfect for families or friends sharing an account.</p>'
+      a: '<p>Yes! WatchAnimeX supports multiple user profiles under a single account. Each profile maintains its own watchlist, favorites, viewing history, and preferences — perfect for families or friends sharing an account.</p>'
     },
     {
       category: 'Account',
@@ -39,8 +39,8 @@
     },
     {
       category: 'Streaming',
-      q: 'How does streaming work on WatchAnimez?',
-      a: '<p>WatchAnimez provides direct links to streaming sources for each anime title. Simply search for an anime, select the episode you want to watch, and you\'ll be directed to the available streaming source. We aggregate from multiple sources to ensure availability.</p>'
+      q: 'How does streaming work on WatchAnimeX?',
+      a: '<p>WatchAnimeX provides direct links to streaming sources for each anime title. Simply search for an anime, select the episode you want to watch, and you\'ll be directed to the available streaming source. We aggregate from multiple sources to ensure availability.</p>'
     },
     {
       category: 'Streaming',
@@ -55,7 +55,7 @@
     {
       category: 'Apps',
       q: 'Is there a mobile app?',
-      a: '<p>Yes! We offer a native Android app available as an APK download from our <a href="/download">download page</a>. The app provides the full WatchAnimez experience optimized for mobile devices, with offline browsing support and push notifications for new episodes.</p>'
+      a: '<p>Yes! We offer a native Android app available as an APK download from our <a href="/download">download page</a>. The app provides the full WatchAnimeX experience optimized for mobile devices, with offline browsing support and push notifications for new episodes.</p>'
     },
     {
       category: 'Apps',
@@ -65,11 +65,11 @@
     {
       category: 'Apps',
       q: 'Do my watchlists sync across devices?',
-      a: '<p>Absolutely! When you\'re logged into your WatchAnimez account, your watchlists, favorites, viewing history, and preferences are automatically synchronized across all your devices — web, mobile, and desktop.</p>'
+      a: '<p>Absolutely! When you\'re logged into your WatchAnimeX account, your watchlists, favorites, viewing history, and preferences are automatically synchronized across all your devices — web, mobile, and desktop.</p>'
     },
     {
       category: 'Privacy',
-      q: 'What data does WatchAnimez collect?',
+      q: 'What data does WatchAnimeX collect?',
       a: '<p>We collect only the data necessary to provide our services: your email for authentication, your viewing preferences for recommendations, and basic usage analytics to improve the platform. We never sell your personal data to third parties. See our <a href="/privacy">Privacy Policy</a> for full details.</p>'
     },
     {
@@ -85,12 +85,12 @@
     {
       category: 'Technical',
       q: 'What browsers are supported?',
-      a: '<p>WatchAnimez works on all modern browsers including Chrome, Firefox, Safari, Edge, and Brave. For the best experience, we recommend keeping your browser updated to the latest version.</p>'
+      a: '<p>WatchAnimeX works on all modern browsers including Chrome, Firefox, Safari, Edge, and Brave. For the best experience, we recommend keeping your browser updated to the latest version.</p>'
     },
     {
       category: 'Technical',
       q: 'The site is loading slowly. What can I do?',
-      a: '<p>WatchAnimez is optimized for speed, but performance can be affected by your internet connection, browser extensions (especially ad blockers), or temporary server load. Try clearing your browser cache, disabling extensions, or switching to a different browser. If the issue persists, please <a href="/contact">report it</a>.</p>'
+      a: '<p>WatchAnimeX is optimized for speed, but performance can be affected by your internet connection, browser extensions (especially ad blockers), or temporary server load. Try clearing your browser cache, disabling extensions, or switching to a different browser. If the issue persists, please <a href="/contact">report it</a>.</p>'
     },
     {
       category: 'Technical',
@@ -128,7 +128,7 @@
 <div class="page-container container">
   <div class="page-header">
     <h1>Frequently Asked Questions</h1>
-    <p class="subtitle">Find answers to the most common questions about WatchAnimez.</p>
+    <p class="subtitle">Find answers to the most common questions about WatchAnimeX.</p>
   </div>
 
   <div class="faq-search">

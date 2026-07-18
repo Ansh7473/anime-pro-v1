@@ -17,7 +17,9 @@
       const res = await api.login({ email, password });
       if (res?.token) {
         loginUser(res.user, res.token);
-        goto("/");
+        const requested = new URLSearchParams(window.location.search).get("redirect") || "/";
+        const destination = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+        await goto(destination);
       } else {
         throw new Error("Invalid response from server");
       }
@@ -44,10 +46,10 @@
 </script>
 
 <svelte:head>
-  <title>Login — WatchAnimez</title>
-  <meta name="description" content="Sign in to your WatchAnimez account to access your watchlist, favorites, and personalized recommendations." />
-  <meta property="og:title" content="Login — WatchAnimez" />
-  <meta property="og:description" content="Sign in to your WatchAnimez account to access your watchlist, favorites, and personalized recommendations." />
+  <title>Login — WatchAnimeX</title>
+  <meta name="description" content="Sign in to your WatchAnimeX account to access your watchlist, favorites, and personalized recommendations." />
+  <meta property="og:title" content="Login — WatchAnimeX" />
+  <meta property="og:description" content="Sign in to your WatchAnimeX account to access your watchlist, favorites, and personalized recommendations." />
 </svelte:head>
 
 <div class="login-page" class:ready={mounted}>
@@ -60,7 +62,7 @@
     <div class="login-card glass">
       <header class="login-header">
         <h1>Welcome Back</h1>
-        <p class="subtitle">Sign in to your WatchAnimez account</p>
+        <p class="subtitle">Sign in to your WatchAnimeX account</p>
       </header>
 
       {#if error}
@@ -110,7 +112,7 @@
 
       <footer class="login-footer">
         <div class="footer-links">
-          <span class="new-text">New to WatchAnimez?</span>
+          <span class="new-text">New to WatchAnimeX?</span>
           <a href="/auth/register" class="signup-link">Create Account</a>
         </div>
       </footer>
@@ -120,14 +122,14 @@
 
 <style>
   :global(:root) {
-    --n-bg: #000;
-    --n-card-bg: rgba(0, 0, 0, 0.75);
-    --n-accent: #F59E0B;
-    --n-gradient: linear-gradient(135deg, #FACC15, #F59E0B);
-    --n-text: #fff;
-    --n-text-muted: #8c8c8c;
-    --n-input-bg: #333;
-    --n-error: #FF8A3D;
+    --n-bg: #070706;
+    --n-card-bg: #0d0c0b;
+    --n-accent: #df886b;
+    --n-gradient: #df886b;
+    --n-text: #f1ece4;
+    --n-text-muted: #918a82;
+    --n-input-bg: #151210;
+    --n-error: #e69a81;
   }
 
   .login-page {
@@ -139,8 +141,8 @@
     background: var(--n-bg);
     color: var(--n-text);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
-    opacity: 0;
-    transition: opacity 0.5s ease;
+    opacity: 1;
+    transition: none;
   }
 
   .login-page.ready {
@@ -157,21 +159,13 @@
   .poster-overlay {
     position: absolute;
     inset: 0;
-    background: url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=60&w=1200")
-      center/cover;
-    filter: blur(20px) brightness(0.3);
-    transform: scale(1.1);
+    background: #070706;
   }
 
   .gradient-overlay {
     position: absolute;
     inset: 0;
-    background: radial-gradient(
-        circle at center,
-        transparent 0%,
-        rgba(0, 0, 0, 0.8) 100%
-      ),
-      linear-gradient(to bottom, rgba(0, 0, 0, 0.5), #000);
+    background: linear-gradient(105deg, #070706 0%, #0d0b0a 55%, #17110f 100%);
   }
 
   .login-wrapper {
@@ -186,11 +180,9 @@
     background: var(--net-panel, #0c0c0c);
     border: 1px solid var(--net-panel-border, rgba(255, 255, 255, 0.08));
     padding: 2.75rem 3rem;
-    border-radius: 16px;
-    box-shadow:
-      0 12px 40px rgba(0, 0, 0, 0.55),
-      0 0 0 1px rgba(96, 165, 250, 0.05);
-    backdrop-filter: blur(12px);
+    border-radius: 4px;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .login-header {
@@ -285,8 +277,8 @@
 
   .submit-btn {
     margin-top: 1.5rem;
-    background: var(--n-gradient);
-    color: #fff;
+    background: var(--n-accent);
+    color: #170c09;
     border: none;
     padding: 1rem;
     border-radius: 8px;

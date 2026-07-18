@@ -1,87 +1,14 @@
 <script lang="ts">
   import TVAnimeCard from "./TVAnimeCard.svelte";
-  import { onMount } from "svelte";
-
-  let {
-    title,
-    items = [],
-  } = $props<{ title: string; items: any[] }>();
-  
-  let scrollContainer: HTMLDivElement | undefined = $state();
-
-  let uniqueItems = $derived.by(() => {
-    const seen = new Set();
-    return items.filter((anime: any) => {
-      const id = anime.id || anime.mal_id;
-      if (!id) return true;
-      if (seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
-  });
-
-  // TV Remote navigation helper
-  function handleKeydown(e: KeyboardEvent) {
-    // Basic focus management if needed, but browser handles most standard scroll
-  }
+  let { title, items = [] } = $props<{title:string;items:any[]}>();
+  let uniqueItems=$derived.by(()=>{const seen=new Set();return items.filter((anime:any)=>{const id=anime.id||anime.mal_id;if(!id)return true;if(seen.has(id))return false;seen.add(id);return true})});
 </script>
-
-{#if uniqueItems.length > 0}
-  <section class="tv-row-section">
-    <div class="tv-row-header">
-      <h2 class="tv-row-title">{title}</h2>
-    </div>
-    <div class="tv-row-wrapper">
-      <div class="tv-row-scroll" bind:this={scrollContainer} onkeydown={handleKeydown} role="presentation">
-        {#each uniqueItems as anime (anime.id || anime.mal_id || Math.random())}
-          <TVAnimeCard {anime} />
-        {/each}
-      </div>
-    </div>
-  </section>
+{#if uniqueItems.length}
+<section class="tv-row-section">
+  <header><h2>{title}</h2><span>{uniqueItems.length} titles</span></header>
+  <div class="tv-row-scroll" role="list">{#each uniqueItems as anime,i (anime.id||anime.mal_id||`${title}-${i}`)}<TVAnimeCard {anime}/>{/each}</div>
+</section>
 {/if}
-
 <style>
-  .tv-row-section {
-    margin-bottom: 3.5rem;
-    padding: 0; /* Handled by TVShell overscan layer */
-  }
-  
-  .tv-row-header {
-    margin-bottom: 1rem;
-  }
-  
-  .tv-row-title {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: white;
-    letter-spacing: -0.02em;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-    opacity: 1;
-  }
-  
-  .tv-row-wrapper {
-    position: relative;
-    padding: 1rem 0;
-  }
-  
-  .tv-row-scroll {
-    display: flex;
-    gap: 2rem;
-    overflow-x: auto;
-    padding: 1.5rem 0.5rem;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    scroll-padding: 0 4rem;
-  }
-  
-  .tv-row-scroll::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Ensure focused card is fully visible */
-  .tv-row-scroll :global(.tv-card:focus-visible) {
-    scroll-margin: 0 4rem;
-    outline: none;
-  }
+  .tv-row-section{margin-bottom:4rem;border-top:1px solid #2b2521;padding-top:1.4rem}header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem}h2{margin:0;color:#f2ece4;font-size:2rem;font-weight:850;letter-spacing:-.035em}header span{color:#746d65;font-size:.8rem;text-transform:uppercase;letter-spacing:.1em}.tv-row-scroll{display:flex;gap:1.5rem;overflow-x:auto;padding:1rem .5rem 1.6rem;scroll-padding-inline:.5rem;scrollbar-width:thin;scrollbar-color:#4a4039 transparent}.tv-row-scroll :global(.tv-card:focus-visible){scroll-margin-inline:3rem}
 </style>

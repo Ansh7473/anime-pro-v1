@@ -241,10 +241,10 @@
 </script>
 
 <svelte:head>
-  <title>My Profile — WatchAnimez</title>
-  <meta name="description" content="Manage your WatchAnimez profiles, preferences, security settings, and view your favorite anime." />
-  <meta property="og:title" content="My Profile — WatchAnimez" />
-  <meta property="og:description" content="Manage your WatchAnimez profiles, preferences, security settings, and view your favorite anime." />
+  <title>My Profile — WatchAnimeX</title>
+  <meta name="description" content="Manage your WatchAnimeX profiles, preferences, security settings, and view your favorite anime." />
+  <meta property="og:title" content="My Profile — WatchAnimeX" />
+  <meta property="og:description" content="Manage your WatchAnimeX profiles, preferences, security settings, and view your favorite anime." />
 </svelte:head>
 
 {#if loading}
@@ -1000,20 +1000,13 @@
 
   @media (max-width: 480px) {
     .page-title { font-size: 1.3rem; }
-    .user-card-top {
-      flex-direction: column;
-      align-items: stretch;
-    }
+    .user-card-top { flex-direction: column; align-items: stretch; }
     .user-card-left { gap: 0.85rem; }
     .user-avatar { width: 50px; height: 50px; font-size: 1.25rem; }
     .user-name { font-size: 1.05rem; }
-    .logout-btn {
-      width: 100%;
-      justify-content: center;
-      padding: 0.55rem 0.85rem;
-      min-height: 44px;
-    }
+    .logout-btn { width: 100%; justify-content: center; padding: 0.55rem 0.85rem; min-height: 44px; }
     .card { padding: 1.15rem; }
     .stat-num { font-size: 1rem; }
   }
+  .profile-page{padding-top:3rem;padding-bottom:5rem}.page-header{padding-bottom:1.5rem;border-bottom:1px solid var(--editorial-line,#28231f)}.user-card,.card{border-radius:4px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f)}.user-avatar{border-radius:3px;background:var(--editorial-accent,#df886b);color:#170c09}.profile-item,.settings-action,.pref-select,.btn-outline,.btn-small,.btn-icon,.theme-swatch{border-radius:3px}.profile-item.active{background:#151210;border-color:#49372f}.active-tag,.theme-current{border-radius:2px;background:transparent;border:1px solid #49372f}.theme-swatch:hover{transform:none;box-shadow:none}.theme-swatch.active{box-shadow:none;border-width:2px}.btn-outline,.btn-small{background:transparent;border-color:#3a312c}.settings-action:hover,.profile-item:hover{background:#151210}
 </style>

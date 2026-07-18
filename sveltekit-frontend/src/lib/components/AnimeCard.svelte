@@ -1,581 +1,167 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
+  import { getProxiedImage } from "$lib/api";
 
-  let {
-    anime,
-    size = "normal",
-    rank = 0,
-  } = $props<{
+  let { anime, size = "normal", rank = 0 } = $props<{
     anime: any;
     size?: "small" | "normal" | "large";
     rank?: number;
   }>();
 
+  const source = $derived(anime?.entry || anime?.media || anime || {});
   let imgError = $state(false);
-
-  const poster = $derived(
-    anime?.poster || anime?.image || anime?.images?.jpg?.large_image_url || "",
-  );
-  const rawTitle = $derived(
-    anime?.title || anime?.name || anime?.userPreferred || anime?.title_english,
-  );
+  const poster = $derived(source?.poster || source?.image || source?.coverImage?.large || source?.images?.jpg?.large_image_url || "");
+  const rawTitle = $derived(source?.title || source?.name || source?.userPreferred || source?.title_english);
   const title = $derived.by(() => {
-    if (typeof rawTitle === "string" && rawTitle) return rawTitle;
-    if (typeof rawTitle === "object" && rawTitle !== null) {
-      return (
-        rawTitle.english ||
-        rawTitle.userPreferred ||
-        rawTitle.romaji ||
-        rawTitle.native ||
-        "Unknown Anime"
-      );
-    }
-    return "Unknown Anime";
+    if (typeof rawTitle === "string" && rawTitle.trim()) return rawTitle.trim();
+    return rawTitle?.english || rawTitle?.userPreferred || rawTitle?.romaji || rawTitle?.native || "Untitled anime";
   });
-  const rawScore = $derived(anime?.score || anime?.rating || 0);
+  const rawScore = $derived(Number(source?.score || source?.rating || 0));
   const score = $derived(rawScore > 10 ? rawScore / 10 : rawScore);
-  const id = $derived(anime?.id || anime?.mal_id);
-  const statusRaw = $derived(String(anime?.status || "").toUpperCase());
-  const statusLive = $derived(
-    statusRaw.includes("RELEASING") || statusRaw.includes("AIRING") || statusRaw.includes("CURRENT")
-  );
-  const format = $derived(
-    (() => {
-      const raw = String(anime?.type || anime?.format || "").trim();
-      if (!raw) return "";
-      const upper = raw.toUpperCase();
-      if (upper === "TV" || upper === "TV_SHORT") return "TV";
-      if (upper === "MOVIE" || upper === "FILM") return "Movie";
-      if (upper === "OVA" || upper === "ONA" || upper === "SPECIAL") return upper;
-      if (upper === "MUSIC") return "Music";
-      return raw.length <= 8 ? raw : raw.slice(0, 8);
-    })(),
-  );
-  const episodes = $derived(
-    Number(anime?.episodes || anime?.totalEpisodes || anime?.episodeCount || 0) || 0,
-  );
-  const year = $derived(
-    anime?.year ||
-      (typeof anime?.aired?.from === "string" ? anime.aired.from.split("-")[0] : "") ||
-      "",
-  );
-
-  function handleNavigate(e?: Event) {
-    if (e instanceof MouseEvent && (e.button === 1 || e.ctrlKey || e.metaKey)) return;
-    if (e) e.preventDefault();
-    if (id) goto(`/anime/${id}`);
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleNavigate(e);
-    }
-  }
+  const id = $derived(source?.id || source?.mal_id);
+  const status = $derived(String(source?.status || "").toUpperCase());
+  const isAiring = $derived(status.includes("RELEASING") || status.includes("AIRING") || status.includes("CURRENT"));
+  const format = $derived(String(source?.type || source?.format || "Series").replace(/_/g, " "));
+  const episodes = $derived(Number(source?.episodes || source?.totalEpisodes || source?.episodeCount || 0));
+  const year = $derived(source?.year || source?.seasonYear || "");
+  const relation = $derived(String(anime?.relationType || anime?.relation || "").replace(/_/g, " "));
 </script>
 
-<a
-  href="/anime/{id}"
-  class="card"
-  class:small={size === "small"}
-  class:large={size === "large"}
-  class:has-rank={rank > 0}
-  tabindex="0"
-  onclick={handleNavigate}
-  onkeydown={handleKeydown}
-  aria-label={rank > 0 ? `#${rank} ${title}` : title}
->
-  <div class="card-poster">
+<a href="/anime/{id}" class="card" class:small={size === "small"} class:large={size === "large"} aria-label={rank ? `Number ${rank}, ${title}` : title}>
+  <div class="poster">
     {#if poster && !imgError}
-      <img
-        src={poster}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        onerror={() => (imgError = true)}
-      />
+      <img src={getProxiedImage(poster)} alt="" loading="lazy" decoding="async" onerror={() => (imgError = true)} />
     {:else}
-      <div class="card-fallback" aria-hidden="true">
-        <span class="cf-mark">ワ</span>
-        <span class="cf-title">{title}</span>
-      </div>
+      <div class="fallback" aria-hidden="true"><span>ワ</span><small>{title}</small></div>
     {/if}
-
-    <div class="poster-shade" aria-hidden="true"></div>
-    <div class="poster-ring" aria-hidden="true"></div>
-
-    <div class="play-hint" aria-hidden="true">
-      <span class="play-icon">▶</span>
-    </div>
-
-    {#if rank > 0 && rank <= 10}
-      <span class="rank-badge" aria-hidden="true">{rank}</span>
-    {/if}
-
-    {#if score > 0}
-      <span class="score-badge">★ {score.toFixed(1)}</span>
-    {/if}
-
-    {#if format}
-      <span class="format-badge">{format}</span>
-    {/if}
-
-    {#if episodes > 0}
-      <span class="eps-badge">{episodes} eps</span>
-    {/if}
+    {#if rank > 0}<span class="rank">{String(rank).padStart(2, "0")}</span>{/if}
+    {#if isAiring}<span class="airing">Now airing</span>{/if}
   </div>
-  <div class="card-meta">
-    <p class="card-title">
-      <span class="status-dot" class:live={statusLive} aria-hidden="true"></span>
-      {title}
-    </p>
-    <p class="card-sub">
-      {#if format}<span>{format}</span>{/if}
-      {#if year}<span>{year}</span>{/if}
-      {#if episodes > 0}<span class="eps-chip">{episodes} eps</span>{/if}
-      {#if score > 0}<span class="score-chip">★ {score.toFixed(1)}</span>{/if}
-    </p>
+  <div class="copy">
+    <h3>{title}</h3>
+    <div class="meta">
+      <span>{relation || format}{year ? ` · ${year}` : ""}</span>
+      {#if score || episodes}<span class="measure">{score ? `★ ${score.toFixed(1)}` : `${episodes} ep`}</span>{/if}
+    </div>
   </div>
 </a>
 
 <style>
   .card {
-    display: block;
-    width: 100%;
-    max-width: none;
-    cursor: pointer;
-    text-decoration: none;
-    scroll-snap-align: start;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  :global(.poster-grid) > .card,
-  :global(.card-slot) > .card,
-  :global(.anime-grid) > .card,
-  :global(.grid) > .card,
-  :global(.results-grid) > .card,
-  :global(.favorites-grid) .card,
-  :global(.watchlist-grid) .card,
-  :global(.card-grid) > .card {
-    max-width: none;
-  }
-
-  .card:focus-visible {
-    outline: none;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .card:hover {
-      transform: translateY(-4px);
-      z-index: 10;
-    }
-    .card:hover .card-poster {
-          border-color: rgba(255, 255, 255, 0.55);
-          box-shadow:
-            0 0 0 1px rgba(252, 211, 77, 0.5),
-            0 12px 32px rgba(0, 0, 0, 0.5),
-            0 0 24px rgba(250, 204, 21, 0.24);
-        }
-    .card:hover .card-poster img {
-      transform: scale(1.07);
-    }
-    .card:hover .play-hint {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    .card:hover .poster-ring {
-      border-color: rgba(236, 88, 0, 0.5);
-      box-shadow: 0 0 20px rgba(236, 88, 0, 0.26), inset 0 0 20px rgba(236, 88, 0, 0.08);
-    }
-    .card:hover .card-title {
-      color: #EC5800;
-    }
-  }
-
-  .card:focus-visible .card-poster {
-    border-color: rgba(255, 255, 255, 0.95);
-    box-shadow:
-      0 0 0 2px rgba(236, 88, 0, 0.55),
-      0 10px 28px rgba(0, 0, 0, 0.5);
-  }
-
-  .card:focus-visible .play-hint {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  .card:active .card-poster {
-    transform: scale(0.975);
-    border-color: rgba(96, 165, 250, 0.65);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-  }
-
-  .card.small {
-    max-width: 160px;
-  }
-  .card.large {
-    max-width: 280px;
-  }
-
-  .card-poster {
-    position: relative;
-    border-radius: 10px;
+    display: flex;
+    min-width: 0;
+    height: 100%;
+    flex-direction: column;
     overflow: hidden;
-    aspect-ratio: 2 / 3;
-    content-visibility: auto;
-    contain-intrinsic-size: auto 200px 300px;
-    background:
-      radial-gradient(120% 70% at 50% 0%, rgba(255, 138, 61, 0.12), transparent 65%),
-      linear-gradient(160deg, #1c1c22, #0c0c0e);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow:
-      0 8px 22px rgba(0, 0, 0, 0.38),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    transition:
-      border-color 0.2s ease,
-      box-shadow 0.2s ease,
-      transform 0.18s ease;
-    will-change: transform;
+    border-radius: 4px;
+    background: #0d0c0b;
+    color: inherit;
+    text-decoration: none;
+    transition: background 160ms ease;
   }
-
-  .card-poster img {
+  .poster {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background: #151311;
+  }
+  .poster img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: transform;
-    backface-visibility: hidden;
+    filter: saturate(.88) contrast(1.025);
+    transition: filter 180ms ease;
   }
-
-  .poster-shade {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background: linear-gradient(0deg, rgba(6, 6, 10, 0.85) 0%, transparent 50%);
-      z-index: 1;
-    }
-
-  .poster-ring {
+  .airing,
+  .rank {
     position: absolute;
-    inset: -1px;
-    border-radius: 15px;
-    border: 2px solid transparent;
-    pointer-events: none;
-    z-index: 3;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .play-hint {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(8, 8, 10, 0.58);
-    border: 1.5px solid rgba(255, 255, 255, 0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.85);
-    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        pointer-events: none;
-        z-index: 2;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-      }
-
-  .play-icon {
-    color: #fff;
-    font-size: 0.95rem;
-    margin-left: 2px;
-    line-height: 1;
-  }
-
-  .card-fallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    text-align: center;
-    background:
-      radial-gradient(120% 80% at 50% 0%, rgba(229, 9, 20, 0.18), transparent 70%),
-      linear-gradient(160deg, #17171a, #0c0c0e);
-  }
-  .card-fallback .cf-mark {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: rgba(255, 138, 61, 0.55);
-    line-height: 1;
-  }
-  .card-fallback .cf-title {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #c8c8cc;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .rank-badge {
-    position: absolute;
-    left: 0;
     bottom: 0;
-    z-index: 3;
-    font-size: clamp(2.4rem, 18vw, 3.4rem);
-    font-weight: 900;
-    line-height: 0.78;
-    letter-spacing: -0.06em;
-    color: transparent;
-    -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.92);
-    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
-    padding: 0 0 2px 4px;
-    pointer-events: none;
+    min-height: 26px;
+    display: inline-flex;
+    align-items: center;
+    background: rgba(7, 7, 6, .92);
+    color: #e9e1d8;
+    font-size: .62rem;
+    font-weight: 800;
+  }
+  .airing {
+    left: 0;
+    padding: .36rem .55rem;
+    color: #efa086;
+    letter-spacing: .025em;
+  }
+  .rank {
+    right: 0;
+    min-width: 2.45rem;
+    justify-content: center;
+    padding: .36rem .5rem;
     font-variant-numeric: tabular-nums;
   }
-
-  .score-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 2;
-    background: rgba(34, 197, 94, 0.95);
-    color: #fff;
-    font-size: 0.62rem;
-    font-weight: 800;
-    padding: 3px 8px;
-    border-radius: 4px;
-    transform: skewX(-10deg);
-    line-height: 1.25;
-    pointer-events: none;
-    letter-spacing: 0.01em;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  .fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: .7rem;
+    padding: 1rem;
+    color: #655e57;
   }
-
-  .card.has-rank .score-badge {
-    left: auto;
-    right: 8px;
+  .fallback span { font-size: 2rem; }
+  .fallback small { max-width: 100%; color: #8f877f; font-size: .7rem; text-align: center; }
+  .copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: .5rem;
+    padding: .72rem .72rem .78rem;
   }
-
-  .format-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 2;
-    background: #EC5800;
-    color: #000;
-    font-size: 0.58rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 4px;
-    transform: skewX(-10deg);
-    line-height: 1.2;
-    pointer-events: none;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-  }
-
-  .card.has-rank .format-badge {
-    display: none;
-  }
-
-  .eps-badge {
-    position: absolute;
-    right: 8px;
-    bottom: 9px;
-    z-index: 2;
-    background: rgba(12, 12, 12, 0.9);
-    color: rgba(255, 255, 255, 0.94);
-    font-size: 0.58rem;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 4px;
-    transform: skewX(-10deg);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    pointer-events: none;
-  }
-
-  .card.has-rank .eps-badge {
-    left: 8px;
-    right: auto;
-    bottom: 10px;
-  }
-
-  .card-meta {
-    margin-top: 9px;
-    padding: 0 1px;
-  }
-
-  .card-title {
+  h3 {
     margin: 0;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #ececf0;
-    line-height: 1.28;
-    min-height: 2.1em;
+    color: #eee8df;
+    font-size: .88rem;
+    font-weight: 780;
+    line-height: 1.3;
+    letter-spacing: -.014em;
     display: -webkit-box;
+    -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
-    -webkit-box-orient: vertical;
     overflow: hidden;
-    transition: color 0.2s;
-    letter-spacing: -0.01em;
   }
-
-  .card-sub {
-    margin: 4px 0 0;
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: rgba(163, 163, 170, 0.95);
+  .meta {
     display: flex;
-    align-items: center;
-    gap: 0.28rem;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .6rem;
+    margin-top: auto;
+    color: #777068;
+    font-size: .64rem;
+    line-height: 1.25;
+  }
+  .meta > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
-    overflow: hidden;
   }
-  .card-sub .dot {
-    opacity: 0.55;
+  .measure {
+    flex: 0 0 auto;
+    color: #a49b92;
+    font-variant-numeric: tabular-nums;
   }
-
-  @media (max-width: 768px) {
-    .card {
-      max-width: none;
-    }
-    .card-poster {
-      border-radius: 12px;
-      box-shadow:
-        0 10px 24px rgba(0, 0, 0, 0.42),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    }
-    .card-title {
-      font-size: 0.8rem;
-      color: #f2f2f5;
-    }
-    .card-sub {
-      font-size: 0.66rem;
-    }
-    .score-badge {
-      font-size: 0.62rem;
-      padding: 3px 6px;
-    }
-    .format-badge {
-      font-size: 0.54rem;
-      padding: 2px 6px;
-    }
-    .play-hint {
-      width: 40px;
-      height: 40px;
-      opacity: 0;
-    }
-    .card:active .play-hint {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    .rank-badge {
-      font-size: clamp(2.2rem, 16vw, 3rem);
-      -webkit-text-stroke: 1.25px rgba(255, 255, 255, 0.95);
-    }
+  .card:hover { background: #161310; }
+  .card:hover .poster img { filter: saturate(1) contrast(1.04); }
+  .card:hover h3, .card:hover .measure { color: #f1a287; }
+  .card:focus-visible { outline: 2px solid #efae98; outline-offset: 4px; }
+  .card.small { max-width: 160px; }
+  .card.large { max-width: 280px; }
+  @media (max-width: 640px) {
+    .copy { gap: .4rem; padding: .62rem .6rem .68rem; }
+    h3 { font-size: .81rem; }
+    .meta { font-size: .59rem; }
   }
-
-  @media (max-width: 480px) {
-    .card-poster {
-      border-radius: 11px;
-    }
-    .card-meta {
-      margin-top: 7px;
-    }
-    .card-title {
-      font-size: 0.76rem;
-      min-height: 2.05em;
-    }
-    .card-sub {
-      font-size: 0.62rem;
-      margin-top: 3px;
-    }
-    .score-badge {
-      top: 6px;
-      left: 6px;
-      font-size: 0.58rem;
-      padding: 2px 6px;
-    }
-    .card.has-rank .score-badge {
-      right: 6px;
-      left: auto;
-    }
-    .format-badge {
-      top: 6px;
-      right: 6px;
-      font-size: 0.5rem;
-    }
-    .eps-badge {
-      right: 6px;
-      bottom: 7px;
-      font-size: 0.54rem;
-      padding: 2px 6px;
-    }
-    .play-hint {
-      width: 38px;
-      height: 38px;
-    }
-    .play-icon {
-      font-size: 0.85rem;
-    }
-    .rank-badge {
-      font-size: 2.35rem;
-      padding-left: 2px;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .card,
-    .card-poster,
-    .card-poster img,
-    .play-hint,
-    .poster-ring {
-      transition: none;
-    }
+    .card, .poster img { transition: none; }
   }
-
-  .status-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #fbbf24;
-    margin-right: 0.35rem;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.15);
-    vertical-align: middle;
-    position: relative;
-    top: -1px;
-  }
-  .status-dot.live {
-    background: #22c55e;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.55);
-  }
-  .card-title {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .card-sub {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem;
-  }
-  .score-chip { color: #fbbf24; }
 </style>

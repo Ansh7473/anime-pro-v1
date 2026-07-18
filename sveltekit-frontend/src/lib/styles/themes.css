@@ -26,10 +26,10 @@
   --net-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
   --net-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
   --net-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.65);
-  --page-max: 1600px;
+  --page-max: 1500px;
   --page-gutter: 2.5rem;
   --page-gutter-md: 1.25rem;
-  --page-gutter-sm: 0.75rem;
+  --page-gutter-sm: 0.85rem;
 }
 
 .theme-minimalist {

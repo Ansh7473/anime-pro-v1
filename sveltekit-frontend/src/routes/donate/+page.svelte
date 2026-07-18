@@ -3,10 +3,10 @@
 </script>
 
 <svelte:head>
-  <title>Support WatchAnimez — Donate</title>
-  <meta name="description" content="Support WatchAnimez development, hosting, and keep the platform ad-free for everyone." />
-  <meta property="og:title" content="Support WatchAnimez — Donate" />
-  <meta property="og:description" content="Support WatchAnimez development, hosting, and keep the platform ad-free for everyone." />
+  <title>Support WatchAnimeX — Donate</title>
+  <meta name="description" content="Support WatchAnimeX development, hosting, and keep the platform ad-free for everyone." />
+  <meta property="og:title" content="Support WatchAnimeX — Donate" />
+  <meta property="og:description" content="Support WatchAnimeX development, hosting, and keep the platform ad-free for everyone." />
 </svelte:head>
 
 <div class="donate-page container">
@@ -15,9 +15,9 @@
       <Heart size={18} fill="currentColor" />
       <span>Support Us</span>
     </div>
-    <h1 class="page-title">Support WatchAnimez</h1>
+    <h1 class="page-title">Support WatchAnimeX</h1>
     <p class="page-subtitle">
-      Help us keep WatchAnimez free, fast, and ad-free for everyone.
+      Help us keep WatchAnimeX free, fast, and ad-free for everyone.
       Your support goes directly toward server costs, development, and keeping the platform running smoothly.
     </p>
   </div>
@@ -51,7 +51,7 @@
   </div>
 
   <div class="thank-you">
-    <p>Thank you for supporting WatchAnimez! Every contribution helps us stay ad-free and keep the platform running. 💙</p>
+    <p>Thank you for supporting WatchAnimeX! Every contribution helps us stay ad-free and keep the platform running. 💙</p>
   </div>
 </div>
 

@@ -1,20 +1,20 @@
 <svelte:head>
-  <title>About Us — WatchAnimez</title>
-  <meta name="description" content="Learn about WatchAnimez — our mission, team, and commitment to delivering the best anime streaming experience." />
-  <meta property="og:title" content="About Us — WatchAnimez" />
-  <meta property="og:description" content="Learn about WatchAnimez — our mission, team, and commitment to delivering the best anime streaming experience." />
+  <title>About Us — WatchAnimeX</title>
+  <meta name="description" content="Learn about WatchAnimeX — our mission, team, and commitment to delivering the best anime streaming experience." />
+  <meta property="og:title" content="About Us — WatchAnimeX" />
+  <meta property="og:description" content="Learn about WatchAnimeX — our mission, team, and commitment to delivering the best anime streaming experience." />
 </svelte:head>
 
 <div class="page-container container">
   <div class="page-header">
-    <h1>About WatchAnimez</h1>
-    <p class="subtitle">Watch online anime in Hindi, English, Multi-lang, and Japanese for free since 2024</p>
+    <h1>About WatchAnimeX</h1>
+    <p class="subtitle">A focused catalog for seasonal anime, films, airing times, and saved viewing progress.</p>
   </div>
 
   <div class="content-section">
     <section class="about-block">
       <h2>Our Mission</h2>
-      <p>At WatchAnimez, we are passionate about bringing the world's best anime to fans everywhere. Our mission is simple: provide a fast, reliable, and beautifully designed platform where anime lovers can discover, track, and enjoy their favorite series and movies — anytime, on any device.</p>
+      <p>At WatchAnimeX, we are passionate about bringing the world's best anime to fans everywhere. Our mission is simple: provide a fast, reliable, and beautifully designed platform where anime lovers can discover, track, and enjoy their favorite series and movies — anytime, on any device.</p>
       <p>We believe anime is more than entertainment; it is an art form that connects cultures, inspires creativity, and builds communities. That belief drives everything we build.</p>
     </section>
 
@@ -24,7 +24,7 @@
         <div class="feature-card">
           <div class="feature-icon">🎬</div>
           <h3>Extensive Library</h3>
-          <p>Access thousands of anime titles spanning every genre — from timeless classics to the latest seasonal releases, TV series, OVAs, and feature films.</p>
+          <p>Browse anime across seasons, formats, and genres, including series, OVAs, and feature films.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">⚡</div>
@@ -56,8 +56,8 @@
 
     <section class="about-block">
       <h2>Our Story</h2>
-      <p>WatchAnimez started as a personal project born out of frustration with existing anime platforms — slow interfaces, cluttered designs, and unreliable streaming. We set out to build something different: a platform that puts user experience first, loads instantly, and respects its users.</p>
-      <p>Today, WatchAnimez serves over 12,500 active users worldwide, with a catalog that grows daily. We are constantly iterating based on community feedback, adding new features, and improving performance to deliver the best possible experience.</p>
+      <p>WatchAnimeX began as a project to make anime discovery and episode navigation less cluttered. The interface is built around clear catalogs, airing schedules, and a direct route back to the next episode.</p>
+      <p>Development continues through bug reports and community feedback, with changes focused on catalog accuracy, playback reliability, and accessibility.</p>
     </section>
 
     <section class="about-block">
@@ -209,11 +209,8 @@
   }
 
   @media (max-width: 480px) {
-    .page-header h1 {
-      font-size: 1.5rem;
-    }
-    .cta-buttons {
-      flex-direction: column;
-    }
+    .page-header h1 { font-size: 1.5rem; }
+    .cta-buttons { flex-direction: column; }
   }
+  .page-container{max-width:var(--page-max,1500px);padding-top:3rem}.page-header{text-align:left;padding:1rem 0 2rem;border-bottom:1px solid var(--editorial-line,#28231f)}.subtitle{margin:0;max-width:65ch}.content-section{gap:4rem;max-width:1100px}.about-block h2{padding-left:0;color:var(--editorial-text,#f1ece4);font-size:clamp(1.35rem,2vw,1.8rem);letter-spacing:-.03em}.about-block h2::before{display:none}.features-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--editorial-line,#28231f)}.feature-card{padding:1.5rem;border:0;border-bottom:1px solid var(--editorial-line,#28231f);border-right:1px solid var(--editorial-line,#28231f);border-radius:0;background:transparent}.feature-card:nth-child(3n){border-right:0}.feature-card:hover{transform:none;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f)}.feature-icon{font-size:1.3rem}.cta-section{text-align:left;border-radius:4px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f);padding:2rem}.cta-buttons{justify-content:flex-start}@media(max-width:800px){.features-grid{grid-template-columns:1fr}.feature-card{border-right:0}}
 </style>

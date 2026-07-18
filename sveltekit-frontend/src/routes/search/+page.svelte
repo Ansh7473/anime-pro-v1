@@ -3,7 +3,7 @@
   import AnimeCard from "$lib/components/AnimeCard.svelte";
   import SkeletonGrid from "$lib/components/SkeletonGrid.svelte";
   import { page } from "$app/state";
-  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
   import { searchAndRankAnime, expandAlias } from "$lib/searchEngine";
 
   let query = $state("");
@@ -11,48 +11,58 @@
   let loading = $state(false);
   let hasNext = $state(false);
   let currentPage = $state(1);
+  let error = $state("");
+  let loadedQuery = $state("");
 
-  onMount(() => {
-    const q = page.url.searchParams.get("q") || "";
-    if (q) {
-      query = q;
-      doSearch();
-    }
+  $effect(() => {
+    const nextQuery = page.url.searchParams.get("q")?.trim() || "";
+    if (nextQuery === loadedQuery) return;
+    loadedQuery = nextQuery;
+    query = nextQuery;
+    results = [];
+    error = "";
+    if (nextQuery) void doSearch(1, nextQuery);
+    else { hasNext = false; currentPage = 1; }
   });
 
-  async function doSearch(p = 1) {
-    if (!query.trim()) return;
+  async function doSearch(p = 1, term = query) {
+    const clean = term.trim();
+    if (!clean) return;
     loading = true;
+    error = "";
     try {
-      const res = await api.search(expandAlias(query), p, 24);
-            // Re-rank API results using fused search (alias/trigram/levenshtein/tfidf)
-            const ranked = searchAndRankAnime(query, res.data || []);
-            results = p === 1 ? ranked : [...results, ...ranked];
+      const res = await api.search(expandAlias(clean), p, 24);
+      const ranked = searchAndRankAnime(clean, res.data || []);
+      results = p === 1 ? ranked : [...results, ...ranked];
       hasNext = res.pagination?.has_next_page || false;
       currentPage = p;
     } catch (e) {
       console.error(e);
+      error = "Search could not be loaded. Check your connection and try again.";
     } finally {
       loading = false;
     }
   }
 
-  function handleKey(e: KeyboardEvent) {
-    if (e.key === "Enter") {
-      results = [];
-      doSearch(1);
-    }
+  async function submitSearch() {
+    const clean = query.trim();
+    if (!clean) { await goto("/search"); return; }
+    const target = `/search?q=${encodeURIComponent(clean)}`;
+    if (page.url.pathname + page.url.search === target) void doSearch(1, clean);
+    else await goto(target, { keepFocus: true, noScroll: true });
   }
+
+  function handleKey(e: KeyboardEvent) { if (e.key === "Enter") void submitSearch(); }
 </script>
 
 <svelte:head>
-  <title>Search Anime — WatchAnimez</title>
+  <title>Search Anime — WatchAnimeX</title>
   <meta
     name="description"
-    content="Search anime by title on WatchAnimez and discover details, ratings, posters, recommendations, and episode pages."
+    content="Search anime by title on WatchAnimeX and discover details, ratings, posters, recommendations, and episode pages."
   />
-  <meta property="og:title" content="Search Anime — WatchAnimez" />
-  <meta property="og:description" content="Search anime by title on WatchAnimez and discover details, ratings, posters, recommendations, and episode pages." />
+  <meta property="og:title" content="Search Anime — WatchAnimeX" />
+  <meta property="og:description" content="Search anime by title on WatchAnimeX and discover details, ratings, posters, recommendations, and episode pages." />
 </svelte:head>
 
 <div class="search-page container">
@@ -64,18 +74,16 @@
       placeholder="Type anime name..."
       onkeydown={handleKey}
     />
-    <button
-      class="btn-primary"
-      onclick={() => {
-        results = [];
-        doSearch(1);
-      }}>Search</button
-    >
+    <button class="btn-primary" onclick={submitSearch}>Search</button>
   </div>
 
   {#if loading && results.length === 0}
-    <div class="results-grid">
-      <SkeletonGrid count={18} />
+    <div class="results-grid"><SkeletonGrid count={18} /></div>
+  {:else if error}
+    <div class="empty-state" role="alert">
+      <p class="empty-text">Search unavailable</p>
+      <p class="empty-sub">{error}</p>
+      <button class="btn-secondary" onclick={() => doSearch(1)}>Try again</button>
     </div>
   {:else if results.length > 0}
     <div class="results-grid">
@@ -85,34 +93,20 @@
     </div>
     {#if hasNext}
       <div class="center" style="margin-top:2rem;">
-        <button
-          class="btn-secondary"
-          onclick={() => doSearch(currentPage + 1)}
-          disabled={loading}
-        >
+        <button class="btn-secondary" onclick={() => doSearch(currentPage + 1)} disabled={loading}>
           {loading ? "Loading..." : "Load More"}
         </button>
       </div>
     {/if}
-  {:else if !loading && query}
+  {:else if !loading && loadedQuery}
     <div class="empty-state">
-      <img
-        src="https://media.giphy.com/media/FlGmdHyBjNaMM/giphy.gif"
-        alt="No results anime"
-        class="empty-gif"
-      />
-      <p class="empty-text">No results for <strong>"{query}"</strong></p>
-      <p class="empty-sub">Try a different title or check the spelling</p>
+      <p class="empty-text">No results for <strong>"{loadedQuery}"</strong></p>
+      <p class="empty-sub">Try a different title or check the spelling.</p>
     </div>
-  {:else if !loading && !query}
+  {:else if !loading}
     <div class="empty-state idle-state">
-      <img
-        src="https://media.giphy.com/media/bKDPrNojOoeu4/giphy.gif"
-        alt="Excited anime character"
-        class="empty-gif"
-      />
-      <p class="empty-text">Search for any anime!</p>
-      <p class="empty-sub">Type a title above to find your next obsession</p>
+      <p class="empty-text">Search the anime catalog</p>
+      <p class="empty-sub">Enter a title to find series, films, and related releases.</p>
     </div>
   {/if}
 </div>
@@ -252,16 +246,9 @@
 
   /* Small mobile responsive */
   @media (max-width: 360px) {
-    .page-title {
-      font-size: 1.2rem;
-    }
-    .search-bar input {
-      font-size: 0.85rem;
-      padding: 0.55rem 0.7rem;
-    }
-    .results-grid {
-      gap: 0.7rem 0.5rem;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    .page-title { font-size: 1.2rem; }
+    .search-bar input { font-size: 0.85rem; padding: 0.55rem 0.7rem; }
+    .results-grid { gap: 0.7rem 0.5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
+  .search-page{padding-top:3rem;min-height:72vh}.page-title{font-size:clamp(1.8rem,3vw,2.6rem);font-weight:850;letter-spacing:-.045em}.search-bar{max-width:820px;padding-bottom:2rem;border-bottom:1px solid var(--editorial-line,#28231f)}.search-bar input{border-radius:3px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f);color:var(--editorial-text,#f1ece4)}.search-bar .btn-primary{border-radius:3px;background:var(--editorial-accent,#df886b);color:#170c09}.empty-gif{border-radius:4px;filter:saturate(.75);box-shadow:none}.empty-text{color:var(--editorial-text,#f1ece4)}
 </style>

@@ -15,16 +15,16 @@
 </script>
 
 <svelte:head>
-  <title>Explore Anime — WatchAnimez</title>
-  <meta name="description" content="Explore anime by category on WatchAnimez — trending, popular, top-rated, seasonal, upcoming, movies, action, and romance." />
-  <meta property="og:title" content="Explore Anime — WatchAnimez" />
-  <meta property="og:description" content="Explore anime by category on WatchAnimez — trending, popular, top-rated, seasonal, upcoming, movies, action, and romance." />
+  <title>Explore Anime — WatchAnimeX</title>
+  <meta name="description" content="Explore anime by category on WatchAnimeX — trending, popular, top-rated, seasonal, upcoming, movies, action, and romance." />
+  <meta property="og:title" content="Explore Anime — WatchAnimeX" />
+  <meta property="og:description" content="Explore anime by category on WatchAnimeX — trending, popular, top-rated, seasonal, upcoming, movies, action, and romance." />
 </svelte:head>
 
 <div class="page container">
   <div class="page-header">
     <h1 class="page-title">Explore Anime</h1>
-    <p class="page-subtitle">Browse anime by category. Find your next favorite series.</p>
+    <p class="page-subtitle">Browse the catalog by momentum, format, season, or story.</p>
   </div>
 
   <div class="categories-grid">
@@ -183,19 +183,21 @@
 
   @media (max-width: 480px) {
     .page-title { font-size: 1.4rem; }
-    .category-card {
-      padding: 0.9rem 1rem;
-      gap: 0.75rem;
-    }
-    .card-icon {
-      width: 40px;
-      height: 40px;
-    }
+    .category-card { padding: 0.9rem 1rem; gap: 0.75rem; }
+    .card-icon { width: 40px; height: 40px; }
     .card-title { font-size: 0.95rem; }
     .card-desc { font-size: 0.78rem; }
-    .quick-link {
-      padding: 0.5rem 1rem;
-      font-size: 0.82rem;
-    }
+    .quick-link { padding: 0.5rem 1rem; font-size: 0.82rem; }
   }
+
+  .page { padding-top:3rem; }
+  .page-header { padding-bottom:1.5rem;border-bottom:1px solid var(--editorial-line,#28231f); }
+  .categories-grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin-bottom:4rem;border-top:1px solid var(--editorial-line,#28231f); }
+  .category-card { min-height:112px;padding:1.35rem 1rem;border:0;border-bottom:1px solid var(--editorial-line,#28231f);border-radius:0;background:transparent; }
+  .category-card:nth-child(odd){border-right:1px solid var(--editorial-line,#28231f)}
+  .category-card:hover { background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f);transform:none;box-shadow:none; }
+  .card-icon { width:42px;height:42px;border-radius:3px;background:#151210;color:var(--editorial-accent,#df886b)!important; }
+  .card-title { color:var(--editorial-text,#f1ece4); }.card-arrow{color:#5f5750}.category-card:hover .card-arrow{transform:none;color:var(--editorial-accent-hover,#f1a287)}
+  .quick-links { border-color:var(--editorial-line,#28231f); }.quick-link{border-radius:3px;background:transparent;border-color:var(--editorial-line,#28231f)}
+  @media(max-width:640px){.categories-grid{grid-template-columns:1fr}.category-card:nth-child(odd){border-right:0}}
 </style>

@@ -1,8 +1,8 @@
 <svelte:head>
-  <title>DMCA Policy — WatchAnimez</title>
-  <meta name="description" content="WatchAnimez DMCA Policy. Learn about our copyright infringement notification process and takedown procedures." />
-  <meta property="og:title" content="DMCA Policy — WatchAnimez" />
-  <meta property="og:description" content="WatchAnimez DMCA Policy. Learn about our copyright infringement notification process and takedown procedures." />
+  <title>DMCA Policy — WatchAnimeX</title>
+  <meta name="description" content="WatchAnimeX DMCA Policy. Learn about our copyright infringement notification process and takedown procedures." />
+  <meta property="og:title" content="DMCA Policy — WatchAnimeX" />
+  <meta property="og:description" content="WatchAnimeX DMCA Policy. Learn about our copyright infringement notification process and takedown procedures." />
 </svelte:head>
 
 <div class="page-container container">
@@ -14,13 +14,13 @@
   <div class="policy-content">
     <section class="policy-section">
       <h2>1. Overview</h2>
-      <p>WatchAnimez ("we," "our," or "us") respects the intellectual property rights of others and expects our users to do the same. This Digital Millennium Copyright Act (DMCA) Policy explains how we handle copyright infringement claims and outlines the steps you can take if you believe your copyrighted work has been infringed on our platform.</p>
-      <p>WatchAnimez does not host, store, or distribute any video content. We act as an index and aggregator of content available from third-party sources across the internet. All streaming content is sourced from external providers and is not stored on our servers.</p>
+      <p>WatchAnimeX ("we," "our," or "us") respects the intellectual property rights of others and expects our users to do the same. This Digital Millennium Copyright Act (DMCA) Policy explains how we handle copyright infringement claims and outlines the steps you can take if you believe your copyrighted work has been infringed on our platform.</p>
+      <p>WatchAnimeX does not host, store, or distribute any video content. We act as an index and aggregator of content available from third-party sources across the internet. All streaming content is sourced from external providers and is not stored on our servers.</p>
     </section>
 
     <section class="policy-section">
       <h2>2. Our Role as an Indexing Service</h2>
-      <p>WatchAnimez functions as a search and indexing platform that aggregates metadata and links to anime content hosted by third-party providers. We do not:</p>
+      <p>WatchAnimeX functions as a search and indexing platform that aggregates metadata and links to anime content hosted by third-party providers. We do not:</p>
       <ul>
         <li>Upload, host, or store any video files on our servers</li>
         <li>Distribute copyrighted content directly to users</li>
@@ -32,7 +32,7 @@
 
     <section class="policy-section">
       <h2>3. Copyright Infringement Notifications</h2>
-      <p>If you are a copyright owner or an agent authorized to act on behalf of a copyright owner, and you believe that content accessible through WatchAnimez infringes your copyright, you may submit a notification pursuant to the Digital Millennium Copyright Act (DMCA) by providing our designated agent with the following information in writing:</p>
+      <p>If you are a copyright owner or an agent authorized to act on behalf of a copyright owner, and you believe that content accessible through WatchAnimeX infringes your copyright, you may submit a notification pursuant to the Digital Millennium Copyright Act (DMCA) by providing our designated agent with the following information in writing:</p>
       <ul>
         <li><strong>Identification of the copyrighted work:</strong> A clear description of the copyrighted work that you claim has been infringed. If multiple works are covered by a single notification, provide a representative list of such works.</li>
         <li><strong>Identification of the infringing material:</strong> The specific URL(s) or location(s) on our platform where the allegedly infringing material appears, with enough detail for us to locate the material.</li>
@@ -81,12 +81,12 @@
 
     <section class="policy-section">
       <h2>7. Repeat Infringer Policy</h2>
-      <p>WatchAnimez maintains a policy of terminating user accounts that are found to be repeat infringers of copyrighted material. We track all valid DMCA notifications and take appropriate action against users who repeatedly post or reference infringing content.</p>
+      <p>WatchAnimeX maintains a policy of terminating user accounts that are found to be repeat infringers of copyrighted material. We track all valid DMCA notifications and take appropriate action against users who repeatedly post or reference infringing content.</p>
     </section>
 
     <section class="policy-section">
       <h2>8. Good Faith Use and Educational Purposes</h2>
-      <p>WatchAnimez is designed for educational and informational purposes. We encourage our users to:</p>
+      <p>WatchAnimeX is designed for educational and informational purposes. We encourage our users to:</p>
       <ul>
         <li>Support content creators by purchasing official releases, DVDs, Blu-rays, and digital downloads</li>
         <li>Use legitimate streaming services when available in their region</li>
@@ -97,13 +97,13 @@
 
     <section class="policy-section">
       <h2>9. Third-Party Content Disclaimer</h2>
-      <p>All content accessible through WatchAnimez is provided by non-affiliated third parties. We do not control, endorse, or assume responsibility for any third-party content. The presence of links on our platform does not imply our approval or endorsement of the linked content.</p>
+      <p>All content accessible through WatchAnimeX is provided by non-affiliated third parties. We do not control, endorse, or assume responsibility for any third-party content. The presence of links on our platform does not imply our approval or endorsement of the linked content.</p>
       <p>If you discover content on a third-party site that you believe infringes your copyright, please contact that site directly to request removal.</p>
     </section>
 
     <section class="policy-section">
       <h2>10. Changes to This Policy</h2>
-      <p>We reserve the right to update or modify this DMCA Policy at any time without prior notice. Changes will be effective immediately upon posting to this page. Your continued use of WatchAnimez after any changes constitutes your acceptance of the updated policy.</p>
+      <p>We reserve the right to update or modify this DMCA Policy at any time without prior notice. Changes will be effective immediately upon posting to this page. Your continued use of WatchAnimeX after any changes constitutes your acceptance of the updated policy.</p>
       <p>We encourage you to review this policy periodically to stay informed about how we handle copyright matters.</p>
     </section>
 

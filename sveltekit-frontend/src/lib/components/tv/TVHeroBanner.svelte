@@ -1,7 +1,6 @@
 <script lang="ts">
   import { getProxiedImage } from "$lib/api";
   import { onMount, onDestroy } from "svelte";
-  import { fly } from "svelte/transition";
   import { goto } from "$app/navigation";
 
   let { items = [] } = $props<{ items: any[] }>();
@@ -15,14 +14,17 @@
   );
 
   function next() {
+    if (heroes.length < 2) return;
     current = (current + 1) % heroes.length;
   }
   function prev() {
+    if (heroes.length < 2) return;
     current = (current - 1 + heroes.length) % heroes.length;
   }
 
   function startAutoplay() {
     stopAutoplay();
+    if (heroes.length < 2) return;
     interval = setInterval(() => {
       if (!paused) next();
     }, 10000);
@@ -43,7 +45,11 @@
   onDestroy(stopAutoplay);
 
   const anime = $derived(heroes[current]);
-  const title = $derived(anime?.title || "Unknown");
+  const title = $derived.by(() => {
+    const raw = anime?.title || anime?.name || anime?.userPreferred;
+    if (typeof raw === "string" && raw) return raw;
+    return raw?.english || raw?.userPreferred || raw?.romaji || raw?.native || "Unknown anime";
+  });
   const synopsis = $derived((anime?.synopsis || "").replace(/<[^>]*>?/gm, ""));
   const genres = $derived(anime?.genres || []);
   const id = $derived(anime?.id || anime?.mal_id);
@@ -61,7 +67,6 @@
     aria-label="Featured anime carousel"
     onmouseenter={() => (paused = true)}
     onmouseleave={() => (paused = false)}
-    in:fly={{ y: 20, duration: 800 }}
   >
     <!-- Background slides — only active + neighbours load (better LCP). -->
     {#each heroes as slide, i}
@@ -377,4 +382,8 @@
     from { width: 0%; }
     to { width: 100%; }
   }
+  .tv-hero{height:76vh;border-radius:4px}.tv-hero-bg{filter:saturate(.78)}.tv-hero-gradient{background:linear-gradient(to top,#070706,rgba(7,7,6,.55) 45%,transparent 78%),linear-gradient(to right,#070706,rgba(7,7,6,.76) 34%,transparent 76%)}
+  .tv-hero-badge{padding:.55rem 0;border:0;border-bottom:2px solid #df886b;border-radius:0;background:transparent;color:#e8a088}.tv-badge-dot{display:none}.tv-hero-title{color:#f1ece4;font-size:clamp(2.8rem,5vw,5.4rem);line-height:.98;letter-spacing:-.055em;text-shadow:none}.tv-hero-genres{gap:.6rem}.tv-genre-tag{padding:.45rem .75rem;border-radius:3px;background:#0d0c0b;border-color:#3a312c;backdrop-filter:none}.tv-genre-tag.score{color:#e5a087;background:#17110f;border-color:#49372f}.tv-hero-desc{color:#aaa39a;text-shadow:none}
+  .tv-btn{border-radius:3px;border-width:3px;transition:background .15s,border-color .15s,color .15s}.tv-btn-primary{background:#df886b;color:#170c09}.tv-btn-secondary{background:#0d0c0b;border-color:#3a312c;backdrop-filter:none}.tv-btn:focus-visible{transform:none;border-color:#f1a287;box-shadow:none;outline:4px solid #f1a287;outline-offset:4px}
+  .tv-nav-arrow{width:68px;height:68px;border-radius:3px;background:#0d0c0b;border:1px solid #3a312c;backdrop-filter:none}.tv-nav-arrow:focus-visible{transform:translateY(-50%);border-color:#f1a287}.tv-dot{height:4px;border-radius:0}.tv-dot-progress{background:#df886b}
 </style>

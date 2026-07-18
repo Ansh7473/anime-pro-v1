@@ -82,4 +82,5 @@
   @media (prefers-reduced-motion: reduce) {
     .sk-hero, .sk-row { animation: none; }
   }
+  .tv-rows{margin-top:-1rem}.tv-skeleton{padding:0}.sk-hero,.sk-row{border-radius:4px;background:linear-gradient(90deg,#0d0c0b,#171310,#0d0c0b)}
 </style>

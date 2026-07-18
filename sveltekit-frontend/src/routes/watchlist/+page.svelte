@@ -39,8 +39,8 @@
 </script>
 
 <svelte:head>
-  <title>My Watchlist — WatchAnimez</title>
-  <meta name="description" content="Track your anime progress on WatchAnimez. Organize shows by planning, watching, completed, and dropped status." />
+  <title>My Watchlist — WatchAnimeX</title>
+  <meta name="description" content="Track your anime progress on WatchAnimeX. Organize shows by planning, watching, completed, and dropped status." />
 </svelte:head>
 
 <div class="watchlist-page container">

@@ -1,8 +1,8 @@
 <svelte:head>
-  <title>Privacy Policy — WatchAnimez</title>
-  <meta name="description" content="Read the WatchAnimez Privacy Policy. Learn how we collect, use, and protect your personal information." />
-  <meta property="og:title" content="Privacy Policy — WatchAnimez" />
-  <meta property="og:description" content="Read the WatchAnimez Privacy Policy. Learn how we collect, use, and protect your personal information." />
+  <title>Privacy Policy — WatchAnimeX</title>
+  <meta name="description" content="Read the WatchAnimeX Privacy Policy. Learn how we collect, use, and protect your personal information." />
+  <meta property="og:title" content="Privacy Policy — WatchAnimeX" />
+  <meta property="og:description" content="Read the WatchAnimeX Privacy Policy. Learn how we collect, use, and protect your personal information." />
 </svelte:head>
 
 <div class="page-container container">
@@ -14,7 +14,7 @@
   <div class="policy-content">
     <section class="policy-section">
       <h2>1. Introduction</h2>
-      <p>WatchAnimez ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website at watchanimez.me, including any associated mobile or desktop applications (collectively, the "Service").</p>
+      <p>WatchAnimeX ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website at watchanimez.me, including any associated mobile or desktop applications (collectively, the "Service").</p>
       <p>Please read this Privacy Policy carefully. By accessing or using the Service, you agree to the collection and use of information in accordance with this policy.</p>
     </section>
 
@@ -54,7 +54,7 @@
       <ul>
         <li><strong>Service Providers:</strong> We use third-party services (such as Firebase for authentication and analytics providers) that may have access to your data. These services are bound by their own privacy policies.</li>
         <li><strong>Legal Requirements:</strong> We may disclose your information if required by law, regulation, or legal process.</li>
-        <li><strong>Protection of Rights:</strong> We may disclose information to protect the rights, property, or safety of WatchAnimez, our users, or the public.</li>
+        <li><strong>Protection of Rights:</strong> We may disclose information to protect the rights, property, or safety of WatchAnimeX, our users, or the public.</li>
       </ul>
     </section>
 
