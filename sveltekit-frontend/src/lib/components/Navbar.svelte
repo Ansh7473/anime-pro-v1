@@ -1984,6 +1984,14 @@
     gap: 0;
   }
 
+  /* Direct children must not be flex-shrunk to fit the sheet's fixed height —
+     overflow:hidden on the row/profile blocks gives them an automatic min
+     size of 0, so without this the flex algorithm squashes them instead of
+     letting .mobile-menu-scroll scroll. */
+  .mobile-menu-scroll > * {
+    flex-shrink: 0;
+  }
+
   .mobile-menu-header {
     min-height: 76px;
     display: flex;

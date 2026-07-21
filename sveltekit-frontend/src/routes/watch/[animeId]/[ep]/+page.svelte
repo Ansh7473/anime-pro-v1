@@ -1141,5 +1141,9 @@
   .sidebar-tab.active { color: var(--editorial-accent-hover, #f1a287); }
   .sidebar-tab.active::after { height: 1px; background: var(--editorial-accent, #df886b); }
   @media (max-width: 1024px) { .watch-layout { padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right)); }.watch-aside{width:100%}.sidebar-panel{height:520px} }
+  /* Watch pages hide the fixed top navbar entirely below 1024px (see
+     RegularShell), so the desktop breathing-room padding-top:2rem has
+     nothing to sit under and reads as an orphaned gap above the player. */
+  @media (max-width: 1024px) { .watch-layout { padding-top: max(0.5rem, env(safe-area-inset-top)); } }
   @media (max-width: 640px) { .watch-layout { padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right)); }.player-frame{margin-inline:calc(var(--page-gutter-sm,.85rem) * -1);width:calc(100% + var(--page-gutter-sm,.85rem) * 2);border-inline:0}.action-left>*:not(.btn-icon){flex:1 1 auto}.episode-grid{grid-template-columns:1fr} }
 </style>
