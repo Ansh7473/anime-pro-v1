@@ -173,6 +173,43 @@
   const activeUrl = $derived(sourceKind === "invalid" ? "" : (selectedSource?.url ?? ""));
   const posterImg = $derived(getProxiedImage(anime?.image || anime?.poster || ""));
 
+  // The Animelok "Multi"/Toonstream-Multi embed renders its internal server
+  // and quality toggle bar at a fixed desktop width that never reflows for
+  // narrow viewports — on mobile its edges get clipped by our iframe's
+  // actual width. Other embeds (Kiwistream, Vidplay1, Vidnest, Pahe) are
+  // responsive and don't need this. We render this one iframe at a fixed
+  // wider virtual width, then scale the whole thing down to fit, so its own
+  // layout has the room it expects while still fitting our container.
+  const isWideEmbed = $derived(
+    isEmbedPlayer && sourceProvider(selectedSource) === "animelok",
+  );
+
+  // Renders the embed at a fixed, wider virtual width (so its internal
+  // toggle bar has room to lay out normally) then scales the whole iframe
+  // down with a CSS transform to fit whatever width the wrapper actually
+  // has. Re-measures on resize/orientation change.
+  const WIDE_EMBED_VIRTUAL_WIDTH = 960;
+  function scaleEmbedToFit(node: HTMLElement) {
+    const iframe = node.querySelector("iframe") as HTMLIFrameElement | null;
+    if (!iframe) return;
+
+    function apply() {
+      const scale = node.clientWidth / WIDE_EMBED_VIRTUAL_WIDTH;
+      iframe.style.width = `${WIDE_EMBED_VIRTUAL_WIDTH}px`;
+      iframe.style.height = `${WIDE_EMBED_VIRTUAL_WIDTH * (9 / 16)}px`;
+      iframe.style.transform = `scale(${scale})`;
+    }
+
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(node);
+    return {
+      destroy() {
+        observer.disconnect();
+      },
+    };
+  }
+
   function beginPlaybackAttempt(url: string) {
     clearEmbedLoadTimer();
     if (!url) return;
@@ -563,15 +600,29 @@
         {:else if isEmbedPlayer}
           {@const playerUrl = activeUrl}
           {#key `${playerUrl}:${playbackGeneration}`}
-            <iframe
-              title="Video player"
-              src={playerUrl}
-              allowfullscreen
-              allow="autoplay; encrypted-media; picture-in-picture"
-              referrerpolicy="no-referrer"
-              onload={() => markSourceReady(playerUrl)}
-              onerror={() => handleSourceFailure(playerUrl, "The embedded player failed to load.")}
-            ></iframe>
+            {#if isWideEmbed}
+              <div class="embed-scale-wrap" use:scaleEmbedToFit>
+                <iframe
+                  title="Video player"
+                  src={playerUrl}
+                  allowfullscreen
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  referrerpolicy="no-referrer"
+                  onload={() => markSourceReady(playerUrl)}
+                  onerror={() => handleSourceFailure(playerUrl, "The embedded player failed to load.")}
+                ></iframe>
+              </div>
+            {:else}
+              <iframe
+                title="Video player"
+                src={playerUrl}
+                allowfullscreen
+                allow="autoplay; encrypted-media; picture-in-picture"
+                referrerpolicy="no-referrer"
+                onload={() => markSourceReady(playerUrl)}
+                onerror={() => handleSourceFailure(playerUrl, "The embedded player failed to load.")}
+              ></iframe>
+            {/if}
           {/key}
         {:else}
           {@const playerUrl = activeUrl}
@@ -772,6 +823,23 @@
     height: 100%;
     border: 0;
     display: block;
+  }
+  /* Wraps embeds (e.g. Animelok's Multi/Toonstream server) whose internal
+     UI is fixed-width and clips on narrow screens. The iframe inside is
+     rendered at a fixed wider virtual size and scaled down via JS
+     (scaleEmbedToFit) to fit this wrapper exactly, so the embed's own
+     layout never has to reflow narrower than it supports. */
+  .embed-scale-wrap {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .embed-scale-wrap iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+    border: 0;
   }
   .player-state {
     position: absolute;
