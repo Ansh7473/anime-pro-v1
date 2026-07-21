@@ -190,14 +190,18 @@
   // has. Re-measures on resize/orientation change.
   const WIDE_EMBED_VIRTUAL_WIDTH = 960;
   function scaleEmbedToFit(node: HTMLElement) {
-    const iframe = node.querySelector("iframe") as HTMLIFrameElement | null;
-    if (!iframe) return;
+    const iframe = node.querySelector("iframe");
+    if (!(iframe instanceof HTMLIFrameElement)) return;
+    // TS doesn't retain narrowing of this outer const across the nested
+    // `apply` closure below; the instanceof guard above already guarantees
+    // it's a non-null HTMLIFrameElement (it's never reassigned).
+    const target = iframe;
 
     function apply() {
       const scale = node.clientWidth / WIDE_EMBED_VIRTUAL_WIDTH;
-      iframe.style.width = `${WIDE_EMBED_VIRTUAL_WIDTH}px`;
-      iframe.style.height = `${WIDE_EMBED_VIRTUAL_WIDTH * (9 / 16)}px`;
-      iframe.style.transform = `scale(${scale})`;
+      target.style.width = `${WIDE_EMBED_VIRTUAL_WIDTH}px`;
+      target.style.height = `${WIDE_EMBED_VIRTUAL_WIDTH * (9 / 16)}px`;
+      target.style.transform = `scale(${scale})`;
     }
 
     apply();
