@@ -1100,6 +1100,7 @@
   /* ── Responsive ── */
   @media (max-width: 1024px) {
     .watch-layout { flex-direction: column; padding: 1rem var(--page-gutter-md, 1.25rem); }
+    .watch-main { width: 100%; }
     .watch-aside { width: 100%; }
     .sidebar-panel { position: static; height: 480px; }
   }
