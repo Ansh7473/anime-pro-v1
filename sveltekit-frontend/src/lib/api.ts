@@ -1,9 +1,11 @@
-import { browser } from '$app/environment';
+import { browser, dev } from '$app/environment';
 import { clearAuth } from '$lib/stores/auth';
 import { expandAlias } from '$lib/searchEngine';
 
 
-// Set VITE_BACKEND_URL to override with a single backend (e.g. local dev).
+// Set VITE_BACKEND_URL to override with a single backend. Local development
+// uses the checked-out Go API so newly added routes are testable before deploy.
+const defaultBackend = dev ? 'http://localhost:3001' : 'https://api.watchanimez.me';
 const configuredBackends = [
 	...(import.meta.env.VITE_BACKEND_URLS || '').split(','),
 	import.meta.env.VITE_BACKEND_URL || ''
@@ -12,13 +14,16 @@ const configuredBackends = [
 	.filter(Boolean);
 
 // Keep the pool unique: retrying the same Oracle origin is not failover.
-const BACKENDS = [...new Set(configuredBackends.length ? configuredBackends : ['https://api.watchanimez.me'])];
+// In development, always put the checked-out Go server first even when a
+// production backend is present in Vite configuration. This prevents local
+// pages from silently testing an older deployed API.
+const BACKENDS = [...new Set(dev ? ['http://localhost:3001', ...configuredBackends] : (configuredBackends.length ? configuredBackends : [defaultBackend]))];
 
 console.log("🔌 Loaded Backend URL:", BACKENDS[0]);
 
 // Randomly order the pool so load spreads ~evenly across accounts per session,
 // while keeping every backend available for failover.
-const POOL = [...BACKENDS].sort(() => Math.random() - 0.5);
+const POOL = dev ? BACKENDS : [...BACKENDS].sort(() => Math.random() - 0.5);
 export const BACKEND_URL = POOL[0];
 
 // Round-robin cursor so consecutive API calls alternate backends.
@@ -26,6 +31,7 @@ let rrCursor = 0;
 
 const BASE_URL = `${BACKEND_URL}/api/v1/anilist`;
 const STREAMING_URL = `${BACKEND_URL}/api/v1/streaming`;
+export const TMDB_URL = `${BACKEND_URL}/api/v1/tmdb`;
 
 const AUTH_URL = `${BACKEND_URL}/api/v1/auth`;
 const USER_URL = `${BACKEND_URL}/api/v1/user`;
@@ -113,6 +119,12 @@ async function fetchJSON(url: string, options?: RequestInit & { fetch?: typeof f
 				return data;
 			}
 			if (response.status === 401 && browser) clearAuth();
+			// During rolling deployments an older backend may not have a newly added
+			// public route yet. Try the remaining origins before reporting the 404/405.
+			if (isPublicGet && (response.status === 404 || response.status === 405)) {
+				lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+				continue;
+			}
 			if (response.status < 500) {
 				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 			}
@@ -833,6 +845,31 @@ export const api = {
 	},
 
 
+
+	// Live-action/general film catalog. This stays separate from AniList movies,
+	// anime source resolution, and user anime history/favorites.
+	getTMDBMovies: async (category = 'popular', page = 1, customFetch?: typeof fetch) => {
+		const params = new URLSearchParams({
+			category,
+			page: String(Math.max(1, Math.trunc(page)))
+		});
+		return fetchJSON(`${TMDB_URL}/movies?${params.toString()}`, { fetch: customFetch });
+	},
+
+	getTMDBMovie: async (id: string | number, customFetch?: typeof fetch) =>
+		fetchJSON(`${TMDB_URL}/movie/${encodeURIComponent(String(id))}`, { fetch: customFetch }),
+
+	getTMDBWatchProviders: async (
+		id: string | number,
+		region = 'US',
+		customFetch?: typeof fetch
+	) => {
+		const params = new URLSearchParams({ region: region.toUpperCase() });
+		return fetchJSON(
+			`${TMDB_URL}/movie/${encodeURIComponent(String(id))}/watch-providers?${params.toString()}`,
+			{ fetch: customFetch }
+		);
+	},
 
 	// Streaming
 	// Prefer the backend metadata provider because it supplies real episode names

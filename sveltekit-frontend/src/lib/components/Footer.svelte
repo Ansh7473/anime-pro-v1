@@ -1,7 +1,7 @@
 <script lang="ts">
   const currentYear = new Date().getFullYear();
   const groups = [
-    { title: "Browse", links: [["Explore", "/explore"], ["Latest", "/latest"], ["Schedule", "/schedule"], ["Movies", "/movies"], ["TV series", "/tv-series"]] },
+    { title: "Browse", links: [["Explore", "/explore"], ["Latest", "/latest"], ["Schedule", "/schedule"], ["Movies", "/movies"], ["Films", "/films"], ["TV series", "/tv-series"]] },
     { title: "Account", links: [["Profile", "/profile"], ["Watchlist", "/watchlist"], ["Favorites", "/favorites"], ["Download apps", "/download"]] },
     { title: "Information", links: [["About", "/about"], ["Contact", "/contact"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["DMCA", "/dmca"], ["FAQ", "/faq"]] },
   ];

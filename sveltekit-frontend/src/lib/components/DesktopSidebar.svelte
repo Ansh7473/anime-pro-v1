@@ -10,6 +10,7 @@
     { href: "/explore", label: "Browse", icon: Compass },
     { href: "/latest", label: "Latest", icon: Clock3 },
     { href: "/movies", label: "Movies", icon: Film },
+    { href: "/films", label: "Films", icon: Film },
     { href: "/tv-series", label: "TV series", icon: Tv },
     { href: "/watchlist", label: "Watchlist", icon: Bookmark },
     { href: "/favorites", label: "Favorites", icon: Heart },

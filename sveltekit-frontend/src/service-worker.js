@@ -69,13 +69,13 @@ self.addEventListener('fetch', (event) => {
 			return fetchWithTimeout(event.request, 4000);
 		}
 
-		// For public navigations, race the network against a timeout so a slow or hung
-		// origin can't leave the user staring at a blank screen — fall back to
-		// the cached page (stale-while-revalidate) instead.
+		// Dynamic SSR routes can legitimately take longer on a cold worker because
+		// their server loaders call upstream APIs. Keep an offline fallback, but do
+		// not abort healthy navigations after only four seconds.
 		if (isNavigate) {
 			const cachedResponse = await cache.match(event.request);
 			try {
-				const response = await fetchWithTimeout(event.request, 4000);
+				const response = await fetchWithTimeout(event.request, 12000);
 				const cacheControl = response?.headers.get('Cache-Control') || '';
 				const cacheable = response?.ok &&
 					!cacheControl.toLowerCase().includes('no-store') &&
