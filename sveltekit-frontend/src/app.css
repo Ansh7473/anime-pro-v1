@@ -1,13 +1,13 @@
 :root {
-	  /* ── Reference: dark panels on black, Persimmon accent, Nunito body ── */
-	  --net-red: #EC5800;
-	  --net-red-hover: #FF6F22;
-	  --net-bg: #000000;
-	  --net-bg-lite: #0b0b0d;
-	  --net-text: #f5f5f5;
-	  --net-text-muted: #8a8a8a;
-	  --net-card-bg: #202125;
-	  --net-card-hover: #2a2c31;
+	  /* Theme candidate 1: Cinematic Orange Noir */
+	  --net-red: #FF6A00;
+	  --net-red-hover: #FF8A3D;
+	  --net-bg: #080604;
+	  --net-bg-lite: #100D0A;
+	  --net-text: #FFF7ED;
+	  --net-text-muted: #A89B8D;
+	  --net-card-bg: #1A1410;
+	  --net-card-hover: #261B14;
 	  --net-body-font: 'Nunito', 'Outfit', system-ui, -apple-system, sans-serif;
 	  --net-display-font: 'Outfit', 'Nunito', system-ui, sans-serif;
 	  --font-family: 'Nunito', 'Outfit', system-ui, -apple-system, sans-serif;
@@ -16,92 +16,46 @@
 	  --radius-md: 10px;
 	  --radius-lg: 14px;
 	  --radius-xl: 18px;
-	  --net-gradient: linear-gradient(135deg, #FF6F22 0%, #EC5800 45%, #C24100 100%);
-	  --tv-focus-border: #EC5800;
-	  --tv-focus-glow: rgba(236, 88, 0, 0.35);
+	  --net-gradient: linear-gradient(135deg, #FF9A52 0%, #FF6A00 48%, #C83E00 100%);
+	  --tv-focus-border: #FF6A00;
+	  --tv-focus-glow: rgba(255, 106, 0, 0.38);
 	  --tv-overscan-x: 48px;
 	  --tv-overscan-y: 48px;
 
-	  /* ── Surfaces / panels (panel-on-black like reference) ── */
-	  --net-accent-purple: #7B2FBE;
-	  --net-accent-blue: #2563EB;
-	  --net-accent-cyan: #06B6D4;
-	  --net-accent-green: #10B981;
-	  --net-surface-1: #060608;
-	  --net-surface-2: #202125;
-	  --net-surface-3: #2a2c31;
-	  --net-border: rgba(255, 255, 255, 0.08);
-	  --net-border-hover: rgba(255, 255, 255, 0.14);
-	  --net-glow: rgba(236, 88, 0, 0.15);
-	  --net-gradient-accent: linear-gradient(135deg, #EC5800, #FF6F22);
-	  --net-gradient-cool: linear-gradient(135deg, #7B2FBE, #2563EB);
-	  --net-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
-	  --net-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
-	  --net-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.65);
-	  --net-shadow-glow: 0 0 30px rgba(236, 88, 0, 0.22);
-	  --net-panel: #202125;
-	  --net-panel-border: rgba(255, 255, 255, 0.08);
+	  /* Warm charcoal surfaces keep the orange signature cinematic. */
+	  --net-accent-purple: #9B5DE5;
+	  --net-accent-blue: #3B82F6;
+	  --net-accent-cyan: #22D3EE;
+	  --net-accent-green: #22C55E;
+	  --net-surface-1: #0C0907;
+	  --net-surface-2: #1A1410;
+	  --net-surface-3: #261B14;
+	  --net-border: rgba(255, 183, 128, 0.11);
+	  --net-border-hover: rgba(255, 138, 61, 0.3);
+	  --net-glow: rgba(255, 106, 0, 0.18);
+	  --net-gradient-accent: linear-gradient(135deg, #FF6A00, #FF9A52);
+	  --net-gradient-cool: linear-gradient(135deg, #9B5DE5, #3B82F6);
+	  --net-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+	  --net-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6);
+	  --net-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.7);
+	  --net-shadow-glow: 0 0 32px rgba(255, 106, 0, 0.26);
+	  --net-panel: #1A1410;
+	  --net-panel-border: rgba(255, 183, 128, 0.11);
 	  /* Canonical editorial shell */
 	  --page-max: 1500px;
 	  --page-gutter: 2.5rem;
 	  --page-gutter-md: 1.25rem;
 	  --page-gutter-sm: 0.85rem;
-	  --editorial-bg: #070706;
-	  --editorial-surface: #0d0c0b;
-	  --editorial-surface-raised: #151210;
-	  --editorial-line: #28231f;
-	  --editorial-text: #f1ece4;
-	  --editorial-muted: #918a82;
-	  --editorial-accent: #df886b;
-	  --editorial-accent-hover: #f1a287;
+	  --editorial-bg: #080604;
+	  --editorial-surface: #100D0A;
+	  --editorial-surface-raised: #1A1410;
+	  --editorial-line: #33251B;
+	  --editorial-text: #FFF7ED;
+	  --editorial-muted: #A89B8D;
+	  --editorial-accent: #FF6A00;
+	  --editorial-accent-hover: #FF8A3D;
 	}
 
-/* --- THEME CUSTOMIZATION ENGINE --- */
-
-/* Gradient Look */
-[data-gradients="true"] .btn-primary {
-  background: var(--net-gradient);
-  color: white;
-  border: none;
-  box-shadow: 0 4px 15px rgba(255, 138, 61, 0.28);
-}
-
-[data-gradients="true"] .btn-secondary {
-  background: linear-gradient(135deg, rgba(109, 109, 110, 0.6) 0%, rgba(50, 50, 50, 0.6) 100%);
-}
-
-[data-gradients="true"] .card-accent-border {
-  border-image: var(--net-gradient) 1;
-}
-
-/* Special Effects */
-[data-effect="glass"] .glass {
-  background: rgba(255, 255, 255, 0.05) !important;
-  -webkit-backdrop-filter: blur(25px) saturate(200%) !important;
-  backdrop-filter: blur(25px) saturate(200%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-:root[data-effect="neon"] {
-  --tactical-glow: 0 0 15px var(--net-red);
-}
-[data-effect="neon"] .btn-primary {
-  box-shadow: 0 0 20px var(--net-red);
-  text-shadow: 0 0 5px rgba(255,255,255,0.5);
-}
-
-[data-effect="prismatic"] .logo-accent {
-  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-size: 200% auto;
-  animation: prismatic-flow 3s linear infinite;
-}
-
-@keyframes prismatic-flow {
-  to { background-position: 200% center; }
-}
 
 /* Global TV Compatibility & Focus Management */
 :focus-visible {
@@ -839,8 +793,7 @@ footer,
 @media (max-width: 768px) {
   .tactical-grid,
   .hero-glow,
-  .tactical-hud-circle,
-  [data-effect="prismatic"] .logo-accent {
+  .tactical-hud-circle {
     display: none !important;
   }
 }

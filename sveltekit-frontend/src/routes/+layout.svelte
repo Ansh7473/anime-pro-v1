@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from "$app/environment";
-  import { themeState } from "$lib/stores/theme";
   import { titleLanguage } from "$lib/stores/titleLanguage";
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
@@ -14,7 +13,6 @@
   import { onMount } from "svelte";
 
   import "../app.css";
-  import "../lib/styles/themes.css";
 
   let { children, data } = $props();
   const siteJsonLd = $derived(getSiteJsonLd(data.canonicalUrl));
@@ -63,10 +61,7 @@
 
 <JsonLd data={siteJsonLd} />
 
-<div class="app theme-{$themeState.current}"
-     class:tv-mode={$isTV}
-     data-gradients={$themeState.gradients}
-     data-effect={$themeState.effect}>
+<div class="app" class:tv-mode={$isTV}>
   {#if $isTV}
     <TVShell>
       {@render children()}

@@ -4,7 +4,6 @@
   import MobileBottomNav from "$lib/components/MobileBottomNav.svelte";
   import PullToRefresh from "$lib/components/PullToRefresh.svelte";
   import Footer from "$lib/components/Footer.svelte";
-  import { themeState } from "$lib/stores/theme";
   import { page } from "$app/state";
   import { fly } from "svelte/transition";
   import { Download, X } from "lucide-svelte";
@@ -71,10 +70,7 @@
   let isWatchPage = $derived(page.url.pathname.startsWith('/watch/'));
 </script>
 
-<div class="regular-shell editorial-site"
-     class:theme-{$themeState.current}={true}
-     data-gradients={$themeState.gradients}
-     data-effect={$themeState.effect}>
+<div class="regular-shell editorial-site">
   {#if !isWatchPage}
     <div class="tactical-grid"></div>
     <Navbar />
@@ -243,8 +239,8 @@
       font-size: 1.2rem;
       font-weight: 700;
       color: #fff;
-      background: rgba(18, 18, 20, 0.92);
-      border: 1px solid rgba(245, 245, 245, 0.14);
+      background: color-mix(in srgb, var(--editorial-surface, #121214) 92%, transparent);
+      border: 1px solid var(--net-border, rgba(245, 245, 245, 0.14));
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
@@ -252,7 +248,7 @@
       transition: background 0.2s, opacity 0.2s;
     }
     .sf-btn:hover {
-      background: rgba(36, 36, 40, 0.95);
+      background: color-mix(in srgb, var(--editorial-surface-raised, #242428) 95%, transparent);
     }
     .sf-btn:disabled {
       opacity: 0.35;

@@ -44,9 +44,9 @@
     position: relative;
     aspect-ratio: 16 / 9;
     overflow: hidden;
-    border: 1px solid #2b2622;
+    border: 1px solid var(--editorial-line, #2b2622);
     border-radius: 2px;
-    background: #11100e;
+    background: var(--editorial-surface, #11100e);
   }
   .media img {
     width: 100%;
@@ -61,7 +61,7 @@
     width: 100%;
     height: 100%;
     place-items: center;
-    color: #615a53;
+    color: var(--editorial-muted, #615a53);
     font-size: 1.6rem;
   }
   .play-mark {
@@ -72,10 +72,10 @@
     height: 28px;
     display: grid;
     place-items: center;
-    border: 1px solid rgba(241, 226, 216, 0.22);
+    border: 1px solid color-mix(in srgb, var(--editorial-text, #f1e2d8) 22%, transparent);
     border-radius: 2px;
-    background: rgba(9, 8, 7, 0.86);
-    color: #e8ddd3;
+    background: color-mix(in srgb, var(--editorial-bg, #090807) 86%, transparent);
+    color: var(--editorial-text, #e8ddd3);
     font-size: 0.62rem;
   }
   .progress-track {
@@ -84,18 +84,18 @@
     bottom: 0;
     left: 0;
     height: 3px;
-    background: rgba(7, 7, 6, 0.74);
+    background: color-mix(in srgb, var(--editorial-bg, #070706) 74%, transparent);
   }
   .progress-track span {
     display: block;
     height: 100%;
-    background: #d8896d;
+    background: var(--editorial-accent, #d8896d);
   }
   .copy { padding: 0.62rem 0.12rem 0; }
   .copy strong {
     display: block;
     overflow: hidden;
-    color: #ded7ce;
+    color: var(--editorial-text, #ded7ce);
     font-size: 0.82rem;
     font-weight: 720;
     line-height: 1.32;
@@ -108,15 +108,15 @@
     gap: 0.8rem;
     margin-top: 0.34rem;
     padding-top: 0.4rem;
-    border-top: 1px solid #211d1a;
-    color: #756e67;
+    border-top: 1px solid var(--editorial-line, #211d1a);
+    color: var(--editorial-muted, #756e67);
     font-size: 0.62rem;
     font-variant-numeric: tabular-nums;
   }
   .resume-card:hover .media img { filter: saturate(1) contrast(1.055); }
-  .resume-card:hover .copy strong { color: #f1a287; }
+  .resume-card:hover .copy strong { color: var(--editorial-accent-hover, #f1a287); }
   .resume-card:focus-visible {
-    outline: 2px solid #efae98;
+    outline: 2px solid var(--editorial-accent-hover, #efae98);
     outline-offset: 4px;
     border-radius: 2px;
   }

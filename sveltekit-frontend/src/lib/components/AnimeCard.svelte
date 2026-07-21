@@ -59,7 +59,7 @@
     flex-direction: column;
     overflow: hidden;
     border-radius: 4px;
-    background: #0d0c0b;
+    background: var(--editorial-surface, #0d0c0b);
     color: inherit;
     text-decoration: none;
     transition: background 160ms ease;
@@ -84,15 +84,15 @@
     min-height: 26px;
     display: inline-flex;
     align-items: center;
-    background: rgba(7, 7, 6, .92);
-    color: #e9e1d8;
+    background: color-mix(in srgb, var(--editorial-bg, #070706) 92%, transparent);
+    color: var(--editorial-text, #e9e1d8);
     font-size: .62rem;
     font-weight: 800;
   }
   .airing {
     left: 0;
     padding: .36rem .55rem;
-    color: #efa086;
+    color: var(--editorial-accent-hover, #efa086);
     letter-spacing: .025em;
   }
   .rank {
@@ -111,7 +111,7 @@
     flex-direction: column;
     gap: .7rem;
     padding: 1rem;
-    color: #655e57;
+    color: var(--editorial-muted, #655e57);
   }
   .fallback span { font-size: 2rem; }
   .fallback small { max-width: 100%; color: #8f877f; font-size: .7rem; text-align: center; }
@@ -124,7 +124,7 @@
   }
   h3 {
     margin: 0;
-    color: #eee8df;
+    color: var(--editorial-text, #eee8df);
     font-size: .88rem;
     font-weight: 780;
     line-height: 1.3;
@@ -141,7 +141,7 @@
     justify-content: space-between;
     gap: .6rem;
     margin-top: auto;
-    color: #777068;
+    color: var(--editorial-muted, #777068);
     font-size: .64rem;
     line-height: 1.25;
   }
@@ -153,13 +153,13 @@
   }
   .measure {
     flex: 0 0 auto;
-    color: #a49b92;
+    color: var(--editorial-muted, #a49b92);
     font-variant-numeric: tabular-nums;
   }
   .card:hover { background: #161310; }
   .card:hover .poster img { filter: saturate(1) contrast(1.04); }
-  .card:hover h3, .card:hover .measure { color: #f1a287; }
-  .card:focus-visible { outline: 2px solid #efae98; outline-offset: 4px; }
+  .card:hover h3, .card:hover .measure { color: var(--editorial-accent-hover, #f1a287); }
+  .card:focus-visible { outline: 2px solid var(--editorial-accent-hover, #efae98); outline-offset: 4px; }
   .card.small { max-width: 160px; }
   .card.large { max-width: 280px; }
   @media (max-width: 640px) {

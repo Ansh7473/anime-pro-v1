@@ -4,8 +4,8 @@
   "description": "Discover anime, follow weekly release times, and continue your WatchAnimeX viewing history.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b0b0f",
-  "theme_color": "#0b0b0f",
+  "background_color": "#080604",
+  "theme_color": "#080604",
   "orientation": "any",
   "icons": [
     {

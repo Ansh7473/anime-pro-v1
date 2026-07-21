@@ -44,8 +44,8 @@
     width: var(--desk-rail-width, 68px);
     display: flex;
     flex-direction: column;
-    background: #090807;
-    border-right: 1px solid #28231f;
+    background: var(--editorial-bg, #090807);
+    border-right: 1px solid var(--editorial-line, #28231f);
     overflow: hidden;
     transition: width .18s ease;
   }
@@ -61,15 +61,15 @@
     gap: 1rem;
     padding: 0 23px;
     border: 0;
-    border-bottom: 1px solid #201c19;
+    border-bottom: 1px solid var(--editorial-line, #201c19);
     background: transparent;
-    color: #8e8780;
+    color: var(--editorial-muted, #8e8780);
     text-decoration: none;
     white-space: nowrap;
   }
   .rail-toggle :global(svg),
   nav a :global(svg) { width: 19px; min-width: 19px; flex: 0 0 19px; }
-  .rail-toggle { color: #c6beb5; cursor: pointer; }
+  .rail-toggle { color: var(--editorial-text, #c6beb5); cursor: pointer; }
   .rail-toggle span,
   nav a span,
   .desk-rail p b { opacity: 0; transition: opacity .1s; }
@@ -77,9 +77,9 @@
   .desk-rail:hover :is(.rail-toggle span,nav a span,.desk-rail p b),
   .desk-rail:focus-within :is(.rail-toggle span,nav a span,.desk-rail p b) { opacity: 1; }
   .rail-toggle:hover,
-  nav a:hover { background: #151210; color: #f1ece4; }
-  nav a.active { color: #efa086; box-shadow: inset 2px 0 #df886b; }
-  .desk-rail p { margin-top: auto; padding: 1rem 23px; color: #c9c2ba; white-space: nowrap; }
+  nav a:hover { background: var(--editorial-surface-raised, #151210); color: #f1ece4; }
+  nav a.active { color: var(--editorial-accent-hover, #efa086); box-shadow: inset 2px 0 var(--editorial-accent, #df886b); }
+  .desk-rail p { margin-top: auto; padding: 1rem 23px; color: var(--editorial-text, #c9c2ba); white-space: nowrap; }
   .desk-rail p b { display: block; font-size: .72rem; font-weight: 800; letter-spacing: -.02em; }
   @media(max-width:1024px) { .desk-rail { display: none; } }
   @media(prefers-reduced-motion:reduce) { .desk-rail { transition: none; } }

@@ -7,7 +7,6 @@
     Activity,
     Clock,
     Zap,
-    Cpu,
     Radio,
     User
   } from 'lucide-svelte';
@@ -185,10 +184,6 @@
                 <option value="multi">Multi-Audio</option>
               </select>
             </div>
-
-            <a href="/profile" class="theme-link">
-              <Cpu size={16} /> Customize Theme & Appearance
-            </a>
           </div>
         </section>
       </div>
@@ -535,25 +530,6 @@
     outline: none;
   }
   .pref-select select:focus { border-color: var(--net-red); }
-
-  .theme-link {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.85rem 1rem;
-    background: rgba(229, 9, 20, 0.06);
-    border: 1px solid rgba(229, 9, 20, 0.12);
-    border-radius: 10px;
-    color: var(--net-red);
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-  .theme-link:hover {
-    background: rgba(229, 9, 20, 0.1);
-    border-color: rgba(229, 9, 20, 0.25);
-  }
 
   /* AI Badge */
   .ai-badge {
