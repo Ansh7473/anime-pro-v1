@@ -12,8 +12,15 @@
     ShieldCheck,
     Sparkles,
     ArrowDown,
+    Wrench,
   } from "lucide-svelte";
   import { api } from "$lib/api";
+
+  // Native app downloads are temporarily disabled while releases are being
+  // reworked. Flip back to false to restore the full platform grid — no
+  // other change needed, every entry point (navbar, footer, home) still
+  // links here as usual.
+  const DOWNLOADS_DISABLED = true;
 
   type Platform = {
     key: string;
@@ -128,6 +135,17 @@
 </svelte:head>
 
 <div class="dl container">
+  {#if DOWNLOADS_DISABLED}
+    <div class="dl-maintenance">
+      <div class="maint-icon"><Wrench size={30} /></div>
+      <h1 class="maint-title">Downloads are temporarily unavailable</h1>
+      <p class="maint-sub">
+        Native app downloads are under maintenance right now. You can keep watching
+        right away in your browser — no app needed.
+      </p>
+      <a href="/" class="maint-cta">Continue on the web</a>
+    </div>
+  {:else}
   <!-- Hero -->
   <header class="dl-hero">
     <span class="dl-kicker"><Download size={13} /> Native apps</span>
@@ -224,6 +242,7 @@
     <Smartphone size={14} />
     <span>Android: enable <strong>Install from unknown sources</strong> before opening the APK.</span>
   </p>
+  {/if}
 </div>
 
 <style>
@@ -236,6 +255,57 @@
     padding-top: 1.5rem;
     padding-bottom: 4rem;
     max-width: 940px;
+  }
+
+  /* ---------- Maintenance state ---------- */
+  .dl-maintenance {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+    padding: 4.5rem 1.5rem;
+  }
+  .maint-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+  }
+  .maint-title {
+    font-size: clamp(1.4rem, 3.5vw, 1.9rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: #fff;
+  }
+  .maint-sub {
+    max-width: 440px;
+    color: var(--net-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .maint-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--net-red);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: 10px;
+    margin-top: 0.4rem;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .maint-cta:hover {
+    background: var(--net-red-hover, #b8070f);
+    transform: translateY(-1px);
   }
 
   /* ---------- Hero ---------- */
