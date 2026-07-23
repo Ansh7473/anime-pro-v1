@@ -19,8 +19,6 @@ const configuredBackends = [
 // pages from silently testing an older deployed API.
 const BACKENDS = [...new Set(dev ? ['http://localhost:3001', ...configuredBackends] : (configuredBackends.length ? configuredBackends : [defaultBackend]))];
 
-console.log("🔌 Loaded Backend URL:", BACKENDS[0]);
-
 // Randomly order the pool so load spreads ~evenly across accounts per session,
 // while keeping every backend available for failover.
 const POOL = dev ? BACKENDS : [...BACKENDS].sort(() => Math.random() - 0.5);
