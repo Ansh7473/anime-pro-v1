@@ -18,9 +18,7 @@
   let touchEndX = $state(0);
 
   const heroes = $derived(
-    items
-      .filter((item: any) => item?.artwork?.banner || item?.bannerImage || item?.image || item?.poster)
-      .slice(0, 4),
+    items.filter((item: any) => item?.artwork?.banner || item?.bannerImage || item?.image || item?.poster),
   );
   const anime = $derived(heroes[current] || heroes[0]);
   const title = $derived(getAnimeTitle(anime, $titleLanguage));

@@ -547,7 +547,7 @@
         {#if posterUrl}
           <div class="anime-detail-poster"><img src={posterUrl} alt={displayTitle} /></div>
         {/if}
-        <a href="/watch/{id}/1/" class="anime-detail-btn primary" data-sveltekit-preloanime-detail-data="hover"><span aria-hidden="true">▶</span> Play episode 1</a>
+        <a href="/watch/{id}/1/" class="anime-detail-btn primary" data-sveltekit-preload-data="hover"><span aria-hidden="true">▶</span> Play episode 1</a>
         <div class="anime-detail-utility-actions">
           <button type="button" class:active={inWatchlist} disabled={processingWatchlist} onclick={toggleWatchlist}>
             {processingWatchlist ? "Saving..." : inWatchlist ? "✓ In watchlist" : "+ Watchlist"}

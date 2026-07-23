@@ -13,10 +13,7 @@
 
   let { data } = $props();
 
-  const INITIAL_CATALOG_ITEMS = 20;
-  const CATALOG_PAGE_SIZE = 10;
   let catalogTab = $state<"newest" | "popular" | "topRated">("newest");
-  let visibleCatalogItems = $state(INITIAL_CATALOG_ITEMS);
   let continueHistory = $state<any[]>([]);
   let heroItems = $state<any[]>([]);
   let seasonalItems = $state<any[]>([]);
@@ -97,20 +94,15 @@
   let gridItems = $derived(
     catalogTab === "newest" ? airingItems : catalogTab === "popular" ? popularItems : topRatedItems,
   );
-  let visibleGridItems = $derived(gridItems.slice(0, visibleCatalogItems));
-  let hasMoreCatalogItems = $derived(visibleCatalogItems < gridItems.length);
+  let visibleGridItems = $derived(gridItems);
   let catalogHref = $derived(
     catalogTab === "newest" ? "/explore/seasonal" : catalogTab === "popular" ? "/explore/popular" : "/explore/highest-rated",
   );
 
   function setCatalogTab(tab: "newest" | "popular" | "topRated") {
     catalogTab = tab;
-    visibleCatalogItems = INITIAL_CATALOG_ITEMS;
   }
 
-  function loadMoreCatalogItems() {
-    visibleCatalogItems = Math.min(visibleCatalogItems + CATALOG_PAGE_SIZE, gridItems.length);
-  }
 
   function scoreOf(anime: any) {
     const raw = Number(anime?.score || anime?.rating || 0);
@@ -120,7 +112,9 @@
   let heroArtworkGeneration = 0;
 
   function chooseHeroes() {
-    const candidates = [seasonalItems[0], topRatedItems[0], movieItems[0], trendingItems[0]].filter(Boolean);
+    const candidates = seasonalItems.length
+      ? seasonalItems
+      : [...popularItems, ...topRatedItems, ...movieItems, ...trendingItems];
     const seen = new Set<string>();
     const generation = ++heroArtworkGeneration;
     heroItems = candidates.filter((item: any) => {
@@ -130,12 +124,15 @@
       return true;
     });
 
-    // Match watchanimez's progressive request pattern: catalog data paints
-    // first, then only the four approved hero candidates receive presentation
-    // artwork. Requests are exact-key cached and coalesced by the API client.
+    // Enrich every slide so each seasonal title can show its clear logo artwork.
     for (const candidate of heroItems) {
       const candidateId = candidate?.id || candidate?.mal_id;
-      if (!candidateId || candidate?.artwork?.banner || candidate?.clearLogo) continue;
+      const existingLogo =
+        candidate?.clearLogo ||
+        candidate?.clear_logo ||
+        candidate?.artwork?.clearLogo ||
+        candidate?.artwork?.clear_logo;
+      if (!candidateId || existingLogo) continue;
       void api.getAnimeArtwork(candidateId)
         .then((result: any) => {
           if (generation !== heroArtworkGeneration || !result) return;
@@ -288,12 +285,8 @@
               {/each}
             </div>
             <div class="catalog-pagination" aria-label="Catalog pagination">
-              <span>{visibleGridItems.length} of {gridItems.length} titles</span>
-              {#if hasMoreCatalogItems}
-                <button type="button" onclick={loadMoreCatalogItems}>Show {Math.min(CATALOG_PAGE_SIZE, gridItems.length - visibleGridItems.length)} more</button>
-              {:else}
-                <a href={catalogHref}>Continue in the full index <span aria-hidden="true">↗</span></a>
-              {/if}
+              <span>{visibleGridItems.length} titles</span>
+              <a href={catalogHref}>Continue in the full index <span aria-hidden="true">↗</span></a>
             </div>
           {:else}
             <p class="empty-catalog">No titles are available in this view yet.</p>
@@ -455,7 +448,7 @@
   }
   .catalog-tabs button:hover { color: var(--editorial-text, #e7e0d7); background: var(--editorial-surface-raised, #1a1715); }
   .catalog-tabs button.active { color: var(--editorial-bg, #1a100d); background: var(--editorial-accent, #e8a087); }
-  .catalog-tabs button:focus-visible, .catalog-pagination button:focus-visible { outline: 2px solid var(--editorial-accent-hover, #f3b29d); outline-offset: 2px; }
+  .catalog-tabs button:focus-visible { outline: 2px solid var(--editorial-accent-hover, #f3b29d); outline-offset: 2px; }
 
   .catalog-layout { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 2.5rem; align-items: start; }
   .poster-grid {
@@ -507,7 +500,7 @@
     color: var(--editorial-muted, #817b74);
     font-size: 0.78rem;
   }
-  .catalog-pagination button, .catalog-pagination a {
+  .catalog-pagination a {
     border: 0;
     border-radius: 3px;
     background: var(--editorial-accent, #d97859);
@@ -517,7 +510,7 @@
     text-decoration: none;
     cursor: pointer;
   }
-  .catalog-pagination button:hover, .catalog-pagination a:hover { background: var(--editorial-accent-hover, #efa086); }
+  .catalog-pagination a:hover { background: var(--editorial-accent-hover, #efa086); }
   .empty-catalog { min-height: 20rem; color: var(--editorial-muted, #928d85); }
 
   .reader-chart { position: sticky; top: 5.5rem; background: var(--editorial-surface, #0d0c0b); padding: 1rem 1.1rem; border-radius: 5px; }
@@ -595,7 +588,7 @@
     }
     .reader-chart ol { grid-template-columns: 1fr; }
     .catalog-pagination { align-items: stretch; flex-direction: column; gap: 0.9rem; }
-    .catalog-pagination button, .catalog-pagination a { text-align: center; }
+    .catalog-pagination a { text-align: center; }
     .home-note div { columns: 1; }
     .home-note p + p { margin-top: 1rem; }
   }
