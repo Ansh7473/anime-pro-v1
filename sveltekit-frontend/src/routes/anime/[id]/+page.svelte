@@ -493,21 +493,21 @@
   <SkeletonDetail />
 {:else}
   <section
-    class="ad-hero"
+    class="anime-detail-hero"
     class:cover-fallback={!wideBannerUrl}
     style="--banner: url('{heroImageUrl}')"
   >
-    <div class="ad-hero-bg" aria-hidden="true"></div>
-    <div class="ad-hero-shade" aria-hidden="true"></div>
+    <div class="anime-detail-hero-bg" aria-hidden="true"></div>
+    <div class="anime-detail-hero-shade" aria-hidden="true"></div>
 
-    <div class="ad-hero-inner">
-      <div class="ad-info">
-        <div class="ad-heading">
-          {#if secondaryTitle}<p class="ad-native-title">{secondaryTitle}</p>{/if}
-          <h1 class="ad-title">
+    <div class="anime-detail-hero-inner">
+      <div class="anime-detail-info">
+        <div class="anime-detail-heading">
+          {#if secondaryTitle}<p class="anime-detail-native-title">{secondaryTitle}</p>{/if}
+          <h1 class="anime-detail-title">
             {#if visibleTitleLogo}
               <img
-                class="ad-title-logo"
+                class="anime-detail-title-logo"
                 src={visibleTitleLogo}
                 alt={displayTitle}
                 onerror={() => (failedTitleLogo = titleLogo)}
@@ -518,7 +518,7 @@
             {/if}
           </h1>
 
-          <div class="ad-meta" aria-label="Anime metadata">
+          <div class="anime-detail-meta" aria-label="Anime metadata">
             {#if scoreLabel}<span><b>★ {scoreLabel}</b> score</span>{/if}
             {#if seasonLabel}<span>{seasonLabel}</span>{/if}
             {#if anime.episodes}<span>{anime.episodes} episodes</span>{/if}
@@ -527,28 +527,28 @@
           </div>
 
           {#if anime.genres?.length}
-            <p class="ad-genres">
+            <p class="anime-detail-genres">
               {anime.genres.map((g: any) => typeof g === "string" ? g : g?.name).filter(Boolean).join(" / ")}
             </p>
           {/if}
         </div>
 
-        <div class="ad-overview">
-          <p class="ad-synopsis" class:open={synopsisOpen}>{synopsisOpen ? synopsisFull : synopsisShort}</p>
+        <div class="anime-detail-overview">
+          <p class="anime-detail-synopsis" class:open={synopsisOpen}>{synopsisOpen ? synopsisFull : synopsisShort}</p>
           {#if synopsisFull.length > 280}
-            <button type="button" class="ad-readmore" onclick={() => (synopsisOpen = !synopsisOpen)}>
+            <button type="button" class="anime-detail-readmore" onclick={() => (synopsisOpen = !synopsisOpen)}>
               {synopsisOpen ? "Show less" : "Read full synopsis"}
             </button>
           {/if}
         </div>
       </div>
 
-      <div class="ad-poster-dock">
+      <div class="anime-detail-poster-dock">
         {#if posterUrl}
-          <div class="ad-poster"><img src={posterUrl} alt={displayTitle} /></div>
+          <div class="anime-detail-poster"><img src={posterUrl} alt={displayTitle} /></div>
         {/if}
-        <a href="/watch/{id}/1/" class="ad-btn primary" data-sveltekit-preload-data="hover"><span aria-hidden="true">▶</span> Play episode 1</a>
-        <div class="ad-utility-actions">
+        <a href="/watch/{id}/1/" class="anime-detail-btn primary" data-sveltekit-preloanime-detail-data="hover"><span aria-hidden="true">▶</span> Play episode 1</a>
+        <div class="anime-detail-utility-actions">
           <button type="button" class:active={inWatchlist} disabled={processingWatchlist} onclick={toggleWatchlist}>
             {processingWatchlist ? "Saving..." : inWatchlist ? "✓ In watchlist" : "+ Watchlist"}
           </button>
@@ -562,44 +562,44 @@
   </section>
 
   <!-- Body: info rail + tabs -->
-  <div class="ad-body">
-    <aside class="ad-side" class:active-mobile={activeTab === "information"}>
-      <h2 class="ad-side-title">Information</h2>
-      <dl class="ad-facts">
-        <div class="ad-fact">
+  <div class="anime-detail-body">
+    <aside class="anime-detail-side" class:active-mobile={activeTab === "information"}>
+      <h2 class="anime-detail-side-title">Information</h2>
+      <dl class="anime-detail-facts">
+        <div class="anime-detail-fact">
           <dt>Native</dt>
           <dd>{nativeTitle || "N/A"}</dd>
         </div>
-        <div class="ad-fact">
+        <div class="anime-detail-fact">
           <dt>Synonyms</dt>
           <dd>{synonyms}</dd>
         </div>
-        <div class="ad-fact">
+        <div class="anime-detail-fact">
           <dt>English</dt>
           <dd>{englishTitle || "N/A"}</dd>
         </div>
-        <div class="ad-fact">
+        <div class="anime-detail-fact">
           <dt>Type</dt>
           <dd>{formatLabel || "N/A"}</dd>
         </div>
-        <div class="ad-fact">
+        <div class="anime-detail-fact">
           <dt>Episodes</dt>
           <dd>{anime.episodes || "N/A"}</dd>
         </div>
-        <div class="ad-fact">
+        <div class="anime-detail-fact">
           <dt>Status</dt>
           <dd>{anime.status || "N/A"}</dd>
         </div>
-        <div class="ad-fact">
+        <div class="anime-detail-fact">
           <dt>Season</dt>
           <dd>{seasonLabel || "N/A"}</dd>
         </div>
-        <div class="ad-fact">
+        <div class="anime-detail-fact">
           <dt>Studios</dt>
           <dd>{studiosLabel}</dd>
         </div>
         {#if scoreLabel}
-          <div class="ad-fact">
+          <div class="anime-detail-fact">
             <dt>Score</dt>
             <dd>★ {scoreLabel}</dd>
           </div>
@@ -607,12 +607,12 @@
       </dl>
     </aside>
 
-    <div class="ad-main" class:hidden-mobile={activeTab === "information"}>
-      <div class="ad-tabs" role="tablist" aria-label="Anime sections">
+    <div class="anime-detail-main" class:hidden-mobile={activeTab === "information"}>
+      <div class="anime-detail-tabs" role="tablist" aria-label="Anime sections">
         <button
           type="button"
           role="tab"
-          class="ad-tab"
+          class="anime-detail-tab"
           class:active={activeTab === "episodes"}
           aria-selected={activeTab === "episodes"}
           onclick={() => (activeTab = "episodes")}
@@ -620,7 +620,7 @@
         <button
           type="button"
           role="tab"
-          class="ad-tab mobile-only-tab"
+          class="anime-detail-tab mobile-only-tab"
           class:active={activeTab === "information"}
           aria-selected={activeTab === "information"}
           onclick={() => (activeTab = "information")}
@@ -628,7 +628,7 @@
         <button
           type="button"
           role="tab"
-          class="ad-tab"
+          class="anime-detail-tab"
           class:active={activeTab === "characters"}
           aria-selected={activeTab === "characters"}
           onclick={() => (activeTab = "characters")}
@@ -636,7 +636,7 @@
         <button
           type="button"
           role="tab"
-          class="ad-tab"
+          class="anime-detail-tab"
           class:active={activeTab === "trailer"}
           aria-selected={activeTab === "trailer"}
           onclick={() => (activeTab = "trailer")}
@@ -644,7 +644,7 @@
         <button
           type="button"
           role="tab"
-          class="ad-tab"
+          class="anime-detail-tab"
           class:active={activeTab === "comments"}
           aria-selected={activeTab === "comments"}
           onclick={() => (activeTab = "comments")}
@@ -652,25 +652,25 @@
       </div>
 
       {#if activeTab === "episodes"}
-        <div class="ad-ep-toolbar">
-          <div class="ad-ep-order">
-            <span class="ad-ep-label">Order by:</span>
+        <div class="anime-detail-ep-toolbar">
+          <div class="anime-detail-ep-order">
+            <span class="anime-detail-ep-label">Order by:</span>
             <button
               type="button"
-              class="ad-mini"
+              class="anime-detail-mini"
               class:active={epOrder === "desc"}
               onclick={() => (epOrder = "desc")}
             >Latest Episode</button>
             <button
               type="button"
-              class="ad-mini"
+              class="anime-detail-mini"
               class:active={epOrder === "asc"}
               onclick={() => (epOrder = "asc")}
             >Oldest</button>
           </div>
-          <div class="ad-ep-tools">
+          <div class="anime-detail-ep-tools">
             {#if episodeRanges.length > 1}
-              <label class="ad-ep-range">
+              <label class="anime-detail-ep-range">
                 <Layers3 size={15} aria-hidden="true" />
                 <span class="sr-only">Episode range</span>
                 <select bind:value={epRangeIndex} aria-label="Episode range">
@@ -680,7 +680,7 @@
                 </select>
               </label>
             {/if}
-            <label class="ad-ep-search">
+            <label class="anime-detail-ep-search">
               <span class="sr-only">Search episodes</span>
               <input
                 type="search"
@@ -692,40 +692,40 @@
         </div>
 
         {#if detailsLoading && episodes.length === 0}
-          <div class="ad-ep-grid">
+          <div class="anime-detail-ep-grid">
             {#each Array(12) as _, i (i)}
-              <div class="ad-ep-card sk">
-                <div class="ad-ep-thumb shimmer"></div>
-                <div class="ad-ep-line shimmer"></div>
+              <div class="anime-detail-ep-card sk">
+                <div class="anime-detail-ep-thumb shimmer"></div>
+                <div class="anime-detail-ep-line shimmer"></div>
               </div>
             {/each}
           </div>
         {:else if filteredEpisodes.length}
-          <div class="ad-ep-grid">
+          <div class="anime-detail-ep-grid">
             {#each visibleEpisodes as ep (ep.number)}
-              <a class="ad-ep-card" href="/watch/{id}/{ep.number}/">
-                <div class="ad-ep-thumb">
+              <a class="anime-detail-ep-card" href="/watch/{id}/{ep.number}/">
+                <div class="anime-detail-ep-thumb">
                   {#if ep.image}
                     <img src={ep.image} alt="" loading="lazy" />
                   {:else}
                     <img src={anime.poster || anime.image} alt="" loading="lazy" />
                   {/if}
-                  <span class="ad-ep-play" aria-hidden="true">▶</span>
-                  <span class="ad-ep-badge">EP {ep.number}</span>
+                  <span class="anime-detail-ep-play" aria-hidden="true">▶</span>
+                  <span class="anime-detail-ep-badge">EP {ep.number}</span>
                 </div>
-                <p class="ad-ep-title">{ep.title || `Episode ${ep.number}`}</p>
+                <p class="anime-detail-ep-title">{ep.title || `Episode ${ep.number}`}</p>
               </a>
             {/each}
           </div>
         {:else}
-          <p class="ad-empty">No episodes found.</p>
+          <p class="anime-detail-empty">No episodes found.</p>
         {/if}
       {:else if activeTab === "characters"}
         <div class="char-toolbar">
           <div class="char-filters" role="tablist" aria-label="Character filter">
-            <button type="button" class="ad-mini" class:active={charFilter === "all"} onclick={() => (charFilter = "all")}>All</button>
-            <button type="button" class="ad-mini" class:active={charFilter === "main"} onclick={() => (charFilter = "main")}>Main</button>
-            <button type="button" class="ad-mini" class:active={charFilter === "supporting"} onclick={() => (charFilter = "supporting")}>Supporting</button>
+            <button type="button" class="anime-detail-mini" class:active={charFilter === "all"} onclick={() => (charFilter = "all")}>All</button>
+            <button type="button" class="anime-detail-mini" class:active={charFilter === "main"} onclick={() => (charFilter = "main")}>Main</button>
+            <button type="button" class="anime-detail-mini" class:active={charFilter === "supporting"} onclick={() => (charFilter = "supporting")}>Supporting</button>
           </div>
           <span class="char-count">{filteredCharacters.length} characters</span>
         </div>
@@ -784,11 +784,11 @@
             {/each}
           </div>
         {:else}
-          <p class="ad-empty">No character data yet.</p>
+          <p class="anime-detail-empty">No character data yet.</p>
         {/if}
       {:else if activeTab === "trailer"}
         {#if trailerUrl}
-          <div class="ad-trailer">
+          <div class="anime-detail-trailer">
             <iframe
               src={trailerUrl}
               title="{displayTitle} trailer"
@@ -797,30 +797,30 @@
             ></iframe>
           </div>
         {:else}
-          <p class="ad-empty">No trailer available for this title.</p>
+          <p class="anime-detail-empty">No trailer available for this title.</p>
         {/if}
       {:else}
-        <p class="ad-empty">
+        <p class="anime-detail-empty">
           Open an episode to join the conversation, or check the watch page comments.
         </p>
-        <a class="ad-btn primary" href="/watch/{id}/1/">Go to Episode 1</a>
+        <a class="anime-detail-btn primary" href="/watch/{id}/1/">Go to Episode 1</a>
       {/if}
     </div>
   </div>
 
-  <div class="ad-related">
+  <div class="anime-detail-related">
     {#if detailsLoading}
-      <div class="ad-rows">
+      <div class="anime-detail-rows">
         <SkeletonRow count={8} />
       </div>
     {:else}
       {#if relations.length > 0}
-        <div class="ad-rows">
+        <div class="anime-detail-rows">
           <Row title="Related chronology" items={relations} />
         </div>
       {/if}
       {#if recommendations.length > 0}
-        <div class="ad-rows">
+        <div class="anime-detail-rows">
           <Row title="More from this shelf" items={recommendations} />
         </div>
       {/if}
@@ -841,13 +841,13 @@
   }
 
   /* ===== HERO ===== */
-  .ad-hero {
+  .anime-detail-hero {
     position: relative;
     width: 100%;
     min-height: clamp(380px, 52vh, 520px);
     overflow: hidden;
   }
-  .ad-hero-bg {
+  .anime-detail-hero-bg {
     position: absolute;
     inset: 0;
     background-image: var(--banner);
@@ -856,18 +856,18 @@
     transform: scale(1.04);
     filter: saturate(1.05);
   }
-  .ad-hero.cover-fallback .ad-hero-bg {
+  .anime-detail-hero.cover-fallback .anime-detail-hero-bg {
     transform: scale(1.12);
     filter: blur(18px) saturate(0.75) brightness(0.72);
   }
-  .ad-hero-shade {
+  .anime-detail-hero-shade {
     position: absolute;
     inset: 0;
     background:
       linear-gradient(90deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.72) 42%, rgba(0, 0, 0, 0.35) 70%, rgba(0, 0, 0, 0.55) 100%),
       linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 40%, #000 100%);
   }
-  .ad-hero-inner {
+  .anime-detail-hero-inner {
     position: relative;
     z-index: 2;
     max-width: var(--page-max, 1600px);
@@ -880,18 +880,18 @@
     align-items: end;
     box-sizing: border-box;
   }
-  .ad-info { grid-area: info; }
-  .ad-poster-dock {
+  .anime-detail-info { grid-area: info; }
+  .anime-detail-poster-dock {
     grid-area: poster;
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
   }
-  .ad-poster {
+  .anime-detail-poster {
     width: 100%;
     max-width: 240px;
   }
-  .ad-poster img {
+  .anime-detail-poster img {
     width: 100%;
     aspect-ratio: 2 / 3;
     object-fit: cover;
@@ -901,17 +901,17 @@
       0 0 0 1px rgba(255, 255, 255, 0.08);
     background: #111;
   }
-  .ad-info {
+  .anime-detail-info {
     min-width: 0;
     padding-bottom: 0.25rem;
   }
-  .ad-native-title {
+  .anime-detail-native-title {
     margin: 0 0 0.35rem;
     color: rgba(255, 255, 255, 0.55);
     font-size: 0.85rem;
     font-weight: 600;
   }
-  .ad-title {
+  .anime-detail-title {
     margin: 0 0 0.75rem;
     font-size: clamp(1.75rem, 3.6vw, 2.75rem);
     font-weight: 900;
@@ -920,12 +920,12 @@
     color: #fff;
     text-shadow: 0 4px 28px rgba(0, 0, 0, 0.55);
   }
-  .ad-title:has(.ad-title-logo) {
+  .anime-detail-title:has(.anime-detail-title-logo) {
     min-height: clamp(80px, 10vw, 140px);
     display: flex;
     align-items: flex-end;
   }
-  .ad-title-logo {
+  .anime-detail-title-logo {
     display: block;
     width: auto;
     max-width: min(420px, 100%);
@@ -934,7 +934,7 @@
     object-position: left center;
     filter: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.72));
   }
-  .ad-meta {
+  .anime-detail-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem 0.9rem;
@@ -943,24 +943,24 @@
     font-size: 0.82rem;
     font-weight: 600;
   }
-  .ad-meta b {
+  .anime-detail-meta b {
     color: #fbbf24;
     font-weight: 800;
   }
-  .ad-genres {
+  .anime-detail-genres {
     margin: 0 0 0.9rem;
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.82rem;
     font-weight: 600;
   }
-  .ad-overview { max-width: 62ch; }
-  .ad-synopsis {
+  .anime-detail-overview { max-width: 62ch; }
+  .anime-detail-synopsis {
     margin: 0;
     font-size: 0.92rem;
     line-height: 1.55;
     color: rgba(255, 255, 255, 0.72);
   }
-  .ad-readmore {
+  .anime-detail-readmore {
     margin-top: 0.35rem;
     padding: 0;
     border: none;
@@ -971,12 +971,12 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .ad-utility-actions {
+  .anime-detail-utility-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-  .ad-utility-actions button {
+  .anime-detail-utility-actions button {
     flex: 1 1 auto;
     min-height: 40px;
     padding: 0.5rem 0.75rem;
@@ -990,19 +990,19 @@
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
-  .ad-utility-actions button:hover:not(:disabled) {
+  .anime-detail-utility-actions button:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.28);
   }
-  .ad-utility-actions button.active {
+  .anime-detail-utility-actions button.active {
     border-color: rgba(255, 138, 61, 0.45);
     color: var(--net-red, #ff8a3d);
   }
-  .ad-utility-actions button:disabled {
+  .anime-detail-utility-actions button:disabled {
     opacity: 0.55;
     cursor: not-allowed;
   }
-  .ad-btn {
+  .anime-detail-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1021,22 +1021,22 @@
       background 0.15s ease,
       border-color 0.15s ease;
   }
-  .ad-btn.primary {
+  .anime-detail-btn.primary {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: #fff;
     box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
   }
-  .ad-btn.primary:hover {
+  .anime-detail-btn.primary:hover {
     transform: translateY(-1px);
     filter: brightness(1.06);
   }
-  .ad-btn:disabled {
+  .anime-detail-btn:disabled {
     opacity: 0.55;
     cursor: not-allowed;
   }
 
   /* ===== BODY ===== */
-  .ad-body {
+  .anime-detail-body {
     max-width: var(--page-max, 1600px);
     margin: 0 auto;
     padding: 1.25rem var(--page-gutter, 2.5rem) 2.5rem;
@@ -1045,7 +1045,7 @@
     gap: 1.5rem;
     box-sizing: border-box;
   }
-  .ad-side {
+  .anime-detail-side {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
@@ -1054,19 +1054,19 @@
     position: sticky;
     top: 5rem;
   }
-  .ad-side-title {
+  .anime-detail-side-title {
     margin: 0 0 0.85rem;
     font-size: 1.05rem;
     font-weight: 800;
     color: #fff;
   }
-  .ad-facts {
+  .anime-detail-facts {
     margin: 0;
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
   }
-  .ad-fact dt {
+  .anime-detail-fact dt {
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -1074,7 +1074,7 @@
     color: rgba(255, 255, 255, 0.42);
     margin-bottom: 0.2rem;
   }
-  .ad-fact dd {
+  .anime-detail-fact dd {
     margin: 0;
     font-size: 0.88rem;
     font-weight: 600;
@@ -1083,17 +1083,17 @@
     word-break: break-word;
   }
 
-  .ad-main {
+  .anime-detail-main {
     min-width: 0;
   }
-  .ad-tabs {
+  .anime-detail-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 0.15rem 1.25rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     margin-bottom: 1rem;
   }
-  .ad-tab {
+  .anime-detail-tab {
     appearance: none;
     border: none;
     background: none;
@@ -1105,10 +1105,10 @@
     cursor: pointer;
     position: relative;
   }
-  .ad-tab.active {
+  .anime-detail-tab.active {
     color: #60a5fa;
   }
-  .ad-tab.active::after {
+  .anime-detail-tab.active::after {
     content: "";
     position: absolute;
     left: 0;
@@ -1118,11 +1118,11 @@
     background: #3b82f6;
     border-radius: 2px 2px 0 0;
   }
-  .ad-tab:hover:not(.active) {
+  .anime-detail-tab:hover:not(.active) {
     color: #fff;
   }
 
-  .ad-ep-toolbar {
+  .anime-detail-ep-toolbar {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem 1rem;
@@ -1130,15 +1130,15 @@
     justify-content: space-between;
     margin-bottom: 1rem;
   }
-  .ad-ep-order,
-  .ad-ep-tools {
+  .anime-detail-ep-order,
+  .anime-detail-ep-tools {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.45rem;
   }
-  .ad-ep-tools { margin-left: auto; }
-  .ad-ep-range {
+  .anime-detail-ep-tools { margin-left: auto; }
+  .anime-detail-ep-range {
     height: 38px;
     display: inline-flex;
     align-items: center;
@@ -1149,7 +1149,7 @@
     background: rgba(255, 255, 255, 0.04);
     color: #EC5800;
   }
-  .ad-ep-range select {
+  .anime-detail-ep-range select {
     height: 100%;
     min-width: 130px;
     border: 0;
@@ -1162,15 +1162,15 @@
     font-weight: 750;
     cursor: pointer;
   }
-  .ad-ep-range:focus-within {
+  .anime-detail-ep-range:focus-within {
     border-color: rgba(236, 88, 0, 0.65);
   }
-  .ad-ep-label {
+  .anime-detail-ep-label {
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.5);
     font-weight: 600;
   }
-  .ad-mini {
+  .anime-detail-mini {
     appearance: none;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.04);
@@ -1182,12 +1182,12 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .ad-mini.active {
+  .anime-detail-mini.active {
     background: rgba(236, 88, 0, 0.18);
     border-color: rgba(236, 88, 0, 0.45);
     color: #EC5800;
   }
-  .ad-ep-search input {
+  .anime-detail-ep-search input {
     min-width: 180px;
     height: 38px;
     border-radius: 10px;
@@ -1198,22 +1198,22 @@
     font: inherit;
     font-size: 0.85rem;
   }
-  .ad-ep-search input::placeholder {
+  .anime-detail-ep-search input::placeholder {
     color: rgba(255, 255, 255, 0.4);
   }
 
-  .ad-ep-grid {
+  .anime-detail-ep-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 0.85rem;
   }
-  .ad-ep-card {
+  .anime-detail-ep-card {
     display: block;
     text-decoration: none;
     color: inherit;
     min-width: 0;
   }
-  .ad-ep-thumb {
+  .anime-detail-ep-thumb {
     position: relative;
     aspect-ratio: 16 / 10;
     border-radius: 10px;
@@ -1221,13 +1221,13 @@
     background: #151515;
     border: 1px solid rgba(255, 255, 255, 0.06);
   }
-  .ad-ep-thumb img {
+  .anime-detail-ep-thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     opacity: 0.92;
   }
-  .ad-ep-play {
+  .anime-detail-ep-play {
     position: absolute;
     inset: 0;
     display: grid;
@@ -1238,10 +1238,10 @@
     opacity: 0;
     transition: opacity 0.15s ease;
   }
-  .ad-ep-card:hover .ad-ep-play {
+  .anime-detail-ep-card:hover .anime-detail-ep-play {
     opacity: 1;
   }
-  .ad-ep-badge {
+  .anime-detail-ep-badge {
     position: absolute;
     left: 0.4rem;
     bottom: 0.4rem;
@@ -1252,7 +1252,7 @@
     font-weight: 800;
     color: #fff;
   }
-  .ad-ep-title {
+  .anime-detail-ep-title {
     margin: 0.4rem 0 0;
     font-size: 0.8rem;
     font-weight: 700;
@@ -1261,11 +1261,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .ad-ep-card.sk .ad-ep-thumb,
-  .ad-ep-line {
+  .anime-detail-ep-card.sk .anime-detail-ep-thumb,
+  .anime-detail-ep-line {
     background: rgba(255, 255, 255, 0.06);
   }
-  .ad-ep-line {
+  .anime-detail-ep-line {
     height: 0.7rem;
     border-radius: 4px;
     margin-top: 0.4rem;
@@ -1369,7 +1369,7 @@
     }
   }
 
-  .ad-trailer {
+  .anime-detail-trailer {
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 9;
@@ -1378,35 +1378,35 @@
     background: #000;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .ad-trailer iframe {
+  .anime-detail-trailer iframe {
     width: 100%;
     height: 100%;
     border: 0;
   }
-  .ad-empty {
+  .anime-detail-empty {
     color: rgba(255, 255, 255, 0.5);
     font-weight: 600;
     margin: 1rem 0;
   }
-  .ad-rows {
+  .anime-detail-rows {
     margin-top: 1.75rem;
   }
-  .ad-related {
+  .anime-detail-related {
     max-width: var(--page-max, 1500px);
     margin: 0 auto;
     padding: 0 var(--page-gutter, 2.5rem) 2.5rem;
     box-sizing: border-box;
   }
-  .ad-related .ad-rows:first-child {
+  .anime-detail-related .anime-detail-rows:first-child {
     margin-top: 0;
   }
   @media (max-width: 860px) {
-    .ad-related {
+    .anime-detail-related {
       padding: 0 var(--page-gutter-md, 1.25rem) 2rem;
     }
   }
   @media (max-width: 560px) {
-    .ad-related {
+    .anime-detail-related {
       padding: 0 var(--page-gutter-sm, 0.85rem) 1.75rem;
     }
   }
@@ -1430,12 +1430,12 @@
   }
 
   @media (max-width: 1100px) {
-    .ad-hero-inner {
+    .anime-detail-hero-inner {
       grid-template-columns: 180px 1fr;
       gap: 0 1.25rem;
       padding-top: 5rem;
     }
-    .ad-body {
+    .anime-detail-body {
       grid-template-columns: 220px 1fr;
     }
   }
@@ -1444,35 +1444,35 @@
     .mobile-only-tab {
       display: block;
     }
-    .ad-hero-inner {
+    .anime-detail-hero-inner {
       grid-template-columns: 140px 1fr;
       padding: 4.5rem var(--page-gutter-md, 1.25rem) 1.5rem;
     }
-    .ad-body {
+    .anime-detail-body {
       grid-template-columns: 1fr;
       padding: 1rem var(--page-gutter-md, 1.25rem) 2rem;
     }
-    .ad-side {
+    .anime-detail-side {
       display: none;
     }
-    .ad-side.active-mobile {
+    .anime-detail-side.active-mobile {
       display: block;
       position: static;
       order: 1;
     }
-    .ad-main {
+    .anime-detail-main {
       order: 1;
     }
-    .ad-main.hidden-mobile > :not(.ad-tabs) {
+    .anime-detail-main.hidden-mobile > :not(.anime-detail-tabs) {
       display: none;
     }
   }
 
   @media (max-width: 560px) {
-    .ad-hero {
+    .anime-detail-hero {
       min-height: 0;
     }
-    .ad-hero-inner {
+    .anime-detail-hero-inner {
       grid-template-columns: 1fr;
       grid-template-areas:
         "poster"
@@ -1480,35 +1480,35 @@
       justify-items: start;
       padding: 4.25rem var(--page-gutter-sm, 0.75rem) 1.5rem;
     }
-    .ad-poster-dock {
+    .anime-detail-poster-dock {
       width: 100%;
     }
-    .ad-poster {
+    .anime-detail-poster {
       max-width: 150px;
     }
-    .ad-title {
+    .anime-detail-title {
       font-size: 1.45rem;
     }
-    .ad-btn.primary {
+    .anime-detail-btn.primary {
       width: 100%;
     }
-    .ad-body {
+    .anime-detail-body {
       padding: 0.85rem var(--page-gutter-sm, 0.75rem) 1.75rem;
     }
-    .ad-ep-tools {
+    .anime-detail-ep-tools {
       width: 100%;
       margin-left: 0;
     }
-    .ad-ep-range,
-    .ad-ep-search {
+    .anime-detail-ep-range,
+    .anime-detail-ep-search {
       flex: 1 1 100%;
     }
-    .ad-ep-range select,
-    .ad-ep-search input {
+    .anime-detail-ep-range select,
+    .anime-detail-ep-search input {
       width: 100%;
       min-width: 0;
     }
-    .ad-ep-grid {
+    .anime-detail-ep-grid {
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     }
     .chars-rich-grid { grid-template-columns: 1fr; }
@@ -1521,43 +1521,43 @@
   }
 
   /* Editorial detail desk */
-  .ad-hero { background:#070706; }
-  .ad-hero-bg { filter:saturate(.78) contrast(1.03); }
-  .ad-hero-shade { background:linear-gradient(90deg,#070706 0%,rgba(7,7,6,.88) 38%,rgba(7,7,6,.35) 72%),linear-gradient(180deg,rgba(7,7,6,.12),#070706 100%); }
-  .ad-hero-inner,.ad-body { max-width:var(--page-max,1500px); }
-  .ad-poster img { border-radius:4px;box-shadow:none;border:1px solid #302923; }
-  .ad-title { color:var(--editorial-text,#f1ece4);font-size:clamp(2rem,4vw,3.7rem);line-height:.98;letter-spacing:-.055em;text-shadow:none; }
-  .ad-genres,.ad-meta { border-color:var(--editorial-line,#28231f); }
-  .ad-btn { border-radius:3px;transition:background .15s,border-color .15s,color .15s; }
-  .ad-btn.primary { background:var(--editorial-accent,#df886b);color:#170c09;box-shadow:none; }
-  .ad-btn.primary:hover { transform:none;filter:none;background:var(--editorial-accent-hover,#f1a287); }
-  .ad-utility-actions button { border-radius:3px;background:#0d0c0b;border-color:#332c27; }
-  .ad-utility-actions button:hover:not(:disabled) { background:#171310;border-color:#4b3d35; }
-  .ad-side { border-radius:4px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f); }
-  .ad-tabs { border-color:var(--editorial-line,#28231f); }.ad-tab.active{color:var(--editorial-accent-hover,#f1a287)}.ad-tab.active::after{height:1px;background:var(--editorial-accent,#df886b)}
-  .ad-mini,.ad-ep-search input { border-radius:3px;background:#0d0c0b;border-color:#332c27; }.ad-mini.active{background:#df886b;color:#170c09;border-color:#df886b}
-  .ad-ep-grid { gap:1.4rem .8rem; }.ad-ep-thumb { border-radius:3px;border-color:#302923; }.ad-ep-badge{border-radius:2px}.ad-ep-play{background:rgba(7,7,6,.55)}
-  .char-rich { border-radius:4px;background:#0d0c0b;border-color:#28231f; }.char-rich:hover{background:#151210;border-color:#4a3c35}.char-rich-art,.ad-trailer{border-radius:3px}.char-role-badge.main{background:#df886b;color:#170c09;border-color:#df886b}
-  @media(max-width:860px){.ad-hero-inner{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}.ad-body{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}}
-  @media(max-width:560px){.ad-hero-inner,.ad-body{padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right))}}
+  .anime-detail-hero { background:#070706; }
+  .anime-detail-hero-bg { filter:saturate(.78) contrast(1.03); }
+  .anime-detail-hero-shade { background:linear-gradient(90deg,#070706 0%,rgba(7,7,6,.88) 38%,rgba(7,7,6,.35) 72%),linear-gradient(180deg,rgba(7,7,6,.12),#070706 100%); }
+  .anime-detail-hero-inner,.anime-detail-body { max-width:var(--page-max,1500px); }
+  .anime-detail-poster img { border-radius:4px;box-shadow:none;border:1px solid #302923; }
+  .anime-detail-title { color:var(--editorial-text,#f1ece4);font-size:clamp(2rem,4vw,3.7rem);line-height:.98;letter-spacing:-.055em;text-shadow:none; }
+  .anime-detail-genres,.anime-detail-meta { border-color:var(--editorial-line,#28231f); }
+  .anime-detail-btn { border-radius:3px;transition:background .15s,border-color .15s,color .15s; }
+  .anime-detail-btn.primary { background:var(--editorial-accent,#df886b);color:#170c09;box-shadow:none; }
+  .anime-detail-btn.primary:hover { transform:none;filter:none;background:var(--editorial-accent-hover,#f1a287); }
+  .anime-detail-utility-actions button { border-radius:3px;background:#0d0c0b;border-color:#332c27; }
+  .anime-detail-utility-actions button:hover:not(:disabled) { background:#171310;border-color:#4b3d35; }
+  .anime-detail-side { border-radius:4px;background:var(--editorial-surface,#0d0c0b);border-color:var(--editorial-line,#28231f); }
+  .anime-detail-tabs { border-color:var(--editorial-line,#28231f); }.anime-detail-tab.active{color:var(--editorial-accent-hover,#f1a287)}.anime-detail-tab.active::after{height:1px;background:var(--editorial-accent,#df886b)}
+  .anime-detail-mini,.anime-detail-ep-search input { border-radius:3px;background:#0d0c0b;border-color:#332c27; }.anime-detail-mini.active{background:#df886b;color:#170c09;border-color:#df886b}
+  .anime-detail-ep-grid { gap:1.4rem .8rem; }.anime-detail-ep-thumb { border-radius:3px;border-color:#302923; }.anime-detail-ep-badge{border-radius:2px}.anime-detail-ep-play{background:rgba(7,7,6,.55)}
+  .char-rich { border-radius:4px;background:#0d0c0b;border-color:#28231f; }.char-rich:hover{background:#151210;border-color:#4a3c35}.char-rich-art,.anime-detail-trailer{border-radius:3px}.char-role-badge.main{background:#df886b;color:#170c09;border-color:#df886b}
+  @media(max-width:860px){.anime-detail-hero-inner{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}.anime-detail-body{padding-left:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-md,1.25rem),env(safe-area-inset-right))}}
+  @media(max-width:560px){.anime-detail-hero-inner,.anime-detail-body{padding-left:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-left));padding-right:max(var(--page-gutter-sm,.85rem),env(safe-area-inset-right))}}
 
   /* Mobile cinematic detail composition */
   @media (max-width: 560px) {
-    .ad-hero {
+    .anime-detail-hero {
       min-height: 0;
       border-bottom: 1px solid var(--editorial-line, #28231f);
     }
-    .ad-hero-bg {
+    .anime-detail-hero-bg {
       background-position: 58% top;
       transform: scale(1.02);
       filter: saturate(.72) contrast(1.05);
     }
-    .ad-hero-shade {
+    .anime-detail-hero-shade {
       background:
         linear-gradient(90deg, rgba(7,7,6,.92) 0%, rgba(7,7,6,.56) 54%, rgba(7,7,6,.28) 100%),
         linear-gradient(180deg, rgba(7,7,6,.14) 0%, rgba(7,7,6,.72) 35%, #070706 76%, #070706 100%);
     }
-    .ad-hero-inner {
+    .anime-detail-hero-inner {
       grid-template-columns: 116px minmax(0, 1fr);
       grid-template-areas:
         "poster info"
@@ -1570,27 +1570,27 @@
       padding-top: 3.7rem;
       padding-bottom: 1.2rem;
     }
-    .ad-info,
-    .ad-poster-dock {
+    .anime-detail-info,
+    .anime-detail-poster-dock {
       display: contents;
     }
-    .ad-heading {
+    .anime-detail-heading {
       grid-area: info;
       min-width: 0;
       align-self: end;
       padding-bottom: .05rem;
     }
-    .ad-poster {
+    .anime-detail-poster {
       grid-area: poster;
       width: 116px;
       max-width: none;
       align-self: end;
     }
-    .ad-poster img {
+    .anime-detail-poster img {
       border-color: #4a3c35;
       box-shadow: 9px 12px 0 rgba(7, 7, 6, .5);
     }
-    .ad-native-title {
+    .anime-detail-native-title {
       overflow: hidden;
       margin: 0 0 .32rem;
       color: #9a9189;
@@ -1599,7 +1599,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .ad-title {
+    .anime-detail-title {
       margin-bottom: .62rem;
       color: var(--editorial-text, #f1ece4);
       font-size: clamp(1.28rem, 6vw, 1.52rem);
@@ -1607,13 +1607,13 @@
       letter-spacing: -.045em;
       text-wrap: balance;
     }
-    .ad-meta {
+    .anime-detail-meta {
       gap: .32rem;
       margin: 0 0 .48rem;
       font-size: .66rem;
       line-height: 1;
     }
-    .ad-meta span {
+    .anime-detail-meta span {
       min-height: 24px;
       display: inline-flex;
       align-items: center;
@@ -1624,10 +1624,10 @@
       border-radius: 2px;
       text-transform: capitalize;
     }
-    .ad-meta b {
+    .anime-detail-meta b {
       color: #efa086;
     }
-    .ad-genres {
+    .anime-detail-genres {
       display: -webkit-box;
       overflow: hidden;
       margin: 0;
@@ -1638,13 +1638,13 @@
       -webkit-line-clamp: 2;
       line-clamp: 2;
     }
-    .ad-overview {
+    .anime-detail-overview {
       grid-area: overview;
       max-width: none;
       padding-top: .15rem;
       border-top: 1px solid rgba(73, 61, 53, .62);
     }
-    .ad-synopsis {
+    .anime-detail-synopsis {
       display: -webkit-box;
       overflow: hidden;
       padding-top: .78rem;
@@ -1655,13 +1655,13 @@
       -webkit-line-clamp: 4;
       line-clamp: 4;
     }
-    .ad-synopsis.open {
+    .anime-detail-synopsis.open {
       display: block;
       overflow: visible;
       -webkit-line-clamp: unset;
       line-clamp: unset;
     }
-    .ad-readmore {
+    .anime-detail-readmore {
       min-height: 38px;
       display: inline-flex;
       align-items: center;
@@ -1669,7 +1669,7 @@
       color: #efa086;
       font-size: .76rem;
     }
-    .ad-btn.primary {
+    .anime-detail-btn.primary {
       grid-area: primary;
       width: 100%;
       min-height: 48px;
@@ -1679,13 +1679,13 @@
       font-size: .86rem;
       letter-spacing: -.01em;
     }
-    .ad-utility-actions {
+    .anime-detail-utility-actions {
       grid-area: utilities;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: .4rem;
     }
-    .ad-utility-actions button {
+    .anime-detail-utility-actions button {
       min-width: 0;
       min-height: 46px;
       padding: .52rem .3rem;
@@ -1698,15 +1698,15 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .ad-utility-actions button.active {
+    .anime-detail-utility-actions button.active {
       color: #efa086;
       border-color: #8b5746;
       box-shadow: inset 0 -2px #df886b;
     }
-    .ad-body {
+    .anime-detail-body {
       padding-top: .9rem;
     }
-    .ad-tabs {
+    .anime-detail-tabs {
       flex-wrap: nowrap;
       gap: 1.15rem;
       overflow-x: auto;
@@ -1715,20 +1715,20 @@
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
     }
-    .ad-tabs::-webkit-scrollbar {
+    .anime-detail-tabs::-webkit-scrollbar {
       display: none;
     }
-    .ad-tab {
+    .anime-detail-tab {
       flex: 0 0 auto;
       min-height: 46px;
       padding: .75rem 0;
       font-size: .78rem;
       white-space: nowrap;
     }
-    .ad-main {
+    .anime-detail-main {
       order: 0;
     }
-    .ad-side.active-mobile {
+    .anime-detail-side.active-mobile {
       order: 1;
       margin-top: 0;
     }

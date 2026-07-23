@@ -6,8 +6,7 @@
 
 /** Route prefixes where ads are allowed. Everything else is ad-free. */
 const AD_ALLOWED_PREFIXES = [
-	"/watch",    // player pages
-	"/download", // download page
+	"/watch", // player pages only
 ] as const;
 
 /** True when the popunder is allowed on the given pathname. */
